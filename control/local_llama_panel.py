@@ -993,6 +993,7 @@ PANEL = PanelState()
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "LocalLlamaPanel/0.1"
+    protocol_version = "HTTP/1.1"
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -1083,7 +1084,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
         self.send_header("Cache-Control", "no-cache")
-        self.send_header("Connection", "keep-alive")
+        self.send_header("Connection", "close")
         self.send_header("X-Local-Llama-Proxy", "panel-8090")
         self.end_headers()
 
@@ -1164,6 +1165,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
+        self.send_header("Connection", "close")
         self.end_headers()
         self.wfile.write(data)
 
@@ -1172,6 +1174,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(raw)))
+        self.send_header("Connection", "close")
         self.end_headers()
         self.wfile.write(raw)
 
@@ -1182,6 +1185,7 @@ class Handler(BaseHTTPRequestHandler):
             content_type = response.headers.get("Content-Type") or "application/json"
             self.send_header("Content-Type", content_type)
             self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "close")
             self.send_header("X-Local-Llama-Proxy", "panel-8090")
             self.end_headers()
             while True:
