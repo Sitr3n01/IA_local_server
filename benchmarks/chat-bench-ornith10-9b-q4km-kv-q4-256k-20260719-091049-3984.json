@@ -1,0 +1,14 @@
+﻿{
+    "profile":  "ornith10-9b-q4km-kv-q4-256k",
+    "runtime":  "amd",
+    "context_size":  262144,
+    "cache_type_k":  "q4_0",
+    "cache_type_v":  "q4_0",
+    "ready":  true,
+    "request_ok":  true,
+    "request_error":  null,
+    "prompt_tokens":  688,
+    "prompt_tps":  2784.99,
+    "gen_tokens":  17,
+    "gen_tps":  85.03
+}

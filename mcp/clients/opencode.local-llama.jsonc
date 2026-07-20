@@ -1,0 +1,23 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "local-llama-executor": {
+      "type": "local",
+      "command": [
+        "python",
+        "C:\\Users\\Sitr3n\\Documents\\Codex\\2026-07-18\\vam\\work\\local-llama\\mcp\\local-llama-mcp.py"
+      ],
+      "enabled": true,
+      "environment": {
+        "LOCAL_LLAMA_BASE_URL": "http://127.0.0.1:8080/v1",
+        "LOCAL_LLAMA_PANEL_URL": "http://127.0.0.1:8090",
+        "LOCAL_LLAMA_MODEL": "local-model",
+        "LOCAL_LLAMA_DEFAULT_PROFILE": "ornith10-9b-q4km-kv-q4-128k",
+        "LOCAL_LLAMA_DEFAULT_RUNTIME": "amd",
+        "LOCAL_LLAMA_CONTEXT_LIMIT": "131072",
+        "LOCAL_LLAMA_AUTOSTART": "1",
+        "LOCAL_LLAMA_AUTOSTART_PANEL": "1"
+      }
+    }
+  }
+}

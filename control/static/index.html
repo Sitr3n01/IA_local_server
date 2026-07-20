@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local Llama Control</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7f8;
+      --ink: #152027;
+      --muted: #5b6872;
+      --line: #d7dee2;
+      --panel: #ffffff;
+      --blue: #1f6feb;
+      --green: #17803d;
+      --amber: #9a6700;
+      --red: #b42318;
+      --shadow: 0 12px 30px rgba(20, 32, 39, .08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+    header {
+      min-height: 84px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 22px clamp(18px, 4vw, 44px);
+      border-bottom: 1px solid var(--line);
+      background: #ffffff;
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 24px; font-weight: 720; }
+    h2 { font-size: 16px; font-weight: 700; }
+    h3 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 20px;
+      padding: 22px clamp(18px, 4vw, 44px);
+    }
+    section, aside {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .stack { display: grid; gap: 20px; }
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .panel-body { padding: 16px; display: grid; gap: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    label { display: grid; gap: 6px; color: var(--muted); font-weight: 650; }
+    select, input {
+      width: 100%;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0 10px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+    }
+    button {
+      min-height: 38px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 0 12px;
+      background: var(--blue);
+      color: white;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.secondary { background: #ffffff; color: var(--ink); border-color: var(--line); }
+    button.danger { background: var(--red); }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .status-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      border-radius: 999px;
+      padding: 0 10px;
+      background: #eef2f5;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .pill.ok { background: #e8f5ec; color: var(--green); }
+    .pill.warn { background: #fff5d6; color: var(--amber); }
+    .pill.err { background: #fdeceb; color: var(--red); }
+    .profile-list { display: grid; gap: 8px; }
+    .profile-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .profile-row:last-child { border-bottom: 0; }
+    .muted { color: var(--muted); }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    pre {
+      min-height: 240px;
+      max-height: 420px;
+      overflow: auto;
+      margin: 0;
+      padding: 12px;
+      border-radius: 6px;
+      background: #111820;
+      color: #d8e1e8;
+      white-space: pre-wrap;
+    }
+    aside {
+      position: sticky;
+      top: 16px;
+      height: calc(100vh - 32px);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+    }
+    .drawer-body { padding: 16px; overflow: auto; display: grid; gap: 14px; }
+    .session {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+    .drawer-foot { padding: 16px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+    @media (max-width: 980px) {
+      main { grid-template-columns: 1fr; }
+      aside { position: static; height: auto; }
+      .grid { grid-template-columns: 1fr; }
+      header { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Local Llama Control</h1>
+      <p class="muted">Painel localhost para modelo, MCP e compactacao de contexto.</p>
+    </div>
+    <div class="status-line">
+      <span id="modelPill" class="pill warn">modelo parado</span>
+      <span id="mcpPill" class="pill warn">MCP parado</span>
+      <span id="tokenPill" class="pill">ctx 0%</span>
+      <a href="http://127.0.0.1:8080" target="_blank" class="pill">Web UI llama.cpp</a>
+      <a href="http://127.0.0.1:8090/v1/models" target="_blank" class="pill">proxy /v1/models</a>
+    </div>
+  </header>
+  <main>
+    <div class="stack">
+      <section>
+        <div class="panel-head">
+          <h2>Modelo</h2>
+          <span id="healthText" class="muted">checando...</span>
+        </div>
+        <div class="panel-body">
+          <div class="grid">
+            <label>Perfil
+              <select id="profileSelect"></select>
+            </label>
+            <label>Runtime
+              <select id="runtimeSelect">
+                <option value="amd">amd</option>
+                <option value="unsloth">unsloth</option>
+              </select>
+            </label>
+            <label>Contexto
+              <input id="contextInput" type="number" min="1024" step="1024">
+            </label>
+            <label>KV K
+              <input id="cacheKInput" type="text">
+            </label>
+            <label>KV V
+              <input id="cacheVInput" type="text">
+            </label>
+            <label>Alias
+              <input id="aliasInput" type="text">
+            </label>
+          </div>
+          <div class="actions">
+            <button id="startModelBtn">Iniciar modelo</button>
+            <button id="stopModelBtn" class="danger">Parar modelo</button>
+            <button id="startSmallBtn" class="secondary">Iniciar Qwen 4B paralelo</button>
+            <button id="stopSmallBtn" class="secondary">Parar paralelo</button>
+            <button id="refreshBtn" class="secondary">Atualizar</button>
+          </div>
+          <div id="activeModel" class="mono muted"></div>
+        </div>
+      </section>
+      <section>
+        <div class="panel-head">
+          <h2>Perfis locais</h2>
+          <span class="muted">Qwen usa AMD; Gemma usa Unsloth</span>
+        </div>
+        <div id="profileList" class="panel-body profile-list"></div>
+      </section>
+      <section>
+        <div class="panel-head">
+          <h2>MCP</h2>
+          <span class="muted">stdio para harnesses locais</span>
+        </div>
+        <div class="panel-body">
+          <div class="actions">
+            <button id="startMcpBtn">Iniciar MCP de teste</button>
+            <button id="selftestMcpBtn" class="secondary">Validar tools/list</button>
+            <button id="stopMcpBtn" class="danger">Parar MCP</button>
+          </div>
+          <p class="muted">Para um harness real, configure o comando Python do MCP. O processo iniciado aqui serve para validacao e ferramentas da gaveta.</p>
+          <pre id="mcpOutput"></pre>
+        </div>
+      </section>
+      <section>
+        <div class="panel-head">
+          <h2>Logs</h2>
+          <div class="actions">
+            <button class="secondary logBtn" data-kind="server">llama-server</button>
+            <button class="secondary logBtn" data-kind="panel">painel</button>
+            <button class="secondary logBtn" data-kind="mcp">MCP</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <pre id="logOutput"></pre>
+        </div>
+      </section>
+    </div>
+    <aside>
+      <div class="panel-head">
+        <div>
+          <h2>Gaveta de contexto</h2>
+          <p class="muted">Compactacao automatica no MCP</p>
+        </div>
+      </div>
+      <div class="drawer-body">
+        <div class="status-line">
+          <span id="sotaPill" class="pill warn">SOTA remoto off</span>
+          <span id="thresholdPill" class="pill">85%</span>
+          <span id="processingPill" class="pill">req 0</span>
+        </div>
+        <label>Sessao
+          <input id="sessionInput" value="default">
+        </label>
+        <div id="sessionsList"></div>
+      </div>
+      <div class="drawer-foot">
+        <button id="compactBtn">Compactar agora</button>
+        <button id="contextRefreshBtn" class="secondary">Atualizar gaveta</button>
+      </div>
+    </aside>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let profiles = [];
+    let activeProfile = null;
+
+    async function api(path, options = {}) {
+      const res = await fetch(path, {
+        ...options,
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      return data;
+    }
+
+    function setPill(el, ok, text) {
+      el.className = "pill " + (ok ? "ok" : "warn");
+      el.textContent = text;
+    }
+
+    function fillFromProfile(profile) {
+      activeProfile = profile;
+      $("runtimeSelect").value = profile.recommended_runtime;
+      $("contextInput").value = profile.context_size;
+      $("cacheKInput").value = profile.cache_type_k;
+      $("cacheVInput").value = profile.cache_type_v;
+      $("aliasInput").value = "local-model";
+    }
+
+    async function loadProfiles() {
+      const data = await api("/api/profiles");
+      profiles = data.profiles;
+      $("profileSelect").innerHTML = profiles.map(p => `<option value="${p.id}">${p.display_name || p.id}</option>`).join("");
+      $("profileSelect").value = data.default_profile_id;
+      fillFromProfile(profiles.find(p => p.id === data.default_profile_id) || profiles[0]);
+      $("profileList").innerHTML = profiles.map(p => `
+        <div class="profile-row">
+          <div>
+            <strong>${p.display_name || p.id}</strong>
+            <div class="muted">${p.family || ""} · ${p.context_size || ""} ctx · KV ${p.cache_type_k || ""}/${p.cache_type_v || ""}</div>
+            <div class="mono muted">${p.model_path}</div>
+          </div>
+          <span class="pill ${p.model_exists ? "ok" : "err"}">${p.model_exists ? "arquivo ok" : "sem arquivo"}</span>
+          <span class="pill">${p.recommended_runtime}</span>
+        </div>
+      `).join("");
+    }
+
+    async function refreshStatus() {
+      const data = await api("/api/status");
+      setPill($("modelPill"), data.model.alive, data.model.alive ? "modelo ativo" : "modelo parado");
+      setPill($("mcpPill"), data.mcp.alive, data.mcp.alive ? "MCP ativo" : "MCP parado");
+      $("healthText").textContent = data.model.health.ok ? "API /v1 pronta" : "API indisponivel";
+      $("activeModel").textContent = JSON.stringify({ primary: data.model.active || null, small_parallel: data.small_parallel.active || null, last_route: data.last_route || null }, null, 2);
+      renderTokens(data.tokens || {});
+      renderCompaction(data.compaction);
+    }
+
+    function renderTokens(tokens) {
+      const pct = tokens.estimated_context_percent ?? 0;
+      $("tokenPill").className = "pill " + (tokens.force_compact ? "err" : tokens.warning ? "warn" : "ok");
+      $("tokenPill").textContent = `ctx ${pct}%`;
+      $("processingPill").textContent = `req ${tokens.requests_processing ?? 0}${tokens.tokens_per_second ? ` | ${tokens.tokens_per_second} tok/s` : ""}`;
+    }
+
+    function renderCompaction(data) {
+      const cfg = data.config || {};
+      $("thresholdPill").textContent = Math.round((cfg.default_threshold || 0.85) * 100) + "%";
+      const sota = cfg.sota_configured;
+      $("sotaPill").className = "pill " + (sota ? "ok" : "warn");
+      $("sotaPill").textContent = sota ? "SOTA remoto on" : "SOTA remoto off";
+      const sessions = data.sessions || {};
+      const names = Object.keys(sessions);
+      $("sessionsList").innerHTML = names.length ? names.map(name => {
+        const s = sessions[name];
+        const lc = s.last_compaction || {};
+        return `<div class="session">
+          <strong>${name}</strong>
+          <span class="muted">tokens estimados: ${s.estimated_tokens || 0}</span>
+          <span class="muted">uso: ${Math.round((s.usage_ratio || 0) * 1000) / 10}% de ${s.context_limit || "?"}</span>
+          <span class="muted">mensagens recentes: ${s.history_messages || 0}</span>
+          <span class="muted">ultimo resumo: ${lc.layer || "nenhum"}</span>
+          <span class="muted">compactacao: ${s.force_compact ? "forcada" : s.compact_now ? "necessaria" : s.warning ? "alerta" : "normal"}</span>
+          <div class="mono">${(s.summary_preview || "").slice(0, 500)}</div>
+        </div>`;
+      }).join("") : `<p class="muted">Nenhuma sessao MCP registrada ainda.</p>`;
+    }
+
+    async function startModel() {
+      const body = {
+        profile_id: $("profileSelect").value,
+        runtime: $("runtimeSelect").value,
+        context_size: Number($("contextInput").value),
+        cache_type_k: $("cacheKInput").value,
+        cache_type_v: $("cacheVInput").value,
+        alias: $("aliasInput").value
+      };
+      await api("/api/model/start", { method: "POST", body: JSON.stringify(body) });
+      await refreshStatus();
+    }
+
+    async function loadLogs(kind = "server") {
+      const data = await api(`/api/logs?kind=${encodeURIComponent(kind)}&lines=240`);
+      $("logOutput").textContent = data.path ? `${data.path}\n\n${data.text}` : "sem log";
+    }
+
+    $("profileSelect").addEventListener("change", () => fillFromProfile(profiles.find(p => p.id === $("profileSelect").value)));
+    $("startModelBtn").addEventListener("click", () => startModel().catch(err => alert(err.message)));
+    $("stopModelBtn").addEventListener("click", () => api("/api/model/stop", { method: "POST", body: "{}" }).then(refreshStatus).catch(err => alert(err.message)));
+    $("startSmallBtn").addEventListener("click", () => api("/api/small/start", { method: "POST", body: JSON.stringify({ profile_id: "qwen35-4b-q4km-kv-q4-64k" }) }).then(refreshStatus).catch(err => alert(err.message)));
+    $("stopSmallBtn").addEventListener("click", () => api("/api/small/stop", { method: "POST", body: "{}" }).then(refreshStatus).catch(err => alert(err.message)));
+    $("refreshBtn").addEventListener("click", () => refreshStatus().catch(err => alert(err.message)));
+    $("startMcpBtn").addEventListener("click", () => api("/api/mcp/start", { method: "POST", body: "{}" }).then(data => { $("mcpOutput").textContent = JSON.stringify(data, null, 2); return refreshStatus(); }).catch(err => alert(err.message)));
+    $("stopMcpBtn").addEventListener("click", () => api("/api/mcp/stop", { method: "POST", body: "{}" }).then(refreshStatus).catch(err => alert(err.message)));
+    $("selftestMcpBtn").addEventListener("click", () => api("/api/mcp/selftest", { method: "POST", body: "{}" }).then(data => $("mcpOutput").textContent = JSON.stringify(data, null, 2)).catch(err => alert(err.message)));
+    $("compactBtn").addEventListener("click", () => api("/api/compaction/compact", { method: "POST", body: JSON.stringify({ session_id: $("sessionInput").value || "default", layer: "local" }) }).then(data => { $("mcpOutput").textContent = JSON.stringify(data, null, 2); return refreshStatus(); }).catch(err => alert(err.message)));
+    $("contextRefreshBtn").addEventListener("click", () => refreshStatus().catch(err => alert(err.message)));
+    document.querySelectorAll(".logBtn").forEach(btn => btn.addEventListener("click", () => loadLogs(btn.dataset.kind)));
+
+    loadProfiles().then(refreshStatus).then(() => loadLogs("server")).catch(err => alert(err.message));
+    setInterval(refreshStatus, 5000);
+  </script>
+</body>
+</html>

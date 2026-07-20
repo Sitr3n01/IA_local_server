@@ -1,0 +1,14 @@
+﻿{
+    "profile":  "gemma4-26b-a4b-it-ud-q4km-kv-q4-64k",
+    "runtime":  "unsloth",
+    "context_size":  65536,
+    "cache_type_k":  "q4_0",
+    "cache_type_v":  "q4_0",
+    "ready":  true,
+    "request_ok":  true,
+    "request_error":  null,
+    "prompt_tokens":  690,
+    "prompt_tps":  151.04,
+    "gen_tokens":  14,
+    "gen_tps":  22.12
+}

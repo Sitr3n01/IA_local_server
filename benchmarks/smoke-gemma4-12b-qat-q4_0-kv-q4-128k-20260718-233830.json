@@ -1,0 +1,10 @@
+﻿{
+    "profile":  "gemma4-12b-qat-q4_0-kv-q4-128k",
+    "runtime":  "unsloth",
+    "context_size":  131072,
+    "cache_type_k":  "q4_0",
+    "cache_type_v":  "q4_0",
+    "models_endpoint":  true,
+    "chat_endpoint":  true,
+    "chat_preview":  ""
+}

@@ -1,0 +1,46 @@
+﻿{
+    "profile":  "gemma4-26b-a4b-it-ud-q4km-kv-q4-64k",
+    "runtime":  "unsloth",
+    "context_size":  65536,
+    "cache_type_k":  "q4_0",
+    "cache_type_v":  "q4_0",
+    "ready":  true,
+    "passed":  4,
+    "total":  4,
+    "prompt_tps_last":  164.63,
+    "gen_tps_last":  25.8,
+    "tests":  [
+                  {
+                      "id":  "instruction_exact",
+                      "passed":  true,
+                      "expected":  "ALFA-739",
+                      "answer":  "ALFA-739",
+                      "raw":  "ALFA-739",
+                      "error":  null
+                  },
+                  {
+                      "id":  "arithmetic",
+                      "passed":  true,
+                      "expected":  "2555",
+                      "answer":  "2555",
+                      "raw":  "2555",
+                      "error":  null
+                  },
+                  {
+                      "id":  "list_reasoning",
+                      "passed":  true,
+                      "expected":  "[2, 4, 5, 6]",
+                      "answer":  "[2, 4, 5, 6]",
+                      "raw":  "[2, 4, 5, 6]",
+                      "error":  null
+                  },
+                  {
+                      "id":  "local_config_recall",
+                      "passed":  true,
+                      "expected":  "8090 local-model 85%",
+                      "answer":  "8090, local-model, 85%",
+                      "raw":  "8090, local-model, 85%",
+                      "error":  null
+                  }
+              ]
+}

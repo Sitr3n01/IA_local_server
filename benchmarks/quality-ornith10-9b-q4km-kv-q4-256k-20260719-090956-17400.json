@@ -1,0 +1,46 @@
+﻿{
+    "profile":  "ornith10-9b-q4km-kv-q4-256k",
+    "runtime":  "amd",
+    "context_size":  262144,
+    "cache_type_k":  "q4_0",
+    "cache_type_v":  "q4_0",
+    "ready":  true,
+    "passed":  3,
+    "total":  4,
+    "prompt_tps_last":  425.34,
+    "gen_tps_last":  17.66,
+    "tests":  [
+                  {
+                      "id":  "instruction_exact",
+                      "passed":  true,
+                      "expected":  "ALFA-739",
+                      "answer":  "ALFA-739",
+                      "raw":  "\u003c/think\u003e\n\nALFA-739",
+                      "error":  null
+                  },
+                  {
+                      "id":  "arithmetic",
+                      "passed":  false,
+                      "expected":  "2555",
+                      "answer":  "2561",
+                      "raw":  "\u003c/think\u003e\n\n2561",
+                      "error":  null
+                  },
+                  {
+                      "id":  "list_reasoning",
+                      "passed":  true,
+                      "expected":  "[2, 4, 5, 6]",
+                      "answer":  "[2, 4, 5, 6]",
+                      "raw":  "\u003c/think\u003e\n\n[2, 4, 5, 6]",
+                      "error":  null
+                  },
+                  {
+                      "id":  "local_config_recall",
+                      "passed":  true,
+                      "expected":  "8090 local-model 85%",
+                      "answer":  "8090, local-model, 85%",
+                      "raw":  "\u003c/think\u003e\n\n8090, local-model, 85%",
+                      "error":  null
+                  }
+              ]
+}
