@@ -8,6 +8,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -43,6 +44,14 @@ DEFAULT_CONTEXT_LIMIT = 131072
 
 def now_stamp():
     return time.strftime("%Y%m%d-%H%M%S")
+
+
+def log_exception(context, exc):
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    with (LOG_DIR / "panel-error.log").open("a", encoding="utf-8", errors="replace") as f:
+        f.write(f"[{time.strftime('%Y-%m-%dT%H:%M:%S%z')}] {context}\n")
+        f.write("".join(traceback.format_exception(type(exc), exc, exc.__traceback__)))
+        f.write("\n")
 
 
 def read_json(path, default):
@@ -1019,6 +1028,7 @@ class Handler(BaseHTTPRequestHandler):
         except urllib.error.HTTPError as exc:
             return self.send_upstream(exc)
         except Exception as exc:
+            log_exception(f"{self.command} {self.path}", exc)
             return self.error(500, str(exc))
 
     def do_POST(self):
@@ -1059,6 +1069,7 @@ class Handler(BaseHTTPRequestHandler):
         except urllib.error.HTTPError as exc:
             return self.send_upstream(exc)
         except Exception as exc:
+            log_exception(f"{self.command} {self.path}", exc)
             return self.error(500, str(exc))
 
     def read_body(self):

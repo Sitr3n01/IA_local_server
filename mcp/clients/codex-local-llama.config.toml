@@ -1,6 +1,6 @@
 [mcp_servers.local-llama-executor]
 command = "python"
-args = ["C:\\Users\\Sitr3n\\Documents\\Codex\\2026-07-18\\vam\\work\\local-llama\\mcp\\local-llama-mcp.py"]
+args = ["C:\\IA\\local-llama\\mcp\\local-llama-mcp.py"]
 
 [mcp_servers.local-llama-executor.env]
 LOCAL_LLAMA_BASE_URL = "http://127.0.0.1:8080/v1"

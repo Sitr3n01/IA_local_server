@@ -5,7 +5,7 @@
       "type": "local",
       "command": [
         "python",
-        "C:\\Users\\Sitr3n\\Documents\\Codex\\2026-07-18\\vam\\work\\local-llama\\mcp\\local-llama-mcp.py"
+        "C:\\IA\\local-llama\\mcp\\local-llama-mcp.py"
       ],
       "enabled": true,
       "environment": {
