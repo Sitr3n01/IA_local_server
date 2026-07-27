@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/cia-local-ai/models.schema.json",
+  "title": "CIA Local AI model manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "provider",
+    "dependencies",
+    "runtimes",
+    "models"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema_version": { "const": 1 },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["public_model", "max_loaded_models"],
+      "properties": {
+        "public_model": { "$ref": "#/$defs/id" },
+        "max_loaded_models": { "const": 1 }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["llama_swap"],
+      "properties": {
+        "llama_swap": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "version",
+            "release_url",
+            "archive_name",
+            "archive_sha256",
+            "executable_sha256",
+            "install_path"
+          ],
+          "properties": {
+            "version": { "const": "v240" },
+            "release_url": { "type": "string", "format": "uri" },
+            "archive_name": { "type": "string", "minLength": 1 },
+            "archive_sha256": { "$ref": "#/$defs/sha256" },
+            "executable_sha256": { "$ref": "#/$defs/sha256" },
+            "install_path": { "$ref": "#/$defs/windows_path" }
+          }
+        }
+      }
+    },
+    "runtimes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/runtime" }
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/model" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{1,63}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "windows_path": {
+      "type": "string",
+      "pattern": "^[A-Za-z]:\\\\"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "bytes", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/windows_path" },
+        "bytes": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "state",
+        "engine",
+        "version_label",
+        "build_commit",
+        "artifact",
+        "device",
+        "environment"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "state": {
+          "enum": ["candidate", "qualified", "enabled", "retired"]
+        },
+        "engine": { "const": "llama.cpp" },
+        "version_label": { "type": "string", "minLength": 1 },
+        "build_commit": { "type": "string", "minLength": 7 },
+        "artifact": { "$ref": "#/$defs/artifact" },
+        "device": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["backend", "selector", "gpu"],
+          "properties": {
+            "backend": { "const": "ROCm" },
+            "selector": { "type": "string", "minLength": 1 },
+            "gpu": { "type": "string", "minLength": 1 }
+          }
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "revision", "filename", "license"],
+      "properties": {
+        "repository": { "type": "string", "minLength": 3 },
+        "revision": { "type": "string", "pattern": "^[A-Fa-f0-9]{40}$" },
+        "filename": { "type": "string", "pattern": "\\.[Gg][Gg][Uu][Ff]$" },
+        "license": { "type": "string", "minLength": 1 }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "responses",
+        "chat_completions",
+        "streaming",
+        "function_calling",
+        "structured_output"
+      ],
+      "properties": {
+        "responses": { "type": "boolean" },
+        "chat_completions": { "type": "boolean" },
+        "streaming": { "type": "boolean" },
+        "function_calling": { "type": "boolean" },
+        "structured_output": { "type": "boolean" }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["peak_vram_gib", "peak_commit_gib", "peak_ram_gib"],
+      "properties": {
+        "peak_vram_gib": { "type": ["number", "null"], "minimum": 0 },
+        "peak_commit_gib": { "type": ["number", "null"], "minimum": 0 },
+        "peak_ram_gib": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "display_name",
+        "state",
+        "deployments",
+        "runtime",
+        "artifact",
+        "source",
+        "context_tokens",
+        "max_output_tokens",
+        "cache_type_k",
+        "cache_type_v",
+        "parallel",
+        "batch_size",
+        "ubatch_size",
+        "gpu_layers",
+        "jinja",
+        "reasoning",
+        "capabilities",
+        "resources"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "display_name": { "type": "string", "minLength": 1 },
+        "state": {
+          "enum": ["candidate", "qualified", "enabled", "retired"]
+        },
+        "deployments": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["canary", "final"] }
+        },
+        "runtime": { "$ref": "#/$defs/id" },
+        "artifact": { "$ref": "#/$defs/artifact" },
+        "source": { "$ref": "#/$defs/source" },
+        "context_tokens": { "type": "integer", "minimum": 1024 },
+        "max_output_tokens": { "type": "integer", "minimum": 1 },
+        "cache_type_k": { "type": "string", "minLength": 1 },
+        "cache_type_v": { "type": "string", "minLength": 1 },
+        "parallel": { "const": 1 },
+        "batch_size": { "type": "integer", "minimum": 1 },
+        "ubatch_size": { "type": "integer", "minimum": 1 },
+        "gpu_layers": { "type": "integer", "minimum": 0 },
+        "jinja": { "const": true },
+        "reasoning": { "enum": ["auto", "on", "off"] },
+        "capabilities": { "$ref": "#/$defs/capabilities" },
+        "resources": { "$ref": "#/$defs/resources" }
+      }
+    }
+  }
+}

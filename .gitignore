@@ -9,3 +9,14 @@ __pycache__/
 logs/
 state/
 mcp/context-state.json
+
+# v2 build output, generated runtime configuration, and local secrets
+bin/
+dist/
+generated/
+*.local.yaml
+*.local.json
+*.local.toml
+*.exe
+*.zip
+*.sha256

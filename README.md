@@ -1,234 +1,262 @@
-# Local llama.cpp Runtime
+# CIA Local AI Provider
 
-This directory contains a Windows ROCm llama.cpp runtime tuned for the local AMD Radeon RX 9070 XT.
+A local-only, OpenAI-compatible inference provider for Codex, OpenCode, and other coding harnesses on Windows/AMD hardware.
 
-## Layout
+The project keeps the agent loop inside each harness and limits the backend to inference, lifecycle, admission control, observability, and explicit administration. It never falls back to a cloud model or silently substitutes a weaker local model.
 
-- `amd/`: AMD-validated ROCm 7.2.1 llama.cpp binaries.
-- `models/`: legacy workspace model location. Current configured GGUF files live under `C:\IA\models`.
-- `C:\IA\unsloth-catalog`: curated hardlink catalog registered in Unsloth Studio for a cleaner model picker.
-- `scripts/`: launch and benchmark scripts.
-- `logs/`: llama-server logs.
-- `benchmarks/`: benchmark output.
-- `mcp/`: minimal stdio MCP bridge that calls the local OpenAI-compatible server.
-- `control/`: local browser panel and stdlib Python daemon for process control.
+> Status: v2 canary. The Go edge, MCP servers, model manifest, lifecycle router, credential helper, deployment scripts, tests, and documentation are implemented. Production promotion remains intentionally blocked until the hardware qualification and soak gates pass.
 
-## Local control panel
+## Architecture
 
-Start the panel:
+```mermaid
+flowchart LR
+	T["cia-tray operator panel"] --> P["Control API :8091"]
+	T --> C
+	T --> O
+	T --> U
+	C["Codex local profile"] --> E["cia-edge :8090"]
+    O["OpenCode provider"] --> E
+    E --> S["llama-swap :9292"]
+    S --> L["llama-server"]
+    L --> G["Qualified GGUF"]
+    M["cia-mcp read-only"] --> P["Control API :8091"]
+    D["SOTA harness + cia-mcp-inference"] --> E
+    A["cia-mcp-admin opt-in"] --> P
+    U["Unsloth train/export/eval"] --> Q["Promotion gate"]
+    Q --> G
+```
+
+- `cia-edge` exposes only `/v1/models`, `/v1/responses`, and `/v1/chat/completions` on a literal loopback address.
+- `llama-swap` owns lazy loading, unload TTL, and the catalog lifecycle while
+  enforcing at most one loaded model.
+- `cia-mcp` exposes five side-effect-free health and observability tools.
+- `cia-mcp-inference` exposes one stateless, text-only delegation tool. Its
+  server instructions require an explicit user request to consult the local
+  model; the SOTA harness remains the agent and tool orchestrator.
+- `cia-mcp-admin` is a separate executable and is never registered by default.
+- `cia-credential` stores three independent secrets in Windows Credential Manager.
+- `cia-supervisor` injects process-local credentials and contains each serving tree in a Windows Job Object with bounded restart backoff.
+- `cia-tray` is a native Windows notification-area controller for status, explicit lifecycle operations, model preference, and safe harness launchers.
+- `config/models.yaml` is the versioned source of truth for model, runtime, provenance, capability, and resource qualification.
+
+See [Architecture](docs/ARCHITECTURE.md), [Threat model](docs/THREAT_MODEL.md), and the [Runbook](docs/RUNBOOK.md).
+
+## Security invariants
+
+- Literal loopback listeners only; no LAN bind.
+- Distinct inference, administration, and router credentials.
+- Client authorization and cookies are stripped before proxying.
+- Identity, gzip, and zstd request bodies are bounded before and after decompression.
+- One active inference and a bounded four-request queue.
+- Unknown route or model fails locally; there is no Internet fallback.
+- Streaming is passed through incrementally and client cancellation propagates upstream.
+- Logs contain request metadata only, never prompts, responses, headers, cookies, or tokens.
+- Model weights, runtime binaries, generated configs, and secrets are not tracked by Git.
+
+The legacy Python panel and its MCP bridge remain only as migration evidence. They are not safe production or rollback surfaces.
+
+## Components
+
+| Executable | Purpose | Default exposure |
+|---|---|---|
+| `cia-edge.exe` | Data plane, control plane, validation, queue, streaming | `127.0.0.1:8090` and `:8091` |
+| `cia-mcp.exe` | Read-only operational MCP over stdio | Spawned by a harness |
+| `cia-mcp-inference.exe` | Explicit, stateless delegation to the pinned local model | Spawned by SOTA harnesses |
+| `cia-mcp-admin.exe` | Explicit lifecycle administration MCP | Not registered |
+| `cia-credential.exe` | Windows Credential Manager helper and OpenCode launcher | Local process only |
+| `cia-supervisor.exe` | Job Object containment and 1-15 minute crash backoff | Scheduled-task action |
+| `cia-manifest.exe` | JSON Schema validation for the versioned model manifest | Local operator/CI |
+| `cia-tray.exe` | Native operator panel; no chat or conversation state | Windows notification area |
+| `llama-swap.exe` | Pinned upstream model lifecycle router | Internal `127.0.0.1:9292` |
+
+## Reproducible build
+
+The repository targets Go 1.26 and pins direct and transitive modules in `go.mod`/`go.sum`.
 
 ```powershell
-.\work\local-llama\scripts\start-local-llama-panel.ps1
+go test -race ./...
+go vet ./...
+go build -trimpath -o bin/cia-edge.exe ./cmd/cia-edge
+go build -trimpath -o bin/cia-mcp.exe ./cmd/cia-mcp
+go build -trimpath -o bin/cia-mcp-inference.exe ./cmd/cia-mcp-inference
+go build -trimpath -o bin/cia-mcp-admin.exe ./cmd/cia-mcp-admin
+go build -trimpath -o bin/cia-credential.exe ./cmd/cia-credential
+go build -trimpath -o bin/cia-supervisor.exe ./cmd/cia-supervisor
+go build -trimpath -o bin/cia-manifest.exe ./cmd/cia-manifest
+go build -trimpath -ldflags="-H=windowsgui" -o bin/cia-tray.exe ./cmd/cia-tray
 ```
 
-Open:
+Those paths are disposable developer outputs. Deployment never copies directly
+from the worktree: Edge, MCP, and tray release candidates are built into the
+writable `C:\IA\local-ai-v2\state\staging` area (including the separately
+disabled admin MCP), reviewed by SHA-256, and then
+atomically installed into the protected `bin` directory with the scripts in
+the runbook.
 
-- Panel: `http://127.0.0.1:8090`
-- llama.cpp Web UI, after starting a model: `http://127.0.0.1:8080`
-- OpenAI-compatible API: `http://127.0.0.1:8080/v1`
+CI also runs the race detector on the portable core, Staticcheck,
+govulncheck, Gitleaks, PowerShell parsing, manifest validation,
+binary/weight rejection, and CycloneDX SBOM generation. Windows-specific
+Win32 code is compiled and tested on the Windows job; the local toolchain has
+no C compiler, so `-race` is not claimed for the tray message loop.
+It also validates both harness profiles, their endpoint/model pins, command-backed
+authentication, and the exact read-only MCP allowlist.
 
-The panel can start/stop `llama-server`, validate `/v1/models`, show logs, run a managed MCP self-test process, and display MCP context compaction state. The default panel profile is `ornith10-9b-q4km-kv-q4-128k` on the AMD runtime with `131072` context and `q4_0` KV cache. The server alias is `local-model`, so harnesses can use a stable model name even when the underlying GGUF profile changes. Panel-launched models also pass `--reasoning off --reasoning-budget 0` so MCP tools receive final-answer content by default.
+## Canary deployment
 
-## Windows tray startup
-
-Windows Startup shortcuts are installed at:
-
-```text
-C:\Users\Sitr3n\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Local Llama Model Tray.lnk
-C:\Users\Sitr3n\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Unsloth Studio Local.lnk
-```
-
-A quick tray launcher is also installed at:
-
-```text
-C:\Users\Sitr3n\Documents\Local Llama Model Tray.lnk
-```
-
-The tray launcher runs without loading a model by default:
+Scripts are preview-only unless the explicit mutation switch is supplied.
 
 ```powershell
-.\work\local-llama\scripts\local-llama-tray.ps1
+# Validate tracked model/runtime metadata.
+.\scripts\v2\Test-V2Manifest.ps1
+.\scripts\v2\Test-V2HarnessConfig.ps1
+
+# Initialize only missing secrets; existing credentials are preserved.
+.\scripts\v2\Initialize-V2Secrets.ps1 -Apply
+
+# Preview, then generate the canary deployment on 18090/18091 -> 19292.
+.\scripts\v2\New-V2Config.ps1 -Environment Canary
+.\scripts\v2\New-V2Config.ps1 -Environment Canary -Apply
+
+# Preview scheduled tasks. Registration is separately explicit.
+.\scripts\v2\Install-V2ScheduledTasks.ps1 -Environment Canary
 ```
 
-The tray selector starts the control panel if needed and lets you switch profiles from the notification area. Startup intentionally does not load a model; the default Ornith 128k executor is loaded only when an MCP client asks for a model or when you start it from the tray/panel. Switching through the tray, panel, or MCP restarts the local executor with the same `local-model` alias, so MCP clients keep using the selected model without config changes.
+Generation also creates `panel.canary.json` and a hidden manual tray launcher.
+After the manual panel smoke test passes, the separate
+`Install-V2PanelStartup.ps1` script can add an idempotent current-user Startup
+shortcut. Router and Edge remain the only two scheduled tasks.
 
-Unsloth Studio is also started at login without loading a duplicate model. It uses the already registered `C:\IA\unsloth-catalog` folder and can call the `Local Llama Executor` MCP server registered in Studio.
+The production generator rejects `candidate` models. Promotion requires immutable hashes, license/provenance, protocol contracts, tool correctness, measured RAM/commit/VRAM, failure recovery, performance comparison, and the soak criteria in [Model promotion](docs/MODEL_PROMOTION.md).
 
-The tray shortcuts use `assets\ineffa-tray.ico`, generated from the only image found in `Downloads` during setup. If a different PNG is the intended icon, rerun the installer with `-IconPath C:\Users\Sitr3n\Downloads\ineffa.png`.
+## Harness integration
 
-To remove both startup entries:
+Templates live under `integrations/` and contain no secrets.
+Their structure follows the official [Codex advanced configuration](https://developers.openai.com/codex/config-advanced),
+[OpenCode provider](https://opencode.ai/docs/providers/),
+[OpenCode configuration precedence](https://opencode.ai/docs/config/), and
+[OpenCode MCP](https://opencode.ai/docs/mcp-servers/) contracts.
+
+### Codex
+
+- Base OpenAI configuration and login remain unchanged.
+- The final local provider is an explicit `cia-local` profile using native Responses.
+- Canary validation uses the separate `cia-local-canary` profile on data
+  `18090` and control `18091`; it does not reuse the final/v1 ports.
+- Authentication comes from `cia-credential get inference`.
+- Request compression is disabled in the profile as defense in depth; the edge still supports zstd.
+- Only the read-only MCP server is registered.
+
+Install and run the canary explicitly while production promotion is blocked.
+The launchers accept only an exact model ID already present in their generated
+local-only catalogs:
 
 ```powershell
-.\work\local-llama\scripts\uninstall-local-llama-startup.ps1
+$codexHome = 'C:\Users\Sitr3n\.codex'
+.\scripts\v2\Install-V2Harness.ps1 -Environment Canary -TargetCodexHome $codexHome
+# Copy the reviewed plan_sha256 into the next command; do not calculate it inline.
+.\scripts\v2\Install-V2Harness.ps1 -Environment Canary -TargetCodexHome $codexHome -ExpectedPlanSha256 '<reviewed plan_sha256>' -Apply
+.\integrations\codex\Start-CodexLocalCanary.ps1
 ```
 
-Configured model files:
+The local-provider installer does not modify the normal `codex` command or
+`~/.codex/config.toml`.
 
-- `C:\IA\models\Qwen3.5-9B-GGUF\Qwen3.5-9B-Q4_K_M.gguf`
-- `C:\IA\models\Qwen3.5-9B-GGUF\Qwen3.5-9B-UD-Q4_K_XL.gguf`
-- `C:\IA\models\gemma-4-12B-it-qat-GGUF\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf`
-- `C:\IA\models\gemma-4-12B-it-qat-q4_0-gguf\gemma-4-12b-it-qat-q4_0.gguf`
-- `C:\IA\models\Ornith-1.0-9B-GGUF\ornith-1.0-9b-Q4_K_M.gguf`
+### SOTA model with explicit local delegation
 
-## Start the server
+`cia-mcp-inference.exe` lets the normal Codex, Claude, or OpenCode model remain
+the primary SOTA model while delegating one bounded text task to
+`local-coding`. The only tool is `local_ai_delegate`; it has no filesystem,
+shell, network, model-selection, history, or administrative capability. The
+caller supplies the minimum prompt and optional reference text, and the local
+answer is returned as structured MCP output.
+
+The client integration is global but does not change any provider, model,
+login, or cloud default. The tool and server instructions both say to invoke it
+only when the user explicitly asks to use the local model or local AI server.
+The binary obtains the inference credential directly from Windows Credential
+Manager after validating the request; no secret is stored in client config or
+passed on a command line.
+
+The metadata-only live probe performs a real MCP stdio handshake and a real
+generation without printing the delegated prompt or response:
 
 ```powershell
-.\work\local-llama\scripts\start-llama-server.ps1 -ModelPath .\work\local-llama\models\model.gguf
+go run .\cmd\cia-mcp-smoke -expected CIA_LOCAL_MCP_SMOKE_OK
 ```
 
-Defaults:
+### OpenCode
 
-- Runtime: AMD validated binaries.
-- API: `http://127.0.0.1:8080/v1`.
-- GPU: the AMD runtime exposes the RX 9070 XT as `ROCm0`; the Unsloth fallback uses `HIP_VISIBLE_DEVICES=1`.
-- Stability/performance guard: AMD runtime sets `ROCBLAS_USE_HIPBLASLT=0`; on this machine the AMD benchmark crashes in `libhipblaslt.dll` without it.
-- llama.cpp flags: `--device ROCm0 --split-mode none -ngl 99 -fa on --cont-batching --warmup`.
+- Provider ID: `cia-local`
+- AI SDK adapter: `@ai-sdk/openai-compatible`
+- Explicit model: `cia-local/local-coding`
+- API key exists only in the launched process environment.
 
-Use the Unsloth build explicitly:
+During canary validation, the isolated provider ID is `cia-local-canary`, its
+config is supplied only to the launched process, and the launcher pins
+`cia-local-canary/local-coding`. It does not write an OpenCode global or project
+config.
 
 ```powershell
-.\work\local-llama\scripts\start-llama-server.ps1 -Runtime unsloth -ModelPath .\work\local-llama\models\model.gguf
+.\integrations\opencode\Start-OpenCodeLocalCanary.ps1
 ```
 
-## Unsloth Studio
+### Unsloth boundary
 
-Start Unsloth Studio with one of the configured local GGUF profiles:
+Unsloth remains installed as an offline training/export/evaluation environment,
+but v2 does not display, launch, configure, or stop it. Its scripts, private
+state, models, and candidate runtime remain untouched and available for manual
+use outside CIA Local AI. Legacy Unsloth Startup shortcuts stay disabled.
+
+## Windows operator panel
+
+`cia-tray.exe` deliberately separates three states:
+
+- **available** comes from the installed manifest intersected with the edge allowlist;
+- **selected** is only the default for new sessions and is stored atomically under `state`;
+- **loaded** is live router state and may be empty while lazy loading is idle.
+
+Double-click the generated tray icon to open the native dashboard. It provides
+search, model details, load/unload/switch/validation controls, sanitized
+activity, model-folder management, and allowlisted Codex/OpenCode launchers.
+Closing the window returns it to the tray. Discovered GGUFs remain visible while
+validation or capability gates are pending, and existing harness sessions are
+never rewritten.
+
+Validation records the resolved file, SHA-256, and timestamp under protected
+state. Hashes are cached by path, size, and nanosecond modification time.
+Unregistered GGUFs receive a header/hash inspection first and remain blocked
+until a reviewed manifest execution profile permits isolated load/generation.
+
+Once the icon and actions have been checked manually, preview and install its
+current-user logon shortcut:
 
 ```powershell
-.\work\local-llama\scripts\start-unsloth-studio-profile.ps1 -ProfileId qwen35-9b-q4km-kv-q4-256k
+.\scripts\v2\Install-V2PanelStartup.ps1
+.\scripts\v2\Install-V2PanelStartup.ps1 -Apply
 ```
 
-Sync the curated model catalog and register it in the Studio "On Device" picker:
+## Operations
 
-```powershell
-.\work\local-llama\scripts\sync-unsloth-model-catalog.ps1 -Register -ReplaceScanFolders -Prune
-```
+- Health: `GET http://127.0.0.1:8091/livez`
+- Readiness: `GET http://127.0.0.1:8091/readyz`
+- Sanitized read-only status: `GET http://127.0.0.1:8091/api/v1/status` (no credential)
+- Prometheus metrics: `GET http://127.0.0.1:8091/metrics` (admin credential)
+- Stable model ID: `local-coding`
+- Idle unload: 900 seconds
+- Active/queued requests: 1/4
+- Queue wait limit: 120 seconds
 
-Notes:
+Operational procedures and rollback boundaries are defined in the [Runbook](docs/RUNBOOK.md). Benchmark and soak evidence belongs in the format described by [Benchmarks](docs/BENCHMARKS.md).
 
-- `unsloth studio run` needs run-level options after `run`, e.g. `unsloth studio run --verbose ...`.
-- The script uses the same model matrix as the local panel, so it loads GGUF files from `C:\IA\models`.
-- The launcher sets `HF_HOME=C:\IA\hf-home`, so future Studio/Hugging Face downloads use `C:\IA` instead of filling the user profile cache.
-- `C:\IA\unsloth-catalog` is registered as a custom scan folder in Studio; it uses hardlinks to the real GGUF files in `C:\IA\models`, so it does not duplicate model storage. Catalog names include the recommended runtime label, for example `AMD ROCm` or `Unsloth runtime`.
-- `C:\IA\unsloth-catalog\00 CURRENT - local-model executor` is maintained by the control panel as metadata only. It intentionally does not contain a `CURRENT--...gguf` hardlink, because selecting it in the native Unsloth picker loads a second copy of the model.
-- `C:\IA\models` is the raw storage location and should not be registered directly in Studio unless you want to see every downloaded file and cache-shaped folder.
-- The Studio database has an enabled MCP entry named `Local Llama Executor`, pointing to `mcp\local-llama-mcp.py`. This lets Studio use the same selector tools as other harnesses.
-- Selecting an arbitrary non-`CURRENT` GGUF directly inside the native Unsloth picker starts an Unsloth-owned flow. To switch the shared executor used by Codex, Claude Code, OpenCode, and other MCP clients, use the tray/panel or the `local_model_start_profile` MCP tool from inside Studio.
-- Visual Studio Build Tools 2022 with the C++ workload and Windows SDK 10.0.26100.0 is installed on this machine; this fixes Triton/HIP startup compile errors such as missing `stdlib.h` or `basetsd.h`.
-- Keep the local `llama-server` stopped before launching Studio if VRAM is tight.
-- Verified profile: `qwen35-9b-q4km-kv-q4-256k` loads in Unsloth Studio at `http://127.0.0.1:8888/v1` with model id `Qwen3.5-9B-Q4_K_M`.
+## Unsloth boundary
 
-## Benchmark
+Unsloth is a training, quantization, export, and evaluation tool. It is not the production supervisor or provider source of truth. An exported GGUF is invisible to clients until it passes the promotion workflow and is represented by a qualified manifest entry.
 
-```powershell
-.\work\local-llama\scripts\bench-llama.ps1 -ModelPath .\work\local-llama\models\model.gguf
-```
+## Repository policy
 
-Compare AMD and Unsloth:
+- Source code: Apache-2.0.
+- Third-party licenses and hashes: `NOTICE`, the manifest, and the installed `third_party` directory.
+- No model weights or runtime executables are redistributed.
+- No public remote or release is created automatically.
 
-```powershell
-.\work\local-llama\scripts\bench-llama.ps1 -Runtime amd -ModelPath .\work\local-llama\models\model.gguf
-.\work\local-llama\scripts\bench-llama.ps1 -Runtime unsloth -ModelPath .\work\local-llama\models\model.gguf
-```
-
-## Device check
-
-```powershell
-.\work\local-llama\scripts\list-llama-devices.ps1 -Runtime amd
-.\work\local-llama\scripts\list-llama-devices.ps1 -Runtime unsloth
-```
-
-## MCP bridge
-
-Configure a local MCP client to run:
-
-```powershell
-python .\work\local-llama\mcp\local-llama-mcp.py
-```
-
-An example MCP client config is available at `mcp\mcp-config.example.json`.
-
-Client-specific examples are available in `mcp\clients\`:
-
-- `mcpServers.local-llama.json`: generic Claude Desktop, Cursor, Windsurf-style `mcpServers` JSON.
-- `codex-local-llama.config.toml`: Codex `config.toml` snippet.
-- `opencode.local-llama.jsonc`: OpenCode config snippet.
-- `claude-code-add-local-llama.ps1`: Claude Code helper using `claude mcp add-json`.
-
-The MCP bridge can autostart the panel and default model when a client calls `local_model_chat`, `local_model_models`, or `local_model_health`. Defaults:
-
-- `LOCAL_LLAMA_BASE_URL=http://127.0.0.1:8080/v1`
-- `LOCAL_LLAMA_PANEL_URL=http://127.0.0.1:8090`
-- `LOCAL_LLAMA_MODEL=local-model`
-- `LOCAL_LLAMA_DEFAULT_PROFILE=ornith10-9b-q4km-kv-q4-128k`
-- `LOCAL_LLAMA_DEFAULT_RUNTIME=amd`
-- `LOCAL_LLAMA_CONTEXT_LIMIT=131072`
-
-The bridge exposes:
-
-- `local_model_health`
-- `local_model_models`
-- `local_model_chat`
-- `local_model_session_chat`
-- `local_model_compact`
-- `local_model_context_status`
-- `local_model_profiles`
-- `local_model_start_profile`
-- `local_model_stop`
-
-Session chat keeps MCP-side context by `session_id` and writes status to `mcp\context-state.json`, which the control panel reads for its context drawer. Automatic compaction triggers at 85% of the configured context limit by default and uses the active local model first.
-
-Optional layer-2 SOTA compaction is disabled unless an API key is provided through environment variables:
-
-```powershell
-$env:LOCAL_LLAMA_SOTA_API_KEY = "<key>"
-$env:LOCAL_LLAMA_SOTA_MODEL = "gpt-5"
-```
-
-Without a key, direct SOTA compaction fails clearly instead of sending data anywhere.
-
-## Qwen/Gemma test matrix
-
-The current local llama.cpp builds do not expose TurboQuant KV cache types such as `turbo4`; supported KV cache types are `f32`, `f16`, `bf16`, `q8_0`, `q4_0`, `q4_1`, `iq4_nl`, `q5_0`, and `q5_1`.
-
-For the initial long-context tests, `q4_0` KV cache is used as the supported memory-saving mode:
-
-- `qwen35-9b-ud-q4xl-kv-q4-256k`: AMD ROCm profile, `unsloth/Qwen3.5-9B-GGUF`, `Qwen3.5-9B-UD-Q4_K_XL.gguf`, 262144 context.
-- `qwen35-9b-q4km-kv-q4-256k`: AMD ROCm profile, `unsloth/Qwen3.5-9B-GGUF`, `Qwen3.5-9B-Q4_K_M.gguf`, 262144 context.
-- `gemma4-12b-qat-ud-q4xl-kv-q4-128k`: Unsloth runtime profile, `unsloth/gemma-4-12B-it-qat-GGUF`, `gemma-4-12B-it-qat-UD-Q4_K_XL.gguf`, 131072 context.
-- `gemma4-12b-qat-q4_0-kv-q4-128k`: Unsloth runtime profile, `google/gemma-4-12B-it-qat-q4_0-gguf`, `gemma-4-12b-it-qat-q4_0.gguf`, 131072 context.
-- `ornith10-9b-q4km-kv-q4-128k`: AMD ROCm profile, `deepreinforce-ai/Ornith-1.0-9B-GGUF`, `ornith-1.0-9b-Q4_K_M.gguf`, 131072 context.
-- `ornith10-9b-q4km-kv-q4-256k`: AMD ROCm profile, `deepreinforce-ai/Ornith-1.0-9B-GGUF`, `ornith-1.0-9b-Q4_K_M.gguf`, 262144 context.
-
-Download all test models:
-
-```powershell
-.\work\local-llama\scripts\download-test-models.ps1
-```
-
-Smoke test one profile:
-
-```powershell
-.\work\local-llama\scripts\run-profile-smoke.ps1 -ProfileId qwen35-9b-q4km-kv-q4-256k -Runtime amd
-```
-
-Endpoint benchmark one profile:
-
-```powershell
-.\work\local-llama\scripts\run-profile-chat-bench.ps1 -ProfileId qwen35-9b-q4km-kv-q4-256k -Runtime amd
-```
-
-Quality eval one profile:
-
-```powershell
-.\work\local-llama\scripts\run-profile-quality-eval.ps1 -ProfileId qwen35-9b-q4km-kv-q4-256k -Runtime amd
-```
-
-Runtime notes:
-
-- Qwen3.5-9B runs on the AMD ROCm 7.2.1 runtime.
-- Ornith 1.0 9B is Qwen-derived and is expected to run on the AMD ROCm 7.2.1 runtime.
-- Gemma 4 fails on the AMD b8407 runtime with `unknown model architecture: 'gemma4'`; use the Unsloth fallback runtime for Gemma.
-- Gemma 4 26B A4B was removed from active profiles after testing because its local performance was not good enough for the current harness target.
-- Gemma 4 31B files may remain in `C:\IA\models` as raw storage until disk cleanup is explicitly requested, but they are no longer active profiles or part of the curated Studio catalog.
-- July 19 eval snapshot: Ornith 1.0 9B passed 3/4 objective quality checks at 256k on AMD, missing one arithmetic prompt; Gemma 4 26B A4B passed 4/4 at 64k on Unsloth but was too slow for the current target.
+Security reports must follow [SECURITY.md](SECURITY.md); never attach raw panel, Unsloth, request, or credential logs.

@@ -1,0 +1,50 @@
+# Explicit canary-only profile. Install as
+# %CODEX_HOME%\cia-local-canary.config.toml and select with
+# `codex --profile cia-local-canary`.
+#
+# The base OpenAI provider, login, and default profile remain untouched.
+model = "local-coding"
+model_provider = "cia-local-canary"
+model_catalog_json = 'C:\IA\local-ai-v2\config\codex-model-catalog.json'
+model_context_window = 131072
+model_auto_compact_token_limit = 110000
+model_reasoning_effort = "medium"
+model_reasoning_summary = "none"
+model_verbosity = "low"
+web_search = "disabled"
+
+[features]
+enable_request_compression = false
+
+[model_providers.cia-local-canary]
+name = "CIA Local AI (canary)"
+base_url = "http://127.0.0.1:18090/v1"
+wire_api = "responses"
+request_max_retries = 1
+stream_max_retries = 1
+stream_idle_timeout_ms = 300000
+
+[model_providers.cia-local-canary.auth]
+command = 'C:\IA\local-ai-v2\bin\cia-credential.exe'
+args = ["get", "inference"]
+timeout_ms = 5000
+refresh_interval_ms = 0
+
+# Only the read-only MCP executable is registered. The explicit allowlist is a
+# second boundary in addition to the server exposing read-only tools only.
+[mcp_servers.cia-local-canary]
+command = 'C:\IA\local-ai-v2\bin\cia-mcp.exe'
+enabled = true
+required = true
+startup_timeout_sec = 10
+tool_timeout_sec = 30
+enabled_tools = [
+  "local_ai_health",
+  "local_ai_models",
+  "local_ai_active_model",
+  "local_ai_capacity",
+  "local_ai_recent_events",
+]
+
+[mcp_servers.cia-local-canary.env]
+CIA_CONTROL_URL = "http://127.0.0.1:18091"

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "data_addr": "127.0.0.1:18090",
+  "control_addr": "127.0.0.1:18091",
+  "upstream": "http://127.0.0.1:19292",
+  "models_config": "C:\\IA\\local-ai-v2\\config\\models.yaml",
+  "models_schema": "C:\\IA\\local-ai-v2\\config\\models.schema.json",
+  "authentication": {
+    "inference_token_env": "CIA_INFERENCE_TOKEN",
+    "admin_token_env": "CIA_ADMIN_TOKEN",
+    "router_token_env": "CIA_ROUTER_TOKEN"
+  },
+  "request": {
+    "wire_bytes_max": 16777216,
+    "decoded_bytes_max": 67108864,
+    "decompression_ratio_max": 100,
+    "wait_timeout_seconds": 120
+  },
+  "queue": {
+    "active": 1,
+    "waiting": 4
+  },
+  "logging": {
+    "format": "json",
+    "content": "metadata-only",
+    "rotate_megabytes": 10,
+    "backups": 7,
+    "retention_days": 14
+  }
+}

@@ -84,34 +84,19 @@
       "alias": "gemma4-12b-qat-q4_0-kv-q4-128k"
     },
     {
-      "id": "ornith10-9b-q4km-kv-q4-128k",
-      "display_name": "Ornith 1.0 9B | AMD ROCm | Q4_K_M | 128k ctx",
+      "id": "ornith10-9b-q5km-kv-q8-128k",
+      "display_name": "Ornith 1.0 9B | AMD ROCm | Q5_K_M | kv q8_0 | 128k ctx",
       "catalog_folder": "03 AMD ROCm - Ornith 1.0 9B",
-      "catalog_filename": "AMD--Ornith-1.0-9B--Q4_K_M--ctx-128k--kv-q4_0.gguf",
+      "catalog_filename": "AMD--Ornith-1.0-9B--Q5_K_M--ctx-128k--kv-q8_0.gguf",
       "family": "Ornith 1.0 9B",
       "source_model": "deepreinforce-ai/Ornith-1.0-9B",
       "repo": "deepreinforce-ai/Ornith-1.0-9B-GGUF",
-      "filename": "ornith-1.0-9b-Q4_K_M.gguf",
-      "local_path": "C:\\IA\\models\\Ornith-1.0-9B-GGUF\\ornith-1.0-9b-Q4_K_M.gguf",
+      "filename": "ornith-1.0-9b-Q5_K_M.gguf",
+      "local_path": "C:\\IA\\models\\Ornith-1.0-9B-GGUF\\ornith-1.0-9b-Q5_K_M.gguf",
       "context_size": 131072,
-      "cache_type_k": "q4_0",
-      "cache_type_v": "q4_0",
-      "alias": "ornith10-9b-q4km-kv-q4-128k"
-    },
-    {
-      "id": "ornith10-9b-q4km-kv-q4-256k",
-      "display_name": "Ornith 1.0 9B | AMD ROCm | Q4_K_M | 256k ctx",
-      "catalog_folder": "03 AMD ROCm - Ornith 1.0 9B",
-      "catalog_filename": "AMD--Ornith-1.0-9B--Q4_K_M--ctx-256k--kv-q4_0.gguf",
-      "family": "Ornith 1.0 9B",
-      "source_model": "deepreinforce-ai/Ornith-1.0-9B",
-      "repo": "deepreinforce-ai/Ornith-1.0-9B-GGUF",
-      "filename": "ornith-1.0-9b-Q4_K_M.gguf",
-      "local_path": "C:\\IA\\models\\Ornith-1.0-9B-GGUF\\ornith-1.0-9b-Q4_K_M.gguf",
-      "context_size": 262144,
-      "cache_type_k": "q4_0",
-      "cache_type_v": "q4_0",
-      "alias": "ornith10-9b-q4km-kv-q4-256k"
+      "cache_type_k": "q8_0",
+      "cache_type_v": "q8_0",
+      "alias": "ornith10-9b-q5km-kv-q8-128k"
     }
   ]
 }

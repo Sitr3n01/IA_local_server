@@ -1,0 +1,13 @@
+# Generated copies must remain outside the repository. Do not place secrets here.
+# v240 schema: https://raw.githubusercontent.com/mostlygeek/llama-swap/v240/config-schema.json
+healthCheckTimeout: 180
+logLevel: warn
+captureBuffer: 0
+startPort: @@MODEL_START_PORT@@
+sendLoadingState: false
+includeAliasesInList: false
+globalTTL: 900
+apiKeys:
+  - "${env.CIA_ROUTER_TOKEN}"
+models:
+@@MODEL_BLOCKS@@

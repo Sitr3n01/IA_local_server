@@ -1,0 +1,142 @@
+name: ci
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Windows validation
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Parse PowerShell and validate harness templates
+        shell: pwsh
+        run: |
+          $errors = @()
+          Get-ChildItem scripts/v2/*.ps1, integrations/*/*.ps1 | ForEach-Object {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName,
+              [ref]$tokens,
+              [ref]$parseErrors
+            ) | Out-Null
+            $errors += $parseErrors
+          }
+          if ($errors.Count -gt 0) {
+            $errors | Format-List
+            throw "PowerShell parse failures: $($errors.Count)"
+          }
+          ./scripts/v2/Test-V2HarnessConfig.ps1
+
+      - name: Reject tracked binary/model artifacts
+        shell: pwsh
+        run: |
+          $forbidden = @(git ls-files | Where-Object {
+            $_ -match '(?i)\.(gguf|safetensors|pt|pth|exe|dll|zip|7z|tar|gz)$'
+          })
+          if ($forbidden.Count -gt 0) {
+            $forbidden | Write-Error
+            throw 'Tracked binary/model artifacts are forbidden.'
+          }
+
+  go:
+    name: Go quality and tests
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Verify formatting
+        shell: pwsh
+        run: |
+          $unformatted = @(gofmt -l .)
+          if ($unformatted.Count -gt 0) {
+            $unformatted | Write-Error
+            throw 'Run gofmt on the listed files.'
+          }
+
+      - name: Validate versioned model manifest
+        shell: pwsh
+        run: |
+          go build -trimpath -o "$env:RUNNER_TEMP\cia-manifest.exe" ./cmd/cia-manifest
+          ./scripts/v2/Test-V2Manifest.ps1 -SchemaValidatorPath "$env:RUNNER_TEMP\cia-manifest.exe"
+
+      - name: Unit and contract tests
+        run: go test ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Staticcheck
+        shell: pwsh
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@2026.1
+          staticcheck ./...
+
+      - name: Vulnerability analysis
+        shell: pwsh
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          govulncheck ./...
+
+      - name: Generate CycloneDX SBOM
+        shell: pwsh
+        run: |
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.10.0
+          cyclonedx-gomod mod -json -output sbom.cdx.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: cia-local-ai-sbom
+          path: sbom.cdx.json
+          if-no-files-found: error
+
+  race:
+    name: Race detector (portable core)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Race-enabled unit and contract tests
+        run: go test -race ./...
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        shell: bash
+        run: |
+          go install github.com/zricethezav/gitleaks/v8@v8.30.1
+          "$(go env GOPATH)/bin/gitleaks" git --no-banner --redact

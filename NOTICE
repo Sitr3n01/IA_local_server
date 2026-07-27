@@ -1,0 +1,30 @@
+CIA Local AI Provider
+Copyright 2026 Sitr3n
+
+This product includes or interoperates with separately distributed third-party
+software and model artifacts. They are not relicensed by this repository:
+
+- llama-swap, Copyright its contributors, MIT License.
+  https://github.com/mostlygeek/llama-swap
+- llama.cpp, Copyright its contributors, MIT License.
+  https://github.com/ggml-org/llama.cpp
+- Model Context Protocol Go SDK, Copyright its contributors. Upstream is in an
+  MIT-to-Apache-2.0 licensing transition; each contribution remains under the
+  terms stated in the upstream LICENSE.
+  https://github.com/modelcontextprotocol/go-sdk
+- klauspost/compress, Copyright its contributors, BSD-3-Clause License.
+  https://github.com/klauspost/compress
+- golang.org/x/sys, Copyright The Go Authors, BSD-3-Clause License.
+  https://pkg.go.dev/golang.org/x/sys
+- gopkg.in/yaml.v3, Copyright its contributors, dual MIT/Apache terms.
+  https://gopkg.in/yaml.v3
+- jsonschema-go, Copyright The JSON Schema Go Project Authors, MIT-style License.
+  https://github.com/google/jsonschema-go
+- Ornith 1.0 9B GGUF artifact, model repository license recorded as MIT.
+  https://huggingface.co/deepreinforce-ai/Ornith-1.0-9B-GGUF
+- Qwen 3.5 4B GGUF artifact, model repository license recorded as Apache-2.0.
+  https://huggingface.co/unsloth/Qwen3.5-4B-GGUF
+
+Runtime binaries and model weights are external artifacts, are not included in
+the source distribution, and remain subject to their own licenses and notices.
+Exact revisions and checksums are recorded in config/models.yaml.

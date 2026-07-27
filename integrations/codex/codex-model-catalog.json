@@ -1,0 +1,334 @@
+{
+    "models":  [
+                   {
+                       "slug":  "local-coding",
+                       "display_name":  "CIA Local - Ornith 1.0 9B Q5_K_M - local coding canary",
+                       "description":  "Explicit local-only model served from this machine. No cloud fallback.",
+                       "default_reasoning_level":  "medium",
+                       "supported_reasoning_levels":  [
+                                                          {
+                                                              "effort":  "medium",
+                                                              "description":  "Local model default"
+                                                          }
+                                                      ],
+                       "shell_type":  "shell_command",
+                       "visibility":  "list",
+                       "supported_in_api":  true,
+                       "priority":  1,
+                       "additional_speed_tiers":  [
+
+                                                  ],
+                       "service_tiers":  [
+
+                                         ],
+                       "availability_nux":  null,
+                       "upgrade":  null,
+                       "base_instructions":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                       "model_messages":  {
+                                              "instructions_template":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                                              "instructions_variables":  null,
+                                              "approvals":  null,
+                                              "auto_review":  null,
+                                              "permissions":  null
+                                          },
+                       "include_skills_usage_instructions":  false,
+                       "default_reasoning_summary":  "none",
+                       "support_verbosity":  true,
+                       "default_verbosity":  "low",
+                       "web_search_tool_type":  "text_and_image",
+                       "truncation_policy":  {
+                                                 "mode":  "tokens",
+                                                 "limit":  10000
+                                             },
+                       "supports_parallel_tool_calls":  true,
+                       "supports_image_detail_original":  false,
+                       "context_window":  131072,
+                       "max_context_window":  131072,
+                       "comp_hash":  "cia-local-v2-local-coding",
+                       "effective_context_window_percent":  85,
+                       "experimental_supported_tools":  [
+
+                                                        ],
+                       "input_modalities":  [
+                                                "text"
+                                            ],
+                       "supports_search_tool":  false,
+                       "use_responses_lite":  false
+                   },
+                   {
+                       "slug":  "local-fast",
+                       "display_name":  "CIA Local - Qwen 3.5 4B Q4_K_M - 64k context",
+                       "description":  "Explicit local-only model served from this machine. No cloud fallback.",
+                       "default_reasoning_level":  "medium",
+                       "supported_reasoning_levels":  [
+                                                          {
+                                                              "effort":  "medium",
+                                                              "description":  "Local model default"
+                                                          }
+                                                      ],
+                       "shell_type":  "shell_command",
+                       "visibility":  "list",
+                       "supported_in_api":  true,
+                       "priority":  2,
+                       "additional_speed_tiers":  [
+
+                                                  ],
+                       "service_tiers":  [
+
+                                         ],
+                       "availability_nux":  null,
+                       "upgrade":  null,
+                       "base_instructions":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                       "model_messages":  {
+                                              "instructions_template":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                                              "instructions_variables":  null,
+                                              "approvals":  null,
+                                              "auto_review":  null,
+                                              "permissions":  null
+                                          },
+                       "include_skills_usage_instructions":  false,
+                       "default_reasoning_summary":  "none",
+                       "support_verbosity":  true,
+                       "default_verbosity":  "low",
+                       "web_search_tool_type":  "text_and_image",
+                       "truncation_policy":  {
+                                                 "mode":  "tokens",
+                                                 "limit":  10000
+                                             },
+                       "supports_parallel_tool_calls":  false,
+                       "supports_image_detail_original":  false,
+                       "context_window":  65536,
+                       "max_context_window":  65536,
+                       "comp_hash":  "cia-local-v2-local-fast",
+                       "effective_context_window_percent":  85,
+                       "experimental_supported_tools":  [
+
+                                                        ],
+                       "input_modalities":  [
+                                                "text"
+                                            ],
+                       "supports_search_tool":  false,
+                       "use_responses_lite":  false
+                   },
+                   {
+                       "slug":  "qwen35-9b-q4km",
+                       "display_name":  "CIA Local - Qwen 3.5 9B Q4_K_M - 256k context",
+                       "description":  "Explicit local-only model served from this machine. No cloud fallback.",
+                       "default_reasoning_level":  "medium",
+                       "supported_reasoning_levels":  [
+                                                          {
+                                                              "effort":  "medium",
+                                                              "description":  "Local model default"
+                                                          }
+                                                      ],
+                       "shell_type":  "shell_command",
+                       "visibility":  "list",
+                       "supported_in_api":  true,
+                       "priority":  3,
+                       "additional_speed_tiers":  [
+
+                                                  ],
+                       "service_tiers":  [
+
+                                         ],
+                       "availability_nux":  null,
+                       "upgrade":  null,
+                       "base_instructions":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                       "model_messages":  {
+                                              "instructions_template":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                                              "instructions_variables":  null,
+                                              "approvals":  null,
+                                              "auto_review":  null,
+                                              "permissions":  null
+                                          },
+                       "include_skills_usage_instructions":  false,
+                       "default_reasoning_summary":  "none",
+                       "support_verbosity":  true,
+                       "default_verbosity":  "low",
+                       "web_search_tool_type":  "text_and_image",
+                       "truncation_policy":  {
+                                                 "mode":  "tokens",
+                                                 "limit":  10000
+                                             },
+                       "supports_parallel_tool_calls":  false,
+                       "supports_image_detail_original":  false,
+                       "context_window":  262144,
+                       "max_context_window":  262144,
+                       "comp_hash":  "cia-local-v2-qwen35-9b-q4km",
+                       "effective_context_window_percent":  85,
+                       "experimental_supported_tools":  [
+
+                                                        ],
+                       "input_modalities":  [
+                                                "text"
+                                            ],
+                       "supports_search_tool":  false,
+                       "use_responses_lite":  false
+                   },
+                   {
+                       "slug":  "qwen35-9b-ud-q4xl",
+                       "display_name":  "CIA Local - Qwen 3.5 9B UD Q4_K_XL - 256k context",
+                       "description":  "Explicit local-only model served from this machine. No cloud fallback.",
+                       "default_reasoning_level":  "medium",
+                       "supported_reasoning_levels":  [
+                                                          {
+                                                              "effort":  "medium",
+                                                              "description":  "Local model default"
+                                                          }
+                                                      ],
+                       "shell_type":  "shell_command",
+                       "visibility":  "list",
+                       "supported_in_api":  true,
+                       "priority":  4,
+                       "additional_speed_tiers":  [
+
+                                                  ],
+                       "service_tiers":  [
+
+                                         ],
+                       "availability_nux":  null,
+                       "upgrade":  null,
+                       "base_instructions":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                       "model_messages":  {
+                                              "instructions_template":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                                              "instructions_variables":  null,
+                                              "approvals":  null,
+                                              "auto_review":  null,
+                                              "permissions":  null
+                                          },
+                       "include_skills_usage_instructions":  false,
+                       "default_reasoning_summary":  "none",
+                       "support_verbosity":  true,
+                       "default_verbosity":  "low",
+                       "web_search_tool_type":  "text_and_image",
+                       "truncation_policy":  {
+                                                 "mode":  "tokens",
+                                                 "limit":  10000
+                                             },
+                       "supports_parallel_tool_calls":  false,
+                       "supports_image_detail_original":  false,
+                       "context_window":  262144,
+                       "max_context_window":  262144,
+                       "comp_hash":  "cia-local-v2-qwen35-9b-ud-q4xl",
+                       "effective_context_window_percent":  85,
+                       "experimental_supported_tools":  [
+
+                                                        ],
+                       "input_modalities":  [
+                                                "text"
+                                            ],
+                       "supports_search_tool":  false,
+                       "use_responses_lite":  false
+                   },
+                   {
+                       "slug":  "gemma4-12b-qat-q4_0",
+                       "display_name":  "CIA Local - Gemma 4 12B QAT Q4_0 - 128k context",
+                       "description":  "Explicit local-only model served from this machine. No cloud fallback.",
+                       "default_reasoning_level":  "medium",
+                       "supported_reasoning_levels":  [
+                                                          {
+                                                              "effort":  "medium",
+                                                              "description":  "Local model default"
+                                                          }
+                                                      ],
+                       "shell_type":  "shell_command",
+                       "visibility":  "list",
+                       "supported_in_api":  true,
+                       "priority":  5,
+                       "additional_speed_tiers":  [
+
+                                                  ],
+                       "service_tiers":  [
+
+                                         ],
+                       "availability_nux":  null,
+                       "upgrade":  null,
+                       "base_instructions":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                       "model_messages":  {
+                                              "instructions_template":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                                              "instructions_variables":  null,
+                                              "approvals":  null,
+                                              "auto_review":  null,
+                                              "permissions":  null
+                                          },
+                       "include_skills_usage_instructions":  false,
+                       "default_reasoning_summary":  "none",
+                       "support_verbosity":  true,
+                       "default_verbosity":  "low",
+                       "web_search_tool_type":  "text_and_image",
+                       "truncation_policy":  {
+                                                 "mode":  "tokens",
+                                                 "limit":  10000
+                                             },
+                       "supports_parallel_tool_calls":  false,
+                       "supports_image_detail_original":  false,
+                       "context_window":  131072,
+                       "max_context_window":  131072,
+                       "comp_hash":  "cia-local-v2-gemma4-12b-qat-q4_0",
+                       "effective_context_window_percent":  85,
+                       "experimental_supported_tools":  [
+
+                                                        ],
+                       "input_modalities":  [
+                                                "text"
+                                            ],
+                       "supports_search_tool":  false,
+                       "use_responses_lite":  false
+                   },
+                   {
+                       "slug":  "gemma4-12b-qat-ud-q4xl",
+                       "display_name":  "CIA Local - Gemma 4 12B QAT UD Q4_K_XL - 128k context",
+                       "description":  "Explicit local-only model served from this machine. No cloud fallback.",
+                       "default_reasoning_level":  "medium",
+                       "supported_reasoning_levels":  [
+                                                          {
+                                                              "effort":  "medium",
+                                                              "description":  "Local model default"
+                                                          }
+                                                      ],
+                       "shell_type":  "shell_command",
+                       "visibility":  "list",
+                       "supported_in_api":  true,
+                       "priority":  6,
+                       "additional_speed_tiers":  [
+
+                                                  ],
+                       "service_tiers":  [
+
+                                         ],
+                       "availability_nux":  null,
+                       "upgrade":  null,
+                       "base_instructions":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                       "model_messages":  {
+                                              "instructions_template":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                                              "instructions_variables":  null,
+                                              "approvals":  null,
+                                              "auto_review":  null,
+                                              "permissions":  null
+                                          },
+                       "include_skills_usage_instructions":  false,
+                       "default_reasoning_summary":  "none",
+                       "support_verbosity":  true,
+                       "default_verbosity":  "low",
+                       "web_search_tool_type":  "text_and_image",
+                       "truncation_policy":  {
+                                                 "mode":  "tokens",
+                                                 "limit":  10000
+                                             },
+                       "supports_parallel_tool_calls":  false,
+                       "supports_image_detail_original":  false,
+                       "context_window":  131072,
+                       "max_context_window":  131072,
+                       "comp_hash":  "cia-local-v2-gemma4-12b-qat-ud-q4xl",
+                       "effective_context_window_percent":  85,
+                       "experimental_supported_tools":  [
+
+                                                        ],
+                       "input_modalities":  [
+                                                "text"
+                                            ],
+                       "supports_search_tool":  false,
+                       "use_responses_lite":  false
+                   }
+               ]
+}

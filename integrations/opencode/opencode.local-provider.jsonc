@@ -1,0 +1,75 @@
+{
+    "$schema":  "https://opencode.ai/config.json",
+    "model":  "cia-local/local-coding",
+    "enabled_providers":  [
+                              "cia-local"
+                          ],
+    "share":  "disabled",
+    "provider":  {
+                     "cia-local":  {
+                                       "npm":  "@ai-sdk/openai-compatible",
+                                       "name":  "CIA Local AI",
+                                       "options":  {
+                                                       "baseURL":  "http://127.0.0.1:8090/v1",
+                                                       "apiKey":  "{env:CIA_LOCAL_API_KEY}"
+                                                   },
+                                       "models":  {
+                                                      "local-coding":  {
+                                                                           "name":  "Ornith 1.0 9B Q5_K_M - local coding canary",
+                                                                           "limit":  {
+                                                                                         "context":  131072,
+                                                                                         "output":  65536
+                                                                                     }
+                                                                       },
+                                                      "local-fast":  {
+                                                                         "name":  "Qwen 3.5 4B Q4_K_M - 64k context",
+                                                                         "limit":  {
+                                                                                       "context":  65536,
+                                                                                       "output":  8192
+                                                                                   }
+                                                                     },
+                                                      "qwen35-9b-q4km":  {
+                                                                             "name":  "Qwen 3.5 9B Q4_K_M - 256k context",
+                                                                             "limit":  {
+                                                                                           "context":  262144,
+                                                                                           "output":  8192
+                                                                                       }
+                                                                         },
+                                                      "qwen35-9b-ud-q4xl":  {
+                                                                                "name":  "Qwen 3.5 9B UD Q4_K_XL - 256k context",
+                                                                                "limit":  {
+                                                                                              "context":  262144,
+                                                                                              "output":  8192
+                                                                                          }
+                                                                            },
+                                                      "gemma4-12b-qat-q4_0":  {
+                                                                                  "name":  "Gemma 4 12B QAT Q4_0 - 128k context",
+                                                                                  "limit":  {
+                                                                                                "context":  131072,
+                                                                                                "output":  8192
+                                                                                            }
+                                                                              },
+                                                      "gemma4-12b-qat-ud-q4xl":  {
+                                                                                     "name":  "Gemma 4 12B QAT UD Q4_K_XL - 128k context",
+                                                                                     "limit":  {
+                                                                                                   "context":  131072,
+                                                                                                   "output":  8192
+                                                                                               }
+                                                                                 }
+                                                  }
+                                   }
+                 },
+    "mcp":  {
+                "cia-local":  {
+                                  "type":  "local",
+                                  "command":  [
+                                                  "C:\\IA\\local-ai-v2\\bin\\cia-mcp.exe"
+                                              ],
+                                  "enabled":  true,
+                                  "timeout":  10000,
+                                  "environment":  {
+                                                      "CIA_CONTROL_URL":  "http://127.0.0.1:8091"
+                                                  }
+                              }
+            }
+}
