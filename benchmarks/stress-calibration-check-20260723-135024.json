@@ -1,0 +1,22 @@
+{
+  "profile": "calibration-check",
+  "runtime": "amd",
+  "context_size": 131072,
+  "cache_type_k": "q8_0",
+  "cache_type_v": "q8_0",
+  "ready": true,
+  "test": {
+    "id": "long_context_tool_call_stress",
+    "passed": true,
+    "prompt_tokens": 9737,
+    "completion_tokens": 108,
+    "needle_path": "/srv/dados/relatorio_final_XK472.csv",
+    "needle_fraction": 0.5,
+    "tool_call": {
+      "name": "abrir_arquivo",
+      "arguments": "{\"caminho\":\"/srv/dados/relatorio_final_XK472.csv\"}"
+    },
+    "raw_message": "",
+    "error": null
+  }
+}

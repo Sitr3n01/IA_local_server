@@ -1,0 +1,19 @@
+{
+  "profile": "ornith10-9b-q5km-kv-q8-128k-stress",
+  "runtime": "amd",
+  "context_size": 131072,
+  "cache_type_k": "q8_0",
+  "cache_type_v": "q8_0",
+  "ready": true,
+  "test": {
+    "id": "long_context_tool_call_stress",
+    "passed": false,
+    "prompt_tokens": null,
+    "completion_tokens": null,
+    "needle_path": "/srv/dados/relatorio_final_XK472.csv",
+    "needle_fraction": 0.5,
+    "tool_call": null,
+    "raw_message": null,
+    "error": "HTTP Error 400: Bad Request"
+  }
+}

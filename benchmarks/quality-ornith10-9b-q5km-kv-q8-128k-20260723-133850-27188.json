@@ -1,0 +1,46 @@
+{
+  "profile": "ornith10-9b-q5km-kv-q8-128k",
+  "runtime": "amd",
+  "context_size": 131072,
+  "cache_type_k": "q8_0",
+  "cache_type_v": "q8_0",
+  "ready": true,
+  "passed": 3,
+  "total": 4,
+  "prompt_tps_last": 1421.17,
+  "gen_tps_last": 80.14,
+  "tests": [
+    {
+      "id": "instruction_exact",
+      "passed": true,
+      "expected": "ALFA-739",
+      "answer": "ALFA-739",
+      "raw": "</think>\n\nALFA-739",
+      "error": null
+    },
+    {
+      "id": "arithmetic",
+      "passed": false,
+      "expected": "2555",
+      "answer": "2565",
+      "raw": "</think>\n\n2565",
+      "error": null
+    },
+    {
+      "id": "list_reasoning",
+      "passed": true,
+      "expected": "[2, 4, 5, 6]",
+      "answer": "[2, 4, 5, 6]",
+      "raw": "</think>\n\n[2, 4, 5, 6]",
+      "error": null
+    },
+    {
+      "id": "local_config_recall",
+      "passed": true,
+      "expected": "8090 local-model 85%",
+      "answer": "porta: 8090, alias: local-model, porcentagem: 85%",
+      "raw": "</think>\n\nporta: 8090, alias: local-model, porcentagem: 85%",
+      "error": null
+    }
+  ]
+}
