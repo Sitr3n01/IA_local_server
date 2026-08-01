@@ -1,136 +1,138 @@
 # Local AI Provider
 
-**A loopback-only, OpenAI-compatible inference server that lets coding agents run against a local model — without source code, prompts, or credentials ever leaving the machine.**
+**Português** · **[English](README.en.md)**
+
+**Servidor de inferência compatível com a API da OpenAI, restrito a loopback, que permite rodar agentes de código contra um modelo local — sem que código-fonte, prompts ou credenciais saiam da máquina.**
 
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](https://go.dev/)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20AMD%20ROCm-0078D6?logo=windows)](#hardware-baseline)
+[![Licença](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-blue)](LICENSE)
+[![Plataforma](https://img.shields.io/badge/plataforma-Windows%20%7C%20AMD%20ROCm-0078D6?logo=windows)](#baseline-de-hardware)
 [![CI](https://github.com/Sitr3n01/IA_local_server/actions/workflows/ci.yml/badge.svg)](https://github.com/Sitr3n01/IA_local_server/actions/workflows/ci.yml)
-[![Status](https://img.shields.io/badge/status-v2%20canary-orange)](#project-status)
+[![Status](https://img.shields.io/badge/status-v2%20canary-orange)](#status-do-projeto)
 
 ---
 
-## The problem
+## O problema
 
-Coding harnesses like Codex, Claude Code, and OpenCode send prompts to a cloud provider — and a prompt is rarely just a question. It carries source code, file trees, directory structure, and tool schemas.
+Harnesses de código como Codex, Claude Code e OpenCode enviam prompts para um provedor na nuvem — e um prompt raramente é só uma pergunta. Ele carrega código-fonte, árvore de arquivos, estrutura de diretórios e schemas de ferramentas.
 
-Pointing those harnesses at a local model looks trivial: expose an OpenAI-compatible endpoint and change the base URL. Done badly, that shim quietly reintroduces every risk it was meant to remove:
+Apontar esses harnesses para um modelo local parece trivial: basta expor um endpoint compatível com a OpenAI e trocar a base URL. Feito sem cuidado, esse shim reintroduz silenciosamente todos os riscos que deveria eliminar:
 
-- it **forwards the client's bearer token** upstream, because proxies copy headers by default;
-- it **falls back to the cloud** when the local model errors, so failure silently becomes exfiltration;
-- it **logs request bodies** for debugging, so prompts and credentials land in plaintext on disk;
-- it **binds to `0.0.0.0`**, so every device on the network can reach the inference API.
+- ele **encaminha o token bearer do cliente** para cima, porque proxies copiam headers por padrão;
+- ele **cai para a nuvem** quando o modelo local dá erro, e aí falha vira exfiltração sem ninguém perceber;
+- ele **loga corpos de request** para depuração, e aí prompts e credenciais vão parar em texto puro no disco;
+- ele **escuta em `0.0.0.0`**, e aí qualquer dispositivo da rede alcança a API de inferência.
 
-This repository is the careful version of that shim. Each of those four failures is a tested, enforced invariant here — the third one because it actually happened to the v1 prototype, and the [incident is documented in the open](incident-reports/2026-07-20-panel-zstd-credential-exposure.md).
+Este repositório é a versão cuidadosa desse shim. Cada uma dessas quatro falhas é um invariante testado e aplicado aqui — a terceira porque aconteceu de verdade no protótipo v1, e o [incidente está documentado abertamente](incident-reports/2026-07-20-panel-zstd-credential-exposure.md).
 
-## What it is
+## O que é
 
-A Go control plane in front of `llama.cpp`, plus the Windows plumbing needed to run it as a real, supervised service:
+Um control plane em Go na frente do `llama.cpp`, mais o encanamento de Windows necessário para rodá-lo como um serviço real e supervisionado:
 
-| Concern | Owner |
+| Responsabilidade | Dono |
 |---|---|
-| Agent loop, context, tool execution, retries | **The harness** — never this server |
-| AuthN/Z, validation, queueing, cancellation, protocol adaptation | `cia-edge` |
-| Lazy model start, one-model lifecycle, idle unload | `llama-swap` |
-| Token generation | `llama-server` on AMD ROCm |
-| Credential storage, process containment, restart backoff | `cia-supervisor` + Windows Credential Manager |
+| Loop do agente, contexto, execução de ferramentas, retries | **O harness** — nunca este servidor |
+| Autenticação/autorização, validação, fila, cancelamento, adaptação de protocolo | `cia-edge` |
+| Start preguiçoso do modelo, ciclo de vida de um modelo só, unload por ociosidade | `llama-swap` |
+| Geração de tokens | `llama-server` sobre AMD ROCm |
+| Guarda de credenciais, contenção de processo, backoff de reinício | `cia-supervisor` + Windows Credential Manager |
 
-The deliberate scope limit is the point: this is an **inference and admission-control plane**, not an agent framework. It has no conversation history, no prompt store, no model chooser, and no network path to any cloud provider.
+O limite de escopo é deliberado e é justamente o ponto: isto é um **plano de inferência e controle de admissão**, não um framework de agente. Não tem histórico de conversa, não tem armazenamento de prompt, não escolhe modelo, e não tem caminho de rede para nenhum provedor de nuvem.
 
-> **On the `cia-` prefix:** it stands for the install root `C:\IA` (*IA* = *inteligência artificial*). No relation to the agency.
+> **Sobre o prefixo `cia-`:** vem da raiz de instalação `C:\IA` (*IA* = *inteligência artificial*). Nenhuma relação com a agência.
 
-## Architecture
+## Arquitetura
 
 ```mermaid
 flowchart LR
-    T["cia-tray<br/>operator panel"] --> P
-    C["Codex profile"] --> E
-    O["OpenCode provider"] --> E
-    E["cia-edge<br/>data :8090"] --> S
-    P["cia-edge<br/>control :8091"]
+    T["cia-tray<br/>painel do operador"] --> P
+    C["Perfil Codex"] --> E
+    O["Provider OpenCode"] --> E
+    E["cia-edge<br/>dados :8090"] --> S
+    P["cia-edge<br/>controle :8091"]
     S["llama-swap :9292"] --> L["llama-server"]
-    L --> G["Qualified GGUF"]
-    M["cia-mcp<br/>read-only"] --> P
-    D["SOTA harness +<br/>cia-mcp-inference"] --> E
-    A["cia-mcp-admin<br/>opt-in, unregistered"] -.-> P
-    U["Unsloth<br/>train / export"] --> Q["Promotion gate"]
+    L --> G["GGUF qualificado"]
+    M["cia-mcp<br/>somente leitura"] --> P
+    D["Harness SOTA +<br/>cia-mcp-inference"] --> E
+    A["cia-mcp-admin<br/>opcional, não registrado"] -.-> P
+    U["Unsloth<br/>treino / export"] --> Q["Gate de promoção"]
     Q --> G
 ```
 
-Requests enter on loopback only. The edge strips the client's `Authorization` header, validates the payload against a route-specific contract, injects a *separate* router credential, and streams upstream bytes back incrementally with cancellation propagation. An unknown route, unknown model, unsupported encoding, or malformed tool shape **fails closed** — there is no second opinion to fall back to.
+As requisições entram apenas por loopback. O edge remove o header `Authorization` do cliente, valida o payload contra um contrato específico da rota, injeta uma credencial de router *separada*, e devolve os bytes do upstream de forma incremental com propagação de cancelamento. Rota desconhecida, modelo desconhecido, encoding não suportado ou formato de ferramenta malformado **falham fechado** — não existe segunda opinião para recorrer.
 
-Full detail: [Architecture](docs/ARCHITECTURE.md) · [Threat model](docs/THREAT_MODEL.md) · [Runbook](docs/RUNBOOK.md) · [ADRs](docs/adr/)
+Detalhamento completo: [Arquitetura](docs/ARCHITECTURE.md) · [Threat model](docs/THREAT_MODEL.md) · [Runbook](docs/RUNBOOK.md) · [ADRs](docs/adr/)
 
-## Security invariants
+## Invariantes de segurança
 
-These are enforced in code and asserted by tests, not just documented:
+Estes são aplicados em código e verificados por testes, não apenas documentados:
 
-| Invariant | How it is enforced |
+| Invariante | Como é aplicado |
 |---|---|
-| Every listener is literal loopback | Config rejects `0.0.0.0`, `::`, and LAN addresses; installation audit inspects live listeners |
-| Client credentials never reach the model | Edge removes `Authorization` and cookies; verified against a fake upstream in integration tests |
-| Three independent secrets | Distinct inference / admin / router credentials in Windows Credential Manager |
-| No cloud fallback, ever | No remote upstream is reachable; route + model allowlists; outbound firewall deny rules |
-| Logs are metadata-only | Request ID, method, sanitized route, status, latency. Never prompts, bodies, headers, or tokens |
-| Bounded decompression | 16 MiB wire / 64 MiB decoded / 100:1 expansion ceiling on identity, gzip, and zstd |
-| Bounded concurrency | One active inference, four queued, 120 s wait limit, then `429` with `Retry-After` |
-| Direct model access is authenticated | `llama-server` requires the router key file; unauthenticated inference on the dynamic port returns `401` |
-| No secrets on command lines | Supervisor injects into a process-local environment allowlist |
-| Nothing sensitive in Git | CI rejects tracked binaries and weights; Gitleaks scans full history |
+| Todo listener é loopback literal | A config rejeita `0.0.0.0`, `::` e endereços de LAN; a auditoria de instalação inspeciona os listeners ativos |
+| Credenciais do cliente nunca chegam ao modelo | O edge remove `Authorization` e cookies; verificado contra um upstream falso em testes de integração |
+| Três segredos independentes | Credenciais distintas de inferência / administração / router no Windows Credential Manager |
+| Nunca há fallback para nuvem | Nenhum upstream remoto é alcançável; allowlists de rota e modelo; regras de firewall bloqueando saída |
+| Logs contêm apenas metadados | ID da requisição, método, rota sanitizada, status, latência. Nunca prompts, corpos, headers ou tokens |
+| Descompressão limitada | Teto de 16 MiB na rede / 64 MiB decodificado / expansão 100:1 em identity, gzip e zstd |
+| Concorrência limitada | Uma inferência ativa, quatro na fila, limite de espera de 120 s e então `429` com `Retry-After` |
+| Acesso direto ao modelo é autenticado | O `llama-server` exige o arquivo de chave do router; inferência sem credencial na porta dinâmica retorna `401` |
+| Nenhum segredo em linha de comando | O supervisor injeta em uma allowlist de ambiente local ao processo |
+| Nada sensível no Git | A CI rejeita binários e pesos rastreados; o Gitleaks varre o histórico completo |
 
-The privilege split is deliberate at every layer: the control plane is a separate listener from the data plane, the administrative MCP is a **separate executable that is never registered by default**, and the operator panel reads the admin credential only on an explicit mutation — its periodic status poll is unauthenticated and sanitized, so a loopback impostor has no unattended capture path.
+A separação de privilégio é deliberada em todas as camadas: o control plane é um listener separado do data plane, o MCP administrativo é um **executável separado que nunca é registrado por padrão**, e o painel do operador só lê a credencial de administração numa mutação explícita — seu polling periódico de status é não autenticado e sanitizado, de forma que um impostor em loopback não tem caminho de captura desassistida.
 
-## Components
+## Componentes
 
-| Executable | Purpose | Exposure |
+| Executável | Função | Exposição |
 |---|---|---|
-| `cia-edge` | Data + control plane: auth, validation, queue, streaming | `127.0.0.1:8090` / `:8091` |
-| `cia-supervisor` | Job Object containment, 1–15 min exponential restart backoff | Scheduled-task action |
-| `cia-tray` | Native Win32 operator panel — status, lifecycle, model validation | Notification area |
-| `cia-credential` | Windows Credential Manager helper | Local process only |
-| `cia-mcp` | Read-only operational MCP (5 side-effect-free tools) | Harness stdio |
-| `cia-mcp-inference` | One stateless, text-only delegation tool for SOTA harnesses | Harness stdio |
-| `cia-mcp-admin` | Lifecycle administration MCP | **Not registered by default** |
-| `cia-manifest` | JSON Schema validation of the versioned model manifest | Operator / CI |
+| `cia-edge` | Data e control plane: auth, validação, fila, streaming | `127.0.0.1:8090` / `:8091` |
+| `cia-supervisor` | Contenção em Job Object, backoff exponencial de reinício de 1 a 15 min | Ação de tarefa agendada |
+| `cia-tray` | Painel de operador Win32 nativo — status, ciclo de vida, validação de modelo | Área de notificação |
+| `cia-credential` | Auxiliar do Windows Credential Manager | Somente processo local |
+| `cia-mcp` | MCP operacional somente leitura (5 ferramentas sem efeito colateral) | stdio do harness |
+| `cia-mcp-inference` | Uma ferramenta de delegação sem estado, só texto, para harnesses SOTA | stdio do harness |
+| `cia-mcp-admin` | MCP de administração de ciclo de vida | **Não registrado por padrão** |
+| `cia-manifest` | Validação por JSON Schema do manifesto versionado de modelos | Operador / CI |
 
-## Engineering practices
+## Práticas de engenharia
 
-**Testing.** 103 test functions, ~3.5k lines of test code against ~8.7k lines of production Go — a **~40% test-to-source ratio**. Coverage is concentrated where it matters: credential handling, body decoding limits, protocol adaptation, config validation, and negative authorization paths. Contract tests assert the security invariants above rather than restating implementation.
+**Testes.** 103 funções de teste, ~3,5 mil linhas de código de teste contra ~8,7 mil linhas de Go de produção — uma **razão teste/código de ~40%**. A cobertura está concentrada onde importa: manipulação de credenciais, limites de decodificação de corpo, adaptação de protocolo, validação de configuração e caminhos negativos de autorização. Os testes de contrato verificam os invariantes de segurança acima em vez de reafirmar a implementação.
 
-**CI.** Four jobs on every push: PowerShell parse + harness-config validation, Go format/vet/[Staticcheck](https://staticcheck.dev/)/[govulncheck](https://go.dev/blog/govulncheck) with a [CycloneDX SBOM](https://cyclonedx.org/) artifact, a separate race-detector run on the portable core, and a full-history [Gitleaks](https://github.com/gitleaks/gitleaks) secret scan. A dedicated step fails the build if a `.gguf`, `.safetensors`, `.exe`, or archive is ever tracked.
+**CI.** Quatro jobs a cada push: parsing de PowerShell e validação de config de harness; formatação/vet/[Staticcheck](https://staticcheck.dev/)/[govulncheck](https://go.dev/blog/govulncheck) de Go com artefato [SBOM CycloneDX](https://cyclonedx.org/); uma execução separada do detector de corrida sobre o núcleo portável; e uma varredura de segredos com [Gitleaks](https://github.com/gitleaks/gitleaks) sobre o histórico completo. Um passo dedicado quebra o build se um `.gguf`, `.safetensors`, `.exe` ou arquivo compactado for rastreado.
 
-**Decision records.** Eight [ADRs](docs/adr/) capture the *why* behind the architecture — the thin-edge split, fail-closed autonomy, the manifest/promotion gate, native panel over web UI, and the external-artifact ACL boundary.
+**Registros de decisão.** Oito [ADRs](docs/adr/) capturam o *porquê* por trás da arquitetura — a separação de edge fino, a autonomia fail-closed, o gate de manifesto/promoção, painel nativo em vez de UI web, e a fronteira de ACL para artefatos externos.
 
-**Reproducibility.** Direct and transitive modules are pinned, and `go.mod` pins a patch-level toolchain floor (`go 1.26.5`) rather than a minor one — CI resolves its Go version from that file, so a stale floor would mean building and shipping against a standard library with known advisories. Deployment never copies from the worktree: release candidates build into a staging area, are reviewed by SHA-256, then install atomically into a protected directory.
+**Reprodutibilidade.** Módulos diretos e transitivos são pinados, e o `go.mod` fixa um piso de toolchain no nível de patch (`go 1.26.5`) em vez de minor — a CI resolve a versão do Go a partir desse arquivo, então um piso desatualizado significaria compilar e distribuir contra uma biblioteca padrão com advisories conhecidos. O deploy nunca copia do worktree: candidatos a release são compilados numa área de staging, revisados por SHA-256, e então instalados atomicamente num diretório protegido.
 
-**Preview-first operations.** Every one of the 47 PowerShell deployment scripts is read-only unless an explicit `-Apply` switch is supplied. Firewall and ACL changes additionally require an elevated shell and write a pre-change SDDL recovery record.
+**Operações preview-first.** Cada um dos 47 scripts PowerShell de deploy é somente leitura a menos que um switch `-Apply` explícito seja fornecido. Mudanças de firewall e ACL exigem adicionalmente um shell elevado e gravam um registro SDDL de recuperação antes da alteração.
 
-## Model promotion gate
+## Gate de promoção de modelo
 
-Models do not become available by existing on disk. They move through an explicit state machine:
+Modelos não ficam disponíveis só por existirem em disco. Eles percorrem uma máquina de estados explícita:
 
 ```text
 candidate ──▶ qualified ──▶ enabled ──▶ retired
     ▲             │
-    └─────────────┘  regression requires requalification
+    └─────────────┘  regressão exige requalificação
 ```
 
-`candidate` runs only on canary ports. Reaching `qualified` requires immutable SHA-256 hashes, license and provenance records, protocol contract tests, measured RAM/commit/VRAM envelopes, failure-recovery evidence, and soak results. The production config generator **refuses to emit a `candidate` model** — see [Model promotion](docs/MODEL_PROMOTION.md).
+`candidate` roda apenas nas portas de canary. Chegar a `qualified` exige hashes SHA-256 imutáveis, registros de licença e proveniência, testes de contrato de protocolo, envelopes medidos de RAM/commit/VRAM, evidência de recuperação de falha e resultados de soak. O gerador de configuração de produção **se recusa a emitir um modelo `candidate`** — ver [Promoção de modelo](docs/MODEL_PROMOTION.md).
 
-## Project status
+## Status do projeto
 
-**v2 canary. Production promotion is intentionally blocked.** The Go edge, MCP servers, manifest, lifecycle router, credential helper, supervisor, operator panel, deployment scripts, tests, and documentation are implemented and passing. What passed canary validation: native Responses, true SSE streaming, Chat Completions, zstd, function calling, queue overflow, cancellation, TTL/unload, MCP discovery, router/edge restart, and Job Object containment. Edge p95 overhead measured within noise and below the 50 ms gate.
+**Canary v2. A promoção para produção está intencionalmente bloqueada.** O edge em Go, os servidores MCP, o manifesto, o router de ciclo de vida, o auxiliar de credenciais, o supervisor, o painel do operador, os scripts de deploy, os testes e a documentação estão implementados e passando. O que passou na validação de canary: Responses nativo, streaming SSE real, Chat Completions, zstd, function calling, estouro de fila, cancelamento, TTL/unload, descoberta MCP, reinício de router/edge e contenção por Job Object. O overhead p95 do edge foi medido dentro do ruído e abaixo do gate de 50 ms.
 
-Two measured gates block cutover, and neither is hand-waved:
+Dois gates medidos bloqueiam o cutover, e nenhum dos dois foi contornado com conversa:
 
-1. **Model qualification.** A real Codex session fixed a Go fixture and made `go test ./...` pass — but the candidate model failed to terminate the session, repeating tool turns until the five-minute timeout.
-2. **Resource envelope.** Committed-memory headroom does not satisfy the required peak plus a 4 GiB reserve at 128k context.
+1. **Qualificação do modelo.** Uma sessão real do Codex corrigiu um fixture Go e fez `go test ./...` passar — mas o modelo candidato não encerrou a sessão, repetindo turnos de ferramenta até o timeout de cinco minutos.
+2. **Envelope de recursos.** A folga de memória comprometida não satisfaz o pico exigido mais a reserva de 4 GiB em contexto de 128k.
 
-The 72-hour / 500-request / 20-cycle soak has not been run. Recording this in the README rather than shipping anyway *is* the engineering position: a promotion gate that bends for its own author is not a gate.
+O soak de 72 horas / 500 requisições / 20 ciclos não foi executado. Registrar isso no README em vez de publicar assim mesmo *é* a posição de engenharia: um gate de promoção que cede para o próprio autor não é um gate.
 
-## Hardware baseline
+## Baseline de hardware
 
-Developed against AMD ROCm on Windows. The runtime is pinned by measured SHA-256 rather than by its directory label, because vendor archive names have proven unreliable as version identity. Benchmark methodology and recorded results: [Benchmarks](docs/BENCHMARKS.md).
+Desenvolvido contra AMD ROCm no Windows. O runtime é pinado pelo SHA-256 medido em vez do rótulo do diretório, porque nomes de arquivo do fornecedor se provaram pouco confiáveis como identidade de versão. Metodologia de benchmark e resultados registrados: [Benchmarks](docs/BENCHMARKS.md).
 
 ## Build
 
@@ -141,53 +143,55 @@ go build -trimpath -o bin/cia-edge.exe ./cmd/cia-edge
 go build -trimpath -ldflags="-H=windowsgui" -o bin/cia-tray.exe ./cmd/cia-tray
 ```
 
-Remaining binaries follow the same pattern under `./cmd/`. These are disposable developer outputs — deployment uses the staged, hash-reviewed path described in the [Runbook](docs/RUNBOOK.md).
+Os binários restantes seguem o mesmo padrão sob `./cmd/`. Essas saídas são descartáveis, de desenvolvimento — o deploy usa o caminho com staging e revisão de hash descrito no [Runbook](docs/RUNBOOK.md).
 
-## Deployment
+## Deploy
 
-Scripts preview by default; mutation is always a separate, explicit invocation.
+Os scripts fazem preview por padrão; mutação é sempre uma invocação separada e explícita.
 
 ```powershell
-# Validate tracked model and harness metadata
+# Valida os metadados rastreados de modelo e de harness
 .\scripts\v2\Test-V2Manifest.ps1
 .\scripts\v2\Test-V2HarnessConfig.ps1
 
-# Initialize only missing secrets; existing credentials are preserved
+# Inicializa apenas os segredos ausentes; credenciais existentes são preservadas
 .\scripts\v2\Initialize-V2Secrets.ps1 -Apply
 
-# Preview, then generate the canary deployment
+# Preview e então geração do deploy de canary
 .\scripts\v2\New-V2Config.ps1 -Environment Canary
 .\scripts\v2\New-V2Config.ps1 -Environment Canary -Apply
 ```
 
-Harness integration templates live under [`integrations/`](integrations/) and contain no secrets. Codex keeps its normal OpenAI login untouched — local access is an explicitly selected profile, with endpoint and model pinned at CLI precedence so a repository-level config cannot silently redirect a session that the user asked to keep local.
+Os templates de integração de harness ficam em [`integrations/`](integrations/) e não contêm segredos. O Codex mantém seu login normal da OpenAI intocado — o acesso local é um perfil selecionado explicitamente, com endpoint e modelo pinados na precedência de CLI, de modo que uma configuração no nível do repositório não consiga redirecionar silenciosamente uma sessão que o usuário pediu para manter local.
 
-## Repository map
+## Mapa do repositório
 
 ```
-cmd/                 9 Go binaries (edge, supervisor, tray, MCP servers, tooling)
+cmd/                 9 binários Go (edge, supervisor, tray, servidores MCP, ferramental)
 internal/            edge, credential, panel, supervisor, MCP, trayui, rotatelog
-config/              versioned model manifest + JSON Schema (source of truth)
-scripts/v2/          47 preview-first PowerShell deployment scripts
-integrations/        Codex and OpenCode profile templates (secret-free)
-docs/                architecture, threat model, runbook, benchmarks, promotion, 8 ADRs
-incident-reports/    sanitized v1 credential-exposure record
-benchmarks/          recorded model benchmark evidence
-control/             legacy v1 Python panel — migration evidence only, never a rollback target
+config/              manifesto versionado de modelos + JSON Schema (fonte da verdade)
+scripts/v2/          47 scripts PowerShell de deploy, preview-first
+integrations/        templates de perfil para Codex e OpenCode (sem segredos)
+docs/                arquitetura, threat model, runbook, benchmarks, promoção, 8 ADRs
+incident-reports/    registro sanitizado da exposição de credencial da v1
+benchmarks/          evidência registrada de benchmark de modelos
+control/             painel Python legado da v1 — apenas evidência de migração, nunca alvo de rollback
 ```
 
-## Documentation
+## Documentação
 
-| Document | Contents |
+A documentação longa é escrita em inglês.
+
+| Documento | Conteúdo |
 |---|---|
-| [Architecture](docs/ARCHITECTURE.md) | Component contracts, state machine, failure behavior, 10 invariants |
-| [Threat model](docs/THREAT_MODEL.md) | Assets, 7 trust boundaries, threat/control/verification matrix, residual risks |
-| [Runbook](docs/RUNBOOK.md) | Operational procedures and rollback boundaries |
-| [Model promotion](docs/MODEL_PROMOTION.md) | Qualification criteria and gate enforcement |
-| [Benchmarks](docs/BENCHMARKS.md) | Measurement methodology and evidence format |
-| [ADRs](docs/adr/) | Eight architecture decision records |
-| [Security policy](SECURITY.md) | Reporting process |
+| [Arquitetura](docs/ARCHITECTURE.md) | Contratos de componente, máquina de estados, comportamento em falha, 10 invariantes |
+| [Threat model](docs/THREAT_MODEL.md) | Ativos, 7 fronteiras de confiança, matriz ameaça/controle/verificação, riscos residuais |
+| [Runbook](docs/RUNBOOK.md) | Procedimentos operacionais e fronteiras de rollback |
+| [Promoção de modelo](docs/MODEL_PROMOTION.md) | Critérios de qualificação e aplicação do gate |
+| [Benchmarks](docs/BENCHMARKS.md) | Metodologia de medição e formato de evidência |
+| [ADRs](docs/adr/) | Oito registros de decisão arquitetural |
+| [Política de segurança](SECURITY.md) | Processo de reporte |
 
-## License
+## Licença
 
-Source code is [Apache-2.0](LICENSE). Third-party licenses and hashes are recorded in [NOTICE](NOTICE) and the model manifest. No model weights or runtime executables are redistributed.
+O código-fonte é [Apache-2.0](LICENSE). Licenças e hashes de terceiros estão registrados no [NOTICE](NOTICE) e no manifesto de modelos. Nenhum peso de modelo ou executável de runtime é redistribuído.
