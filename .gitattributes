@@ -1,0 +1,16 @@
+# Line endings are normalized to LF in the repository and in every working tree.
+#
+# CI runs on windows-latest, where Git's default core.autocrlf would rewrite
+# checked-out files to CRLF. Several validation scripts parse harness configs
+# with line-anchored regular expressions, so a CRLF checkout silently changes
+# what those assertions match. Pinning eol=lf keeps CI byte-identical to a
+# developer working tree. PowerShell, Go, and the Windows runtime all read LF
+# without issue.
+* text=auto eol=lf
+
+*.ico binary
+*.gguf binary
+*.safetensors binary
+*.exe binary
+*.zip binary
+*.bin binary

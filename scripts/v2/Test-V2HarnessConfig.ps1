@@ -95,8 +95,8 @@ foreach ($profile in $profiles) {
     }
 
     $codex = Get-Content -LiteralPath $profile.Codex -Raw -Encoding UTF8
-    $providerHeaders = @([regex]::Matches($codex, '(?m)^\[model_providers\.([^\.\]]+)\]$'))
-    $mcpHeaders = @([regex]::Matches($codex, '(?m)^\[mcp_servers\.([^\.\]]+)\]$'))
+    $providerHeaders = @([regex]::Matches($codex, '(?m)^\[model_providers\.([^\.\]]+)\]\r?$'))
+    $mcpHeaders = @([regex]::Matches($codex, '(?m)^\[mcp_servers\.([^\.\]]+)\]\r?$'))
     Assert-True ($providerHeaders.Count -eq 1 -and $providerHeaders[0].Groups[1].Value -eq $profile.Provider) "Codex profile has an unexpected provider table: $($profile.Codex)"
     Assert-True ($mcpHeaders.Count -eq 1 -and $mcpHeaders[0].Groups[1].Value -eq $profile.Provider) "Codex profile has an unexpected MCP table: $($profile.Codex)"
     Assert-True ($codex -match '(?m)^model\s*=\s*"local-coding"\s*$') "Codex model is not pinned: $($profile.Codex)"

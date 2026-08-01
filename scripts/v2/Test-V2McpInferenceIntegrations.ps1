@@ -88,9 +88,9 @@ command = "keep.exe"
     Assert-True (@($applied.backup_files).Count -eq 4) 'Expected one encrypted backup per updated config.'
 
     $codexText = Get-Content -LiteralPath $codex -Raw -Encoding UTF8
-    Assert-True ($codexText -match '(?m)^model = "sota-cloud-model"$') 'Codex primary model changed.'
-    Assert-True ($codexText -match '(?m)^model_provider = "cloud-provider"$') 'Codex provider changed.'
-    Assert-True ($codexText -match '(?m)^\[mcp_servers\.keep\]$') 'Existing Codex MCP was lost.'
+    Assert-True ($codexText -match '(?m)^model = "sota-cloud-model"\r?$') 'Codex primary model changed.'
+    Assert-True ($codexText -match '(?m)^model_provider = "cloud-provider"\r?$') 'Codex provider changed.'
+    Assert-True ($codexText -match '(?m)^\[mcp_servers\.keep\]\r?$') 'Existing Codex MCP was lost.'
     $managedCodexHeaders = @([regex]::Matches($codexText, '(?m)^\[mcp_servers\.cia-local-inference\]\r?$'))
     Assert-True ($managedCodexHeaders.Count -eq 1) "Managed Codex MCP is missing or duplicated (found $($managedCodexHeaders.Count))."
     Assert-True ($codexText -match '(?m)^enabled_tools = \["local_ai_delegate"\]\r?$') 'Codex tool allowlist is wrong.'
