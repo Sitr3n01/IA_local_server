@@ -42,7 +42,7 @@ Review `gofmt` changes before committing. PowerShell operational scripts must be
 
 - A candidate may be added to canary only.
 - Final deployment requires complete qualification evidence described in `docs/MODEL_PROMOTION.md`.
-- Exactly one model may be deployed per environment.
+- An environment may deploy several models; the router keeps at most one loaded and one inference active.
 - Changing any artifact, runtime flag, context, template, quantization, or revision requires requalification.
 - Generated llama-swap files are never edited as source.
 

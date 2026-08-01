@@ -101,7 +101,7 @@ The privilege split is deliberate at every layer: the control plane is a separat
 
 **Decision records.** Eight [ADRs](docs/adr/) capture the *why* behind the architecture — the thin-edge split, fail-closed autonomy, the manifest/promotion gate, native panel over web UI, and the external-artifact ACL boundary.
 
-**Reproducibility.** Go 1.26 with direct and transitive modules pinned. Deployment never copies from the worktree: release candidates build into a staging area, are reviewed by SHA-256, then install atomically into a protected directory.
+**Reproducibility.** Direct and transitive modules are pinned, and `go.mod` pins a patch-level toolchain floor (`go 1.26.5`) rather than a minor one — CI resolves its Go version from that file, so a stale floor would mean building and shipping against a standard library with known advisories. Deployment never copies from the worktree: release candidates build into a staging area, are reviewed by SHA-256, then install atomically into a protected directory.
 
 **Preview-first operations.** Every one of the 47 PowerShell deployment scripts is read-only unless an explicit `-Apply` switch is supplied. Firewall and ACL changes additionally require an elevated shell and write a pre-change SDDL recovery record.
 
