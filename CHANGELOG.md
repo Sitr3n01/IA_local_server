@@ -72,6 +72,17 @@ All notable changes are documented here. This project follows Keep a Changelog c
   ~16 GiB of commit even with no offload and no prompt cache. Also shows the
   template's 96k / KV `q8_0` split needs ~5.1 GiB offloaded rather than 4.4, and
   that 128k with `q4_0` KV needs *less* offload than 96k with `q8_0`.
+- `docs/TUNING.md` §1.3: the quality/speed frontier for choosing a quantization.
+  Community IQ4_XS builds of this model span roughly a gibibyte, which on this
+  hardware is ~60% of decode throughput, so build selection outweighs every
+  serving flag. Records that `Q3_K_XL` on 27B-class Qwen measures above 0.1 KLD
+  with 85-90% top-token agreement, against a 0.08 "quality drops" threshold, so
+  dropping a level is a real cost rather than a free win. Also documents two
+  silent MTP killers: quantization tooling dropping the `nextn` head entirely,
+  and draft acceptance collapsing at particular `--ctx-size` values on a
+  ~2048-token period (llama.cpp #23658).
+- `docs/RUNBOOK.md` §11.0b: choose the build and verify the MTP head survived
+  quantization before downloading or benchmarking anything.
 - `docs/RUNBOOK.md` §11.0: reclaim the idle commit baseline before measuring
   anything else. The 2026-07-20 validation recorded 31.82 GiB committed with no
   model loaded against a 42.30 GiB limit, which constrains a 27B more than the

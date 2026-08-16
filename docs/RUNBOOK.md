@@ -372,6 +372,20 @@ Close Unsloth Studio, harness sessions, and the browser before measuring. Record
 
 **Decision point.** With ~32 GiB of physical RAM, an idle baseline that will not come down to roughly 20 GiB leaves too little headroom for a 27B in any quantization. That is a machine-state conclusion, not a model conclusion — reaching it here costs minutes, whereas reaching it after downloading 15 GiB and running the full sweep costs hours.
 
+### 11.0b Choose the build, not just the quantization level
+
+Before downloading, read `TUNING.md` §1.3. Three choices made here outweigh every flag later:
+
+- **Take the most compact well-calibrated IQ4_XS build.** Community builds of this model differ by roughly a gibibyte, and on this hardware that gibibyte is worth ~60% of decode throughput. "IQ4_XS" also varies in quality by imatrix calibration, so smallest is not automatically best — but neither is the first one listed.
+- **Prefer KV `q4_0` over `q8_0`.** It buys longer context *and* less offload at once (§1.2). Validate recall with the stress eval rather than assuming `q8_0` is the safer default.
+- **Verify the MTP head survived quantization**, or the speculative-decoding work in this procedure is wasted:
+
+```powershell
+gguf-dump 'C:\IA\models\Qwen3.8-27B-GGUF\Qwen3.8-27B-IQ4_XS.gguf' | Select-String -Pattern 'nextn|mtp'
+```
+
+Expect a `nextn_predict_layers` metadata key and `blk.N.nextn.*` tensors. A build without them loads and serves normally and simply never speculates.
+
 ### 11.1 Gate zero: measure the Gated DeltaNet kernel before anything else
 
 The pinned `amd-rocm-baseline` runtime is b8407 and does not know this architecture; the GGUFs were quantized with b10419. Download an official ggml-org ROCm build for Windows (`llama-b<N>-windows-rocm-7.2.x-gfx110X-gfx115X-gfx120X-x64`, `N >= 10419`) and unpack it *outside* the repository, then measure without touching the manifest:
@@ -459,7 +473,7 @@ In the preview, confirm the new model's `cmd:` contains `--no-context-shift`, `-
 
 ### 11.5 Qualify
 
-Run the profiles in `model-test-matrix.json` (`qwen38-27b-*`), then the quality and stress evaluations. Leave `function_calling` false until `run-profile-stress-eval.py` produces a valid forced tool call. Then follow `MODEL_PROMOTION.md` as usual.
+Run the profiles in `model-test-matrix.json` (`qwen38-27b-*`), then the quality and stress evaluations. Record the MTP draft acceptance rate at the exact `context_tokens` you intend to ship: llama.cpp issue #23658 documents acceptance collapsing to near zero at specific context sizes on a ~2048-token period, unfixed and independent of quantization. If acceptance is poor, try +/-256 and +/-2048 before concluding MTP does not work here. Leave `function_calling` false until `run-profile-stress-eval.py` produces a valid forced tool call. Then follow `MODEL_PROMOTION.md` as usual.
 
 If throughput disappoints, do not re-quantize on instinct: `TUNING.md` gives the bandwidth ceiling for a given weight split, so you can tell whether the configuration is at its hardware limit or something is actually broken. On this hardware the first gibibyte of offload costs ~37% of decode throughput, which frequently makes a smaller fully-resident quant the faster choice.
 
