@@ -12,7 +12,15 @@ type modelManifest struct {
 	Provider struct {
 		PublicModel string `yaml:"public_model"`
 	} `yaml:"provider"`
-	Models []manifestModel `yaml:"models"`
+	Runtimes []manifestRuntime `yaml:"runtimes"`
+	Models   []manifestModel   `yaml:"models"`
+}
+
+type manifestRuntime struct {
+	ID     string `yaml:"id"`
+	Device struct {
+		VRAMMiB *int `yaml:"vram_mib"`
+	} `yaml:"device"`
 }
 
 type manifestModel struct {
@@ -22,8 +30,17 @@ type manifestModel struct {
 	Enabled     *bool    `yaml:"enabled"`
 	OwnedBy     string   `yaml:"owned_by"`
 	Deployments []string `yaml:"deployments"`
-	Resources   struct {
+	Runtime     string   `yaml:"runtime"`
+	CacheRAMMiB *int     `yaml:"cache_ram_mib"`
+	// Presence, not content: the edge only needs to know that part of the model
+	// lives outside VRAM, which makes an unmeasured capacity profile unsafe.
+	TensorOverrides []struct {
+		Pattern string `yaml:"pattern"`
+	} `yaml:"tensor_overrides"`
+	Resources struct {
 		PeakCommitGiB *float64 `yaml:"peak_commit_gib"`
+		PeakVRAMGiB   *float64 `yaml:"peak_vram_gib"`
+		PeakRAMGiB    *float64 `yaml:"peak_ram_gib"`
 	} `yaml:"resources"`
 }
 
@@ -49,6 +66,18 @@ func LoadModels(path, environment string) ([]Model, error) {
 	if publicModel == "" {
 		return nil, errorsForManifest("provider.public_model is required")
 	}
+	deviceVRAM := make(map[string]*float64, len(manifest.Runtimes))
+	for _, runtime := range manifest.Runtimes {
+		id := strings.TrimSpace(runtime.ID)
+		if id == "" {
+			continue
+		}
+		if runtime.Device.VRAMMiB != nil {
+			budget := float64(*runtime.Device.VRAMMiB) / 1024
+			deviceVRAM[id] = &budget
+		}
+	}
+
 	seen := make(map[string]struct{})
 	models := make([]Model, 0, len(manifest.Models))
 	publicFound := false
@@ -86,12 +115,17 @@ func LoadModels(path, environment string) ([]Model, error) {
 			ownedBy = "local"
 		}
 		models = append(models, Model{
-			ID:            id,
-			Object:        "model",
-			OwnedBy:       ownedBy,
-			State:         state,
-			Deployments:   append([]string(nil), entry.Deployments...),
-			PeakCommitGiB: entry.Resources.PeakCommitGiB,
+			ID:              id,
+			Object:          "model",
+			OwnedBy:         ownedBy,
+			State:           state,
+			Deployments:     append([]string(nil), entry.Deployments...),
+			PeakCommitGiB:   entry.Resources.PeakCommitGiB,
+			PeakVRAMGiB:     entry.Resources.PeakVRAMGiB,
+			PeakRAMGiB:      entry.Resources.PeakRAMGiB,
+			DeviceVRAMGiB:   deviceVRAM[strings.TrimSpace(entry.Runtime)],
+			CacheRAMMiB:     entry.CacheRAMMiB,
+			OffloadsTensors: len(entry.TensorOverrides) > 0,
 		})
 		if id == publicModel {
 			publicFound = true

@@ -31,12 +31,22 @@ const (
 // intentionally small: provenance and runtime details belong to the generated
 // model manifest, not to the OpenAI-compatible wire response.
 type Model struct {
-	ID            string   `json:"id"`
-	Object        string   `json:"object"`
-	OwnedBy       string   `json:"owned_by"`
-	State         string   `json:"-"`
-	Deployments   []string `json:"-"`
+	ID          string   `json:"id"`
+	Object      string   `json:"object"`
+	OwnedBy     string   `json:"owned_by"`
+	State       string   `json:"-"`
+	Deployments []string `json:"-"`
+
+	// Admission-control inputs. All of them are optional in the manifest; a nil
+	// value means "not measured", which is stricter than zero, not laxer.
 	PeakCommitGiB *float64 `json:"-"`
+	PeakVRAMGiB   *float64 `json:"-"`
+	PeakRAMGiB    *float64 `json:"-"`
+	DeviceVRAMGiB *float64 `json:"-"`
+	CacheRAMMiB   *int     `json:"-"`
+	// OffloadsTensors marks a model that deliberately keeps part of its weights
+	// in system RAM. Such a model cannot be admitted on an unmeasured profile.
+	OffloadsTensors bool `json:"-"`
 }
 
 // Config contains every network and admission-control decision made by the
@@ -182,6 +192,18 @@ func (c Config) Validate() error {
 		}
 		if model.PeakCommitGiB != nil && *model.PeakCommitGiB <= 0 {
 			return fmt.Errorf("model %q peak commit must be positive when configured", model.ID)
+		}
+		if model.PeakVRAMGiB != nil && *model.PeakVRAMGiB <= 0 {
+			return fmt.Errorf("model %q peak VRAM must be positive when configured", model.ID)
+		}
+		if model.PeakRAMGiB != nil && *model.PeakRAMGiB <= 0 {
+			return fmt.Errorf("model %q peak RAM must be positive when configured", model.ID)
+		}
+		if model.DeviceVRAMGiB != nil && *model.DeviceVRAMGiB <= 0 {
+			return fmt.Errorf("model %q device VRAM budget must be positive when configured", model.ID)
+		}
+		if model.CacheRAMMiB != nil && *model.CacheRAMMiB < 0 {
+			return fmt.Errorf("model %q prompt cache size cannot be negative", model.ID)
 		}
 		seen[model.ID] = struct{}{}
 	}

@@ -90,31 +90,7 @@ foreach ($model in $models) {
     foreach ($entry in $runtime.environment.psobject.Properties) {
         $envLines += "      - " + (ConvertTo-V2YamlSingleQuoted "$($entry.Name)=$($entry.Value)")
     }
-    $command = @(
-        ('"{0}"' -f $runtime.artifact.path),
-        '--model', ('"{0}"' -f $model.artifact.path),
-        '--host', '127.0.0.1',
-        '--port', '${PORT}',
-        '--alias', $model.id,
-        '--device', 'ROCm0',
-        '--split-mode', 'none',
-        '--gpu-layers', [string]$model.gpu_layers,
-        '--flash-attn', 'on',
-        '--ctx-size', [string]$model.context_tokens,
-        '--batch-size', [string]$model.batch_size,
-        '--ubatch-size', [string]$model.ubatch_size,
-        '--cache-type-k', $model.cache_type_k,
-        '--cache-type-v', $model.cache_type_v,
-        '--parallel', '1',
-        '--cont-batching',
-        '--context-shift',
-        '--jinja',
-        '--warmup',
-        '--metrics',
-        '--no-webui',
-        '--api-key-file', ('"{0}"' -f $routerAPIKeyPath),
-        '--log-disable'
-    ) -join ' '
+    $command = New-V2LlamaServerCommand -Runtime $runtime -Model $model -RouterAPIKeyPath $routerAPIKeyPath
     $block = @(
         "  $($model.id):",
         "    name: $(ConvertTo-V2YamlSingleQuoted $model.display_name)",

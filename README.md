@@ -61,7 +61,7 @@ flowchart LR
 
 As requisições entram apenas por loopback. O edge remove o header `Authorization` do cliente, valida o payload contra um contrato específico da rota, injeta uma credencial de router *separada*, e devolve os bytes do upstream de forma incremental com propagação de cancelamento. Rota desconhecida, modelo desconhecido, encoding não suportado ou formato de ferramenta malformado **falham fechado** — não existe segunda opinião para recorrer.
 
-Detalhamento completo: [Arquitetura](docs/ARCHITECTURE.md) · [Threat model](docs/THREAT_MODEL.md) · [Runbook](docs/RUNBOOK.md) · [ADRs](docs/adr/)
+Detalhamento completo: [Arquitetura](docs/ARCHITECTURE.md) · [Threat model](docs/THREAT_MODEL.md) · [Runbook](docs/RUNBOOK.md) · [Tuning](docs/TUNING.md) · [ADRs](docs/adr/)
 
 ## Invariantes de segurança
 
@@ -101,7 +101,7 @@ A separação de privilégio é deliberada em todas as camadas: o control plane 
 
 **CI.** Quatro jobs a cada push: parsing de PowerShell e validação de config de harness; formatação/vet/[Staticcheck](https://staticcheck.dev/)/[govulncheck](https://go.dev/blog/govulncheck) de Go com artefato [SBOM CycloneDX](https://cyclonedx.org/); uma execução separada do detector de corrida sobre o núcleo portável; e uma varredura de segredos com [Gitleaks](https://github.com/gitleaks/gitleaks) sobre o histórico completo. Um passo dedicado quebra o build se um `.gguf`, `.safetensors`, `.exe` ou arquivo compactado for rastreado.
 
-**Registros de decisão.** Oito [ADRs](docs/adr/) capturam o *porquê* por trás da arquitetura — a separação de edge fino, a autonomia fail-closed, o gate de manifesto/promoção, painel nativo em vez de UI web, e a fronteira de ACL para artefatos externos.
+**Registros de decisão.** Nove [ADRs](docs/adr/) capturam o *porquê* por trás da arquitetura — a separação de edge fino, a autonomia fail-closed, o gate de manifesto/promoção, painel nativo em vez de UI web, a fronteira de ACL para artefatos externos, e o offload parcial de pesos com cache de contexto em RAM para modelos híbridos.
 
 **Reprodutibilidade.** Módulos diretos e transitivos são pinados, e o `go.mod` fixa um piso de toolchain no nível de patch (`go 1.26.5`) em vez de minor — a CI resolve a versão do Go a partir desse arquivo, então um piso desatualizado significaria compilar e distribuir contra uma biblioteca padrão com advisories conhecidos. O deploy nunca copia do worktree: candidatos a release são compilados numa área de staging, revisados por SHA-256, e então instalados atomicamente num diretório protegido.
 
@@ -172,7 +172,7 @@ internal/            edge, credential, panel, supervisor, MCP, trayui, rotatelog
 config/              manifesto versionado de modelos + JSON Schema (fonte da verdade)
 scripts/v2/          47 scripts PowerShell de deploy, preview-first
 integrations/        templates de perfil para Codex e OpenCode (sem segredos)
-docs/                arquitetura, threat model, runbook, benchmarks, promoção, 8 ADRs
+docs/                arquitetura, threat model, runbook, benchmarks, promoção, tuning, 9 ADRs
 incident-reports/    registro sanitizado da exposição de credencial da v1
 benchmarks/          evidência registrada de benchmark de modelos
 control/             painel Python legado da v1 — apenas evidência de migração, nunca alvo de rollback
@@ -189,7 +189,8 @@ A documentação longa é escrita em inglês.
 | [Runbook](docs/RUNBOOK.md) | Procedimentos operacionais e fronteiras de rollback |
 | [Promoção de modelo](docs/MODEL_PROMOTION.md) | Critérios de qualificação e aplicação do gate |
 | [Benchmarks](docs/BENCHMARKS.md) | Metodologia de medição e formato de evidência |
-| [ADRs](docs/adr/) | Oito registros de decisão arquitetural |
+| [Tuning](docs/TUNING.md) | Diagnóstico de gargalo e teto de banda de memória |
+| [ADRs](docs/adr/) | Nove registros de decisão arquitetural |
 | [Política de segurança](SECURITY.md) | Processo de reporte |
 
 ## Licença

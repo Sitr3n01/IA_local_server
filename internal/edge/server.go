@@ -29,14 +29,14 @@ type metrics struct {
 // Server is a loopback-only, stateless OpenAI-compatible edge. It owns no
 // model lifecycle state; llama-swap remains the single lifecycle authority.
 type Server struct {
-	cfg            Config
-	upstream       *url.URL
-	client         *http.Client
-	allowed        map[string]struct{}
-	gate           *gate
-	events         *eventStore
-	metrics        metrics
-	commitHeadroom func() (float64, error)
+	cfg          Config
+	upstream     *url.URL
+	client       *http.Client
+	allowed      map[string]struct{}
+	gate         *gate
+	events       *eventStore
+	metrics      metrics
+	memoryStatus func() (memorySnapshot, error)
 }
 
 func New(cfg Config) (*Server, error) {
@@ -71,13 +71,13 @@ func New(cfg Config) (*Server, error) {
 		},
 	}
 	return &Server{
-		cfg:            cfg,
-		upstream:       upstream,
-		client:         client,
-		allowed:        allowed,
-		gate:           newGate(cfg.MaxActive, cfg.MaxQueue, cfg.QueueWait),
-		events:         newEventStore(cfg.LogOutput),
-		commitHeadroom: systemCommitHeadroomGiB,
+		cfg:          cfg,
+		upstream:     upstream,
+		client:       client,
+		allowed:      allowed,
+		gate:         newGate(cfg.MaxActive, cfg.MaxQueue, cfg.QueueWait),
+		events:       newEventStore(cfg.LogOutput),
+		memoryStatus: systemMemoryStatus,
 	}, nil
 }
 
@@ -414,11 +414,11 @@ func (s *Server) serveControl(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) writeStatus(w http.ResponseWriter, r *http.Request) {
 	running, runningErr := s.runningModels(r.Context())
-	headroom, metricErr := s.commitHeadroom()
-	capacity := capacityFrom(s.cfg.Models[0], running, runningErr, headroom, metricErr)
+	memory, metricErr := s.memoryStatus()
+	capacity := capacityFrom(s.cfg.Models[0], running, runningErr, memory, metricErr)
 	modelStatuses := make([]map[string]any, 0, len(s.cfg.Models))
 	for _, model := range s.cfg.Models {
-		modelCapacity := capacityFrom(model, running, runningErr, headroom, metricErr)
+		modelCapacity := capacityFrom(model, running, runningErr, memory, metricErr)
 		_, active := running[model.ID]
 		modelStatuses = append(modelStatuses, map[string]any{
 			"id": model.ID, "available": modelCapacity.Available,

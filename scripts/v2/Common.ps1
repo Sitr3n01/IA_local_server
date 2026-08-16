@@ -23,6 +23,27 @@ function Read-V2Manifest {
     return $manifest
 }
 
+# Reads an optional manifest property without tripping Set-StrictMode. Every
+# tuning field added after schema_version 1 shipped is optional, so absence must
+# be indistinguishable from the historical default at the call site.
+function Get-V2ModelSetting {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Model,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+
+        $Default = $null
+    )
+
+    $property = $Model.PSObject.Properties[$Name]
+    if ($null -eq $property -or $null -eq $property.Value) {
+        return $Default
+    }
+    return $property.Value
+}
+
 function Assert-V2ManifestSemantics {
     param(
         [Parameter(Mandatory = $true)]
@@ -68,6 +89,46 @@ function Assert-V2ManifestSemantics {
             throw "Model '$($model.id)' must use parallel=1 in v2."
         }
 
+        # Cross-field tuning rules. The JSON Schema owns everything expressible
+        # per-field (types, ranges, the ubatch dead band); only relationships
+        # between fields live here.
+        $contextShift = [bool](Get-V2ModelSetting -Model $model -Name 'context_shift' -Default $true)
+        $specDecoding = Get-V2ModelSetting -Model $model -Name 'spec_decoding'
+        $tensorOverrides = @(Get-V2ModelSetting -Model $model -Name 'tensor_overrides' -Default @())
+        $cacheRamMib = Get-V2ModelSetting -Model $model -Name 'cache_ram_mib'
+        $peakVramGib = Get-V2ModelSetting -Model $model.resources -Name 'peak_vram_gib'
+        $peakCommitGib = Get-V2ModelSetting -Model $model.resources -Name 'peak_commit_gib'
+
+        if ($null -ne $specDecoding -and $contextShift) {
+            # llama.cpp asserts in the sampler when a speculative draft is
+            # reconciled against a shifted context, and every model that ships an
+            # MTP head is a recurrent hybrid that cannot be shifted anyway.
+            throw "Model '$($model.id)' enables spec_decoding and must set context_shift=false."
+        }
+
+        if ($tensorOverrides.Count -gt 0) {
+            if ($null -eq $peakVramGib -and $model.gpu_layers -ge 99) {
+                throw "Model '$($model.id)' declares tensor_overrides without resources.peak_vram_gib; measure the split before offloading."
+            }
+            foreach ($override in $tensorOverrides) {
+                if ([string]$override.pattern -match '\s') {
+                    throw "Model '$($model.id)' has a tensor_overrides pattern containing whitespace, which would split into separate llama-server arguments."
+                }
+                try {
+                    [void][regex]::new([string]$override.pattern)
+                }
+                catch {
+                    throw "Model '$($model.id)' has an invalid tensor_overrides regex '$($override.pattern)': $($_.Exception.Message)"
+                }
+            }
+        }
+
+        if ($null -ne $cacheRamMib -and [int]$cacheRamMib -gt 0 -and $null -eq $peakCommitGib) {
+            # --cache-ram is charged against the Windows commit limit. Without a
+            # measured peak the edge admission gate cannot see it at all.
+            throw "Model '$($model.id)' declares cache_ram_mib without resources.peak_commit_gib; admission control cannot account for the prompt cache."
+        }
+
         $deployments = @($model.deployments)
         if ($deployments.Count -gt 0) {
             if ($model.state -eq 'retired') {
@@ -107,6 +168,97 @@ function Assert-V2ManifestSemantics {
         throw "provider.public_model references unknown model '$($Manifest.provider.public_model)'."
     }
 
+}
+
+# Builds the llama-server command line for one model. Kept here, apart from the
+# publication transaction in New-V2Config.ps1, so the emitted flags can be
+# asserted directly by Test-V2ConfigGeneration.ps1.
+#
+# Ordering is load-bearing: every optional flag is emitted between
+# --context-shift and --jinja, so a model that declares none of the optional
+# tuning fields produces the exact byte sequence this generator emitted before
+# those fields existed. Regenerating a qualified deployment must never rewrite
+# its configuration just because the schema grew.
+function New-V2LlamaServerCommand {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Runtime,
+
+        [Parameter(Mandatory = $true)]
+        [object]$Model,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RouterAPIKeyPath
+    )
+
+    $arguments = [System.Collections.Generic.List[string]]::new()
+    foreach ($argument in @(
+            ('"{0}"' -f $Runtime.artifact.path),
+            '--model', ('"{0}"' -f $Model.artifact.path),
+            '--host', '127.0.0.1',
+            '--port', '${PORT}',
+            '--alias', $Model.id,
+            '--device', 'ROCm0',
+            '--split-mode', 'none',
+            '--gpu-layers', [string]$Model.gpu_layers,
+            '--flash-attn', 'on',
+            '--ctx-size', [string]$Model.context_tokens,
+            '--batch-size', [string]$Model.batch_size,
+            '--ubatch-size', [string]$Model.ubatch_size,
+            '--cache-type-k', $Model.cache_type_k,
+            '--cache-type-v', $Model.cache_type_v,
+            '--parallel', [string]$Model.parallel,
+            '--cont-batching'
+        )) { $arguments.Add($argument) }
+
+    # Context shift rewrites absolute positions in the KV cache. Models with a
+    # recurrent state (Gated DeltaNet hybrids) have no way to rewind that state,
+    # so the flag has to be selectable per model rather than always emitted.
+    if ([bool](Get-V2ModelSetting -Model $Model -Name 'context_shift' -Default $true)) {
+        $arguments.Add('--context-shift')
+    }
+    else {
+        $arguments.Add('--no-context-shift')
+    }
+
+    if ([bool](Get-V2ModelSetting -Model $Model -Name 'kv_unified' -Default $false)) {
+        $arguments.Add('--kv-unified')
+    }
+    $cacheRamMib = Get-V2ModelSetting -Model $Model -Name 'cache_ram_mib'
+    if ($null -ne $cacheRamMib) {
+        $arguments.AddRange([string[]]@('--cache-ram', [string][int]$cacheRamMib))
+    }
+    $ctxCheckpoints = Get-V2ModelSetting -Model $Model -Name 'ctx_checkpoints'
+    if ($null -ne $ctxCheckpoints) {
+        $arguments.AddRange([string[]]@('--ctx-checkpoints', [string][int]$ctxCheckpoints))
+    }
+    $checkpointEvery = Get-V2ModelSetting -Model $Model -Name 'checkpoint_every_n_tokens'
+    if ($null -ne $checkpointEvery) {
+        $arguments.AddRange([string[]]@('--checkpoint-every-n-tokens', [string][int]$checkpointEvery))
+    }
+    if ([bool](Get-V2ModelSetting -Model $Model -Name 'cache_idle_slots' -Default $false)) {
+        $arguments.Add('--cache-idle-slots')
+    }
+    $specDecoding = Get-V2ModelSetting -Model $Model -Name 'spec_decoding'
+    if ($null -ne $specDecoding) {
+        $arguments.AddRange([string[]]@(
+                '--spec-type', [string]$specDecoding.type,
+                '--spec-draft-n-max', [string][int]$specDecoding.draft_n_max))
+    }
+    foreach ($override in @(Get-V2ModelSetting -Model $Model -Name 'tensor_overrides' -Default @())) {
+        $arguments.AddRange([string[]]@('-ot', ('"{0}={1}"' -f $override.pattern, $override.buffer)))
+    }
+
+    foreach ($argument in @(
+            '--jinja',
+            '--warmup',
+            '--metrics',
+            '--no-webui',
+            '--api-key-file', ('"{0}"' -f $RouterAPIKeyPath),
+            '--log-disable'
+        )) { $arguments.Add($argument) }
+
+    return ($arguments -join ' ')
 }
 
 function Assert-V2ManifestSchema {

@@ -347,6 +347,117 @@ $codexHome = 'C:\Users\Sitr3n\.codex'
 .\scripts\v2\Install-V2Harness.ps1 -Environment Final -TargetCodexHome $codexHome -ExpectedPlanSha256 '<reviewed final plan_sha256>' -Apply -Replace
 ```
 
+## 11. Onboard a hybrid model with partial offload (Qwen3.8-27B)
+
+This procedure applies to any model too large to sit entirely in VRAM. It is written against Qwen3.8-27B IQ4_XS on the RX 9070 XT (16304 MiB) because that is the case it was built for.
+
+### 11.0 Reclaim the idle commit baseline first
+
+This step comes before the kernel measurement because it can decide the outcome on its own, and because every later number is a delta against it.
+
+The 2026-07-20 canary validation recorded **31.82 GiB of committed memory with no model loaded**, against a commit limit of 42.30 GiB. That leaves 10.48 GiB of headroom before llama-server starts, and a 9B consumed 8.06 GiB of it. The binding constraint on a 27B is not the model — it is what the machine is already holding.
+
+```powershell
+# Idle committed bytes, in GiB. Run with the desktop in its normal state, then
+# again after closing other workloads, and record both.
+$os = Get-CimInstance Win32_OperatingSystem
+[pscustomobject]@{
+  CommitLimitGiB = [math]::Round($os.TotalVirtualMemorySize / 1MB, 2)
+  CommitFreeGiB  = [math]::Round($os.FreeVirtualMemory   / 1MB, 2)
+  PhysFreeGiB    = [math]::Round($os.FreePhysicalMemory  / 1MB, 2)
+}
+```
+
+Close Unsloth Studio, harness sessions, and the browser before measuring. Record the idle figure in the benchmark report as `idle_commit_gib`; without it `peak_commit_gib` is not reproducible across machine states.
+
+**Decision point.** With ~32 GiB of physical RAM, an idle baseline that will not come down to roughly 20 GiB leaves too little headroom for a 27B in any quantization. That is a machine-state conclusion, not a model conclusion — reaching it here costs minutes, whereas reaching it after downloading 15 GiB and running the full sweep costs hours.
+
+### 11.1 Gate zero: measure the Gated DeltaNet kernel before anything else
+
+The pinned `amd-rocm-baseline` runtime is b8407 and does not know this architecture; the GGUFs were quantized with b10419. Download an official ggml-org ROCm build for Windows (`llama-b<N>-windows-rocm-7.2.x-gfx110X-gfx115X-gfx120X-x64`, `N >= 10419`) and unpack it *outside* the repository, then measure without touching the manifest:
+
+```powershell
+.\scripts\bench-llama.ps1 `
+  -ModelPath 'C:\IA\models\Qwen3.8-27B-GGUF\Qwen3.8-27B-IQ4_XS.gguf' `
+  -RuntimeRoot 'C:\IA\local-llama\amd\<unpacked build directory>' `
+  -Label 'qwen38-sanity' -CacheTypeK q8_0 -CacheTypeV q8_0 -UBatchSize 512
+```
+
+Confirm the load log lists a ROCm device and that the Gated DeltaNet op is not falling back. Compare `tg128` against the 9B baselines in `benchmarks/`. If it lands near CPU-fallback speed, stop here and record the negative result — the rest of this procedure cannot recover it. See the hybrid section of `BENCHMARKS.md`.
+
+### 11.2 Find the split
+
+Sweep `-NGpuLayers` and `-ot` patterns and read `llm_load_tensors: CPU buffer size` from the load log. Target roughly 4 GiB resident in system RAM. Offload FFN tensors of a contiguous tail only — never reduce `--n-gpu-layers`, which would evict full-attention layers (`blk.3, 7, 11, … 63`) and push their KV cache into system RAM. Starting pattern:
+
+```
+blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*
+```
+
+### 11.3 Record the manifest entry
+
+Add the runtime and model to `config/models.yaml` together with the three catalog files listed in `MODEL_PROMOTION.md`; `Test-V2HarnessConfig.ps1` compares their cardinality against the manifest and fails if they drift. Fill `artifact.bytes` and `artifact.sha256` from the real files — `Assert-V2Artifact` verifies both on `-Apply`.
+
+```jsonc
+{
+  "id": "qwen38-27b-iq4xs",
+  "display_name": "Qwen 3.8 27B IQ4_XS - hybrid GDN, 96k context",
+  "state": "candidate",
+  "deployments": ["canary"],
+  "runtime": "amd-rocm-qwen38",
+  "artifact": { "path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
+                "bytes": 0, "sha256": "<compute with Get-FileHash>" },
+  "source": { "repository": "unsloth/Qwen3.8-27B-GGUF", "revision": "<40-hex upstream commit>",
+              "filename": "Qwen3.8-27B-IQ4_XS.gguf", "license": "Apache-2.0" },
+  "context_tokens": 98304,
+  "max_output_tokens": 16384,
+  "cache_type_k": "q8_0",
+  "cache_type_v": "q8_0",
+  "parallel": 1,
+  "batch_size": 2048,
+  "ubatch_size": 512,
+  "gpu_layers": 99,
+  "jinja": true,
+  "reasoning": "auto",
+  "context_shift": false,
+  "kv_unified": true,
+  "cache_ram_mib": 2048,
+  "ctx_checkpoints": 64,
+  "checkpoint_every_n_tokens": 8192,
+  "cache_idle_slots": true,
+  "spec_decoding": { "type": "draft-mtp", "draft_n_max": 3 },
+  "tensor_overrides": [
+    { "pattern": "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*", "buffer": "CPU" }
+  ],
+  "capabilities": { "responses": false, "chat_completions": true, "streaming": true,
+                    "function_calling": false, "structured_output": false },
+  "resources": { "peak_vram_gib": null, "peak_commit_gib": null, "peak_ram_gib": null }
+}
+```
+
+`context_shift: false` is mandatory: the recurrent state cannot be shifted, and the schema refuses `spec_decoding` without it. `cache_ram_mib` requires a measured `peak_commit_gib`, and `tensor_overrides` requires a measured `peak_vram_gib` — both are validated at generation time, and the edge refuses admission until they are present.
+
+`cache_ram_mib: 2048` is sized against the **measured** headroom from step 11.0, not against the nominal RAM budget: the gate adds the value in full on top of `peak_commit_gib`, so a 6 GiB cache consumes more than half of a 10.48 GiB headroom before the weights are counted. Raise it only after 11.0 shows the idle baseline actually came down; a larger cache that forces the pagefile is worse than no cache, because a checkpoint restored from disk competes with the very prefill it was meant to avoid.
+
+`spec_decoding.draft_n_max: 3` is set for an **offloaded** split, not copied from the resident-model optimum of 7. Speculation amortizes weight reads but not arithmetic, and the CPU-resident portion is compute-bound, so past a shallow depth each extra drafted token costs more than it returns — at the pessimistic end a depth of 7 is slower than not speculating at all. The optimum moves whenever the `-ot` pattern moves; sweep the two together. See `TUNING.md` §1.1.
+
+Measure `peak_vram_gib`, `peak_commit_gib`, and `peak_ram_gib` from a live load and fill them in, following the measurement rules in `MODEL_PROMOTION.md` — in particular, capture `peak_commit_gib` on the first request after start, with a cold prompt cache.
+
+### 11.4 Validate and generate
+
+```powershell
+.\scripts\v2\Test-V2Manifest.ps1 -SchemaValidatorPath 'C:\IA\local-ai-v2\bin\cia-manifest.exe'
+.\scripts\v2\Test-V2ConfigGeneration.ps1
+.\scripts\v2\New-V2Config.ps1 -Environment Canary
+```
+
+In the preview, confirm the new model's `cmd:` contains `--no-context-shift`, `--cache-ram`, `--spec-type draft-mtp`, and one `-ot` per override — and that every other model's `cmd:` is unchanged.
+
+### 11.5 Qualify
+
+Run the profiles in `model-test-matrix.json` (`qwen38-27b-*`), then the quality and stress evaluations. Leave `function_calling` false until `run-profile-stress-eval.py` produces a valid forced tool call. Then follow `MODEL_PROMOTION.md` as usual.
+
+If throughput disappoints, do not re-quantize on instinct: `TUNING.md` gives the bandwidth ceiling for a given weight split, so you can tell whether the configuration is at its hardware limit or something is actually broken. On this hardware the first gibibyte of offload costs ~37% of decode throughput, which frequently makes a smaller fully-resident quant the faster choice.
+
 ## Health interpretation
 
 | Observation | Meaning | Action |
@@ -357,6 +468,18 @@ $codexHome = 'C:\Users\Sitr3n\.codex'
 | `503` | Local provider cannot serve safely | Fix local dependency; do not enable fallback |
 | Model process absent while idle | Expected lazy state | No action |
 | Model starts after `/v1/models` | Contract regression | Stop cutover and file a blocking defect |
+
+Capacity `reason` values from `/api/v1/status` (for slowness rather than refusal, see `TUNING.md`):
+
+| Reason | Meaning | Action |
+|---|---|---|
+| `commit_headroom_available` | Measured profile fits, including any declared prompt cache | No action |
+| `insufficient_commit_headroom` | Measured commit plus `cache_ram_mib` plus the 4 GiB reserve exceeds free commit | Free commit (step 11.0), lower `cache_ram_mib`, or raise the pagefile |
+| `insufficient_physical_memory` | Measured `peak_ram_gib` plus the 2 GiB reserve exceeds free physical RAM | Free RAM or offload less; raising the pagefile does **not** fix this and makes it slower |
+| `insufficient_vram_budget` | Measured `peak_vram_gib` plus the 1 GiB reserve exceeds `device.vram_mib` | Shrink context, drop the KV type, or offload more weight |
+| `resource_measurement_required_for_host_memory` | Model declares offload or a prompt cache but has no measured profile | Measure and record `resources.peak_*`; this never resolves on its own |
+| `canary_resource_measurement_pending` | Unmeasured canary candidate that uses no host memory | Acceptable for small candidates; measure before qualifying |
+| `resource_measurement_required` | Unmeasured model outside the canary escape hatch | Measure and record `resources.peak_*` |
 
 ## Safe rollback
 

@@ -31,6 +31,83 @@ All notable changes are documented here. This project follows Keep a Changelog c
   and adding a needle-in-haystack plus forced-tool-call test the PowerShell
   suite did not have.
 
+- Manifest support for models too large to fit entirely in VRAM: optional typed
+  fields `context_shift`, `kv_unified`, `cache_ram_mib`, `ctx_checkpoints`,
+  `checkpoint_every_n_tokens`, `cache_idle_slots`, `spec_decoding`, and
+  `tensor_overrides`, plus `runtimes[].device.vram_mib`. `additionalProperties`
+  stays closed; a generic `extra_args` escape hatch was deliberately rejected
+  (ADR 0009).
+- `Test-V2ConfigGeneration.ps1`, run in CI, proving that a model declaring none
+  of the new fields still generates a byte-identical `llama-server` command line,
+  so growing the schema never rewrites a published deployment.
+- VRAM dimension in edge admission control: a measured `peak_vram_gib` plus the
+  documented 1 GiB reserve is checked against the runtime's declared device
+  budget, reported as `insufficient_vram_budget`.
+- Physical-RAM dimension in edge admission control, reported as
+  `insufficient_physical_memory`. `GlobalMemoryStatusEx` was already being called
+  and `AvailablePhysical` already sat in the struct, discarded; `peak_ram_gib`
+  likewise already existed in the schema and was never read. Commit bounds what
+  may be reserved, physical bounds what may stay resident — for a model with
+  weights offloaded to system RAM, only the second predicts throughput.
+- Measurement rules for the resource envelope in `docs/MODEL_PROMOTION.md` and
+  `docs/BENCHMARKS.md`: `peak_commit_gib` is a delta and must be recorded with
+  its idle baseline (`idle_commit_gib`) and with a **cold prompt cache**, since
+  admission adds `cache_ram_mib` separately as its full ceiling. Without that
+  rule the same gibibytes were charged twice.
+- `docs/TUNING.md`: bottleneck diagnosis and tuning. Gives the memory-bandwidth
+  ceiling as arithmetic so a measured rate can be judged against its hardware
+  limit instead of intuition, a symptom-ordered decision tree, and the tuning
+  levers ranked by effect. Quantifies what offload actually costs on this
+  platform: the first gibibyte moved off the GPU costs ~37% of decode
+  throughput, and a fully resident smaller quant can be ~4.7x faster than an
+  offloaded larger one. Section 1.1 works through speculative decoding: MTP
+  amortizes weight reads but not arithmetic, so on a CPU-resident portion the
+  optimal draft depth collapses to 2-3 and a depth of 7 can be *slower* than not
+  speculating at all. Includes a sensitivity table over CPU GEMM throughput, the
+  one constant this repository has never measured.
+- `docs/RUNBOOK.md` §11.0: reclaim the idle commit baseline before measuring
+  anything else. The 2026-07-20 validation recorded 31.82 GiB committed with no
+  model loaded against a 42.30 GiB limit, which constrains a 27B more than the
+  choice of quantization does.
+- Hybrid Gated DeltaNet benchmark protocol in `docs/BENCHMARKS.md`, including the
+  kernel go/no-go gate, the sweep matrix, and a cache-restoration measurement;
+  matching `qwen38-27b-*` profiles in `model-test-matrix.json`.
+- `docs/RUNBOOK.md` section 11: onboarding procedure for a partially offloaded
+  hybrid model, and a capacity-`reason` interpretation table.
+
+### Changed
+
+- `--parallel` is now emitted from `model.parallel` instead of a hardcoded `1`.
+  The schema still pins the value to `1`, so generated output is unchanged.
+- `--context-shift` is no longer emitted unconditionally. Models with a recurrent
+  state cannot be shifted, and a model that sets `context_shift: false` now gets
+  an explicit `--no-context-shift`.
+- Required commit for admission now includes `cache_ram_mib`. llama-server's
+  host-RAM prompt cache is charged against the Windows commit limit, and the gate
+  previously could not see it at all.
+- The `canary_resource_measurement_pending` escape hatch no longer covers models
+  that declare `tensor_overrides` or a non-zero `cache_ram_mib`; those fail closed
+  with `resource_measurement_required_for_host_memory` until measured.
+- `healthCheckTimeout` 180s to 600s and Codex `stream_idle_timeout_ms` 300s to
+  900s. Both were sized for models that load and prefill entirely in VRAM.
+- `systemCommitHeadroomGiB` becomes `systemMemoryStatus`, returning a
+  `memorySnapshot` with both host memory axes; the `Server.commitHeadroom` hook
+  becomes `Server.memoryStatus`. Signature change only — the injection point the
+  tests use is unchanged.
+- The `cache_ram_mib` starting value in the RUNBOOK §11.3 template drops from
+  6144 to 2048. It was chosen against the nominal 10 GB RAM budget rather than
+  against the 10.48 GiB of commit headroom actually measured, and the gate adds
+  it in full on top of the model's own peak.
+- `scripts/bench-llama.ps1` accepts `-RuntimeRoot`, `-NGpuLayers`, `-Label`, and
+  `-RocBlasUseHipBlasLt`, and refuses `-UBatchSize` in the 65..256 band that
+  collapses throughput on hybrid models.
+- MTP draft depth for offloaded profiles drops from 5 to 3, in the RUNBOOK
+  template and the `qwen38-27b-*` test-matrix profiles. 5 was carried over from
+  resident-model guidance; speculation amortizes weight reads but not
+  arithmetic, so a CPU-resident portion is compute-bound and each extra drafted
+  token past a shallow depth costs more than it returns. `--threads` becomes a
+  tuning variable for the same reason and is now part of the sweep matrix.
+
 ### Fixed
 
 - Tray dashboard `Abrir Codex`/`Abrir OpenCode` only enabled for the model with

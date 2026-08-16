@@ -2,6 +2,6 @@
 
 package edge
 
-func systemCommitHeadroomGiB() (float64, error) {
-	return 0, errCapacityUnavailable
+func systemMemoryStatus() (memorySnapshot, error) {
+	return memorySnapshot{}, errCapacityUnavailable
 }

@@ -1,6 +1,12 @@
 # Generated copies must remain outside the repository. Do not place secrets here.
 # v240 schema: https://raw.githubusercontent.com/mostlygeek/llama-swap/v240/config-schema.json
-healthCheckTimeout: 180
+#
+# healthCheckTimeout covers cold model load, not inference. A model whose weights
+# are partially resident in system RAM loads at disk-and-DDR5 speed rather than
+# at VRAM speed, so a 27B-class hybrid can take several minutes on the first
+# request after a TTL expiry. 180s was sized for models that fit entirely in
+# VRAM and would turn that first load into a spurious health-check failure.
+healthCheckTimeout: 600
 logLevel: warn
 captureBuffer: 0
 startPort: @@MODEL_START_PORT@@

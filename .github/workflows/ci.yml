@@ -36,6 +36,7 @@ jobs:
             throw "PowerShell parse failures: $($errors.Count)"
           }
           ./scripts/v2/Test-V2HarnessConfig.ps1
+          ./scripts/v2/Test-V2ConfigGeneration.ps1
 
       - name: Reject tracked binary/model artifacts
         shell: pwsh

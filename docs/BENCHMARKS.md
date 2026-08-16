@@ -58,13 +58,31 @@ Use versioned, non-secret fixtures representing:
 
 Score correctness, compile/test result, tool validity, instruction adherence, unsupported-feature honesty, and absence of reasoning/template artifacts. Publish fixture definitions and aggregate results, not private code or generated content.
 
+## Hybrid Gated DeltaNet models
+
+Qwen3.8-class models interleave 48 Gated DeltaNet layers with 16 full-attention layers. Two consequences change how they are measured.
+
+**Gate zero — is the kernel accelerated at all.** `GGML_OP_GATED_DELTA_NET` landed in llama.cpp with CPU and CUDA backends only. Vulkan falls back to CPU, and on RDNA 3.5 (gfx1151) the HIP path measures at CPU speed. Whether gfx1201 escapes that is unverified here. Run the `qwen38-27b-iq4xs-sanity` profile first: no offload, short context, no speculative decoding, so the number isolates kernel throughput. If `tg128` lands near the CPU-fallback range rather than in the tens of tokens per second, stop — no amount of quantization or cache tuning recovers a kernel that is not running on the GPU, and the remaining profiles are not worth the hours.
+
+**Sweeps.** Record each independently, one variable at a time:
+
+- `ubatch_size` across {288, 512, 1024, 2048}. Never sweep inside 65..256: that band collapses throughput by up to 40x on these models. Both `models.schema.json` and `bench-llama.ps1` refuse it, so a value inside the band in a report means the report is wrong.
+- `spec_draft_n_max` across {0, 2, 3, 5, 7}, recording draft acceptance rate alongside tokens per second. Speculative decoding is the single largest lever on RDNA4 for this architecture; it is also the least stable, so every MTP profile needs a `-nomtp` control run for quality comparison. On a partially offloaded split the optimum is shallow (2-3) and a depth of 7 can be slower than no speculation at all, so sweep the low end and do not assume monotonicity. The optimum moves with the `-ot` pattern; re-sweep after changing the split.
+- `--threads` {8, 16} whenever part of the model is CPU-resident. With everything in VRAM the thread count is nearly irrelevant and the scripts default to 16; once CPU compute binds, SMT contention on this 8C/16T part often makes 8 the faster choice.
+- `ROCBLAS_USE_HIPBLASLT` across {0, 1} via `bench-llama.ps1 -RocBlasUseHipBlasLt`. The pinned runtimes disable it; that choice has never been measured on gfx1201.
+- Weight split: vary `-NGpuLayers` or the `-ot` pattern and record `llm_load_tensors: CPU buffer size` from the load log against the resulting decode rate. This is the curve that decides whether a quant fits the hardware.
+
+**Cache restoration.** A prompt-cache measurement is meaningless as a single run. Issue the same ~90k-token prompt twice against a live server and record `prompt_tps` for both. The first is prefill; the second must be a checkpoint restore, and the ratio between them is the metric. If they are within an order of magnitude, checkpoints are not being restored and `--cache-ram` is only consuming commit. Note that `--cache-reuse` cannot produce this result on a recurrent model, and that any change to the system prompt invalidates every checkpoint — the harness prefix must be byte-stable across turns for the measurement to mean anything.
+
+When a measurement comes back bad, `TUNING.md` has the bottleneck decision tree and the bandwidth ceiling to compare it against.
+
 ## Performance gates
 
 - Edge overhead p95 below 50 ms for non-load time and below 5% throughput regression versus direct serving.
 - Edge and router ready within 30 seconds of interactive logon.
 - First cold response completes within 60 seconds.
 - No unplanned runtime exit, orphan, duplicate model load, or silent model swap.
-- Admission reserves remain at least 1 GiB VRAM and 4 GiB commit beyond the measured profile peak.
+- Admission reserves remain at least 1 GiB VRAM, 4 GiB commit, and 2 GiB physical RAM beyond the measured profile peak.
 
 ## Soak
 
@@ -88,9 +106,13 @@ Acceptance is at least 99% success after excluding deliberate 4xx/429 policy tes
   "p95_edge_overhead_ms": 0,
   "peak_vram_gib": 0,
   "peak_commit_gib": 0,
+  "peak_ram_gib": 0,
+  "idle_commit_gib": 0,
   "external_connections": 0,
   "credential_findings": 0
 }
 ```
+
+`peak_commit_gib` is a **delta**, not an absolute, so `idle_commit_gib` must accompany it or the number is not reproducible across machine states. Capture it with a **cold prompt cache** — the first request after process start — because admission adds `cache_ram_mib` separately as its full ceiling; a warm-cache measurement charges the same gibibytes twice. See `MODEL_PROMOTION.md`.
 
 Reports are evidence, not configuration. Promotion values must be reviewed into the manifest deliberately.
