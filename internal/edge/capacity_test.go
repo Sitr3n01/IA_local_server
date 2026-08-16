@@ -417,3 +417,65 @@ func TestUnmeasuredCanaryAllowedButUnmeasuredFinalFailsClosed(t *testing.T) {
 		t.Fatalf("unmeasured final response: status=%d body=%s", final.Code, final.Body.String())
 	}
 }
+
+// readinessConfig builds a two-model allowlist whose public model is the second
+// entry, so any code path that reaches for Models[0] fails these tests.
+func readinessConfig(upstream string) Config {
+	cfg := testConfig(upstream)
+	cfg.Models = []Model{
+		{ID: "local-fast", Object: "model", OwnedBy: "local", State: "candidate", Deployments: []string{"canary"}},
+		{ID: "local-coding", Object: "model", OwnedBy: "local", State: "candidate", Deployments: []string{"canary"}},
+	}
+	cfg.PublicModelID = "local-coding"
+	return cfg
+}
+
+func TestReadinessFollowsPublicModelNotArrayOrder(t *testing.T) {
+	backend, _ := runningBackend(t, `{"running":[]}`)
+	fits, doesNot := 1.0, 100.0
+
+	t.Run("public model fits", func(t *testing.T) {
+		cfg := readinessConfig(backend.URL)
+		cfg.Models[0].PeakCommitGiB = &doesNot // first entry cannot be admitted
+		cfg.Models[1].PeakCommitGiB = &fits    // public model can
+		server, err := New(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		server.memoryStatus = fixedMemory(20, 40)
+
+		recorder := controlRequest(t, server.ControlHandler(), http.MethodGet, "/readyz", nil)
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("readyz=%d body=%s; readiness followed Models[0] instead of the public model", recorder.Code, recorder.Body.String())
+		}
+	})
+
+	t.Run("public model does not fit", func(t *testing.T) {
+		cfg := readinessConfig(backend.URL)
+		cfg.Models[0].PeakCommitGiB = &fits    // first entry would be admitted
+		cfg.Models[1].PeakCommitGiB = &doesNot // public model would not
+		server, err := New(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		server.memoryStatus = fixedMemory(20, 40)
+
+		recorder := controlRequest(t, server.ControlHandler(), http.MethodGet, "/readyz", nil)
+		if recorder.Code == http.StatusOK {
+			t.Fatalf("readyz reported ready while the public model cannot be admitted: %s", recorder.Body.String())
+		}
+
+		status := controlRequest(t, server.ControlHandler(), http.MethodGet, "/api/v1/status", nil)
+		if !strings.Contains(status.Body.String(), `"model":"local-coding"`) {
+			t.Errorf("headline capacity is not reported for the public model: %s", status.Body.String())
+		}
+	})
+}
+
+func TestConfigRejectsPublicModelOutsideAllowlist(t *testing.T) {
+	cfg := testConfig("http://127.0.0.1:9292")
+	cfg.PublicModelID = "not-in-list"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("a public model outside the allowlist was accepted")
+	}
+}

@@ -59,7 +59,11 @@ type Config struct {
 	AdminToken     string
 	RouterToken    string
 	Models         []Model
-	Version        string
+	// PublicModelID is provider.public_model. Readiness and the headline
+	// capacity figure are reported for this model specifically; the position of
+	// an entry in Models must never carry meaning.
+	PublicModelID string
+	Version       string
 
 	MaxWireBytes    int64
 	MaxDecodedBytes int64
@@ -84,6 +88,7 @@ func DefaultConfig() Config {
 			State:       "candidate",
 			Deployments: []string{"canary"},
 		}},
+		PublicModelID:   DefaultModelID,
 		Version:         "dev",
 		MaxWireBytes:    DefaultMaxWireBytes,
 		MaxDecodedBytes: DefaultMaxDecodedBytes,
@@ -182,6 +187,9 @@ func (c Config) Validate() error {
 	if len(c.Models) == 0 {
 		return errors.New("at least one allowed model is required")
 	}
+	if strings.TrimSpace(c.PublicModelID) == "" {
+		return errors.New("a public model ID is required")
+	}
 	seen := make(map[string]struct{}, len(c.Models))
 	for _, model := range c.Models {
 		if strings.TrimSpace(model.ID) == "" {
@@ -206,6 +214,9 @@ func (c Config) Validate() error {
 			return fmt.Errorf("model %q prompt cache size cannot be negative", model.ID)
 		}
 		seen[model.ID] = struct{}{}
+	}
+	if _, ok := seen[c.PublicModelID]; !ok {
+		return fmt.Errorf("public model %q is not in the allowlist", c.PublicModelID)
 	}
 	if c.MaxWireBytes <= 0 || c.MaxDecodedBytes <= 0 || c.MaxDecodedBytes < c.MaxWireBytes {
 		return errors.New("body limits must be positive and decoded limit must be at least the wire limit")
