@@ -33,7 +33,7 @@ All notable changes are documented here. This project follows Keep a Changelog c
 
 - Manifest support for models too large to fit entirely in VRAM: optional typed
   fields `context_shift`, `kv_unified`, `cache_ram_mib`, `ctx_checkpoints`,
-  `checkpoint_every_n_tokens`, `cache_idle_slots`, `spec_decoding`, and
+  `checkpoint_min_step`, `cache_idle_slots`, `spec_decoding`, and
   `tensor_overrides`, plus `runtimes[].device.vram_mib`. `additionalProperties`
   stays closed; a generic `extra_args` escape hatch was deliberately rejected
   (ADR 0009).

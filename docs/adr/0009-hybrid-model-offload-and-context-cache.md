@@ -36,7 +36,7 @@ rewound to an arbitrary earlier position. The same property makes
 `--context-shift` unusable: shifting rewrites absolute KV positions with no
 corresponding operation on the recurrent state. The mechanism that does work is
 whole-state context checkpoints held in host RAM (`--cache-ram`,
-`--ctx-checkpoints`, `--checkpoint-every-n-tokens`), which is also where the
+`--ctx-checkpoints`, `--checkpoint-min-step`), which is also where the
 operator's ~10 GB RAM budget is best spent: for an agentic loop, restoring a
 checkpoint replaces re-prefilling ~100k tokens.
 
@@ -52,7 +52,7 @@ multi-GiB prompt cache in RAM, it is an out-of-memory stall waiting to happen.
 
 **1. Grow the manifest with typed optional fields, not a generic escape hatch.**
 `config/models.schema.json` gains `context_shift`, `kv_unified`, `cache_ram_mib`,
-`ctx_checkpoints`, `checkpoint_every_n_tokens`, `cache_idle_slots`,
+`ctx_checkpoints`, `checkpoint_min_step`, `cache_idle_slots`,
 `spec_decoding`, and `tensor_overrides`. All are optional and
 `additionalProperties: false` stays in force, so the manifest remains an
 exhaustive contract rather than a pass-through to a command line.
@@ -86,7 +86,11 @@ reserve exceeds free physical RAM is refused with
 `insufficient_physical_memory`; and the `canary_resource_measurement_pending`
 escape hatch no longer covers a model that declares `tensor_overrides` or a
 non-zero `cache_ram_mib`, which now fail closed with
-`resource_measurement_required_for_host_memory`.
+`resource_profile_incomplete` until every measurement that execution mode is
+gated on is present. The required set is a property of how the model runs, and a
+partial profile is worse than none, because each absent field silently disables
+the check that consumes it — so `measured` means the whole set, not merely a
+known commit figure.
 
 A static device budget is sound here only because `provider.max_loaded_models` is
 pinned to `1` — exactly one model is ever resident, so there is no allocation to
@@ -141,3 +145,23 @@ then be misread as a property of the model.
   the model to the manifest. It makes such an entry expressible and safe to
   admit; whether it is worth admitting depends on the Gated DeltaNet kernel
   measurement described in `docs/BENCHMARKS.md`, which is not settled on gfx1201.
+
+## Addendum: the context-cache half is blocked upstream
+
+Recorded after the fact, because it undercuts a premise of this ADR. llama.cpp
+issues #24055 and #22384 report that context checkpoints are created and then
+immediately invalidated on hybrid/recurrent models, with the root cause being a
+checkpoint-search test that can never pass when `pos_min` always equals the full
+sequence length. The fix exists in a fork and is not merged.
+
+The typed fields stay: the defect is in the runtime, not in the contract, and
+expressing the configuration is what lets a fixed build be adopted by editing
+the manifest rather than the generator. But `cache_ram_mib` is left unset on
+Qwen3.8 profiles, because admission charges it to commit in full and commit is
+the binding constraint on this machine — an inert cache costs real headroom.
+
+`qwen38-27b-iq4xs-agentic-restore` in `model-test-matrix.json` is the condition
+for reversing that: it measures prompt tokens reprocessed per turn across a
+multi-turn agentic pattern, and passing it on a candidate runtime is what
+demonstrates the feature works there.
+
