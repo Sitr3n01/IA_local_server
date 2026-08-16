@@ -5,7 +5,8 @@
     "UD profiles use Unsloth Dynamic GGUF weight quants where available; they are not the same as upstream TurboQuant/TQ cache types.",
     "Qwen3.8-27B is a hybrid Gated DeltaNet model: only 16 of its 64 layers hold a KV cache, so context is cheap and weights are the binding constraint. It needs llama.cpp b10419 or newer; the pinned b8407 does not know the architecture.",
     "ubatch values in 65..256 collapse throughput by up to 40x on hybrid models. Never sweep inside that band.",
-    "qwen38-27b-iq4xs-sanity is the go/no-go gate: it runs with no offload at a short context purely to measure whether the Gated DeltaNet kernel is GPU-accelerated on gfx1201. If tg128 lands near CPU speed, the remaining qwen38 profiles are not worth running."
+    "qwen38-27b-iq4xs-sanity is the go/no-go gate: it runs with no offload at a short context purely to measure whether the Gated DeltaNet kernel is GPU-accelerated on gfx1201. If tg128 lands near CPU speed, the remaining qwen38 profiles are not worth running.",
+    "MTP draft depth is set for an offloaded split: speculation amortizes weight reads but not arithmetic, so on a CPU-resident portion the optimum is shallow (2-3) and depth 7 can be slower than no speculation. Sweep {0,2,3,5,7} and re-sweep after any change to the -ot pattern. See docs/TUNING.md section 1.1."
   ],
   "profiles": [
     {
@@ -147,7 +148,7 @@
       ],
       "spec_decoding": {
         "type": "draft-mtp",
-        "draft_n_max": 5
+        "draft_n_max": 3
       }
     },
     {
@@ -202,7 +203,7 @@
       ],
       "spec_decoding": {
         "type": "draft-mtp",
-        "draft_n_max": 5
+        "draft_n_max": 3
       },
       "note": "KV q4_0 halves cache cost versus q8_0, buying 128k at the same VRAM. Requires a quality eval pass before it is preferred over the 96k q8_0 profile."
     }

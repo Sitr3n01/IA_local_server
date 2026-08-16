@@ -60,10 +60,11 @@ All notable changes are documented here. This project follows Keep a Changelog c
   levers ranked by effect. Quantifies what offload actually costs on this
   platform: the first gibibyte moved off the GPU costs ~37% of decode
   throughput, and a fully resident smaller quant can be ~4.7x faster than an
-  offloaded larger one. Section 1.1 works through why speculative decoding does
-  not close that gap: MTP amortizes weight reads but not arithmetic, and an
-  offloaded split spends most of its time in CPU compute, which speculation
-  cannot reduce.
+  offloaded larger one. Section 1.1 works through speculative decoding: MTP
+  amortizes weight reads but not arithmetic, so on a CPU-resident portion the
+  optimal draft depth collapses to 2-3 and a depth of 7 can be *slower* than not
+  speculating at all. Includes a sensitivity table over CPU GEMM throughput, the
+  one constant this repository has never measured.
 - `docs/RUNBOOK.md` §11.0: reclaim the idle commit baseline before measuring
   anything else. The 2026-07-20 validation recorded 31.82 GiB committed with no
   model loaded against a 42.30 GiB limit, which constrains a 27B more than the
@@ -100,6 +101,12 @@ All notable changes are documented here. This project follows Keep a Changelog c
 - `scripts/bench-llama.ps1` accepts `-RuntimeRoot`, `-NGpuLayers`, `-Label`, and
   `-RocBlasUseHipBlasLt`, and refuses `-UBatchSize` in the 65..256 band that
   collapses throughput on hybrid models.
+- MTP draft depth for offloaded profiles drops from 5 to 3, in the RUNBOOK
+  template and the `qwen38-27b-*` test-matrix profiles. 5 was carried over from
+  resident-model guidance; speculation amortizes weight reads but not
+  arithmetic, so a CPU-resident portion is compute-bound and each extra drafted
+  token past a shallow depth costs more than it returns. `--threads` becomes a
+  tuning variable for the same reason and is now part of the sweep matrix.
 
 ### Fixed
 

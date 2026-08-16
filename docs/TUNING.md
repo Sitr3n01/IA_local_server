@@ -44,10 +44,12 @@ Compare against a quantization small enough to stay resident:
 | UD-Q3_K_XL (~12.0 GiB), fully resident | 39.7 t/s |
 
 A fully resident Q3 is roughly **4.7x faster** than an offloaded Q4 on this
-hardware, before speculative decoding, and section 1.1 argues the gap widens once
-MTP is enabled rather than staying constant. Whether the quality difference is
-worth that is a judgment call, but it should be made against these numbers rather
-than against an assumption that Q4 is "obviously better". Measure both with
+hardware, before speculative decoding. Section 1.1 shows why MTP does not simply
+scale both sides by the same factor: the offloaded side reaches its own best
+multiplier only at a much shallower draft depth, and at the shipped depth it can
+be slower than not speculating at all. Whether the quality difference is worth
+that is a judgment call, but it should be made against these numbers rather than
+against an assumption that Q4 is "obviously better". Measure both with
 `run-profile-quality-eval.py` before deciding.
 
 ## 1.1 What speculative decoding does, and does not, amortize
@@ -60,33 +62,58 @@ MTP amortizes memory reads and does nothing for compute:
 time_per_token(k) ≈ max( bytes_read / BW / k , flops_per_token / compute )
 ```
 
-The consequence is asymmetric, and it is the reason the two configurations above
-do not scale together:
+The consequence is asymmetric:
 
 - **On the GPU**, compute capacity is enormous relative to 640 GB/s. The
   bandwidth term dominates at every practical k, so amortization is close to
-  linear until acceptance rate limits it. This is why RDNA4 reports ~2x.
+  linear until acceptance rate limits it. This is why RDNA4 reports ~2x at k=7.
 - **On the CPU-resident portion**, `-ot "…=CPU"` runs that matmul on the CPU, not
   merely stores it there. Eight Zen 4 cores have a far tighter compute-to-
-  bandwidth ratio, and llama.cpp CPU inference is already only partly
-  bandwidth-bound at k=1. The compute term becomes the binding constraint after
-  a small k, and further speculation buys nothing on that portion.
+  bandwidth ratio, so the compute term binds after a small k. Past that point
+  additional drafting costs linearly while accepted tokens grow sub-linearly, so
+  **speculation becomes net-negative**.
 
-Since the offloaded configuration spends ~80% of its decode time on the CPU side,
-most of its time budget sits in the term MTP cannot reduce. **Expect MTP to
-deliver less than its headline multiplier on any offloaded configuration, and to
-deliver close to it on a fully resident one.**
+MTP is still worth having when offloaded — it is the *draft depth* that has to
+change, not the decision to speculate.
 
-How much less is **not measured here** — it depends on the CPU's effective
-quantized-GEMM throughput, which this repository has never benchmarked. Do not
-plan against a number for it. The `qwen38-27b-iq4xs-kv-q8-96k` /
-`-nomtp` profile pair exists precisely to measure this ratio on the real split;
-run both and record the acceptance rate alongside.
+**Sensitivity to draft depth.** Modelled on the 11.3 / 4.4 GiB split with 80%
+per-token acceptance, across a range of plausible CPU quantized-GEMM throughput
+(the one constant here that this repository has never measured):
+
+| CPU GEMM | best `draft_n_max` | gain vs no MTP | gain at `draft_n_max: 7` |
+|---|---|---|---|
+| 200 GFLOP/s | 1 | 1.80x | **0.77x — slower than not speculating** |
+| 300 GFLOP/s | 2 | 2.04x | 1.13x |
+| 500 GFLOP/s | 3 | 2.69x | 1.82x |
+| 800 GFLOP/s | 5 | 3.25x | 2.76x |
+
+Two things follow, and both are actionable without knowing the true constant:
+
+1. **The optimum for an offloaded split is `draft_n_max` 2–3, not the 7 that is
+   optimal for a fully resident model.** The value is wrong in a direction that
+   costs real throughput, and at the pessimistic end a depth of 7 is worse than
+   leaving MTP off entirely.
+2. **The optimum moves with the split.** Change the `-ot` pattern and the best
+   draft depth changes with it. They cannot be tuned independently.
+
+Treat the table as a shape, not a prediction. It assumes GPU and CPU phases
+serialize and that CPU GEMM efficiency is constant in k; in practice larger
+batches reuse cache better, which makes the pessimistic rows somewhat too
+pessimistic. Measure with the `qwen38-27b-iq4xs-kv-q8-96k` / `-nomtp` pair and
+sweep `spec_draft_n_max` over {0, 2, 3, 5, 7}, recording acceptance rate next to
+throughput.
+
+**Threads stop being free.** While everything sits in VRAM the CPU thread count
+barely matters, and `bench-llama.ps1` defaults to `-Threads 16`. Once the CPU
+holds part of the model and the compute term binds, that default is a tuning
+variable: the 7700X is 8C/16T, and SMT contention often makes 8 threads beat 16
+on quantized GEMM. Sweep it alongside the draft depth.
 
 **Do not let the draft head get offloaded.** The MTP head runs on every
-speculation step, so pushing it to the CPU is pathological. The shipped `-ot`
-pattern is scoped to `blk\.N\.ffn_.*` and cannot match it, but a broader regex
-written by hand can. Check the load log after any change to the pattern.
+speculation step, so pushing it to the CPU multiplies its cost by k and can erase
+the entire gain. The shipped `-ot` pattern is scoped to `blk\.N\.ffn_.*` and
+cannot match it, but a broader regex written by hand can. Check the load log
+after any change to the pattern.
 
 **Use the ceiling as a diagnostic.** If measured decode is close to the table,
 the configuration is working and only a different configuration will help. If it
@@ -140,9 +167,11 @@ Check in this order; each step is cheap and rules out the next.
    head is producing tokens the model rejects, and the speculation is pure
    overhead — sweep `spec_draft_n_max` over {3, 5, 7} and keep the acceptance
    rate in the report next to the throughput. If acceptance is high but the
-   speedup is small, that is section 1.1, not a bug: on an offloaded split most
-   of the time budget is CPU compute, which speculation cannot amortize. Confirm
-   the draft head itself did not land on the CPU.
+   speedup is small — or negative — that is section 1.1, not a bug: on an
+   offloaded split the draft depth that is optimal for a resident model is past
+   the point where speculation starts costing more than it returns. Try depth 2
+   before concluding MTP does not help. Confirm the draft head itself did not
+   land on the CPU.
 
 ### Prefill is slow but decode is fine
 
@@ -179,7 +208,7 @@ not preference.
 | Lever | Typical effect | Cost |
 |---|---|---|
 | Eliminate offload — pick a quant that fits entirely in VRAM | up to ~4.7x, and it raises the ceiling MTP then multiplies | quantization quality |
-| MTP speculative decoding (`spec_decoding`) | ~2x fully resident; **less when offloaded**, see 1.1 | stability; needs a `-nomtp` control |
+| MTP speculative decoding (`spec_decoding`) | ~2x fully resident at depth 7; ~1.8–3x offloaded but only at depth 2–3, see 1.1 | stability; needs a `-nomtp` control |
 | Prompt cache / context checkpoints | prefill only, but can be orders of magnitude | host RAM, charged to commit in full |
 | Reduce KV cache (`q8_0` → `q4_0`, or less context) | frees VRAM → *less offload* → compounds with lever 1 | long-context recall |
 | `ubatch` sweep {288, 512, 1024, 2048} | single-digit %, occasionally large on hybrids | none |

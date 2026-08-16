@@ -424,7 +424,7 @@ Add the runtime and model to `config/models.yaml` together with the three catalo
   "ctx_checkpoints": 64,
   "checkpoint_every_n_tokens": 8192,
   "cache_idle_slots": true,
-  "spec_decoding": { "type": "draft-mtp", "draft_n_max": 5 },
+  "spec_decoding": { "type": "draft-mtp", "draft_n_max": 3 },
   "tensor_overrides": [
     { "pattern": "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*", "buffer": "CPU" }
   ],
@@ -437,6 +437,8 @@ Add the runtime and model to `config/models.yaml` together with the three catalo
 `context_shift: false` is mandatory: the recurrent state cannot be shifted, and the schema refuses `spec_decoding` without it. `cache_ram_mib` requires a measured `peak_commit_gib`, and `tensor_overrides` requires a measured `peak_vram_gib` — both are validated at generation time, and the edge refuses admission until they are present.
 
 `cache_ram_mib: 2048` is sized against the **measured** headroom from step 11.0, not against the nominal RAM budget: the gate adds the value in full on top of `peak_commit_gib`, so a 6 GiB cache consumes more than half of a 10.48 GiB headroom before the weights are counted. Raise it only after 11.0 shows the idle baseline actually came down; a larger cache that forces the pagefile is worse than no cache, because a checkpoint restored from disk competes with the very prefill it was meant to avoid.
+
+`spec_decoding.draft_n_max: 3` is set for an **offloaded** split, not copied from the resident-model optimum of 7. Speculation amortizes weight reads but not arithmetic, and the CPU-resident portion is compute-bound, so past a shallow depth each extra drafted token costs more than it returns — at the pessimistic end a depth of 7 is slower than not speculating at all. The optimum moves whenever the `-ot` pattern moves; sweep the two together. See `TUNING.md` §1.1.
 
 Measure `peak_vram_gib`, `peak_commit_gib`, and `peak_ram_gib` from a live load and fill them in, following the measurement rules in `MODEL_PROMOTION.md` — in particular, capture `peak_commit_gib` on the first request after start, with a cold prompt cache.
 
