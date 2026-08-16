@@ -6,7 +6,9 @@
     "Qwen3.8-27B is a hybrid Gated DeltaNet model: only 16 of its 64 layers hold a KV cache, so context is cheap and weights are the binding constraint. It needs llama.cpp b10419 or newer; the pinned b8407 does not know the architecture.",
     "ubatch values in 65..256 collapse throughput by up to 40x on hybrid models. Never sweep inside that band.",
     "qwen38-27b-iq4xs-sanity is the go/no-go gate: it runs with no offload at a short context purely to measure whether the Gated DeltaNet kernel is GPU-accelerated on gfx1201. If tg128 lands near CPU speed, the remaining qwen38 profiles are not worth running.",
-    "MTP draft depth is set for an offloaded split: speculation amortizes weight reads but not arithmetic, so on a CPU-resident portion the optimum is shallow (2-3) and depth 7 can be slower than no speculation. Sweep {0,2,3,5,7} and re-sweep after any change to the -ot pattern. See docs/TUNING.md section 1.1."
+    "MTP draft depth is set for an offloaded split: speculation amortizes weight reads but not arithmetic, so on a CPU-resident portion the optimum is shallow (2-3) and depth 7 can be slower than no speculation. Sweep {0,2,3,5,7} and re-sweep after any change to the -ot pattern. See docs/TUNING.md section 1.1.",
+    "Qwen/Qwen3.8-27B (Alibaba, Apache-2.0) is the authoritative reference for this family; every GGUF is a derived artifact and its publisher and revision must be recorded and verified separately.",
+    "The MTP head is blk.64. A GGUF that quantizes it to Q4_K measures 0% draft acceptance and speculation fails silently; Q5_K-Q8_0 reaches 73-74%. Verify with gguf-dump before benchmarking any qwen38 profile - the nominal quant label does not tell you."
   ],
   "profiles": [
     {
@@ -109,7 +111,7 @@
       "catalog_filename": "AMD--Qwen-3.8-27B--IQ4_XS--ctx-8192--kv-q8_0.gguf",
       "family": "Qwen3.8-27B",
       "source_model": "Qwen/Qwen3.8-27B",
-      "repo": "unsloth/Qwen3.8-27B-GGUF",
+      "repo": "TBD - must pass the blk.64 >= Q5_K check",
       "filename": "Qwen3.8-27B-IQ4_XS.gguf",
       "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
       "context_size": 8192,
@@ -129,7 +131,7 @@
       "catalog_filename": "AMD--Qwen-3.8-27B--IQ4_XS--ctx-98304--kv-q8_0.gguf",
       "family": "Qwen3.8-27B",
       "source_model": "Qwen/Qwen3.8-27B",
-      "repo": "unsloth/Qwen3.8-27B-GGUF",
+      "repo": "TBD - must pass the blk.64 >= Q5_K check",
       "filename": "Qwen3.8-27B-IQ4_XS.gguf",
       "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
       "context_size": 98304,
@@ -158,7 +160,7 @@
       "catalog_filename": "AMD--Qwen-3.8-27B--IQ4_XS--ctx-98304--kv-q8_0.gguf",
       "family": "Qwen3.8-27B",
       "source_model": "Qwen/Qwen3.8-27B",
-      "repo": "unsloth/Qwen3.8-27B-GGUF",
+      "repo": "TBD - must pass the blk.64 >= Q5_K check",
       "filename": "Qwen3.8-27B-IQ4_XS.gguf",
       "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
       "context_size": 98304,
@@ -184,7 +186,7 @@
       "catalog_filename": "AMD--Qwen-3.8-27B--IQ4_XS--ctx-131072--kv-q4_0.gguf",
       "family": "Qwen3.8-27B",
       "source_model": "Qwen/Qwen3.8-27B",
-      "repo": "unsloth/Qwen3.8-27B-GGUF",
+      "repo": "TBD - must pass the blk.64 >= Q5_K check",
       "filename": "Qwen3.8-27B-IQ4_XS.gguf",
       "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
       "context_size": 131072,

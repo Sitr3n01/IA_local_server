@@ -374,17 +374,23 @@ Close Unsloth Studio, harness sessions, and the browser before measuring. Record
 
 ### 11.0b Choose the build, not just the quantization level
 
-Before downloading, read `TUNING.md` §1.3. Three choices made here outweigh every flag later:
+The authoritative reference for this model is Alibaba's own repository, **`Qwen/Qwen3.8-27B`** (Apache-2.0). Architecture, context handling, and recommended sampling settings come from there. Every GGUF — first-party or community — is a *derived* artifact: record its publisher and immutable revision in `source`, and verify its per-tensor choices yourself. Check the official card for a first-party GGUF before reaching for a rebuild.
 
-- **Take the most compact well-calibrated IQ4_XS build.** Community builds of this model differ by roughly a gibibyte, and on this hardware that gibibyte is worth ~60% of decode throughput. "IQ4_XS" also varies in quality by imatrix calibration, so smallest is not automatically best — but neither is the first one listed.
-- **Prefer KV `q4_0` over `q8_0`.** It buys longer context *and* less offload at once (§1.2). Validate recall with the stress eval rather than assuming `q8_0` is the safer default.
-- **Verify the MTP head survived quantization**, or the speculative-decoding work in this procedure is wasted:
+Then read `TUNING.md` §1.3. Three checks made here outweigh every serving flag later:
+
+- **`blk.64` must be Q5_K or higher.** The MTP head on this model is block 64, 15 tensors after the 64 main blocks. Builds that quantize it to Q4_K measure **0% draft acceptance** — speculation fails completely and silently — while builds keeping it at Q5_K–Q8_0 reach 73–74%. The nominal quantization label does not tell you which you have:
 
 ```powershell
-gguf-dump 'C:\IA\models\Qwen3.8-27B-GGUF\Qwen3.8-27B-IQ4_XS.gguf' | Select-String -Pattern 'nextn|mtp'
+$gguf = 'C:\IA\models\Qwen3.8-27B-GGUF\<file>.gguf'
+gguf-dump $gguf | Select-String -Pattern 'blk\.64\.'      # every row must be Q5_K or better
+gguf-dump $gguf | Select-String -Pattern 'nextn|mtp'       # head present at all
 ```
 
-Expect a `nextn_predict_layers` metadata key and `blk.N.nextn.*` tensors. A build without them loads and serves normally and simply never speculates.
+  Expect a `nextn_predict_layers` metadata key and `blk.N.nextn.*` tensors. A build missing them loads and serves normally and simply never speculates.
+
+- **Do not select on file size alone.** Compact builds are exactly the ones likely to have quantized `blk.64` down. A slightly larger build that passes the check beats a smaller one that fails it by roughly 2x. Among builds that pass, prefer imatrix calibration with per-tensor overrides over a uniform quantization at the same nominal level.
+
+- **Prefer KV `q4_0` over `q8_0`.** It buys longer context *and* less offload at once (§1.2). Validate recall with the stress eval rather than assuming `q8_0` is the safer default.
 
 ### 11.1 Gate zero: measure the Gated DeltaNet kernel before anything else
 
@@ -425,8 +431,8 @@ Add the runtime and model to `config/models.yaml` together with the three catalo
   "runtime": "amd-rocm-qwen38",
   "artifact": { "path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
                 "bytes": 0, "sha256": "<compute with Get-FileHash>" },
-  "source": { "repository": "unsloth/Qwen3.8-27B-GGUF", "revision": "<40-hex upstream commit>",
-              "filename": "Qwen3.8-27B-IQ4_XS.gguf", "license": "Apache-2.0" },
+  "source": { "repository": "<GGUF publisher>/Qwen3.8-27B-GGUF", "revision": "<40-hex upstream commit>",
+              "filename": "<file that passed the blk.64 check>.gguf", "license": "Apache-2.0" },
   "context_tokens": 98304,
   "max_output_tokens": 16384,
   "cache_type_k": "q8_0",

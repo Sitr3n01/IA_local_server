@@ -209,8 +209,20 @@ Modelled against the ~14.8 GiB usable budget, at 80% bandwidth utilization:
 **Two IQ4_XS builds one gibibyte apart differ by 60% in throughput.** Community
 IQ4_XS builds of this model are reported between roughly 14.7 and 15.7 GB and
 their quality differs by imatrix calibration, not only by size — so "IQ4_XS" is
-not one thing, and picking the most compact *well-calibrated* build is worth more
-than any flag in this document.
+not one thing.
+
+**But size is not the selection criterion, and picking the most compact build is
+a trap.** See the `blk.64` rule below: a build chosen purely for compactness will
+usually have quantized the MTP block to Q4_K, which takes draft acceptance to
+zero and costs the entire ~2x speculative speedup. Weigh the two together — a
+slightly larger build that keeps `blk.64` at Q5_K or above beats a smaller one
+that does not, by a wide margin.
+
+**The authoritative reference is `Qwen/Qwen3.8-27B`** — Alibaba's own repository,
+Apache-2.0. Architecture, context handling, and recommended sampling come from
+there; every GGUF is a derived artifact whose publisher, revision, and per-tensor
+choices have to be recorded and verified separately. Check the official card for
+a first-party GGUF before reaching for a community rebuild.
 
 **What Q3 actually costs.** For 27B-class Qwen models, community measurements put
 `Q3_K_XL` at KL divergence above 0.1 with 85–90% top-token agreement against the
@@ -219,18 +231,45 @@ unquantized model. The rule of thumb those same measurements use is KLD below
 yes — Q3 is a real quality cost on this model class, not a free win, and it is
 the level at which degradation stops being subtle.
 
+Quantization method matters as much as bit width. A 3-bit build using imatrix
+calibration with per-tensor overrides has been reported at 92.4% top-1 agreement
+at 13.8 GB — materially better than the generic `Q3_K_XL` figures above, and
+recommended by its author specifically for 16 GB cards. Bit width alone does not
+predict quality; how the bits were allocated does.
+
 That makes the sensible frontier:
 
-1. **Pick the most compact well-calibrated IQ4_XS**, not the first one listed.
+1. **Require `blk.64` at Q5_K or above.** This filters the candidate list before
+   any other consideration, because everything below it is worth ~2x.
 2. **Use KV `q4_0`, not `q8_0`.** Per §1.2 this buys longer context *and* less
-   offload simultaneously. It is the highest-leverage single choice here.
-3. Only then consider Q3, and only with a quality eval that justifies it.
+   offload simultaneously. It is the highest-leverage serving flag here.
+3. **Among builds that pass (1), prefer the more compact and better calibrated
+   one** — imatrix plus per-tensor overrides over a uniform quantization at the
+   same nominal level.
+4. Only then trade bit width, and only with a quality eval that justifies it.
 
 Sizes on model cards are ambiguous between GB and GiB, and the difference is ~7%
 — which at this point on the curve is worth several tokens per second. Take the
 real byte count after download and recompute rather than trusting the card.
 
-**Two failure modes that silently cost the entire MTP speedup:**
+**Three failure modes that silently cost the entire MTP speedup:**
+
+- **The MTP block must be quantized to Q5_K or higher.** This is the single most
+  consequential per-tensor fact about this model. On Qwen3.8-27B the MTP head is
+  `blk.64` — 15 tensors sitting after the 64 main blocks. Reported measurements
+  on this model family are unambiguous: a build with `blk.64` at **Q4_K yields 0%
+  draft acceptance** and speculation fails completely, while builds keeping those
+  tensors in the Q5_K–Q8_0 range reach **73–74% acceptance**. The look-ahead
+  projection has no error-correction path, so its precision is not negotiable the
+  way the main stack's is.
+
+  A nominal quantization label tells you nothing about this. Inspect the tensors:
+  ```
+  gguf-dump model.gguf | grep "blk\.64\."
+  ```
+  Every one of them should read Q5_K or better. This is what "per-tensor
+  overrides" in a well-built quant buys you, and why a generic uniform Q4 build
+  of this model cannot speculate.
 
 - **The quant may not contain the MTP head at all.** Conversion tooling has been
   reported to drop tensors it does not recognize as part of a vanilla

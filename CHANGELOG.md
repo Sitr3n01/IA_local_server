@@ -81,6 +81,19 @@ All notable changes are documented here. This project follows Keep a Changelog c
   silent MTP killers: quantization tooling dropping the `nextn` head entirely,
   and draft acceptance collapsing at particular `--ctx-size` values on a
   ~2048-token period (llama.cpp #23658).
+- The `blk.64` rule, the most consequential per-tensor fact about this model: the
+  MTP head must be quantized to Q5_K or higher. Reported measurements put a
+  Q4_K MTP block at **0% draft acceptance** — speculation fails completely and
+  silently — against 73-74% for builds keeping it at Q5_K-Q8_0. The nominal
+  quantization label does not reveal which you have, so `gguf-dump` verification
+  is now a precondition in `RUNBOOK.md` §11.0b and `BENCHMARKS.md`. This also
+  reverses earlier guidance to prefer the most compact build: compact builds are
+  precisely the ones likely to have quantized `blk.64` down.
+- `Qwen/Qwen3.8-27B` (Alibaba, Apache-2.0) recorded as the authoritative
+  reference for the family across `TUNING.md`, `RUNBOOK.md`, and
+  `model-test-matrix.json`. Every GGUF is a derived artifact whose publisher,
+  revision, and per-tensor choices are recorded and verified separately; the
+  matrix no longer names a GGUF publisher until one passes the `blk.64` check.
 - `docs/RUNBOOK.md` §11.0b: choose the build and verify the MTP head survived
   quantization before downloading or benchmarking anything.
 - `docs/RUNBOOK.md` §11.0: reclaim the idle commit baseline before measuring
