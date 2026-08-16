@@ -51,6 +51,11 @@ type capacityStatus struct {
 	RequiredVRAMGiB     *float64 `json:"required_vram_gib"`
 	DeviceVRAMGiB       *float64 `json:"device_vram_gib"`
 	ReserveVRAMGiB      float64  `json:"reserve_vram_gib"`
+	// Reclaimable* is what the currently-loaded model releases when the router
+	// swaps it out. Both headroom figures above already include it, so the
+	// operator can see that the verdict rests on a projected unload.
+	ReclaimableCommitGiB   *float64 `json:"reclaimable_commit_gib,omitempty"`
+	ReclaimablePhysicalGiB *float64 `json:"reclaimable_physical_gib,omitempty"`
 	// MissingProfileFields names the measurements this execution mode requires
 	// and does not have. Empty for a complete profile.
 	MissingProfileFields []string `json:"missing_profile_fields,omitempty"`
@@ -69,11 +74,49 @@ type runningResponse struct {
 func (s *Server) capacityFor(ctx context.Context, model Model) (capacityStatus, map[string]string) {
 	running, runningErr := s.runningModels(ctx)
 	memory, metricErr := s.memoryStatus()
-	return capacityFrom(model, running, runningErr, memory, metricErr), running
+	return capacityFrom(model, s.cfg.Models, running, runningErr, memory, metricErr), running
 }
 
-func capacityFrom(model Model, running map[string]string, runningErr error, memory memorySnapshot, metricErr error) capacityStatus {
+// reclaimableFrom projects the host memory that becomes free when the router
+// swaps models. provider.max_loaded_models is pinned to 1, so admitting a
+// different model necessarily unloads the current one first; measuring headroom
+// while the outgoing model still holds it produces a false insufficient_capacity
+// exactly when the swap would have succeeded.
+//
+// Only a model with a complete profile contributes. Crediting an unmeasured
+// model's footprint would be guessing in the permissive direction, which is the
+// one direction this gate must never guess in.
+func reclaimableFrom(allowed []Model, running map[string]string, target Model) memorySnapshot {
+	var reclaim memorySnapshot
+	for _, candidate := range allowed {
+		if candidate.ID == target.ID {
+			continue
+		}
+		if _, loaded := running[candidate.ID]; !loaded {
+			continue
+		}
+		if len(missingProfileFields(candidate)) > 0 {
+			continue
+		}
+		if required, ok := requiredCommitGiB(candidate); ok {
+			// The reserve is not released - it is a constant, not the model's.
+			reclaim.CommitGiB += required - commitReserveGiB
+		}
+		if candidate.PeakRAMGiB != nil {
+			reclaim.PhysicalGiB += *candidate.PeakRAMGiB
+		}
+	}
+	return reclaim
+}
+
+func capacityFrom(model Model, allowed []Model, running map[string]string, runningErr error, memory memorySnapshot, metricErr error) capacityStatus {
 	_, isRunning := running[model.ID]
+
+	reclaim := reclaimableFrom(allowed, running, model)
+	if metricErr == nil && !isRunning {
+		memory.CommitGiB += reclaim.CommitGiB
+		memory.PhysicalGiB += reclaim.PhysicalGiB
+	}
 
 	result := capacityStatus{
 		Admission:          "commit-headroom",
@@ -86,6 +129,10 @@ func capacityFrom(model Model, running map[string]string, runningErr error, memo
 	if metricErr == nil {
 		result.CommitHeadroomGiB = floatPointer(roundGiB(memory.CommitGiB))
 		result.PhysicalHeadroomGiB = floatPointer(roundGiB(memory.PhysicalGiB))
+	}
+	if reclaim.CommitGiB > 0 || reclaim.PhysicalGiB > 0 {
+		result.ReclaimableCommitGiB = floatPointer(roundGiB(reclaim.CommitGiB))
+		result.ReclaimablePhysicalGiB = floatPointer(roundGiB(reclaim.PhysicalGiB))
 	}
 	requiredCommit, haveCommit := requiredCommitGiB(model)
 	if haveCommit {

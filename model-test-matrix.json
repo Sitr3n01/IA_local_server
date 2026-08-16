@@ -151,7 +151,8 @@
       "spec_decoding": {
         "type": "draft-mtp",
         "draft_n_max": 3
-      }
+      },
+      "threads": "TBD - sweep {8, 16}; promote the winner to the manifest"
     },
     {
       "id": "qwen38-27b-iq4xs-kv-q8-96k-nomtp",
@@ -177,7 +178,8 @@
           "buffer": "CPU"
         }
       ],
-      "note": "Control for the MTP profile. Quality and determinism reference: llama.cpp has open reports of MTP retaining state between requests."
+      "note": "Control for the MTP profile. Quality and determinism reference: llama.cpp has open reports of MTP retaining state between requests.",
+      "threads": "TBD - sweep {8, 16}; promote the winner to the manifest"
     },
     {
       "id": "qwen38-27b-iq4xs-kv-q4-128k",
@@ -207,7 +209,8 @@
         "type": "draft-mtp",
         "draft_n_max": 3
       },
-      "note": "KV q4_0 halves cache cost versus q8_0, buying 128k at the same VRAM. Requires a quality eval pass before it is preferred over the 96k q8_0 profile."
+      "note": "KV q4_0 halves cache cost versus q8_0, buying 128k at the same VRAM. Requires a quality eval pass before it is preferred over the 96k q8_0 profile.",
+      "threads": "TBD - sweep {8, 16}; promote the winner to the manifest"
     }
   ]
 }

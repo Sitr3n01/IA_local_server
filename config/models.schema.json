@@ -235,6 +235,8 @@
         "reasoning": { "enum": ["auto", "on", "off"] },
         "context_shift": { "type": "boolean" },
         "kv_unified": { "type": "boolean" },
+        "threads": { "type": "integer", "minimum": 1, "maximum": 256 },
+        "threads_batch": { "type": "integer", "minimum": 1, "maximum": 256 },
         "cache_ram_mib": { "type": "integer", "minimum": 0 },
         "ctx_checkpoints": { "type": "integer", "minimum": 0 },
         "checkpoint_min_step": { "type": "integer", "minimum": 0 },

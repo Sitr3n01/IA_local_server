@@ -479,3 +479,77 @@ func TestConfigRejectsPublicModelOutsideAllowlist(t *testing.T) {
 		t.Fatal("a public model outside the allowlist was accepted")
 	}
 }
+
+func TestCapacityCreditsResourcesTheOutgoingModelReleases(t *testing.T) {
+	// local-fast is loaded; local-coding is being requested. With one model slot
+	// the router unloads local-fast first, so its footprint is available.
+	backend, _ := runningBackend(t, `{"running":[{"model":"local-fast","state":"ready"}]}`)
+	outgoingCommit, outgoingRAM := 8.0, 6.0
+	targetCommit, targetRAM := 10.0, 7.0
+
+	build := func(measureOutgoing bool) *Server {
+		t.Helper()
+		cfg := readinessConfig(backend.URL)
+		if measureOutgoing {
+			cfg.Models[0].PeakCommitGiB = &outgoingCommit
+			cfg.Models[0].PeakRAMGiB = &outgoingRAM
+		}
+		cfg.Models[1].PeakCommitGiB = &targetCommit
+		cfg.Models[1].PeakRAMGiB = &targetRAM
+		server, err := New(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// 10 peak + 4 reserve = 14 required; only 9 free while local-fast holds 8.
+		server.memoryStatus = fixedMemory(9, 40)
+		return server
+	}
+
+	t.Run("measured outgoing model is credited", func(t *testing.T) {
+		server := build(true)
+		recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("swap refused although the outgoing model releases enough: status=%d body=%s", recorder.Code, recorder.Body.String())
+		}
+		status := controlRequest(t, server.ControlHandler(), http.MethodGet, "/api/v1/status", nil)
+		if !strings.Contains(status.Body.String(), `"reclaimable_commit_gib":8`) {
+			t.Errorf("status does not disclose the projected unload: %s", status.Body.String())
+		}
+	})
+
+	t.Run("unmeasured outgoing model is not credited", func(t *testing.T) {
+		// Crediting a model with no measured profile would be guessing in the
+		// permissive direction, so the swap must still be refused.
+		server := build(false)
+		recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
+		if recorder.Code != http.StatusServiceUnavailable {
+			t.Fatalf("unmeasured outgoing model was credited: status=%d body=%s", recorder.Code, recorder.Body.String())
+		}
+	})
+}
+
+func TestCapacityStillRefusesWhenUnloadIsNotEnough(t *testing.T) {
+	backend, _ := runningBackend(t, `{"running":[{"model":"local-fast","state":"ready"}]}`)
+	outgoingCommit, outgoingRAM := 2.0, 2.0
+	targetCommit, targetRAM := 30.0, 7.0
+
+	cfg := readinessConfig(backend.URL)
+	cfg.Models[0].PeakCommitGiB = &outgoingCommit
+	cfg.Models[0].PeakRAMGiB = &outgoingRAM
+	cfg.Models[1].PeakCommitGiB = &targetCommit
+	cfg.Models[1].PeakRAMGiB = &targetRAM
+	server, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.memoryStatus = fixedMemory(9, 40)
+
+	recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
+	if recorder.Code != http.StatusServiceUnavailable {
+		t.Fatalf("target that does not fit even after unload was admitted: status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	status := controlRequest(t, server.ControlHandler(), http.MethodGet, "/api/v1/status", nil)
+	if !strings.Contains(status.Body.String(), `"reason":"insufficient_commit_headroom"`) {
+		t.Errorf("unexpected reason: %s", status.Body.String())
+	}
+}

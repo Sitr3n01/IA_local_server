@@ -427,10 +427,10 @@ func (s *Server) serveControl(w http.ResponseWriter, r *http.Request) {
 func (s *Server) writeStatus(w http.ResponseWriter, r *http.Request) {
 	running, runningErr := s.runningModels(r.Context())
 	memory, metricErr := s.memoryStatus()
-	capacity := capacityFrom(s.publicModel(), running, runningErr, memory, metricErr)
+	capacity := capacityFrom(s.publicModel(), s.cfg.Models, running, runningErr, memory, metricErr)
 	modelStatuses := make([]map[string]any, 0, len(s.cfg.Models))
 	for _, model := range s.cfg.Models {
-		modelCapacity := capacityFrom(model, running, runningErr, memory, metricErr)
+		modelCapacity := capacityFrom(model, s.cfg.Models, running, runningErr, memory, metricErr)
 		_, active := running[model.ID]
 		modelStatuses = append(modelStatuses, map[string]any{
 			"id": model.ID, "available": modelCapacity.Available,

@@ -51,7 +51,7 @@ foreach ($runtime in @($manifest.runtimes)) { $runtimesById[$runtime.id] = $runt
 #    already-published deployment. The expected string is rebuilt independently
 #    of New-V2LlamaServerCommand, from the pre-tuning flag list.
 $untunedFields = @(
-    'context_shift', 'kv_unified', 'cache_ram_mib', 'ctx_checkpoints',
+    'context_shift', 'kv_unified', 'threads', 'threads_batch', 'cache_ram_mib', 'ctx_checkpoints',
     'checkpoint_min_step', 'cache_idle_slots', 'spec_decoding', 'tensor_overrides'
 )
 $untunedCount = 0
@@ -101,6 +101,8 @@ $tuned = ($template | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
 $tuned.id = 'tuned-hybrid'
 $tuned | Add-Member -NotePropertyName 'context_shift' -NotePropertyValue $false
 $tuned | Add-Member -NotePropertyName 'kv_unified' -NotePropertyValue $true
+$tuned | Add-Member -NotePropertyName 'threads' -NotePropertyValue 8
+$tuned | Add-Member -NotePropertyName 'threads_batch' -NotePropertyValue 16
 $tuned | Add-Member -NotePropertyName 'cache_ram_mib' -NotePropertyValue 6144
 $tuned | Add-Member -NotePropertyName 'ctx_checkpoints' -NotePropertyValue 64
 $tuned | Add-Member -NotePropertyName 'checkpoint_min_step' -NotePropertyValue 8192
@@ -110,7 +112,7 @@ $tuned | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @(
     [pscustomobject]@{ pattern = 'blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*'; buffer = 'CPU' })
 
 $tunedCommand = New-V2LlamaServerCommand -Runtime $runtimesById[$tuned.runtime] -Model $tuned -RouterAPIKeyPath $routerAPIKeyPath
-Assert-Contains -Haystack $tunedCommand -Needle '--cont-batching --no-context-shift --kv-unified --cache-ram 6144 --ctx-checkpoints 64 --checkpoint-min-step 8192 --cache-idle-slots --spec-type draft-mtp --spec-draft-n-max 5 -ot "blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*=CPU" --jinja' -Label 'Tuned hybrid command does not emit the optional flag block in order.'
+Assert-Contains -Haystack $tunedCommand -Needle '--cont-batching --no-context-shift --kv-unified --threads 8 --threads-batch 16 --cache-ram 6144 --ctx-checkpoints 64 --checkpoint-min-step 8192 --cache-idle-slots --spec-type draft-mtp --spec-draft-n-max 5 -ot "blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*=CPU" --jinja' -Label 'Tuned hybrid command does not emit the optional flag block in order.'
 Assert-NotContains -Haystack $tunedCommand -Needle ' --context-shift ' -Label 'Tuned hybrid command still enables context shift.'
 
 # 3. Turning context_shift back on must restore the historical flag exactly.
@@ -138,6 +140,8 @@ usage: llama-server [options]
   -c,    --ctx-size N             size of the prompt context
   -ot,   --override-tensor SPEC   tensor buffer overrides
   -cram, --cache-ram N            prompt cache size in MiB
+  -t,    --threads N              number of CPU threads
+  -tb,   --threads-batch N        number of CPU threads for batch processing
   -cms,  --checkpoint-min-step N  minimum spacing between context checkpoints
   -ctxcp, --ctx-checkpoints N     number of context checkpoints
          --no-context-shift       disable context shift

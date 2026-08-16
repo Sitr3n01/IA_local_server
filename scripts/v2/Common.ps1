@@ -327,6 +327,19 @@ function New-V2LlamaServerCommand {
     if ([bool](Get-V2ModelSetting -Model $Model -Name 'kv_unified' -Default $false)) {
         $arguments.Add('--kv-unified')
     }
+    # Thread counts only matter once part of the model is CPU-resident, and the
+    # winner comes from the qualification sweep rather than from the core count:
+    # on an 8C/16T part SMT contention often makes 8 beat 16 for quantized GEMM.
+    # Omitted here, llama-server keeps its own default, so nothing changes for
+    # the fully GPU-resident models.
+    $threads = Get-V2ModelSetting -Model $Model -Name 'threads'
+    if ($null -ne $threads) {
+        $arguments.AddRange([string[]]@('--threads', [string][int]$threads))
+    }
+    $threadsBatch = Get-V2ModelSetting -Model $Model -Name 'threads_batch'
+    if ($null -ne $threadsBatch) {
+        $arguments.AddRange([string[]]@('--threads-batch', [string][int]$threadsBatch))
+    }
     $cacheRamMib = Get-V2ModelSetting -Model $Model -Name 'cache_ram_mib'
     if ($null -ne $cacheRamMib) {
         $arguments.AddRange([string[]]@('--cache-ram', [string][int]$cacheRamMib))
