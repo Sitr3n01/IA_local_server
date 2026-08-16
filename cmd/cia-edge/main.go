@@ -67,11 +67,12 @@ func run() error {
 	if err := manifestvalidator.ValidateFiles(*modelsSchema, *modelsConfig); err != nil {
 		return fmt.Errorf("validate models config: %w", err)
 	}
-	models, err := edge.LoadModels(*modelsConfig, *environment)
+	models, publicModel, err := edge.LoadModels(*modelsConfig, *environment)
 	if err != nil {
 		return err
 	}
 	cfg.Models = models
+	cfg.PublicModelID = publicModel
 	if err := cfg.Validate(); err != nil {
 		return err
 	}

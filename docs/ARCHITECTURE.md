@@ -203,3 +203,31 @@ The task installer is preview-only unless `-Apply` is supplied. It refuses to re
 9. Legacy panel and Unsloth Startup shortcuts remain disabled; Unsloth is launched manually only when training or export is intended.
 10. Local delegation through MCP is explicit, stateless, text-only, and cannot
     select a model or perform an administrative action.
+
+## Concurrency is not a single setting
+
+The system serves one inference at a time, and that is enforced in four
+independent places: `provider.max_loaded_models` and `parallel` are pinned to
+`1` by the manifest schema, llama-swap applies `concurrencyLimit: 1`, and the
+edge gate admits one active request with a bounded queue.
+
+Raising `CIA_EDGE_MAX_ACTIVE` alone does **not** make the system concurrent. It
+widens the edge's admission window in front of a serialized runtime, which
+converts queue waiting into upstream contention and makes the queue metrics
+misleading without adding throughput.
+
+Real concurrency would require a coordinated change across: llama-server slots
+and `--parallel`; llama-swap's concurrency limit; the edge gate; per-slot KV
+cache sizing; aggregate RAM/VRAM admission rather than the single-model budget
+in `capacity.go`; continuous batching behaviour; and per-request resource
+accounting. Until those move together, the single-slot invariant is what the
+capacity arithmetic assumes — in particular the static device VRAM budget, which
+is only sound because exactly one model is ever resident.
+
+## Single GPU
+
+Device selection is `--device ROCm0` with `--split-mode none`, and the VRAM
+budget in the manifest is a single `runtimes[].device.vram_mib`. Multi-GPU is
+out of scope and no speculative abstraction exists for it; extending later means
+making the budget and the device selector plural, which is a contained change.
+

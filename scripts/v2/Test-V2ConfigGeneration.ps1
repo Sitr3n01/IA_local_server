@@ -51,8 +51,8 @@ foreach ($runtime in @($manifest.runtimes)) { $runtimesById[$runtime.id] = $runt
 #    already-published deployment. The expected string is rebuilt independently
 #    of New-V2LlamaServerCommand, from the pre-tuning flag list.
 $untunedFields = @(
-    'context_shift', 'kv_unified', 'cache_ram_mib', 'ctx_checkpoints',
-    'checkpoint_every_n_tokens', 'cache_idle_slots', 'spec_decoding', 'tensor_overrides'
+    'context_shift', 'kv_unified', 'threads', 'threads_batch', 'cache_ram_mib', 'ctx_checkpoints',
+    'checkpoint_min_step', 'cache_idle_slots', 'spec_decoding', 'tensor_overrides'
 )
 $untunedCount = 0
 foreach ($model in @($manifest.models)) {
@@ -101,16 +101,18 @@ $tuned = ($template | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
 $tuned.id = 'tuned-hybrid'
 $tuned | Add-Member -NotePropertyName 'context_shift' -NotePropertyValue $false
 $tuned | Add-Member -NotePropertyName 'kv_unified' -NotePropertyValue $true
+$tuned | Add-Member -NotePropertyName 'threads' -NotePropertyValue 8
+$tuned | Add-Member -NotePropertyName 'threads_batch' -NotePropertyValue 16
 $tuned | Add-Member -NotePropertyName 'cache_ram_mib' -NotePropertyValue 6144
 $tuned | Add-Member -NotePropertyName 'ctx_checkpoints' -NotePropertyValue 64
-$tuned | Add-Member -NotePropertyName 'checkpoint_every_n_tokens' -NotePropertyValue 8192
+$tuned | Add-Member -NotePropertyName 'checkpoint_min_step' -NotePropertyValue 8192
 $tuned | Add-Member -NotePropertyName 'cache_idle_slots' -NotePropertyValue $true
 $tuned | Add-Member -NotePropertyName 'spec_decoding' -NotePropertyValue ([pscustomobject]@{ type = 'draft-mtp'; draft_n_max = 5 })
 $tuned | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @(
     [pscustomobject]@{ pattern = 'blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*'; buffer = 'CPU' })
 
 $tunedCommand = New-V2LlamaServerCommand -Runtime $runtimesById[$tuned.runtime] -Model $tuned -RouterAPIKeyPath $routerAPIKeyPath
-Assert-Contains -Haystack $tunedCommand -Needle '--cont-batching --no-context-shift --kv-unified --cache-ram 6144 --ctx-checkpoints 64 --checkpoint-every-n-tokens 8192 --cache-idle-slots --spec-type draft-mtp --spec-draft-n-max 5 -ot "blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*=CPU" --jinja' -Label 'Tuned hybrid command does not emit the optional flag block in order.'
+Assert-Contains -Haystack $tunedCommand -Needle '--cont-batching --no-context-shift --kv-unified --threads 8 --threads-batch 16 --cache-ram 6144 --ctx-checkpoints 64 --checkpoint-min-step 8192 --cache-idle-slots --spec-type draft-mtp --spec-draft-n-max 5 -ot "blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*=CPU" --jinja' -Label 'Tuned hybrid command does not emit the optional flag block in order.'
 Assert-NotContains -Haystack $tunedCommand -Needle ' --context-shift ' -Label 'Tuned hybrid command still enables context shift.'
 
 # 3. Turning context_shift back on must restore the historical flag exactly.
@@ -128,11 +130,64 @@ $multi | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @(
 $multiCommand = New-V2LlamaServerCommand -Runtime $runtimesById[$multi.runtime] -Model $multi -RouterAPIKeyPath $routerAPIKeyPath
 Assert-Contains -Haystack $multiCommand -Needle '-ot "blk\.6[0-3]\.ffn_.*=CPU" -ot "blk\.5[0-9]\.ffn_.*=CPU"' -Label 'Multiple tensor overrides did not each produce an -ot argument.'
 
+# 5. Runtime capability gate. The parsing and comparison halves are pure, so they
+#    are asserted here without invoking a Windows binary; only Get-V2RuntimeHelpText
+#    needs the real executable and it is exercised during -Apply generation.
+$helpFixture = @'
+usage: llama-server [options]
+
+  -m,    --model FNAME            model path
+  -c,    --ctx-size N             size of the prompt context
+  -ot,   --override-tensor SPEC   tensor buffer overrides
+  -cram, --cache-ram N            prompt cache size in MiB
+  -t,    --threads N              number of CPU threads
+  -tb,   --threads-batch N        number of CPU threads for batch processing
+  -cms,  --checkpoint-min-step N  minimum spacing between context checkpoints
+  -ctxcp, --ctx-checkpoints N     number of context checkpoints
+         --no-context-shift       disable context shift
+         --jinja                  use the model's chat template
+'@
+$supported = Get-V2SupportedFlags -HelpText $helpFixture
+foreach ($expected in @('--model', '--ctx-size', '--override-tensor', '--cache-ram', '--checkpoint-min-step', '-ot', '-cms', '--jinja')) {
+    if (-not $supported.Contains($expected)) {
+        throw "Help parsing lost the flag '$expected'."
+    }
+}
+# The flag this whole gate exists to catch: deleted upstream by llama.cpp #22929.
+if ($supported.Contains('--checkpoint-every-n-tokens')) {
+    throw 'Help parsing invented a flag that is absent from the fixture.'
+}
+
+$flagsOf = Get-V2CommandFlags -Command '"C:\r.exe" --model "C:\m.gguf" --ctx-size 4096 -ot "blk\.6[0-3]\.ffn_.*=CPU" --jinja'
+foreach ($expected in @('--model', '--ctx-size', '-ot', '--jinja')) {
+    if ($flagsOf -notcontains $expected) { throw "Command flag extraction lost '$expected'." }
+}
+foreach ($value in @('"C:\m.gguf"', '4096', '"blk\.6[0-3]\.ffn_.*=CPU"')) {
+    if ($flagsOf -contains $value) { throw "Command flag extraction treated the value '$value' as a flag." }
+}
+
+Assert-V2CommandFlagsSupported -Command '"C:\r.exe" --model "C:\m.gguf" --ctx-size 4096 --jinja' `
+    -SupportedFlags $supported -RuntimeId 'fixture' -RuntimeSha256 ('0' * 64) -ModelId 'fixture-model'
+
+$rejected = $false
+try {
+    Assert-V2CommandFlagsSupported -Command '"C:\r.exe" --model "C:\m.gguf" --checkpoint-every-n-tokens 8192' `
+        -SupportedFlags $supported -RuntimeId 'fixture' -RuntimeSha256 ('0' * 64) -ModelId 'fixture-model'
+}
+catch {
+    $rejected = $_.Exception.Message -match 'checkpoint-every-n-tokens' -and
+                $_.Exception.Message -match 'fixture-model' -and
+                $_.Exception.Message -match 'fixture'
+}
+if (-not $rejected) {
+    throw 'A flag absent from the runtime help was accepted, or the error did not name the runtime, model, and flag.'
+}
+
 if (-not $Quiet) {
     [pscustomobject]@{
         manifest              = (Resolve-Path -LiteralPath $ManifestPath).Path
         byte_stable_models    = $untunedCount
-        generation_tests      = 4
+        generation_tests      = 5
         valid                 = $true
     } | ConvertTo-Json -Depth 3
 }

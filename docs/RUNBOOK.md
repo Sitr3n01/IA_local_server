@@ -372,6 +372,26 @@ Close Unsloth Studio, harness sessions, and the browser before measuring. Record
 
 **Decision point.** With ~32 GiB of physical RAM, an idle baseline that will not come down to roughly 20 GiB leaves too little headroom for a 27B in any quantization. That is a machine-state conclusion, not a model conclusion — reaching it here costs minutes, whereas reaching it after downloading 15 GiB and running the full sweep costs hours.
 
+### 11.0b Choose the build, not just the quantization level
+
+The authoritative reference for this model is Alibaba's own repository, **`Qwen/Qwen3.8-27B`** (Apache-2.0). Architecture, context handling, and recommended sampling settings come from there. Every GGUF — first-party or community — is a *derived* artifact: record its publisher and immutable revision in `source`, and verify its per-tensor choices yourself. Check the official card for a first-party GGUF before reaching for a rebuild.
+
+Then read `TUNING.md` §1.3. Three checks made here outweigh every serving flag later:
+
+- **`blk.64` must be Q5_K or higher.** The MTP head on this model is block 64, 15 tensors after the 64 main blocks. Builds that quantize it to Q4_K measure **0% draft acceptance** — speculation fails completely and silently — while builds keeping it at Q5_K–Q8_0 reach 73–74%. The nominal quantization label does not tell you which you have:
+
+```powershell
+$gguf = 'C:\IA\models\Qwen3.8-27B-GGUF\<file>.gguf'
+gguf-dump $gguf | Select-String -Pattern 'blk\.64\.'      # every row must be Q5_K or better
+gguf-dump $gguf | Select-String -Pattern 'nextn|mtp'       # head present at all
+```
+
+  Expect a `nextn_predict_layers` metadata key and `blk.N.nextn.*` tensors. A build missing them loads and serves normally and simply never speculates.
+
+- **Do not select on file size alone.** Compact builds are exactly the ones likely to have quantized `blk.64` down. A slightly larger build that passes the check beats a smaller one that fails it by roughly 2x. Among builds that pass, prefer imatrix calibration with per-tensor overrides over a uniform quantization at the same nominal level.
+
+- **Prefer KV `q4_0` over `q8_0`.** It buys longer context *and* less offload at once (§1.2). Validate recall with the stress eval rather than assuming `q8_0` is the safer default.
+
 ### 11.1 Gate zero: measure the Gated DeltaNet kernel before anything else
 
 The pinned `amd-rocm-baseline` runtime is b8407 and does not know this architecture; the GGUFs were quantized with b10419. Download an official ggml-org ROCm build for Windows (`llama-b<N>-windows-rocm-7.2.x-gfx110X-gfx115X-gfx120X-x64`, `N >= 10419`) and unpack it *outside* the repository, then measure without touching the manifest:
@@ -387,7 +407,12 @@ Confirm the load log lists a ROCm device and that the Gated DeltaNet op is not f
 
 ### 11.2 Find the split
 
-Sweep `-NGpuLayers` and `-ot` patterns and read `llm_load_tensors: CPU buffer size` from the load log. Target roughly 4 GiB resident in system RAM. Offload FFN tensors of a contiguous tail only — never reduce `--n-gpu-layers`, which would evict full-attention layers (`blk.3, 7, 11, … 63`) and push their KV cache into system RAM. Starting pattern:
+Compute the envelope first — `TUNING.md` §1.2 gives the arithmetic, and it rejects configurations before a sweep costs you an afternoon. Two results from it matter here:
+
+- The template's 96k / KV `q8_0` combination needs roughly **5.1 GiB** offloaded, not 4.4: the KV cache alone is 3.19 GiB and usable VRAM is ~14.8, not 15.92.
+- **128k with KV `q4_0` needs less offload than 96k with `q8_0`** (2.25 vs 3.19 GiB of cache), so it is both longer-context and faster. On a VRAM-bound hybrid, KV precision costs throughput indirectly by forcing weights off the card. Measure quality on both before assuming `q8_0` is the safer default.
+
+Then sweep `-NGpuLayers` and `-ot` patterns and read `llm_load_tensors: CPU buffer size` from the load log to confirm the estimate. Offload FFN tensors of a contiguous tail only — never reduce `--n-gpu-layers`, which would evict full-attention layers (`blk.3, 7, 11, … 63`) and push their KV cache into system RAM. Starting pattern:
 
 ```
 blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*
@@ -406,8 +431,8 @@ Add the runtime and model to `config/models.yaml` together with the three catalo
   "runtime": "amd-rocm-qwen38",
   "artifact": { "path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
                 "bytes": 0, "sha256": "<compute with Get-FileHash>" },
-  "source": { "repository": "unsloth/Qwen3.8-27B-GGUF", "revision": "<40-hex upstream commit>",
-              "filename": "Qwen3.8-27B-IQ4_XS.gguf", "license": "Apache-2.0" },
+  "source": { "repository": "<GGUF publisher>/Qwen3.8-27B-GGUF", "revision": "<40-hex upstream commit>",
+              "filename": "<file that passed the blk.64 check>.gguf", "license": "Apache-2.0" },
   "context_tokens": 98304,
   "max_output_tokens": 16384,
   "cache_type_k": "q8_0",
@@ -420,10 +445,12 @@ Add the runtime and model to `config/models.yaml` together with the three catalo
   "reasoning": "auto",
   "context_shift": false,
   "kv_unified": true,
-  "cache_ram_mib": 2048,
-  "ctx_checkpoints": 64,
-  "checkpoint_every_n_tokens": 8192,
-  "cache_idle_slots": true,
+  // cache_ram_mib / ctx_checkpoints / checkpoint_min_step / cache_idle_slots
+  // are deliberately omitted: context checkpoints are upstream-reported
+  // non-functional on hybrid/recurrent models (TUNING.md 1.4), and the gate
+  // charges cache_ram_mib to commit in full, so an inert cache costs headroom.
+  // Add them only after qwen38-27b-iq4xs-agentic-restore passes.
+  // "threads": <winner of the {8, 16} sweep>,
   "spec_decoding": { "type": "draft-mtp", "draft_n_max": 3 },
   "tensor_overrides": [
     { "pattern": "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*", "buffer": "CPU" }
@@ -436,7 +463,7 @@ Add the runtime and model to `config/models.yaml` together with the three catalo
 
 `context_shift: false` is mandatory: the recurrent state cannot be shifted, and the schema refuses `spec_decoding` without it. `cache_ram_mib` requires a measured `peak_commit_gib`, and `tensor_overrides` requires a measured `peak_vram_gib` — both are validated at generation time, and the edge refuses admission until they are present.
 
-`cache_ram_mib: 2048` is sized against the **measured** headroom from step 11.0, not against the nominal RAM budget: the gate adds the value in full on top of `peak_commit_gib`, so a 6 GiB cache consumes more than half of a 10.48 GiB headroom before the weights are counted. Raise it only after 11.0 shows the idle baseline actually came down; a larger cache that forces the pagefile is worse than no cache, because a checkpoint restored from disk competes with the very prefill it was meant to avoid.
+**On the prompt cache.** llama.cpp issues #24055 and #22384 report that context checkpoints are created and immediately invalidated on hybrid/recurrent models, with the fix unmerged. Until `qwen38-27b-iq4xs-agentic-restore` demonstrates real restoration on the candidate runtime, `cache_ram_mib` buys nothing here and is worse than neutral: admission charges it to commit in full, and commit is the binding constraint on this machine. When it does become usable, size it against the headroom measured in 11.0 rather than the nominal RAM budget, and remember a cache that forces the pagefile is worse than no cache.
 
 `spec_decoding.draft_n_max: 3` is set for an **offloaded** split, not copied from the resident-model optimum of 7. Speculation amortizes weight reads but not arithmetic, and the CPU-resident portion is compute-bound, so past a shallow depth each extra drafted token costs more than it returns — at the pessimistic end a depth of 7 is slower than not speculating at all. The optimum moves whenever the `-ot` pattern moves; sweep the two together. See `TUNING.md` §1.1.
 
@@ -454,7 +481,7 @@ In the preview, confirm the new model's `cmd:` contains `--no-context-shift`, `-
 
 ### 11.5 Qualify
 
-Run the profiles in `model-test-matrix.json` (`qwen38-27b-*`), then the quality and stress evaluations. Leave `function_calling` false until `run-profile-stress-eval.py` produces a valid forced tool call. Then follow `MODEL_PROMOTION.md` as usual.
+Run the profiles in `model-test-matrix.json` (`qwen38-27b-*`), then the quality and stress evaluations. Record the MTP draft acceptance rate at the exact `context_tokens` you intend to ship: llama.cpp issue #23658 documents acceptance collapsing to near zero at specific context sizes on a ~2048-token period, unfixed and independent of quantization. If acceptance is poor, try +/-256 and +/-2048 before concluding MTP does not work here. Leave `function_calling` false until `run-profile-stress-eval.py` produces a valid forced tool call. Then follow `MODEL_PROMOTION.md` as usual.
 
 If throughput disappoints, do not re-quantize on instinct: `TUNING.md` gives the bandwidth ceiling for a given weight split, so you can tell whether the configuration is at its hardware limit or something is actually broken. On this hardware the first gibibyte of offload costs ~37% of decode throughput, which frequently makes a smaller fully-resident quant the faster choice.
 
@@ -477,7 +504,7 @@ Capacity `reason` values from `/api/v1/status` (for slowness rather than refusal
 | `insufficient_commit_headroom` | Measured commit plus `cache_ram_mib` plus the 4 GiB reserve exceeds free commit | Free commit (step 11.0), lower `cache_ram_mib`, or raise the pagefile |
 | `insufficient_physical_memory` | Measured `peak_ram_gib` plus the 2 GiB reserve exceeds free physical RAM | Free RAM or offload less; raising the pagefile does **not** fix this and makes it slower |
 | `insufficient_vram_budget` | Measured `peak_vram_gib` plus the 1 GiB reserve exceeds `device.vram_mib` | Shrink context, drop the KV type, or offload more weight |
-| `resource_measurement_required_for_host_memory` | Model declares offload or a prompt cache but has no measured profile | Measure and record `resources.peak_*`; this never resolves on its own |
+| `resource_profile_incomplete` | Model uses host memory and at least one required measurement is missing; `missing_profile_fields` names them | Measure and record the named fields; this never resolves on its own |
 | `canary_resource_measurement_pending` | Unmeasured canary candidate that uses no host memory | Acceptable for small candidates; measure before qualifying |
 | `resource_measurement_required` | Unmeasured model outside the canary escape hatch | Measure and record `resources.peak_*` |
 

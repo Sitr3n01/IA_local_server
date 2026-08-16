@@ -33,7 +33,7 @@ All notable changes are documented here. This project follows Keep a Changelog c
 
 - Manifest support for models too large to fit entirely in VRAM: optional typed
   fields `context_shift`, `kv_unified`, `cache_ram_mib`, `ctx_checkpoints`,
-  `checkpoint_every_n_tokens`, `cache_idle_slots`, `spec_decoding`, and
+  `checkpoint_min_step`, `cache_idle_slots`, `spec_decoding`, and
   `tensor_overrides`, plus `runtimes[].device.vram_mib`. `additionalProperties`
   stays closed; a generic `extra_args` escape hatch was deliberately rejected
   (ADR 0009).
@@ -65,6 +65,63 @@ All notable changes are documented here. This project follows Keep a Changelog c
   optimal draft depth collapses to 2-3 and a depth of 7 can be *slower* than not
   speculating at all. Includes a sensitivity table over CPU GEMM throughput, the
   one constant this repository has never measured.
+- `docs/TUNING.md` §1.2: how to estimate the VRAM/RAM/commit envelope from the
+  model card plus the one measured anchor, before downloading anything. Surfaces
+  that Windows commit tracks **VRAM**, not RAM — the 9B consumed 8.06 GiB of
+  commit against 6.66 GiB of VRAM with zero CPU-resident weights, so a 27B costs
+  ~16 GiB of commit even with no offload and no prompt cache. Also shows the
+  template's 96k / KV `q8_0` split needs ~5.1 GiB offloaded rather than 4.4, and
+  that 128k with `q4_0` KV needs *less* offload than 96k with `q8_0`.
+- `docs/TUNING.md` §1.3: the quality/speed frontier for choosing a quantization.
+  Community IQ4_XS builds of this model span roughly a gibibyte, which on this
+  hardware is ~60% of decode throughput, so build selection outweighs every
+  serving flag. Records that `Q3_K_XL` on 27B-class Qwen measures above 0.1 KLD
+  with 85-90% top-token agreement, against a 0.08 "quality drops" threshold, so
+  dropping a level is a real cost rather than a free win. Also documents two
+  silent MTP killers: quantization tooling dropping the `nextn` head entirely,
+  and draft acceptance collapsing at particular `--ctx-size` values on a
+  ~2048-token period (llama.cpp #23658).
+- The `blk.64` rule, the most consequential per-tensor fact about this model: the
+  MTP head must be quantized to Q5_K or higher. Reported measurements put a
+  Q4_K MTP block at **0% draft acceptance** — speculation fails completely and
+  silently — against 73-74% for builds keeping it at Q5_K-Q8_0. The nominal
+  quantization label does not reveal which you have, so `gguf-dump` verification
+  is now a precondition in `RUNBOOK.md` §11.0b and `BENCHMARKS.md`. This also
+  reverses earlier guidance to prefer the most compact build: compact builds are
+  precisely the ones likely to have quantized `blk.64` down.
+- `Qwen/Qwen3.8-27B` (Alibaba, Apache-2.0) recorded as the authoritative
+  reference for the family across `TUNING.md`, `RUNBOOK.md`, and
+  `model-test-matrix.json`. Every GGUF is a derived artifact whose publisher,
+  revision, and per-tensor choices are recorded and verified separately; the
+  matrix no longer names a GGUF publisher until one passes the `blk.64` check.
+- `docs/RUNBOOK.md` §11.0b: choose the build and verify the MTP head survived
+  quantization before downloading or benchmarking anything.
+- `docs/TUNING.md` §1.4: context checkpoints are upstream-reported non-functional
+  on hybrid/recurrent models (llama.cpp #24055, #22384 — created then immediately
+  invalidated, fix unmerged). `cache_ram_mib` therefore buys nothing on Qwen3.8
+  today and is worse than neutral, since admission charges it to commit in full
+  and commit is the binding constraint. The RUNBOOK template omits the cache and
+  checkpoint fields until the new agentic profile demonstrates real restoration.
+- Agentic context-restoration benchmark (`qwen38-27b-iq4xs-agentic-restore`):
+  60k base context grown by small increments interleaved with tool calls,
+  recording prompt tokens processed against tokens new per turn. It is a
+  regression gate — a turn after the first that reprocesses near the full context
+  fails — and doubles as the acceptance test for whether a build fixed the
+  upstream checkpoint defect.
+- Evidence labels in `docs/BENCHMARKS.md` (`measured`, `modelled`,
+  `upstream-reported`, `unverified on gfx1201`), and their application: the
+  bandwidth and MTP tables are modelled, the kernel and `blk.64` figures are
+  upstream-reported, and nothing about Qwen3.8-27B is measured here yet.
+- `docs/ARCHITECTURE.md`: concurrency is enforced in four independent places and
+  raising `CIA_EDGE_MAX_ACTIVE` alone does not make the system concurrent, it
+  only converts queue waiting into upstream contention. Records what a real
+  concurrency change would have to move together, and why the single-slot
+  invariant is what the static VRAM budget depends on.
+- Gate zero judges prefill as well as decode (`pp512`, `pp8192`, cold TTFT
+  alongside `tg128`): a hybrid model can decode acceptably while prompt
+  processing is severely degraded, which for a large standing context is the
+  more expensive failure. Comparison is against saved baselines and the modelled
+  ceiling rather than an invented threshold.
 - `docs/RUNBOOK.md` §11.0: reclaim the idle commit baseline before measuring
   anything else. The 2026-07-20 validation recorded 31.82 GiB committed with no
   model loaded against a 42.30 GiB limit, which constrains a 27B more than the

@@ -25,7 +25,7 @@ models:
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	models, err := LoadModels(path, "canary")
+	models, _, err := LoadModels(path, "canary")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ models:
 
 func TestRepositoryManifestExposesCanaryModels(t *testing.T) {
 	path := filepath.Join("..", "..", "config", "models.yaml")
-	models, err := LoadModels(path, "canary")
+	models, _, err := LoadModels(path, "canary")
 	if err != nil {
 		t.Fatalf("LoadModels(%s): %v", path, err)
 	}
@@ -90,7 +90,7 @@ models:
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	models, err := LoadModels(path, "canary")
+	models, _, err := LoadModels(path, "canary")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,5 +123,34 @@ models:
 	}
 	if fast.OffloadsTensors || fast.CacheRAMMiB != nil {
 		t.Errorf("unexpected host-memory flags on %+v", fast)
+	}
+}
+
+func TestLoadModelsReturnsPublicModelRegardlessOfOrder(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "models.yaml")
+	// public_model is deliberately the *second* entry.
+	data := []byte(`provider:
+  public_model: local-coding
+models:
+  - id: local-fast
+    state: candidate
+    deployments: [canary]
+  - id: local-coding
+    state: candidate
+    deployments: [canary]
+`)
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	models, public, err := LoadModels(path, "canary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if public != "local-coding" {
+		t.Fatalf("public model = %q, want local-coding", public)
+	}
+	if models[0].ID != "local-fast" {
+		t.Fatalf("array order changed: %+v", models)
 	}
 }

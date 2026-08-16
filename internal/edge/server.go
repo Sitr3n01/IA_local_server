@@ -81,6 +81,18 @@ func New(cfg Config) (*Server, error) {
 	}, nil
 }
 
+// publicModel resolves provider.public_model out of the allowlist. Readiness and
+// the headline capacity figure are about this model specifically; using
+// Models[0] made manifest array order silently load-bearing.
+func (s *Server) publicModel() Model {
+	if model, ok := s.modelByID(s.cfg.PublicModelID); ok {
+		return model
+	}
+	// Config.Validate rejects a public ID outside the allowlist, so this is
+	// unreachable in a validated server; failing closed beats indexing blindly.
+	return Model{ID: s.cfg.PublicModelID}
+}
+
 func (s *Server) DataHandler() http.Handler {
 	return s.observe(http.HandlerFunc(s.serveData))
 }
@@ -387,7 +399,7 @@ func (s *Server) serveControl(w http.ResponseWriter, r *http.Request) {
 		if !requireMethod(w, r, http.MethodGet) {
 			return
 		}
-		capacity, _ := s.capacityFor(r.Context(), s.cfg.Models[0])
+		capacity, _ := s.capacityFor(r.Context(), s.publicModel())
 		upstreamReachable := s.upstreamReachable(r.Context())
 		ready := upstreamReachable && capacity.Available
 		status := http.StatusOK
@@ -415,10 +427,10 @@ func (s *Server) serveControl(w http.ResponseWriter, r *http.Request) {
 func (s *Server) writeStatus(w http.ResponseWriter, r *http.Request) {
 	running, runningErr := s.runningModels(r.Context())
 	memory, metricErr := s.memoryStatus()
-	capacity := capacityFrom(s.cfg.Models[0], running, runningErr, memory, metricErr)
+	capacity := capacityFrom(s.publicModel(), s.cfg.Models, running, runningErr, memory, metricErr)
 	modelStatuses := make([]map[string]any, 0, len(s.cfg.Models))
 	for _, model := range s.cfg.Models {
-		modelCapacity := capacityFrom(model, running, runningErr, memory, metricErr)
+		modelCapacity := capacityFrom(model, s.cfg.Models, running, runningErr, memory, metricErr)
 		_, active := running[model.ID]
 		modelStatuses = append(modelStatuses, map[string]any{
 			"id": model.ID, "available": modelCapacity.Available,

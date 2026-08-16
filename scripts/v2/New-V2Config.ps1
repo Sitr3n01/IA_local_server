@@ -83,6 +83,20 @@ $routerVbsPath = Join-Path $launcherRoot ("router-{0}.vbs" -f $settings.Name)
 $edgeVbsPath = Join-Path $launcherRoot ("edge-{0}.vbs" -f $settings.Name)
 $trayVbsPath = Join-Path $launcherRoot ("tray-{0}.vbs" -f $settings.Name)
 
+# Capability snapshots are read once per runtime and keyed by the artifact
+# SHA-256 that Assert-V2Artifact verified above, so a directory name can never
+# stand in for the bytes actually being invoked.
+$runtimeFlagCache = @{}
+function Get-V2RuntimeSupportedFlags {
+    param([Parameter(Mandatory = $true)][object]$Runtime)
+
+    $key = $Runtime.artifact.sha256
+    if (-not $runtimeFlagCache.ContainsKey($key)) {
+        $runtimeFlagCache[$key] = Get-V2SupportedFlags -HelpText (Get-V2RuntimeHelpText -Path $Runtime.artifact.path)
+    }
+    return $runtimeFlagCache[$key]
+}
+
 $modelBlocks = [System.Collections.Generic.List[string]]::new()
 foreach ($model in $models) {
     $runtime = @($manifest.runtimes | Where-Object { $_.id -eq $model.runtime })[0]
@@ -91,6 +105,9 @@ foreach ($model in $models) {
         $envLines += "      - " + (ConvertTo-V2YamlSingleQuoted "$($entry.Name)=$($entry.Value)")
     }
     $command = New-V2LlamaServerCommand -Runtime $runtime -Model $model -RouterAPIKeyPath $routerAPIKeyPath
+    Assert-V2CommandFlagsSupported -Command $command `
+        -SupportedFlags (Get-V2RuntimeSupportedFlags -Runtime $runtime) `
+        -RuntimeId $runtime.id -RuntimeSha256 $runtime.artifact.sha256 -ModelId $model.id
     $block = @(
         "  $($model.id):",
         "    name: $(ConvertTo-V2YamlSingleQuoted $model.display_name)",

@@ -120,6 +120,205 @@ the configuration is working and only a different configuration will help. If it
 is far below, something in section 2 is wrong and no amount of re-quantizing will
 fix it.
 
+## 1.2 Estimating the memory envelope before downloading anything
+
+The envelope is computable from the model card and one measured anchor. Doing it
+first costs minutes and can reject a configuration before a 15 GiB download.
+
+**VRAM.** Three of the four terms are exact:
+
+```
+VRAM ≈ W_gpu  +  KV(ctx, type)  +  GDN_state  +  compute_buffers
+```
+
+`KV` is pure arithmetic from the architecture — for a 3:1 hybrid with 16
+full-attention layers, 4 KV heads and `head_dim` 256:
+
+| ctx | `f16` | `q8_0` | `q4_0` |
+|---|---|---|---|
+| 64k | 4.00 | 2.12 | 1.12 |
+| 96k | 6.00 | 3.19 | 1.69 |
+| 128k | 8.00 | 4.25 | 2.25 |
+| 256k | 16.00 | 8.50 | 4.50 |
+
+`GDN_state` is per-sequence and constant in context — roughly 0.1–0.3 GiB for 48
+linear layers, small enough to treat as a rounding term but confirm from the load
+log. `compute_buffers` runs ~0.5–1.2 GiB at `ubatch` 512.
+
+Budget **~14.8 GiB usable**, not 15.92: the Windows desktop holds the difference.
+
+**Commit follows VRAM, not RAM.** This is the non-obvious one. From the 9B
+anchor: a model with *zero* CPU-resident weights still consumed 8.06 GiB of
+commit against 6.66 GiB of dedicated VRAM — a fixed overhead of ~1.4 GiB above
+VRAM. That is WDDM behaviour: Windows commits system memory to back video
+allocations so they remain evictable. So:
+
+```
+commit_delta ≈ VRAM + W_cpu + cache_ram_mib + ~1.4 GiB
+```
+
+The practical consequence is severe and easy to miss: **a 27B costs ~16 GiB of
+commit even with no offload and no prompt cache**, purely because it fills the
+card. Eliminating offload solves throughput, not commit.
+
+**RAM** splits into two figures that are often confused:
+
+- **Must stay resident:** `W_cpu + cache_ram_mib + ~1 GiB` of process overhead.
+  These are read every token or hold live state; if they page, throughput
+  collapses. This is what `peak_ram_gib` should record.
+- **Working set including the mapping:** llama.cpp mmaps the GGUF and the pages
+  stay resident after load — the 9B's working set was 0.88x its file size with
+  everything on the GPU. Those pages are clean and file-backed, so Windows can
+  drop them under pressure without paging out. Alarming in Task Manager,
+  mostly harmless.
+
+**Worked example** — IQ4_XS, 96k, KV `q8_0`, 4.4 GiB offloaded:
+
+| | GiB |
+|---|---|
+| VRAM: 11.30 weights + 3.19 KV + 0.2 GDN + 0.8 buffers | **15.49** |
+| Commit: 15.49 VRAM + 4.4 CPU weights + 2.0 cache + 1.4 | **23.29** |
+| RAM that must stay resident | **7.40** |
+
+Two things fall out of this that are not obvious from the manifest:
+
+1. **15.49 GiB of VRAM does not fit** in the ~14.8 GiB usable. This configuration
+   needs ~5.1 GiB offloaded, not 4.4.
+2. **128k with `q4_0` KV is cheaper than 96k with `q8_0`** (2.25 vs 3.19 GiB), so
+   it needs *less* offload — ~4.15 GiB — and runs faster despite the longer
+   context. On a VRAM-bound hybrid, KV precision buys context almost for free but
+   costs throughput indirectly, through the offload it forces.
+
+## 1.3 Choosing a quantization: the quality/speed frontier
+
+The instinct on a VRAM-bound card is to drop a whole quantization level. Section
+1.1's arithmetic says that is usually the wrong first move, because the frontier
+is far steeper in *file size* than in *bit width*.
+
+Modelled against the ~14.8 GiB usable budget, at 80% bandwidth utilization:
+
+| Build | Weights | ctx / KV | offloaded | base | ~MTP |
+|---|---|---|---|---|---|
+| IQ4_XS, 15.7 GiB | 15.7 | 96k / `q8_0` | 5.09 | 7.6 | ~17 |
+| IQ4_XS, 15.7 GiB | 15.7 | 128k / `q4_0` | 4.15 | 8.8 | ~19 |
+| IQ4_XS, 15.1 GB (14.1 GiB) | 14.1 | 128k / `q4_0` | 2.51 | 12.7 | ~28 |
+| IQ4_XS, 14.7 GB (13.7 GiB) | 13.7 | 128k / `q4_0` | 2.14 | **14.2** | **~31** |
+| IQ4_XS, 14.7 GB (13.7 GiB) | 13.7 | 96k / `q4_0` | 1.58 | 16.8 | ~37 |
+| UD-Q3_K_XL, ~12.0 GiB | 12.0 | 128k / `q4_0` | 0.45 | 29.4 | ~65 |
+
+**Two IQ4_XS builds one gibibyte apart differ by 60% in throughput.** Community
+IQ4_XS builds of this model are reported between roughly 14.7 and 15.7 GB and
+their quality differs by imatrix calibration, not only by size — so "IQ4_XS" is
+not one thing.
+
+**But size is not the selection criterion, and picking the most compact build is
+a trap.** See the `blk.64` rule below: a build chosen purely for compactness will
+usually have quantized the MTP block to Q4_K, which takes draft acceptance to
+zero and costs the entire ~2x speculative speedup. Weigh the two together — a
+slightly larger build that keeps `blk.64` at Q5_K or above beats a smaller one
+that does not, by a wide margin.
+
+**The authoritative reference is `Qwen/Qwen3.8-27B`** — Alibaba's own repository,
+Apache-2.0. Architecture, context handling, and recommended sampling come from
+there; every GGUF is a derived artifact whose publisher, revision, and per-tensor
+choices have to be recorded and verified separately. Check the official card for
+a first-party GGUF before reaching for a community rebuild.
+
+**What Q3 actually costs.** For 27B-class Qwen models, community measurements put
+`Q3_K_XL` at KL divergence above 0.1 with 85–90% top-token agreement against the
+unquantized model. The rule of thumb those same measurements use is KLD below
+0.05 for "indistinguishable from BF16" and above 0.08 for "quality drops". So
+yes — Q3 is a real quality cost on this model class, not a free win, and it is
+the level at which degradation stops being subtle.
+
+Quantization method matters as much as bit width. A 3-bit build using imatrix
+calibration with per-tensor overrides has been reported at 92.4% top-1 agreement
+at 13.8 GB — materially better than the generic `Q3_K_XL` figures above, and
+recommended by its author specifically for 16 GB cards. Bit width alone does not
+predict quality; how the bits were allocated does.
+
+That makes the sensible frontier:
+
+1. **Require `blk.64` at Q5_K or above.** This filters the candidate list before
+   any other consideration, because everything below it is worth ~2x.
+2. **Use KV `q4_0`, not `q8_0`.** Per §1.2 this buys longer context *and* less
+   offload simultaneously. It is the highest-leverage serving flag here.
+3. **Among builds that pass (1), prefer the more compact and better calibrated
+   one** — imatrix plus per-tensor overrides over a uniform quantization at the
+   same nominal level.
+4. Only then trade bit width, and only with a quality eval that justifies it.
+
+Sizes on model cards are ambiguous between GB and GiB, and the difference is ~7%
+— which at this point on the curve is worth several tokens per second. Take the
+real byte count after download and recompute rather than trusting the card.
+
+**Three failure modes that silently cost the entire MTP speedup:**
+
+- **The MTP block must be quantized to Q5_K or higher.** This is the single most
+  consequential per-tensor fact about this model. On Qwen3.8-27B the MTP head is
+  `blk.64` — 15 tensors sitting after the 64 main blocks. Reported measurements
+  on this model family are unambiguous: a build with `blk.64` at **Q4_K yields 0%
+  draft acceptance** and speculation fails completely, while builds keeping those
+  tensors in the Q5_K–Q8_0 range reach **73–74% acceptance**. The look-ahead
+  projection has no error-correction path, so its precision is not negotiable the
+  way the main stack's is.
+
+  A nominal quantization label tells you nothing about this. Inspect the tensors:
+  ```
+  gguf-dump model.gguf | grep "blk\.64\."
+  ```
+  Every one of them should read Q5_K or better. This is what "per-tensor
+  overrides" in a well-built quant buys you, and why a generic uniform Q4 build
+  of this model cannot speculate.
+
+- **The quant may not contain the MTP head at all.** Conversion tooling has been
+  reported to drop tensors it does not recognize as part of a vanilla
+  transformer block, and the community publishes explicitly `-MTP-GGUF` builds
+  because of it. Verify before benchmarking:
+  ```
+  gguf-dump model.gguf | grep -iE "nextn|mtp"
+  ```
+  Expect the `…nextn_predict_layers` metadata key and `blk.N.nextn.*` tensors
+  (`eh_proj`, `enorm`). A build without them will run fine and simply never
+  speculate.
+- **Acceptance collapses at particular `--ctx-size` values.** llama.cpp issue
+  #23658 documents draft acceptance falling to near zero at specific context
+  sizes on a ~2048-token period, with a 256-token difference separating 1.91x
+  from 1.12x, and 0% acceptance at some values. It is unfixed and independent of
+  quantization. Never assume a context size is fine: record the acceptance rate
+  at the exact `context_tokens` you ship, and if it is poor, try ±256 and ±2048
+  before concluding MTP does not work.
+
+## 1.4 Context checkpoints do not currently work on this architecture
+
+Upstream status, **unverified here**, and it invalidates the obvious use of the
+host-RAM budget:
+
+- llama.cpp **#24055** — context checkpoints are created and then immediately
+  invalidated on hybrid/recurrent models, with the server logging *"forcing full
+  prompt re-processing due to lack of cache data (likely due to SWA or
+  hybrid/recurrent memory)"*. `--checkpoint-min-step` has no effect on such
+  models; `--cache-ram` allocates but nothing persists.
+- llama.cpp **#22384** — root cause: the checkpoint search tests
+  `cur.pos_min < pos_min_thold`, but on a recurrent model `pos_min` always equals
+  the full sequence length, so the test can never pass. A fix exists in a fork
+  and is **not merged**.
+
+Reported consequence: a 15K-token conversation reprocesses everything per turn,
+seconds instead of milliseconds, which the reporter describes as making agentic
+workflows unusable.
+
+**What this means for configuration.** Until a build demonstrably restores
+checkpoints on this architecture, `cache_ram_mib` buys nothing on Qwen3.8 and
+should be left unset. That is not merely neutral: the gate charges it to commit
+in full, and commit is the binding constraint on this machine (§1.2), so an
+inert cache actively costs admission headroom.
+
+The multi-turn scenario in `BENCHMARKS.md` is the acceptance test for this. Run
+it against any candidate runtime before setting `cache_ram_mib`; if the second
+turn reprocesses the whole context, the feature is still broken in that build
+regardless of what the flags accept.
+
 ## 2. Bottleneck decision tree
 
 ### The model will not start
@@ -182,7 +381,7 @@ with context; decode is bandwidth-bound and does not.
   cache exists to avoid — see section 3.
 - If the *second* identical prompt is also slow, checkpoints are not being
   restored. Confirm `--cache-ram`, `--ctx-checkpoints`, and
-  `--checkpoint-every-n-tokens` are actually in the generated `cmd:`, and that
+  `--checkpoint-min-step` are actually in the generated `cmd:`, and that
   the harness prefix did not change between turns.
 - `--cache-reuse` will not help here and is not a fix to reach for: it cannot
   work on a model with recurrent state.

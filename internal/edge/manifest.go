@@ -45,26 +45,28 @@ type manifestModel struct {
 }
 
 // LoadModels reads the generated, version-controlled source of truth used to
-// construct the public model allowlist for one explicit deployment.
-func LoadModels(path, environment string) ([]Model, error) {
+// construct the public model allowlist for one explicit deployment. It also
+// returns provider.public_model, because array order carries no meaning: the
+// public model is named, not positional.
+func LoadModels(path, environment string) ([]Model, string, error) {
 	environment = strings.ToLower(strings.TrimSpace(environment))
 	if environment != "canary" && environment != "final" {
-		return nil, errorsForManifest("environment must be canary or final")
+		return nil, "", errorsForManifest("environment must be canary or final")
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("read models config: %w", err)
+		return nil, "", fmt.Errorf("read models config: %w", err)
 	}
 	var manifest modelManifest
 	decoder := yaml.NewDecoder(strings.NewReader(string(data)))
 	decoder.KnownFields(false)
 	if err := decoder.Decode(&manifest); err != nil {
-		return nil, fmt.Errorf("decode models config: %w", err)
+		return nil, "", fmt.Errorf("decode models config: %w", err)
 	}
 
 	publicModel := strings.TrimSpace(manifest.Provider.PublicModel)
 	if publicModel == "" {
-		return nil, errorsForManifest("provider.public_model is required")
+		return nil, "", errorsForManifest("provider.public_model is required")
 	}
 	deviceVRAM := make(map[string]*float64, len(manifest.Runtimes))
 	for _, runtime := range manifest.Runtimes {
@@ -84,10 +86,10 @@ func LoadModels(path, environment string) ([]Model, error) {
 	for _, entry := range manifest.Models {
 		id := strings.TrimSpace(entry.ID)
 		if id == "" {
-			return nil, errorsForManifest("model ID cannot be empty")
+			return nil, "", errorsForManifest("model ID cannot be empty")
 		}
 		if _, duplicate := seen[id]; duplicate {
-			return nil, errorsForManifest(fmt.Sprintf("duplicate model ID %q", id))
+			return nil, "", errorsForManifest(fmt.Sprintf("duplicate model ID %q", id))
 		}
 		seen[id] = struct{}{}
 		state := strings.ToLower(strings.TrimSpace(entry.State))
@@ -97,18 +99,18 @@ func LoadModels(path, environment string) ([]Model, error) {
 		enabled := entry.Enabled == nil || *entry.Enabled
 		if !enabled || state == "retired" || state == "disabled" {
 			if id == publicModel {
-				return nil, errorsForManifest(fmt.Sprintf("public model %q is disabled or retired", id))
+				return nil, "", errorsForManifest(fmt.Sprintf("public model %q is disabled or retired", id))
 			}
 			continue
 		}
 		if state != "candidate" && state != "qualified" && state != "enabled" {
-			return nil, errorsForManifest(fmt.Sprintf("model %q has unsupported state %q", id, state))
+			return nil, "", errorsForManifest(fmt.Sprintf("model %q has unsupported state %q", id, state))
 		}
 		if !containsDeployment(entry.Deployments, environment) {
 			continue
 		}
 		if environment == "final" && state == "candidate" {
-			return nil, errorsForManifest(fmt.Sprintf("candidate model %q cannot be deployed to final", id))
+			return nil, "", errorsForManifest(fmt.Sprintf("candidate model %q cannot be deployed to final", id))
 		}
 		ownedBy := strings.TrimSpace(entry.OwnedBy)
 		if ownedBy == "" {
@@ -132,9 +134,9 @@ func LoadModels(path, environment string) ([]Model, error) {
 		}
 	}
 	if !publicFound {
-		return nil, errorsForManifest(fmt.Sprintf("provider.public_model %q is not deployed to %s", publicModel, environment))
+		return nil, "", errorsForManifest(fmt.Sprintf("provider.public_model %q is not deployed to %s", publicModel, environment))
 	}
-	return models, nil
+	return models, publicModel, nil
 }
 
 func containsDeployment(deployments []string, wanted string) bool {

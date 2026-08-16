@@ -51,9 +51,17 @@ type capacityStatus struct {
 	RequiredVRAMGiB     *float64 `json:"required_vram_gib"`
 	DeviceVRAMGiB       *float64 `json:"device_vram_gib"`
 	ReserveVRAMGiB      float64  `json:"reserve_vram_gib"`
-	Measured            bool     `json:"measured"`
-	Available           bool     `json:"available"`
-	Reason              string   `json:"reason"`
+	// Reclaimable* is what the currently-loaded model releases when the router
+	// swaps it out. Both headroom figures above already include it, so the
+	// operator can see that the verdict rests on a projected unload.
+	ReclaimableCommitGiB   *float64 `json:"reclaimable_commit_gib,omitempty"`
+	ReclaimablePhysicalGiB *float64 `json:"reclaimable_physical_gib,omitempty"`
+	// MissingProfileFields names the measurements this execution mode requires
+	// and does not have. Empty for a complete profile.
+	MissingProfileFields []string `json:"missing_profile_fields,omitempty"`
+	Measured             bool     `json:"measured"`
+	Available            bool     `json:"available"`
+	Reason               string   `json:"reason"`
 }
 
 type runningResponse struct {
@@ -66,11 +74,49 @@ type runningResponse struct {
 func (s *Server) capacityFor(ctx context.Context, model Model) (capacityStatus, map[string]string) {
 	running, runningErr := s.runningModels(ctx)
 	memory, metricErr := s.memoryStatus()
-	return capacityFrom(model, running, runningErr, memory, metricErr), running
+	return capacityFrom(model, s.cfg.Models, running, runningErr, memory, metricErr), running
 }
 
-func capacityFrom(model Model, running map[string]string, runningErr error, memory memorySnapshot, metricErr error) capacityStatus {
+// reclaimableFrom projects the host memory that becomes free when the router
+// swaps models. provider.max_loaded_models is pinned to 1, so admitting a
+// different model necessarily unloads the current one first; measuring headroom
+// while the outgoing model still holds it produces a false insufficient_capacity
+// exactly when the swap would have succeeded.
+//
+// Only a model with a complete profile contributes. Crediting an unmeasured
+// model's footprint would be guessing in the permissive direction, which is the
+// one direction this gate must never guess in.
+func reclaimableFrom(allowed []Model, running map[string]string, target Model) memorySnapshot {
+	var reclaim memorySnapshot
+	for _, candidate := range allowed {
+		if candidate.ID == target.ID {
+			continue
+		}
+		if _, loaded := running[candidate.ID]; !loaded {
+			continue
+		}
+		if len(missingProfileFields(candidate)) > 0 {
+			continue
+		}
+		if required, ok := requiredCommitGiB(candidate); ok {
+			// The reserve is not released - it is a constant, not the model's.
+			reclaim.CommitGiB += required - commitReserveGiB
+		}
+		if candidate.PeakRAMGiB != nil {
+			reclaim.PhysicalGiB += *candidate.PeakRAMGiB
+		}
+	}
+	return reclaim
+}
+
+func capacityFrom(model Model, allowed []Model, running map[string]string, runningErr error, memory memorySnapshot, metricErr error) capacityStatus {
 	_, isRunning := running[model.ID]
+
+	reclaim := reclaimableFrom(allowed, running, model)
+	if metricErr == nil && !isRunning {
+		memory.CommitGiB += reclaim.CommitGiB
+		memory.PhysicalGiB += reclaim.PhysicalGiB
+	}
 
 	result := capacityStatus{
 		Admission:          "commit-headroom",
@@ -84,10 +130,16 @@ func capacityFrom(model Model, running map[string]string, runningErr error, memo
 		result.CommitHeadroomGiB = floatPointer(roundGiB(memory.CommitGiB))
 		result.PhysicalHeadroomGiB = floatPointer(roundGiB(memory.PhysicalGiB))
 	}
+	if reclaim.CommitGiB > 0 || reclaim.PhysicalGiB > 0 {
+		result.ReclaimableCommitGiB = floatPointer(roundGiB(reclaim.CommitGiB))
+		result.ReclaimablePhysicalGiB = floatPointer(roundGiB(reclaim.PhysicalGiB))
+	}
 	requiredCommit, haveCommit := requiredCommitGiB(model)
 	if haveCommit {
 		result.RequiredCommitGiB = floatPointer(roundGiB(requiredCommit))
 	}
+	incomplete := missingProfileFields(model)
+	result.MissingProfileFields = incomplete
 	if model.PeakRAMGiB != nil {
 		result.RequiredPhysicalGiB = floatPointer(roundGiB(*model.PeakRAMGiB + physicalReserveGiB))
 	}
@@ -97,12 +149,23 @@ func capacityFrom(model Model, running map[string]string, runningErr error, memo
 	if model.DeviceVRAMGiB != nil {
 		result.DeviceVRAMGiB = floatPointer(roundGiB(*model.DeviceVRAMGiB))
 	}
-	result.Measured = runningErr == nil && metricErr == nil && haveCommit
+	// Measured means "every resource this execution mode is gated on has a
+	// number", not "commit happens to be known". A tensor-offloading model whose
+	// peak_ram_gib is null was previously reported as measured, which made an
+	// unchecked limit look verified.
+	result.Measured = runningErr == nil && metricErr == nil && haveCommit && len(incomplete) == 0
 
 	switch {
 	case isRunning:
 		result.Available = true
 		result.Reason = "model_already_running"
+	case len(incomplete) > 0:
+		// Ahead of every headroom test: an incomplete profile means at least one
+		// limit is not being enforced at all, so passing the others proves
+		// nothing. Previously this sat after the commit branch, and a model with
+		// commit measured but RAM null was admitted on commit alone.
+		result.Available = false
+		result.Reason = "resource_profile_incomplete"
 	case exceedsVRAMBudget(model):
 		// A device budget overrun is a property of the manifest, not of live
 		// load, so it is checked before headroom and reported distinctly.
@@ -121,12 +184,6 @@ func capacityFrom(model Model, running map[string]string, runningErr error, memo
 		} else {
 			result.Reason = "insufficient_commit_headroom"
 		}
-	case requiresMeasuredProfile(model):
-		// Partial weight offload and a host-RAM prompt cache both consume commit
-		// that the pending-measurement escape hatch cannot see. Admitting them
-		// unmeasured would trade a 503 for an out-of-memory stall.
-		result.Available = false
-		result.Reason = "resource_measurement_required_for_host_memory"
 	case isCanaryCandidate(model):
 		result.Available = true
 		result.Reason = "canary_resource_measurement_pending"
@@ -168,6 +225,70 @@ func exceedsPhysicalMemory(model Model, memory memorySnapshot, metricErr error) 
 	return *model.PeakRAMGiB+physicalReserveGiB > memory.PhysicalGiB
 }
 
+// missingProfileFields lists the measurements this model's execution mode
+// requires but does not have. The required set is a property of *how the model
+// runs*, not of its size: a model that keeps weights in system RAM is admitted
+// against three different limits, and a partial profile silently disables
+// whichever check its missing field belongs to.
+//
+// nil is never read as zero. An absent measurement means "unknown", which is
+// stricter than any number, not more permissive.
+func missingProfileFields(model Model) []string {
+	required := []string{"resources.peak_commit_gib"}
+	switch {
+	case model.OffloadsTensors:
+		// Weights deliberately outside VRAM: every limit is load-bearing, and
+		// the device budget is what the VRAM peak is compared against.
+		required = append(required,
+			"resources.peak_vram_gib",
+			"resources.peak_ram_gib",
+			"runtimes[].device.vram_mib")
+	case model.CacheRAMMiB != nil && *model.CacheRAMMiB > 0:
+		// A host-RAM prompt cache is charged to commit and must stay resident,
+		// but it does not by itself change the VRAM footprint.
+		required = append(required, "resources.peak_ram_gib")
+	default:
+		return nil
+	}
+
+	present := map[string]bool{
+		"resources.peak_commit_gib":  model.PeakCommitGiB != nil,
+		"resources.peak_vram_gib":    model.PeakVRAMGiB != nil,
+		"resources.peak_ram_gib":     model.PeakRAMGiB != nil,
+		"runtimes[].device.vram_mib": model.DeviceVRAMGiB != nil,
+	}
+	missing := make([]string, 0, len(required))
+	for _, field := range required {
+		if !present[field] {
+			missing = append(missing, field)
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	return missing
+}
+
+// capacityMessage keeps the operator-facing text aligned with capacity.reason.
+// A single "commit headroom" sentence for every refusal made VRAM, physical
+// memory, and an incomplete profile indistinguishable from a full pagefile.
+func capacityMessage(reason string) string {
+	switch reason {
+	case "insufficient_vram_budget":
+		return "configured model exceeds the runtime's declared VRAM budget"
+	case "insufficient_physical_memory":
+		return "configured model cannot stay resident in the available physical memory"
+	case "insufficient_commit_headroom":
+		return "configured model cannot be admitted with the current commit headroom"
+	case "resource_profile_incomplete":
+		return "configured model uses host memory and its resource profile is incomplete"
+	case "resource_measurement_required":
+		return "configured model has no measured resource profile"
+	default:
+		return "configured model cannot be admitted"
+	}
+}
+
 func exceedsVRAMBudget(model Model) bool {
 	if model.PeakVRAMGiB == nil || model.DeviceVRAMGiB == nil {
 		return false
@@ -175,19 +296,12 @@ func exceedsVRAMBudget(model Model) bool {
 	return *model.PeakVRAMGiB+vramReserveGiB > *model.DeviceVRAMGiB
 }
 
-func requiresMeasuredProfile(model Model) bool {
-	if model.OffloadsTensors {
-		return true
-	}
-	return model.CacheRAMMiB != nil && *model.CacheRAMMiB > 0
-}
-
 func (s *Server) requireCapacity(w http.ResponseWriter, ctx context.Context, model Model) bool {
 	capacity, _ := s.capacityFor(ctx, model)
 	if capacity.Available {
 		return true
 	}
-	s.writeError(w, http.StatusServiceUnavailable, "insufficient_capacity", "configured model cannot be admitted with the current commit headroom", "model")
+	s.writeError(w, http.StatusServiceUnavailable, "insufficient_capacity", capacityMessage(capacity.Reason), "model")
 	return false
 }
 
