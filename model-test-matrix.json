@@ -8,7 +8,8 @@
     "qwen38-27b-iq4xs-sanity is the go/no-go gate: it runs with no offload at a short context purely to measure whether the Gated DeltaNet kernel is GPU-accelerated on gfx1201. If tg128 lands near CPU speed, the remaining qwen38 profiles are not worth running.",
     "MTP draft depth is set for an offloaded split: speculation amortizes weight reads but not arithmetic, so on a CPU-resident portion the optimum is shallow (2-3) and depth 7 can be slower than no speculation. Sweep {0,2,3,5,7} and re-sweep after any change to the -ot pattern. See docs/TUNING.md section 1.1.",
     "Qwen/Qwen3.8-27B (Alibaba, Apache-2.0) is the authoritative reference for this family; every GGUF is a derived artifact and its publisher and revision must be recorded and verified separately.",
-    "The MTP head is blk.64. A GGUF that quantizes it to Q4_K measures 0% draft acceptance and speculation fails silently; Q5_K-Q8_0 reaches 73-74%. Verify with gguf-dump before benchmarking any qwen38 profile - the nominal quant label does not tell you."
+    "The MTP head is blk.64. A GGUF that quantizes it to Q4_K measures 0% draft acceptance and speculation fails silently; Q5_K-Q8_0 reaches 73-74%. Verify with gguf-dump before benchmarking any qwen38 profile - the nominal quant label does not tell you.",
+    "cache_ram_mib is intentionally unset on the qwen38 profiles: context checkpoints are upstream-reported non-functional on hybrid/recurrent models, and the admission gate charges the cache to commit in full, so an inert cache costs headroom. Set it only after qwen38-27b-iq4xs-agentic-restore passes on the candidate runtime."
   ],
   "profiles": [
     {
@@ -210,6 +211,37 @@
         "draft_n_max": 3
       },
       "note": "KV q4_0 halves cache cost versus q8_0, buying 128k at the same VRAM. Requires a quality eval pass before it is preferred over the 96k q8_0 profile.",
+      "threads": "TBD - sweep {8, 16}; promote the winner to the manifest"
+    },
+    {
+      "id": "qwen38-27b-iq4xs-agentic-restore",
+      "display_name": "Qwen 3.8 27B | agentic multi-turn context restoration",
+      "catalog_folder": "05 AMD ROCm - Qwen 3.8 27B - hybrid GDN",
+      "catalog_filename": "AMD--Qwen-3.8-27B--IQ4_XS--ctx-131072--kv-q4_0.gguf",
+      "family": "Qwen3.8-27B",
+      "source_model": "Qwen/Qwen3.8-27B",
+      "repo": "TBD - must pass the blk.64 >= Q5_K check",
+      "filename": "Qwen3.8-27B-IQ4_XS.gguf",
+      "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
+      "context_size": 131072,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "alias": "qwen38-27b-iq4xs-agentic-restore",
+      "runtime": "amd-rocm-qwen38",
+      "ubatch_size": 512,
+      "gpu_layers": 99,
+      "context_shift": false,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "spec_decoding": {
+        "type": "draft-mtp",
+        "draft_n_max": 3
+      },
+      "note": "Multi-turn checkpoint regression: 60k base, then repeated +2k increments interleaved with tool calls. Records prompt tokens processed vs new per turn; fails when a turn after the first reprocesses near the full context. Context checkpoints are upstream-reported broken on hybrid/recurrent models (llama.cpp #24055, #22384), so this profile doubles as the acceptance test for whether a given build fixed it.",
       "threads": "TBD - sweep {8, 16}; promote the winner to the manifest"
     }
   ]

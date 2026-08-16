@@ -289,6 +289,36 @@ real byte count after download and recompute rather than trusting the card.
   at the exact `context_tokens` you ship, and if it is poor, try ±256 and ±2048
   before concluding MTP does not work.
 
+## 1.4 Context checkpoints do not currently work on this architecture
+
+Upstream status, **unverified here**, and it invalidates the obvious use of the
+host-RAM budget:
+
+- llama.cpp **#24055** — context checkpoints are created and then immediately
+  invalidated on hybrid/recurrent models, with the server logging *"forcing full
+  prompt re-processing due to lack of cache data (likely due to SWA or
+  hybrid/recurrent memory)"*. `--checkpoint-min-step` has no effect on such
+  models; `--cache-ram` allocates but nothing persists.
+- llama.cpp **#22384** — root cause: the checkpoint search tests
+  `cur.pos_min < pos_min_thold`, but on a recurrent model `pos_min` always equals
+  the full sequence length, so the test can never pass. A fix exists in a fork
+  and is **not merged**.
+
+Reported consequence: a 15K-token conversation reprocesses everything per turn,
+seconds instead of milliseconds, which the reporter describes as making agentic
+workflows unusable.
+
+**What this means for configuration.** Until a build demonstrably restores
+checkpoints on this architecture, `cache_ram_mib` buys nothing on Qwen3.8 and
+should be left unset. That is not merely neutral: the gate charges it to commit
+in full, and commit is the binding constraint on this machine (§1.2), so an
+inert cache actively costs admission headroom.
+
+The multi-turn scenario in `BENCHMARKS.md` is the acceptance test for this. Run
+it against any candidate runtime before setting `cache_ram_mib`; if the second
+turn reprocesses the whole context, the feature is still broken in that build
+regardless of what the flags accept.
+
 ## 2. Bottleneck decision tree
 
 ### The model will not start

@@ -62,7 +62,22 @@ Score correctness, compile/test result, tool validity, instruction adherence, un
 
 Qwen3.8-class models interleave 48 Gated DeltaNet layers with 16 full-attention layers. Two consequences change how they are measured.
 
-**Gate zero — is the kernel accelerated at all.** `GGML_OP_GATED_DELTA_NET` landed in llama.cpp with CPU and CUDA backends only. Vulkan falls back to CPU, and on RDNA 3.5 (gfx1151) the HIP path measures at CPU speed. Whether gfx1201 escapes that is unverified here. Run the `qwen38-27b-iq4xs-sanity` profile first: no offload, short context, no speculative decoding, so the number isolates kernel throughput. If `tg128` lands near the CPU-fallback range rather than in the tens of tokens per second, stop — no amount of quantization or cache tuning recovers a kernel that is not running on the GPU, and the remaining profiles are not worth the hours.
+**Evidence labels.** Every figure in this repository's docs and reports carries one of these, and they must not be mixed:
+
+| Label | Meaning |
+|---|---|
+| `measured` | Produced by a run on this hardware, with the artifact hashes recorded |
+| `modelled` | Derived arithmetically from measured constants; a prediction, not an observation |
+| `upstream-reported` | Taken from an issue, discussion, or model card elsewhere |
+| `unverified on gfx1201` | Reported on other hardware and not reproduced here |
+
+The bandwidth ceilings and MTP sensitivity tables in `TUNING.md` are **modelled**. The Gated DeltaNet kernel behaviour, the `blk.64` acceptance figures, and the checkpoint defects are **upstream-reported** and **unverified on gfx1201**. Nothing about Qwen3.8-27B is `measured` here yet.
+
+**Gate zero — is the kernel accelerated at all.** `GGML_OP_GATED_DELTA_NET` landed in llama.cpp with CPU and CUDA backends only. Vulkan falls back to CPU, and on RDNA 3.5 (gfx1151) the HIP path measures at CPU speed. Whether gfx1201 escapes that is unverified here. Run the `qwen38-27b-iq4xs-sanity` profile first: no offload, short context, no speculative decoding, so the numbers isolate kernel throughput.
+
+Decode alone is not sufficient evidence. Prefill runs a different code path, and a hybrid model can decode acceptably while prompt processing is severely degraded — which for an agentic workload with a large standing context is the more expensive failure. Record `tg128`, `pp512`, `pp8192`, and cold TTFT; add `pp32768` only once the model is known to fit, since it is meaningless on a configuration that cannot load.
+
+Judge against evidence rather than an invented threshold. The comparison points, in order of preference: the 9B and 12B baselines already in `benchmarks/` scaled by parameter count and bandwidth; the same GGUF on a second qualified backend; and the §1 bandwidth ceiling in `TUNING.md` for the split under test. A decode figure near the ceiling with prefill an order of magnitude below the existing baselines is the signature of a prefill-path problem, not a memory one. Abort the expensive profiles when *either* axis is far below its comparison point.
 
 **Sweeps.** Record each independently, one variable at a time:
 
@@ -71,6 +86,20 @@ Qwen3.8-class models interleave 48 Gated DeltaNet layers with 16 full-attention 
 - `--threads` {8, 16} whenever part of the model is CPU-resident. With everything in VRAM the thread count is nearly irrelevant and the scripts default to 16; once CPU compute binds, SMT contention on this 8C/16T part often makes 8 the faster choice.
 - `ROCBLAS_USE_HIPBLASLT` across {0, 1} via `bench-llama.ps1 -RocBlasUseHipBlasLt`. The pinned runtimes disable it; that choice has never been measured on gfx1201.
 - Weight split: vary `-NGpuLayers` or the `-ot` pattern and record `llm_load_tensors: CPU buffer size` from the load log against the resulting decode rate. This is the curve that decides whether a quant fits the hardware.
+
+**Agentic context restoration.** Two identical prompts are the minimum test, not a sufficient one: real harness traffic grows a large context by small increments interleaved with tool calls, and that is the pattern checkpoints must survive. Drive a synthetic multi-turn scenario against a live server:
+
+```
+60k base context
+  → +2k user increment → response
+  → tool call → +2k tool result
+  → +2k increment → tool call → +2k tool result
+  → continue for at least six turns
+```
+
+Record, per turn, how many prompt tokens the server actually processed against how many are new. A healthy run processes roughly the increment; a broken one reprocesses the whole context every turn. **This is a regression gate, not an observation:** fail the run when processed tokens approach total context on any turn after the first.
+
+Note the upstream defects in `TUNING.md` §1.4 before interpreting a failure — context checkpoints are reported broken on hybrid/recurrent models, so a failing result may be the runtime rather than the configuration. Use synthetic fixtures only; never store real prompts.
 
 **Cache restoration.** A prompt-cache measurement is meaningless as a single run. Issue the same ~90k-token prompt twice against a live server and record `prompt_tps` for both. The first is prefill; the second must be a checkpoint restore, and the ratio between them is the metric. If they are within an order of magnitude, checkpoints are not being restored and `--cache-ram` is only consuming commit. Note that `--cache-reuse` cannot produce this result on a recurrent model, and that any change to the system prompt invalidates every checkpoint — the harness prefix must be byte-stable across turns for the measurement to mean anything.
 

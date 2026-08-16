@@ -96,6 +96,32 @@ All notable changes are documented here. This project follows Keep a Changelog c
   matrix no longer names a GGUF publisher until one passes the `blk.64` check.
 - `docs/RUNBOOK.md` §11.0b: choose the build and verify the MTP head survived
   quantization before downloading or benchmarking anything.
+- `docs/TUNING.md` §1.4: context checkpoints are upstream-reported non-functional
+  on hybrid/recurrent models (llama.cpp #24055, #22384 — created then immediately
+  invalidated, fix unmerged). `cache_ram_mib` therefore buys nothing on Qwen3.8
+  today and is worse than neutral, since admission charges it to commit in full
+  and commit is the binding constraint. The RUNBOOK template omits the cache and
+  checkpoint fields until the new agentic profile demonstrates real restoration.
+- Agentic context-restoration benchmark (`qwen38-27b-iq4xs-agentic-restore`):
+  60k base context grown by small increments interleaved with tool calls,
+  recording prompt tokens processed against tokens new per turn. It is a
+  regression gate — a turn after the first that reprocesses near the full context
+  fails — and doubles as the acceptance test for whether a build fixed the
+  upstream checkpoint defect.
+- Evidence labels in `docs/BENCHMARKS.md` (`measured`, `modelled`,
+  `upstream-reported`, `unverified on gfx1201`), and their application: the
+  bandwidth and MTP tables are modelled, the kernel and `blk.64` figures are
+  upstream-reported, and nothing about Qwen3.8-27B is measured here yet.
+- `docs/ARCHITECTURE.md`: concurrency is enforced in four independent places and
+  raising `CIA_EDGE_MAX_ACTIVE` alone does not make the system concurrent, it
+  only converts queue waiting into upstream contention. Records what a real
+  concurrency change would have to move together, and why the single-slot
+  invariant is what the static VRAM budget depends on.
+- Gate zero judges prefill as well as decode (`pp512`, `pp8192`, cold TTFT
+  alongside `tg128`): a hybrid model can decode acceptably while prompt
+  processing is severely degraded, which for a large standing context is the
+  more expensive failure. Comparison is against saved baselines and the modelled
+  ceiling rather than an invented threshold.
 - `docs/RUNBOOK.md` §11.0: reclaim the idle commit baseline before measuring
   anything else. The 2026-07-20 validation recorded 31.82 GiB committed with no
   model loaded against a 42.30 GiB limit, which constrains a 27B more than the
