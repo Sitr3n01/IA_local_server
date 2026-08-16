@@ -447,7 +447,7 @@ Add the runtime and model to `config/models.yaml` together with the three catalo
   "kv_unified": true,
   "cache_ram_mib": 2048,
   "ctx_checkpoints": 64,
-  "checkpoint_every_n_tokens": 8192,
+  "checkpoint_min_step": 8192,
   "cache_idle_slots": true,
   "spec_decoding": { "type": "draft-mtp", "draft_n_max": 3 },
   "tensor_overrides": [

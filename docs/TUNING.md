@@ -351,7 +351,7 @@ with context; decode is bandwidth-bound and does not.
   cache exists to avoid — see section 3.
 - If the *second* identical prompt is also slow, checkpoints are not being
   restored. Confirm `--cache-ram`, `--ctx-checkpoints`, and
-  `--checkpoint-every-n-tokens` are actually in the generated `cmd:`, and that
+  `--checkpoint-min-step` are actually in the generated `cmd:`, and that
   the harness prefix did not change between turns.
 - `--cache-reuse` will not help here and is not a fix to reach for: it cannot
   work on a model with recurrent state.

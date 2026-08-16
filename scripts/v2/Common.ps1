@@ -170,6 +170,109 @@ function Assert-V2ManifestSemantics {
 
 }
 
+# Extracts every option token from a llama-server --help dump.
+#
+# Deliberately permissive: it collects any --flag appearing anywhere in the text,
+# including inside prose. The failure it exists to catch is a flag that upstream
+# *deleted* (--checkpoint-every-n-tokens, removed by llama.cpp PR #22929), and a
+# deleted flag appears nowhere at all. Being strict about column layout would
+# make this brittle against help-text reformatting for no gain, and the strict
+# direction is the dangerous one: a false rejection blocks a valid deployment.
+function Get-V2SupportedFlags {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
+        [string]$HelpText
+    )
+
+    $flags = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($match in [regex]::Matches($HelpText, '(?<![\w-])(--?[A-Za-z][\w-]*)')) {
+        [void]$flags.Add($match.Groups[1].Value)
+    }
+    return $flags
+}
+
+# Pulls the option tokens out of a generated command line. Values are skipped
+# because they never start with a dash in a generated command: paths are quoted,
+# cache types and buffer names are bare words, and tensor override patterns are
+# quoted as one token.
+function Get-V2CommandFlags {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Command
+    )
+
+    $flags = [System.Collections.Generic.List[string]]::new()
+    foreach ($token in ($Command -split '\s+')) {
+        if ($token -match '^--?[A-Za-z][\w-]*$') {
+            $flags.Add($token)
+        }
+    }
+    return $flags
+}
+
+# Fails generation when the selected runtime does not implement a flag the model
+# requires. Without this the manifest can drift from the executable silently:
+# llama-server rejects unknown arguments, so the failure surfaces as a model that
+# will not start, at first inference, rather than at configuration time.
+function Assert-V2CommandFlagsSupported {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Command,
+
+        [Parameter(Mandatory = $true)]
+        [object]$SupportedFlags,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RuntimeId,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RuntimeSha256,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ModelId
+    )
+
+    $missing = @()
+    foreach ($flag in (Get-V2CommandFlags -Command $Command)) {
+        if (-not $SupportedFlags.Contains($flag)) {
+            $missing += $flag
+        }
+    }
+    if ($missing.Count -gt 0) {
+        throw ("Runtime '{0}' (SHA-256 {1}) does not support {2} required by model '{3}': {4}. " -f
+            $RuntimeId, $RuntimeSha256, $(if ($missing.Count -eq 1) { 'a flag' } else { 'flags' }), $ModelId, ($missing -join ', ')) +
+            'Qualify a runtime build that implements them, or remove the manifest fields that emit them.'
+    }
+}
+
+# Reads the runtime's own option list. Runs the executable with --help only:
+# no model is loaded, no port is opened, no inference happens, and nothing is
+# downloaded. The caller pairs the result with the artifact SHA-256 that
+# Assert-V2Artifact already verified, so the capability snapshot is bound to the
+# exact bytes rather than to a directory name.
+function Get-V2RuntimeHelpText {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Runtime executable is missing and its capabilities cannot be verified: $Path"
+    }
+    try {
+        $output = & $Path --help 2>&1 | ForEach-Object { $_.ToString() }
+    }
+    catch {
+        throw "Runtime '$Path' could not be queried with --help: $($_.Exception.Message)"
+    }
+    $text = ($output -join [Environment]::NewLine)
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        throw "Runtime '$Path' returned no option list for --help; its capabilities cannot be verified."
+    }
+    return $text
+}
+
 # Builds the llama-server command line for one model. Kept here, apart from the
 # publication transaction in New-V2Config.ps1, so the emitted flags can be
 # asserted directly by Test-V2ConfigGeneration.ps1.
@@ -232,9 +335,15 @@ function New-V2LlamaServerCommand {
     if ($null -ne $ctxCheckpoints) {
         $arguments.AddRange([string[]]@('--ctx-checkpoints', [string][int]$ctxCheckpoints))
     }
-    $checkpointEvery = Get-V2ModelSetting -Model $Model -Name 'checkpoint_every_n_tokens'
-    if ($null -ne $checkpointEvery) {
-        $arguments.AddRange([string[]]@('--checkpoint-every-n-tokens', [string][int]$checkpointEvery))
+    # llama.cpp PR #22929 deleted --checkpoint-every-n-tokens on 2026-05-25 and
+    # replaced it with --checkpoint-min-step. llama-server rejects unknown
+    # arguments outright, so emitting the old spelling does not degrade - the
+    # model fails to start. The manifest field was renamed with it rather than
+    # translated, so a stale manifest fails schema validation instead of
+    # silently producing a command line that cannot run.
+    $checkpointMinStep = Get-V2ModelSetting -Model $Model -Name 'checkpoint_min_step'
+    if ($null -ne $checkpointMinStep) {
+        $arguments.AddRange([string[]]@('--checkpoint-min-step', [string][int]$checkpointMinStep))
     }
     if ([bool](Get-V2ModelSetting -Model $Model -Name 'cache_idle_slots' -Default $false)) {
         $arguments.Add('--cache-idle-slots')
