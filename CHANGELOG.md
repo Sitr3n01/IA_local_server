@@ -65,6 +65,13 @@ All notable changes are documented here. This project follows Keep a Changelog c
   optimal draft depth collapses to 2-3 and a depth of 7 can be *slower* than not
   speculating at all. Includes a sensitivity table over CPU GEMM throughput, the
   one constant this repository has never measured.
+- `docs/TUNING.md` §1.2: how to estimate the VRAM/RAM/commit envelope from the
+  model card plus the one measured anchor, before downloading anything. Surfaces
+  that Windows commit tracks **VRAM**, not RAM — the 9B consumed 8.06 GiB of
+  commit against 6.66 GiB of VRAM with zero CPU-resident weights, so a 27B costs
+  ~16 GiB of commit even with no offload and no prompt cache. Also shows the
+  template's 96k / KV `q8_0` split needs ~5.1 GiB offloaded rather than 4.4, and
+  that 128k with `q4_0` KV needs *less* offload than 96k with `q8_0`.
 - `docs/RUNBOOK.md` §11.0: reclaim the idle commit baseline before measuring
   anything else. The 2026-07-20 validation recorded 31.82 GiB committed with no
   model loaded against a 42.30 GiB limit, which constrains a 27B more than the

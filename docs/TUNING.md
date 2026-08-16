@@ -120,6 +120,75 @@ the configuration is working and only a different configuration will help. If it
 is far below, something in section 2 is wrong and no amount of re-quantizing will
 fix it.
 
+## 1.2 Estimating the memory envelope before downloading anything
+
+The envelope is computable from the model card and one measured anchor. Doing it
+first costs minutes and can reject a configuration before a 15 GiB download.
+
+**VRAM.** Three of the four terms are exact:
+
+```
+VRAM ≈ W_gpu  +  KV(ctx, type)  +  GDN_state  +  compute_buffers
+```
+
+`KV` is pure arithmetic from the architecture — for a 3:1 hybrid with 16
+full-attention layers, 4 KV heads and `head_dim` 256:
+
+| ctx | `f16` | `q8_0` | `q4_0` |
+|---|---|---|---|
+| 64k | 4.00 | 2.12 | 1.12 |
+| 96k | 6.00 | 3.19 | 1.69 |
+| 128k | 8.00 | 4.25 | 2.25 |
+| 256k | 16.00 | 8.50 | 4.50 |
+
+`GDN_state` is per-sequence and constant in context — roughly 0.1–0.3 GiB for 48
+linear layers, small enough to treat as a rounding term but confirm from the load
+log. `compute_buffers` runs ~0.5–1.2 GiB at `ubatch` 512.
+
+Budget **~14.8 GiB usable**, not 15.92: the Windows desktop holds the difference.
+
+**Commit follows VRAM, not RAM.** This is the non-obvious one. From the 9B
+anchor: a model with *zero* CPU-resident weights still consumed 8.06 GiB of
+commit against 6.66 GiB of dedicated VRAM — a fixed overhead of ~1.4 GiB above
+VRAM. That is WDDM behaviour: Windows commits system memory to back video
+allocations so they remain evictable. So:
+
+```
+commit_delta ≈ VRAM + W_cpu + cache_ram_mib + ~1.4 GiB
+```
+
+The practical consequence is severe and easy to miss: **a 27B costs ~16 GiB of
+commit even with no offload and no prompt cache**, purely because it fills the
+card. Eliminating offload solves throughput, not commit.
+
+**RAM** splits into two figures that are often confused:
+
+- **Must stay resident:** `W_cpu + cache_ram_mib + ~1 GiB` of process overhead.
+  These are read every token or hold live state; if they page, throughput
+  collapses. This is what `peak_ram_gib` should record.
+- **Working set including the mapping:** llama.cpp mmaps the GGUF and the pages
+  stay resident after load — the 9B's working set was 0.88x its file size with
+  everything on the GPU. Those pages are clean and file-backed, so Windows can
+  drop them under pressure without paging out. Alarming in Task Manager,
+  mostly harmless.
+
+**Worked example** — IQ4_XS, 96k, KV `q8_0`, 4.4 GiB offloaded:
+
+| | GiB |
+|---|---|
+| VRAM: 11.30 weights + 3.19 KV + 0.2 GDN + 0.8 buffers | **15.49** |
+| Commit: 15.49 VRAM + 4.4 CPU weights + 2.0 cache + 1.4 | **23.29** |
+| RAM that must stay resident | **7.40** |
+
+Two things fall out of this that are not obvious from the manifest:
+
+1. **15.49 GiB of VRAM does not fit** in the ~14.8 GiB usable. This configuration
+   needs ~5.1 GiB offloaded, not 4.4.
+2. **128k with `q4_0` KV is cheaper than 96k with `q8_0`** (2.25 vs 3.19 GiB), so
+   it needs *less* offload — ~4.15 GiB — and runs faster despite the longer
+   context. On a VRAM-bound hybrid, KV precision buys context almost for free but
+   costs throughput indirectly, through the offload it forces.
+
 ## 2. Bottleneck decision tree
 
 ### The model will not start

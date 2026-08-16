@@ -387,7 +387,12 @@ Confirm the load log lists a ROCm device and that the Gated DeltaNet op is not f
 
 ### 11.2 Find the split
 
-Sweep `-NGpuLayers` and `-ot` patterns and read `llm_load_tensors: CPU buffer size` from the load log. Target roughly 4 GiB resident in system RAM. Offload FFN tensors of a contiguous tail only — never reduce `--n-gpu-layers`, which would evict full-attention layers (`blk.3, 7, 11, … 63`) and push their KV cache into system RAM. Starting pattern:
+Compute the envelope first — `TUNING.md` §1.2 gives the arithmetic, and it rejects configurations before a sweep costs you an afternoon. Two results from it matter here:
+
+- The template's 96k / KV `q8_0` combination needs roughly **5.1 GiB** offloaded, not 4.4: the KV cache alone is 3.19 GiB and usable VRAM is ~14.8, not 15.92.
+- **128k with KV `q4_0` needs less offload than 96k with `q8_0`** (2.25 vs 3.19 GiB of cache), so it is both longer-context and faster. On a VRAM-bound hybrid, KV precision costs throughput indirectly by forcing weights off the card. Measure quality on both before assuming `q8_0` is the safer default.
+
+Then sweep `-NGpuLayers` and `-ot` patterns and read `llm_load_tensors: CPU buffer size` from the load log to confirm the estimate. Offload FFN tensors of a contiguous tail only — never reduce `--n-gpu-layers`, which would evict full-attention layers (`blk.3, 7, 11, … 63`) and push their KV cache into system RAM. Starting pattern:
 
 ```
 blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*
