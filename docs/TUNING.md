@@ -38,16 +38,55 @@ on system RAM.
 
 Compare against a quantization small enough to stay resident:
 
-| Configuration | At 80% | With MTP (~2x) |
-|---|---|---|
-| IQ4_XS, 4.4 GiB offloaded | 8.4 t/s | ~17 t/s |
-| UD-Q3_K_XL (~12.0 GiB), fully resident | 39.7 t/s | ~65 t/s |
+| Configuration | At 80%, no speculation |
+|---|---|
+| IQ4_XS, 4.4 GiB offloaded | 8.4 t/s |
+| UD-Q3_K_XL (~12.0 GiB), fully resident | 39.7 t/s |
 
 A fully resident Q3 is roughly **4.7x faster** than an offloaded Q4 on this
-hardware. That ratio survives MTP, since speculative decoding multiplies both.
-Whether the quality difference is worth 4.7x is a judgment call, but it should be
-made against this number rather than against an assumption that Q4 is "obviously
-better". Measure both with `run-profile-quality-eval.py` before deciding.
+hardware, before speculative decoding, and section 1.1 argues the gap widens once
+MTP is enabled rather than staying constant. Whether the quality difference is
+worth that is a judgment call, but it should be made against these numbers rather
+than against an assumption that Q4 is "obviously better". Measure both with
+`run-profile-quality-eval.py` before deciding.
+
+## 1.1 What speculative decoding does, and does not, amortize
+
+Speculative decoding verifies k drafted tokens in a single forward pass. That
+pass reads the weight set **once** but performs **k times** the arithmetic. So
+MTP amortizes memory reads and does nothing for compute:
+
+```
+time_per_token(k) ≈ max( bytes_read / BW / k , flops_per_token / compute )
+```
+
+The consequence is asymmetric, and it is the reason the two configurations above
+do not scale together:
+
+- **On the GPU**, compute capacity is enormous relative to 640 GB/s. The
+  bandwidth term dominates at every practical k, so amortization is close to
+  linear until acceptance rate limits it. This is why RDNA4 reports ~2x.
+- **On the CPU-resident portion**, `-ot "…=CPU"` runs that matmul on the CPU, not
+  merely stores it there. Eight Zen 4 cores have a far tighter compute-to-
+  bandwidth ratio, and llama.cpp CPU inference is already only partly
+  bandwidth-bound at k=1. The compute term becomes the binding constraint after
+  a small k, and further speculation buys nothing on that portion.
+
+Since the offloaded configuration spends ~80% of its decode time on the CPU side,
+most of its time budget sits in the term MTP cannot reduce. **Expect MTP to
+deliver less than its headline multiplier on any offloaded configuration, and to
+deliver close to it on a fully resident one.**
+
+How much less is **not measured here** — it depends on the CPU's effective
+quantized-GEMM throughput, which this repository has never benchmarked. Do not
+plan against a number for it. The `qwen38-27b-iq4xs-kv-q8-96k` /
+`-nomtp` profile pair exists precisely to measure this ratio on the real split;
+run both and record the acceptance rate alongside.
+
+**Do not let the draft head get offloaded.** The MTP head runs on every
+speculation step, so pushing it to the CPU is pathological. The shipped `-ot`
+pattern is scoped to `blk\.N\.ffn_.*` and cannot match it, but a broader regex
+written by hand can. Check the load log after any change to the pattern.
 
 **Use the ceiling as a diagnostic.** If measured decode is close to the table,
 the configuration is working and only a different configuration will help. If it
@@ -100,7 +139,10 @@ Check in this order; each step is cheap and rules out the next.
    lever on RDNA4 for this architecture. A low acceptance rate means the draft
    head is producing tokens the model rejects, and the speculation is pure
    overhead — sweep `spec_draft_n_max` over {3, 5, 7} and keep the acceptance
-   rate in the report next to the throughput.
+   rate in the report next to the throughput. If acceptance is high but the
+   speedup is small, that is section 1.1, not a bug: on an offloaded split most
+   of the time budget is CPU compute, which speculation cannot amortize. Confirm
+   the draft head itself did not land on the CPU.
 
 ### Prefill is slow but decode is fine
 
@@ -136,8 +178,8 @@ not preference.
 
 | Lever | Typical effect | Cost |
 |---|---|---|
-| Eliminate offload — pick a quant that fits entirely in VRAM | up to ~4.7x | quantization quality |
-| MTP speculative decoding (`spec_decoding`) | ~2x on RDNA4 | stability; needs a `-nomtp` control |
+| Eliminate offload — pick a quant that fits entirely in VRAM | up to ~4.7x, and it raises the ceiling MTP then multiplies | quantization quality |
+| MTP speculative decoding (`spec_decoding`) | ~2x fully resident; **less when offloaded**, see 1.1 | stability; needs a `-nomtp` control |
 | Prompt cache / context checkpoints | prefill only, but can be orders of magnitude | host RAM, charged to commit in full |
 | Reduce KV cache (`q8_0` → `q4_0`, or less context) | frees VRAM → *less offload* → compounds with lever 1 | long-context recall |
 | `ubatch` sweep {288, 512, 1024, 2048} | single-digit %, occasionally large on hybrids | none |

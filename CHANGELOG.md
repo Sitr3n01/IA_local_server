@@ -60,7 +60,10 @@ All notable changes are documented here. This project follows Keep a Changelog c
   levers ranked by effect. Quantifies what offload actually costs on this
   platform: the first gibibyte moved off the GPU costs ~37% of decode
   throughput, and a fully resident smaller quant can be ~4.7x faster than an
-  offloaded larger one.
+  offloaded larger one. Section 1.1 works through why speculative decoding does
+  not close that gap: MTP amortizes weight reads but not arithmetic, and an
+  offloaded split spends most of its time in CPU compute, which speculation
+  cannot reduce.
 - `docs/RUNBOOK.md` §11.0: reclaim the idle commit baseline before measuring
   anything else. The 2026-07-20 validation recorded 31.82 GiB committed with no
   model loaded against a 42.30 GiB limit, which constrains a 27B more than the
