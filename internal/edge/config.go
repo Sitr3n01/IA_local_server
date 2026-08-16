@@ -41,6 +41,7 @@ type Model struct {
 	// value means "not measured", which is stricter than zero, not laxer.
 	PeakCommitGiB *float64 `json:"-"`
 	PeakVRAMGiB   *float64 `json:"-"`
+	PeakRAMGiB    *float64 `json:"-"`
 	DeviceVRAMGiB *float64 `json:"-"`
 	CacheRAMMiB   *int     `json:"-"`
 	// OffloadsTensors marks a model that deliberately keeps part of its weights
@@ -194,6 +195,9 @@ func (c Config) Validate() error {
 		}
 		if model.PeakVRAMGiB != nil && *model.PeakVRAMGiB <= 0 {
 			return fmt.Errorf("model %q peak VRAM must be positive when configured", model.ID)
+		}
+		if model.PeakRAMGiB != nil && *model.PeakRAMGiB <= 0 {
+			return fmt.Errorf("model %q peak RAM must be positive when configured", model.ID)
 		}
 		if model.DeviceVRAMGiB != nil && *model.DeviceVRAMGiB <= 0 {
 			return fmt.Errorf("model %q device VRAM budget must be positive when configured", model.ID)

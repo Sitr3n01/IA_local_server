@@ -78,17 +78,42 @@ manifest in CI, and `New-V2LlamaServerCommand` was moved into `Common.ps1`
 specifically so it could be asserted without running the publication transaction.
 
 **4. Teach admission control about VRAM and host memory.**
-`capacity.go` gains three behaviours: the required commit now includes
+`capacity.go` gains four behaviours: the required commit now includes
 `cache_ram_mib`; a model whose measured `peak_vram_gib` plus a 1 GiB reserve
 exceeds the runtime's declared `device.vram_mib` is refused with
-`insufficient_vram_budget`; and the `canary_resource_measurement_pending` escape
-hatch no longer covers a model that declares `tensor_overrides` or a non-zero
-`cache_ram_mib`, which now fail closed with
+`insufficient_vram_budget`; a model whose measured `peak_ram_gib` plus a 2 GiB
+reserve exceeds free physical RAM is refused with
+`insufficient_physical_memory`; and the `canary_resource_measurement_pending`
+escape hatch no longer covers a model that declares `tensor_overrides` or a
+non-zero `cache_ram_mib`, which now fail closed with
 `resource_measurement_required_for_host_memory`.
 
 A static device budget is sound here only because `provider.max_loaded_models` is
 pinned to `1` — exactly one model is ever resident, so there is no allocation to
 race against and no live VRAM probe is required.
+
+Commit and physical RAM are separate axes because they answer different
+questions: commit bounds what may be *reserved*, physical bounds what may stay
+*resident*. For a model with weights deliberately living in system RAM the
+second is what decides throughput — passing the commit test while the weights
+page out degrades silently to SSD speed, which is worse than a 503. The probe
+costs nothing new: `GlobalMemoryStatusEx` was already being called and
+`AvailablePhysical` was already in the struct, simply discarded. The physical
+reserve is 2 GiB rather than the commit reserve's 4 GiB because the two axes
+overlap — every touched allocation is charged to both — so reusing 4 GiB would
+refuse configurations that fit.
+
+**Measurement discipline is part of the contract.** Because `--cache-ram` is a
+ceiling that fills over a session rather than an allocation made at load, the
+gate adds `cache_ram_mib` on top of the measured peak instead of expecting it to
+appear inside it. That only works if `peak_commit_gib` is captured with a cold
+prompt cache; otherwise the same gibibytes are reserved twice. Likewise
+`peak_commit_gib` is a delta and is meaningless without the idle baseline it was
+measured against. Both rules are stated in `docs/MODEL_PROMOTION.md` and
+`docs/BENCHMARKS.md`, and `docs/RUNBOOK.md` §11.0 makes reclaiming that baseline
+the first step of onboarding — on the machine this was designed for, 31.82 GiB
+of the 42.30 GiB commit limit was already spoken for with no model loaded, which
+constrains a 27B more than any quantization choice does.
 
 **5. Refuse the `ubatch` dead band declaratively.**
 Micro-batch sizes in `[65, 256]` collapse throughput on hybrid Gated DeltaNet

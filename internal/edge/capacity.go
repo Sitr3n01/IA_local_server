@@ -21,19 +21,39 @@ const commitReserveGiB = 4.0
 // ever resident on the device.
 const vramReserveGiB = 1.0
 
+// physicalReserveGiB is deliberately smaller than the commit reserve. The two
+// axes overlap: every allocation counted against commit is also counted here
+// once it is touched, so charging 4 GiB twice would refuse configurations that
+// actually fit. What this reserve protects is different — it keeps the OS file
+// cache alive and keeps a model's CPU-resident weights from being paged out,
+// which would turn every token into an SSD read instead of a DDR5 read.
+const physicalReserveGiB = 2.0
+
+// memorySnapshot is the host memory state admission control reasons about.
+// Commit and physical answer different questions: commit bounds what may be
+// reserved, physical bounds what may stay resident. A model that offloads
+// weights to system RAM can satisfy the first and still thrash on the second.
+type memorySnapshot struct {
+	CommitGiB   float64
+	PhysicalGiB float64
+}
+
 type capacityStatus struct {
-	Admission         string   `json:"admission"`
-	Model             string   `json:"model"`
-	ModelRunning      bool     `json:"model_running"`
-	CommitHeadroomGiB *float64 `json:"commit_headroom_gib"`
-	RequiredCommitGiB *float64 `json:"required_commit_gib"`
-	ReserveCommitGiB  float64  `json:"reserve_commit_gib"`
-	RequiredVRAMGiB   *float64 `json:"required_vram_gib"`
-	DeviceVRAMGiB     *float64 `json:"device_vram_gib"`
-	ReserveVRAMGiB    float64  `json:"reserve_vram_gib"`
-	Measured          bool     `json:"measured"`
-	Available         bool     `json:"available"`
-	Reason            string   `json:"reason"`
+	Admission           string   `json:"admission"`
+	Model               string   `json:"model"`
+	ModelRunning        bool     `json:"model_running"`
+	CommitHeadroomGiB   *float64 `json:"commit_headroom_gib"`
+	RequiredCommitGiB   *float64 `json:"required_commit_gib"`
+	ReserveCommitGiB    float64  `json:"reserve_commit_gib"`
+	PhysicalHeadroomGiB *float64 `json:"physical_headroom_gib"`
+	RequiredPhysicalGiB *float64 `json:"required_physical_gib"`
+	ReservePhysicalGiB  float64  `json:"reserve_physical_gib"`
+	RequiredVRAMGiB     *float64 `json:"required_vram_gib"`
+	DeviceVRAMGiB       *float64 `json:"device_vram_gib"`
+	ReserveVRAMGiB      float64  `json:"reserve_vram_gib"`
+	Measured            bool     `json:"measured"`
+	Available           bool     `json:"available"`
+	Reason              string   `json:"reason"`
 }
 
 type runningResponse struct {
@@ -45,26 +65,31 @@ type runningResponse struct {
 
 func (s *Server) capacityFor(ctx context.Context, model Model) (capacityStatus, map[string]string) {
 	running, runningErr := s.runningModels(ctx)
-	headroom, metricErr := s.commitHeadroom()
-	return capacityFrom(model, running, runningErr, headroom, metricErr), running
+	memory, metricErr := s.memoryStatus()
+	return capacityFrom(model, running, runningErr, memory, metricErr), running
 }
 
-func capacityFrom(model Model, running map[string]string, runningErr error, headroom float64, metricErr error) capacityStatus {
+func capacityFrom(model Model, running map[string]string, runningErr error, memory memorySnapshot, metricErr error) capacityStatus {
 	_, isRunning := running[model.ID]
 
 	result := capacityStatus{
-		Admission:        "commit-headroom",
-		Model:            model.ID,
-		ModelRunning:     isRunning,
-		ReserveCommitGiB: commitReserveGiB,
-		ReserveVRAMGiB:   vramReserveGiB,
+		Admission:          "commit-headroom",
+		Model:              model.ID,
+		ModelRunning:       isRunning,
+		ReserveCommitGiB:   commitReserveGiB,
+		ReservePhysicalGiB: physicalReserveGiB,
+		ReserveVRAMGiB:     vramReserveGiB,
 	}
 	if metricErr == nil {
-		result.CommitHeadroomGiB = floatPointer(roundGiB(headroom))
+		result.CommitHeadroomGiB = floatPointer(roundGiB(memory.CommitGiB))
+		result.PhysicalHeadroomGiB = floatPointer(roundGiB(memory.PhysicalGiB))
 	}
 	requiredCommit, haveCommit := requiredCommitGiB(model)
 	if haveCommit {
 		result.RequiredCommitGiB = floatPointer(roundGiB(requiredCommit))
+	}
+	if model.PeakRAMGiB != nil {
+		result.RequiredPhysicalGiB = floatPointer(roundGiB(*model.PeakRAMGiB + physicalReserveGiB))
 	}
 	if model.PeakVRAMGiB != nil {
 		result.RequiredVRAMGiB = floatPointer(roundGiB(*model.PeakVRAMGiB + vramReserveGiB))
@@ -83,8 +108,14 @@ func capacityFrom(model Model, running map[string]string, runningErr error, head
 		// load, so it is checked before headroom and reported distinctly.
 		result.Available = false
 		result.Reason = "insufficient_vram_budget"
+	case exceedsPhysicalMemory(model, memory, metricErr):
+		// Checked before commit: a model can pass the commit test and still be
+		// unable to keep its CPU-resident weights in RAM, which is a much worse
+		// outcome than a 503 because it degrades silently to disk speed.
+		result.Available = false
+		result.Reason = "insufficient_physical_memory"
 	case haveCommit && metricErr == nil:
-		result.Available = headroom >= requiredCommit
+		result.Available = memory.CommitGiB >= requiredCommit
 		if result.Available {
 			result.Reason = "commit_headroom_available"
 		} else {
@@ -110,6 +141,12 @@ func capacityFrom(model Model, running map[string]string, runningErr error, head
 // the model asks llama-server to hold in host RAM. --cache-ram is charged
 // against the Windows commit limit exactly like the process working set, so
 // leaving it out understates the requirement by its full size.
+//
+// The cache is added rather than expected to appear in the measurement because
+// it is a ceiling that fills over the life of a session, not an allocation made
+// at load. This makes the measurement discipline load-bearing:
+// resources.peak_commit_gib must be captured with a cold prompt cache, or the
+// same gibibytes are charged twice. See docs/MODEL_PROMOTION.md.
 func requiredCommitGiB(model Model) (float64, bool) {
 	if model.PeakCommitGiB == nil {
 		return 0, false
@@ -119,6 +156,16 @@ func requiredCommitGiB(model Model) (float64, bool) {
 		required += float64(*model.CacheRAMMiB) / 1024
 	}
 	return required, true
+}
+
+// exceedsPhysicalMemory reports whether the model's resident footprint cannot
+// stay in RAM. It is deliberately inert unless resources.peak_ram_gib has been
+// measured, so the existing small candidates keep their current verdict.
+func exceedsPhysicalMemory(model Model, memory memorySnapshot, metricErr error) bool {
+	if metricErr != nil || model.PeakRAMGiB == nil {
+		return false
+	}
+	return *model.PeakRAMGiB+physicalReserveGiB > memory.PhysicalGiB
 }
 
 func exceedsVRAMBudget(model Model) bool {

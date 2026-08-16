@@ -43,6 +43,21 @@ All notable changes are documented here. This project follows Keep a Changelog c
 - VRAM dimension in edge admission control: a measured `peak_vram_gib` plus the
   documented 1 GiB reserve is checked against the runtime's declared device
   budget, reported as `insufficient_vram_budget`.
+- Physical-RAM dimension in edge admission control, reported as
+  `insufficient_physical_memory`. `GlobalMemoryStatusEx` was already being called
+  and `AvailablePhysical` already sat in the struct, discarded; `peak_ram_gib`
+  likewise already existed in the schema and was never read. Commit bounds what
+  may be reserved, physical bounds what may stay resident — for a model with
+  weights offloaded to system RAM, only the second predicts throughput.
+- Measurement rules for the resource envelope in `docs/MODEL_PROMOTION.md` and
+  `docs/BENCHMARKS.md`: `peak_commit_gib` is a delta and must be recorded with
+  its idle baseline (`idle_commit_gib`) and with a **cold prompt cache**, since
+  admission adds `cache_ram_mib` separately as its full ceiling. Without that
+  rule the same gibibytes were charged twice.
+- `docs/RUNBOOK.md` §11.0: reclaim the idle commit baseline before measuring
+  anything else. The 2026-07-20 validation recorded 31.82 GiB committed with no
+  model loaded against a 42.30 GiB limit, which constrains a 27B more than the
+  choice of quantization does.
 - Hybrid Gated DeltaNet benchmark protocol in `docs/BENCHMARKS.md`, including the
   kernel go/no-go gate, the sweep matrix, and a cache-restoration measurement;
   matching `qwen38-27b-*` profiles in `model-test-matrix.json`.
@@ -64,6 +79,14 @@ All notable changes are documented here. This project follows Keep a Changelog c
   with `resource_measurement_required_for_host_memory` until measured.
 - `healthCheckTimeout` 180s to 600s and Codex `stream_idle_timeout_ms` 300s to
   900s. Both were sized for models that load and prefill entirely in VRAM.
+- `systemCommitHeadroomGiB` becomes `systemMemoryStatus`, returning a
+  `memorySnapshot` with both host memory axes; the `Server.commitHeadroom` hook
+  becomes `Server.memoryStatus`. Signature change only — the injection point the
+  tests use is unchanged.
+- The `cache_ram_mib` starting value in the RUNBOOK §11.3 template drops from
+  6144 to 2048. It was chosen against the nominal 10 GB RAM budget rather than
+  against the 10.48 GiB of commit headroom actually measured, and the gate adds
+  it in full on top of the model's own peak.
 - `scripts/bench-llama.ps1` accepts `-RuntimeRoot`, `-NGpuLayers`, `-Label`, and
   `-RocBlasUseHipBlasLt`, and refuses `-UBatchSize` in the 65..256 band that
   collapses throughput on hybrid models.

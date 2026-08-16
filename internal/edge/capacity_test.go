@@ -29,7 +29,7 @@ func TestCapacityRejectsFinalModelBelowMeasuredCommitRequirement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server.commitHeadroom = func() (float64, error) { return 13.99, nil }
+	server.memoryStatus = fixedMemory(13.99, 24)
 
 	recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
 	if recorder.Code != http.StatusServiceUnavailable || errorCode(t, recorder) != "insufficient_capacity" {
@@ -59,7 +59,7 @@ func TestCapacityAllowsRunningModelAndReportsMeasuredValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server.commitHeadroom = func() (float64, error) { return 1, nil }
+	server.memoryStatus = fixedMemory(1, 24)
 
 	recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
 	if recorder.Code != http.StatusOK {
@@ -74,6 +74,19 @@ func TestCapacityAllowsRunningModelAndReportsMeasuredValues(t *testing.T) {
 			t.Errorf("capacity status missing %s: %s", expected, status.Body.String())
 		}
 	}
+}
+
+// fixedMemory pins both host memory axes. Tests that only exercise commit pass a
+// generous physical figure, which keeps the physical dimension inert for them —
+// as it also is in production until a model records resources.peak_ram_gib.
+func fixedMemory(commitGiB, physicalGiB float64) func() (memorySnapshot, error) {
+	return func() (memorySnapshot, error) {
+		return memorySnapshot{CommitGiB: commitGiB, PhysicalGiB: physicalGiB}, nil
+	}
+}
+
+func unavailableMemory() (memorySnapshot, error) {
+	return memorySnapshot{}, errCapacityUnavailable
 }
 
 // runningBackend serves the router /running probe and records how often the
@@ -107,7 +120,7 @@ func TestCapacityRejectsModelExceedingDeviceVRAMBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Commit headroom is abundant: only the VRAM budget can reject this.
-	server.commitHeadroom = func() (float64, error) { return 30, nil }
+	server.memoryStatus = fixedMemory(30, 24)
 
 	recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
 	if recorder.Code != http.StatusServiceUnavailable || errorCode(t, recorder) != "insufficient_capacity" {
@@ -137,7 +150,7 @@ func TestCapacityAdmitsModelInsideDeviceVRAMBudget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server.commitHeadroom = func() (float64, error) { return 30, nil }
+	server.memoryStatus = fixedMemory(30, 24)
 
 	recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
 	if recorder.Code != http.StatusOK {
@@ -159,7 +172,7 @@ func TestCapacityChargesPromptCacheAgainstCommitHeadroom(t *testing.T) {
 	}
 	// 10 peak + 4 reserve = 14, which the old accounting would have admitted.
 	// The prompt cache pushes the requirement to 20.
-	server.commitHeadroom = func() (float64, error) { return 15, nil }
+	server.memoryStatus = fixedMemory(15, 24)
 
 	recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
 	if recorder.Code != http.StatusServiceUnavailable {
@@ -170,10 +183,81 @@ func TestCapacityChargesPromptCacheAgainstCommitHeadroom(t *testing.T) {
 		t.Errorf("required commit does not include the prompt cache: %s", status.Body.String())
 	}
 
-	server.commitHeadroom = func() (float64, error) { return 21, nil }
+	server.memoryStatus = fixedMemory(21, 24)
 	recorder = dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("sufficient headroom rejected: status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestCapacityRejectsModelThatCannotStayResident(t *testing.T) {
+	backend, inferenceCalls := runningBackend(t, `{"running":[]}`)
+	commit, ram := 10.0, 12.4
+
+	cfg := testConfig(backend.URL)
+	cfg.Models[0].PeakCommitGiB = &commit
+	cfg.Models[0].PeakRAMGiB = &ram
+	server, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Commit is abundant (needs 14, has 30) but only 13 GiB of RAM is free
+	// against a 12.4 GiB resident footprint plus the 2 GiB reserve. Commit alone
+	// would have admitted this and let the weights page out to disk.
+	server.memoryStatus = fixedMemory(30, 13)
+
+	recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
+	if recorder.Code != http.StatusServiceUnavailable || errorCode(t, recorder) != "insufficient_capacity" {
+		t.Fatalf("physical memory response: status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if inferenceCalls.Load() != 0 {
+		t.Fatalf("physical memory overrun reached inference upstream %d times", inferenceCalls.Load())
+	}
+
+	status := controlRequest(t, server.ControlHandler(), http.MethodGet, "/api/v1/status", nil)
+	for _, expected := range []string{
+		`"reason":"insufficient_physical_memory"`,
+		`"required_physical_gib":14.4`,
+		`"physical_headroom_gib":13`,
+	} {
+		if !strings.Contains(status.Body.String(), expected) {
+			t.Errorf("capacity status missing %s: %s", expected, status.Body.String())
+		}
+	}
+
+	// Enough free RAM and the same model is admitted.
+	server.memoryStatus = fixedMemory(30, 20)
+	recorder = dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("resident model rejected with ample RAM: status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestUnmeasuredRAMLeavesVerdictUnchanged(t *testing.T) {
+	backend, _ := runningBackend(t, `{"running":[]}`)
+	commit := 10.0
+
+	cfg := testConfig(backend.URL)
+	cfg.Models[0].PeakCommitGiB = &commit
+	server, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Physical headroom well below any plausible footprint. Without a measured
+	// peak_ram_gib the dimension must stay inert rather than guess a footprint,
+	// so the six existing candidates keep their current behaviour.
+	server.memoryStatus = fixedMemory(30, 0.2)
+
+	recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("unmeasured RAM changed the verdict: status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	status := controlRequest(t, server.ControlHandler(), http.MethodGet, "/api/v1/status", nil)
+	if !strings.Contains(status.Body.String(), `"reason":"commit_headroom_available"`) {
+		t.Errorf("unexpected reason: %s", status.Body.String())
+	}
+	if !strings.Contains(status.Body.String(), `"required_physical_gib":null`) {
+		t.Errorf("unmeasured RAM should report a null requirement: %s", status.Body.String())
 	}
 }
 
@@ -194,7 +278,7 @@ func TestUnmeasuredCanaryWithHostMemoryFailsClosed(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			server.commitHeadroom = func() (float64, error) { return 0, errCapacityUnavailable }
+			server.memoryStatus = unavailableMemory
 
 			before := inferenceCalls.Load()
 			recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
@@ -226,7 +310,7 @@ func TestUnmeasuredCanaryAllowedButUnmeasuredFinalFailsClosed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	canaryServer.commitHeadroom = func() (float64, error) { return 0, errCapacityUnavailable }
+	canaryServer.memoryStatus = unavailableMemory
 	canary := dataRequest(t, canaryServer.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
 	if canary.Code != http.StatusOK {
 		t.Fatalf("unmeasured canary status=%d body=%s", canary.Code, canary.Body.String())
@@ -239,7 +323,7 @@ func TestUnmeasuredCanaryAllowedButUnmeasuredFinalFailsClosed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	finalServer.commitHeadroom = func() (float64, error) { return 0, errCapacityUnavailable }
+	finalServer.memoryStatus = unavailableMemory
 	final := dataRequest(t, finalServer.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
 	if final.Code != http.StatusServiceUnavailable || errorCode(t, final) != "insufficient_capacity" {
 		t.Fatalf("unmeasured final response: status=%d body=%s", final.Code, final.Body.String())

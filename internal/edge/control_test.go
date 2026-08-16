@@ -62,7 +62,7 @@ func TestModelControlMapsToLlamaSwapAndUsesRouterCredential(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server.commitHeadroom = func() (float64, error) { return 32, nil }
+	server.memoryStatus = fixedMemory(32, 24)
 	handler := server.ControlHandler()
 
 	for _, operation := range []string{"load", "unload", "switch"} {
@@ -193,7 +193,7 @@ func TestSwitchFinishesAfterPanelRequestIsCanceled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server.commitHeadroom = func() (float64, error) { return 32, nil }
+	server.memoryStatus = fixedMemory(32, 24)
 
 	requestContext, cancelRequest := context.WithCancel(context.Background())
 	request := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8091/api/v1/models/local-fast:switch", nil).WithContext(requestContext)
@@ -235,7 +235,7 @@ func TestStatusReadsActiveModelWithoutExposingRouterDetails(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"running":[{"model":"local-coding","state":"ready","cmd":"private command","proxy":"private path"}]}`)
 	}))
-	server.commitHeadroom = func() (float64, error) { return 20, nil }
+	server.memoryStatus = fixedMemory(20, 24)
 	recorder := controlRequest(t, server.ControlHandler(), http.MethodGet, "/api/v1/status", nil)
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status code = %d; body=%s", recorder.Code, recorder.Body.String())

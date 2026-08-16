@@ -81,6 +81,7 @@ models:
     resources:
       peak_commit_gib: 22.5
       peak_vram_gib: 14.6
+      peak_ram_gib: 12.4
   - id: local-fast
     state: candidate
     deployments: [canary]
@@ -103,6 +104,9 @@ models:
 	}
 	if coding.PeakVRAMGiB == nil || *coding.PeakVRAMGiB != 14.6 {
 		t.Errorf("peak VRAM = %v", coding.PeakVRAMGiB)
+	}
+	if coding.PeakRAMGiB == nil || *coding.PeakRAMGiB != 12.4 {
+		t.Errorf("peak RAM = %v", coding.PeakRAMGiB)
 	}
 	if coding.CacheRAMMiB == nil || *coding.CacheRAMMiB != 6144 {
 		t.Errorf("cache RAM = %v", coding.CacheRAMMiB)

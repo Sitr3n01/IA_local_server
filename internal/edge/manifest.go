@@ -40,6 +40,7 @@ type manifestModel struct {
 	Resources struct {
 		PeakCommitGiB *float64 `yaml:"peak_commit_gib"`
 		PeakVRAMGiB   *float64 `yaml:"peak_vram_gib"`
+		PeakRAMGiB    *float64 `yaml:"peak_ram_gib"`
 	} `yaml:"resources"`
 }
 
@@ -121,6 +122,7 @@ func LoadModels(path, environment string) ([]Model, error) {
 			Deployments:     append([]string(nil), entry.Deployments...),
 			PeakCommitGiB:   entry.Resources.PeakCommitGiB,
 			PeakVRAMGiB:     entry.Resources.PeakVRAMGiB,
+			PeakRAMGiB:      entry.Resources.PeakRAMGiB,
 			DeviceVRAMGiB:   deviceVRAM[strings.TrimSpace(entry.Runtime)],
 			CacheRAMMiB:     entry.CacheRAMMiB,
 			OffloadsTensors: len(entry.TensorOverrides) > 0,

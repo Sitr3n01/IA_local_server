@@ -23,11 +23,14 @@ type memoryStatusEx struct {
 	AvailableExtended uint64
 }
 
-func systemCommitHeadroomGiB() (float64, error) {
+func systemMemoryStatus() (memorySnapshot, error) {
 	status := memoryStatusEx{Length: uint32(unsafe.Sizeof(memoryStatusEx{}))}
 	result, _, callErr := globalMemoryStatusEx.Call(uintptr(unsafe.Pointer(&status)))
 	if result == 0 {
-		return 0, fmt.Errorf("GlobalMemoryStatusEx failed: %w", callErr)
+		return memorySnapshot{}, fmt.Errorf("GlobalMemoryStatusEx failed: %w", callErr)
 	}
-	return float64(status.AvailablePageFile) / float64(uint64(1)<<30), nil
+	return memorySnapshot{
+		CommitGiB:   float64(status.AvailablePageFile) / float64(uint64(1)<<30),
+		PhysicalGiB: float64(status.AvailablePhysical) / float64(uint64(1)<<30),
+	}, nil
 }

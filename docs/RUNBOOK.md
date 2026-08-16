@@ -351,6 +351,27 @@ $codexHome = 'C:\Users\Sitr3n\.codex'
 
 This procedure applies to any model too large to sit entirely in VRAM. It is written against Qwen3.8-27B IQ4_XS on the RX 9070 XT (16304 MiB) because that is the case it was built for.
 
+### 11.0 Reclaim the idle commit baseline first
+
+This step comes before the kernel measurement because it can decide the outcome on its own, and because every later number is a delta against it.
+
+The 2026-07-20 canary validation recorded **31.82 GiB of committed memory with no model loaded**, against a commit limit of 42.30 GiB. That leaves 10.48 GiB of headroom before llama-server starts, and a 9B consumed 8.06 GiB of it. The binding constraint on a 27B is not the model — it is what the machine is already holding.
+
+```powershell
+# Idle committed bytes, in GiB. Run with the desktop in its normal state, then
+# again after closing other workloads, and record both.
+$os = Get-CimInstance Win32_OperatingSystem
+[pscustomobject]@{
+  CommitLimitGiB = [math]::Round($os.TotalVirtualMemorySize / 1MB, 2)
+  CommitFreeGiB  = [math]::Round($os.FreeVirtualMemory   / 1MB, 2)
+  PhysFreeGiB    = [math]::Round($os.FreePhysicalMemory  / 1MB, 2)
+}
+```
+
+Close Unsloth Studio, harness sessions, and the browser before measuring. Record the idle figure in the benchmark report as `idle_commit_gib`; without it `peak_commit_gib` is not reproducible across machine states.
+
+**Decision point.** With ~32 GiB of physical RAM, an idle baseline that will not come down to roughly 20 GiB leaves too little headroom for a 27B in any quantization. That is a machine-state conclusion, not a model conclusion — reaching it here costs minutes, whereas reaching it after downloading 15 GiB and running the full sweep costs hours.
+
 ### 11.1 Gate zero: measure the Gated DeltaNet kernel before anything else
 
 The pinned `amd-rocm-baseline` runtime is b8407 and does not know this architecture; the GGUFs were quantized with b10419. Download an official ggml-org ROCm build for Windows (`llama-b<N>-windows-rocm-7.2.x-gfx110X-gfx115X-gfx120X-x64`, `N >= 10419`) and unpack it *outside* the repository, then measure without touching the manifest:
@@ -399,7 +420,7 @@ Add the runtime and model to `config/models.yaml` together with the three catalo
   "reasoning": "auto",
   "context_shift": false,
   "kv_unified": true,
-  "cache_ram_mib": 6144,
+  "cache_ram_mib": 2048,
   "ctx_checkpoints": 64,
   "checkpoint_every_n_tokens": 8192,
   "cache_idle_slots": true,
@@ -413,7 +434,11 @@ Add the runtime and model to `config/models.yaml` together with the three catalo
 }
 ```
 
-`context_shift: false` is mandatory: the recurrent state cannot be shifted, and the schema refuses `spec_decoding` without it. `cache_ram_mib` requires a measured `peak_commit_gib`, and `tensor_overrides` requires a measured `peak_vram_gib` — both are validated at generation time, and the edge refuses admission until they are present. Measure them from a live load, then fill them in; `6144` is a deliberately conservative starting cache. Raise it toward the 10 GiB budget only while watching commit headroom, because the commit requirement now includes it in full.
+`context_shift: false` is mandatory: the recurrent state cannot be shifted, and the schema refuses `spec_decoding` without it. `cache_ram_mib` requires a measured `peak_commit_gib`, and `tensor_overrides` requires a measured `peak_vram_gib` — both are validated at generation time, and the edge refuses admission until they are present.
+
+`cache_ram_mib: 2048` is sized against the **measured** headroom from step 11.0, not against the nominal RAM budget: the gate adds the value in full on top of `peak_commit_gib`, so a 6 GiB cache consumes more than half of a 10.48 GiB headroom before the weights are counted. Raise it only after 11.0 shows the idle baseline actually came down; a larger cache that forces the pagefile is worse than no cache, because a checkpoint restored from disk competes with the very prefill it was meant to avoid.
+
+Measure `peak_vram_gib`, `peak_commit_gib`, and `peak_ram_gib` from a live load and fill them in, following the measurement rules in `MODEL_PROMOTION.md` — in particular, capture `peak_commit_gib` on the first request after start, with a cold prompt cache.
 
 ### 11.4 Validate and generate
 
@@ -445,7 +470,8 @@ Capacity `reason` values from `/api/v1/status`:
 | Reason | Meaning | Action |
 |---|---|---|
 | `commit_headroom_available` | Measured profile fits, including any declared prompt cache | No action |
-| `insufficient_commit_headroom` | Measured commit plus `cache_ram_mib` plus the 4 GiB reserve exceeds free commit | Free commit, lower `cache_ram_mib`, or raise the pagefile |
+| `insufficient_commit_headroom` | Measured commit plus `cache_ram_mib` plus the 4 GiB reserve exceeds free commit | Free commit (step 11.0), lower `cache_ram_mib`, or raise the pagefile |
+| `insufficient_physical_memory` | Measured `peak_ram_gib` plus the 2 GiB reserve exceeds free physical RAM | Free RAM or offload less; raising the pagefile does **not** fix this and makes it slower |
 | `insufficient_vram_budget` | Measured `peak_vram_gib` plus the 1 GiB reserve exceeds `device.vram_mib` | Shrink context, drop the KV type, or offload more weight |
 | `resource_measurement_required_for_host_memory` | Model declares offload or a prompt cache but has no measured profile | Measure and record `resources.peak_*`; this never resolves on its own |
 | `canary_resource_measurement_pending` | Unmeasured canary candidate that uses no host memory | Acceptable for small candidates; measure before qualifying |

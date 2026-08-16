@@ -79,7 +79,7 @@ Qwen3.8-class models interleave 48 Gated DeltaNet layers with 16 full-attention 
 - Edge and router ready within 30 seconds of interactive logon.
 - First cold response completes within 60 seconds.
 - No unplanned runtime exit, orphan, duplicate model load, or silent model swap.
-- Admission reserves remain at least 1 GiB VRAM and 4 GiB commit beyond the measured profile peak.
+- Admission reserves remain at least 1 GiB VRAM, 4 GiB commit, and 2 GiB physical RAM beyond the measured profile peak.
 
 ## Soak
 
@@ -103,9 +103,13 @@ Acceptance is at least 99% success after excluding deliberate 4xx/429 policy tes
   "p95_edge_overhead_ms": 0,
   "peak_vram_gib": 0,
   "peak_commit_gib": 0,
+  "peak_ram_gib": 0,
+  "idle_commit_gib": 0,
   "external_connections": 0,
   "credential_findings": 0
 }
 ```
+
+`peak_commit_gib` is a **delta**, not an absolute, so `idle_commit_gib` must accompany it or the number is not reproducible across machine states. Capture it with a **cold prompt cache** — the first request after process start — because admission adds `cache_ram_mib` separately as its full ceiling; a warm-cache measurement charges the same gibibytes twice. See `MODEL_PROMOTION.md`.
 
 Reports are evidence, not configuration. Promotion values must be reviewed into the manifest deliberately.

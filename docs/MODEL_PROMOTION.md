@@ -57,6 +57,24 @@ A load is admitted only if the measured profile peak plus at least 1 GiB dedicat
 
 Both reserves are enforced in `internal/edge/capacity.go`. The commit requirement includes any `cache_ram_mib` the model declares, because llama-server's host-RAM prompt cache is charged against the Windows commit limit exactly like the process working set. The VRAM requirement is compared against `runtimes[].device.vram_mib`; a static device budget is valid only because `provider.max_loaded_models` is pinned to `1`.
 
+A third axis, physical RAM, is enforced separately against `resources.peak_ram_gib` with a 2 GiB reserve. It is deliberately smaller than the 4 GiB commit reserve because the two axes overlap — every allocation charged to commit is charged here too once it is touched — and charging 4 GiB twice would refuse configurations that actually fit. The physical check exists for a failure the commit check cannot see: a model whose weights are partially resident in system RAM can satisfy commit and still have those weights paged out, which turns every token into an SSD read. A model with no measured `peak_ram_gib` is not subject to the check.
+
+## Measuring the resource envelope
+
+The three peaks are not interchangeable and are not all read from the same place:
+
+| Field | What to record | Where |
+|---|---|---|
+| `peak_vram_gib` | Worst observed dedicated VRAM for the model process | GPU counters |
+| `peak_commit_gib` | Worst observed **increase** in system committed bytes, not the absolute total | Commit charge, before minus after |
+| `peak_ram_gib` | Worst observed process working set | Process counters |
+
+Two rules make these numbers usable:
+
+1. **Record the idle baseline alongside them.** `peak_commit_gib` is a delta, so a measurement taken on a machine already holding 30 GiB of commit is not comparable to one taken on a quiet machine. Close other GPU and harness workloads first, note the idle committed bytes in the report, and only then load the model.
+
+2. **Measure `peak_commit_gib` with a cold prompt cache** — the first request after the process starts. The gate adds `cache_ram_mib` separately, in full, because `--cache-ram` is a ceiling that fills over the life of a session rather than an allocation made at load; a measurement that already contains a warm cache would charge the same gibibytes twice and reserve headroom that does not need reserving.
+
 ## Models that use host memory
 
 A model declaring `tensor_overrides` (partial weight offload) or a non-zero `cache_ram_mib` cannot be admitted on the `canary_resource_measurement_pending` path that covers small candidates. It fails closed with `resource_measurement_required_for_host_memory` until `resources.peak_vram_gib` and `resources.peak_commit_gib` are measured and recorded. Measurement is a precondition for offload, not a follow-up task.
