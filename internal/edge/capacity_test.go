@@ -160,11 +160,14 @@ func TestCapacityAdmitsModelInsideDeviceVRAMBudget(t *testing.T) {
 
 func TestCapacityChargesPromptCacheAgainstCommitHeadroom(t *testing.T) {
 	backend, _ := runningBackend(t, `{"running":[]}`)
-	commit := 10.0
+	commit, ram := 10.0, 8.0
 	cacheRAM := 6144 // 6 GiB of host-RAM prompt cache
 
 	cfg := testConfig(backend.URL)
 	cfg.Models[0].PeakCommitGiB = &commit
+	// A prompt cache also requires a measured resident footprint; this test is
+	// about the commit arithmetic, so the profile is completed deliberately.
+	cfg.Models[0].PeakRAMGiB = &ram
 	cfg.Models[0].CacheRAMMiB = &cacheRAM
 	server, err := New(cfg)
 	if err != nil {
@@ -172,7 +175,7 @@ func TestCapacityChargesPromptCacheAgainstCommitHeadroom(t *testing.T) {
 	}
 	// 10 peak + 4 reserve = 14, which the old accounting would have admitted.
 	// The prompt cache pushes the requirement to 20.
-	server.memoryStatus = fixedMemory(15, 24)
+	server.memoryStatus = fixedMemory(15, 40)
 
 	recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
 	if recorder.Code != http.StatusServiceUnavailable {
@@ -183,7 +186,7 @@ func TestCapacityChargesPromptCacheAgainstCommitHeadroom(t *testing.T) {
 		t.Errorf("required commit does not include the prompt cache: %s", status.Body.String())
 	}
 
-	server.memoryStatus = fixedMemory(21, 24)
+	server.memoryStatus = fixedMemory(21, 40)
 	recorder = dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("sufficient headroom rejected: status=%d body=%s", recorder.Code, recorder.Body.String())
@@ -261,15 +264,43 @@ func TestUnmeasuredRAMLeavesVerdictUnchanged(t *testing.T) {
 	}
 }
 
-func TestUnmeasuredCanaryWithHostMemoryFailsClosed(t *testing.T) {
+func TestHostMemoryModelRequiresCompleteResourceProfile(t *testing.T) {
 	backend, inferenceCalls := runningBackend(t, `{"running":[]}`)
+	commit, vram, ram, device := 10.0, 12.0, 8.0, 15.92
 
+	// Every partial combination for a tensor-offloading model. The dangerous one
+	// is "commit present, RAM absent": commit alone used to admit it.
 	for _, testCase := range []struct {
-		name  string
-		apply func(*Model)
+		name    string
+		apply   func(*Model)
+		missing string
 	}{
-		{"tensor offload", func(m *Model) { m.OffloadsTensors = true }},
-		{"prompt cache", func(m *Model) { size := 6144; m.CacheRAMMiB = &size }},
+		{"offload, no commit", func(m *Model) {
+			m.OffloadsTensors = true
+			m.PeakVRAMGiB, m.PeakRAMGiB, m.DeviceVRAMGiB = &vram, &ram, &device
+		}, "peak_commit_gib"},
+		{"offload, no vram", func(m *Model) {
+			m.OffloadsTensors = true
+			m.PeakCommitGiB, m.PeakRAMGiB, m.DeviceVRAMGiB = &commit, &ram, &device
+		}, "peak_vram_gib"},
+		{"offload, no ram", func(m *Model) {
+			m.OffloadsTensors = true
+			m.PeakCommitGiB, m.PeakVRAMGiB, m.DeviceVRAMGiB = &commit, &vram, &device
+		}, "peak_ram_gib"},
+		{"offload, no device budget", func(m *Model) {
+			m.OffloadsTensors = true
+			m.PeakCommitGiB, m.PeakVRAMGiB, m.PeakRAMGiB = &commit, &vram, &ram
+		}, "device.vram_mib"},
+		{"prompt cache, no ram", func(m *Model) {
+			size := 6144
+			m.CacheRAMMiB = &size
+			m.PeakCommitGiB = &commit
+		}, "peak_ram_gib"},
+		{"prompt cache, no commit", func(m *Model) {
+			size := 6144
+			m.CacheRAMMiB = &size
+			m.PeakRAMGiB = &ram
+		}, "peak_commit_gib"},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			cfg := testConfig(backend.URL)
@@ -278,21 +309,78 @@ func TestUnmeasuredCanaryWithHostMemoryFailsClosed(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			server.memoryStatus = unavailableMemory
+			// Headroom is abundant on every axis: only profile completeness can reject.
+			server.memoryStatus = fixedMemory(60, 40)
 
 			before := inferenceCalls.Load()
 			recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
 			if recorder.Code != http.StatusServiceUnavailable || errorCode(t, recorder) != "insufficient_capacity" {
-				t.Fatalf("unmeasured host-memory model admitted: status=%d body=%s", recorder.Code, recorder.Body.String())
+				t.Fatalf("partial profile admitted: status=%d body=%s", recorder.Code, recorder.Body.String())
 			}
 			if inferenceCalls.Load() != before {
-				t.Fatalf("unmeasured host-memory model reached inference upstream")
+				t.Fatalf("partial profile reached inference upstream")
 			}
+
 			status := controlRequest(t, server.ControlHandler(), http.MethodGet, "/api/v1/status", nil)
-			if !strings.Contains(status.Body.String(), `"reason":"resource_measurement_required_for_host_memory"`) {
-				t.Errorf("unexpected capacity reason: %s", status.Body.String())
+			body := status.Body.String()
+			if !strings.Contains(body, `"reason":"resource_profile_incomplete"`) {
+				t.Errorf("unexpected reason: %s", body)
+			}
+			if !strings.Contains(body, testCase.missing) {
+				t.Errorf("status does not name the missing field %q: %s", testCase.missing, body)
+			}
+			// An incomplete profile must never be reported as measured.
+			if strings.Contains(body, `"measured":true`) {
+				t.Errorf("incomplete profile reported as measured: %s", body)
 			}
 		})
+	}
+}
+
+func TestCompleteHostMemoryProfileIsEvaluatedNormally(t *testing.T) {
+	backend, _ := runningBackend(t, `{"running":[]}`)
+	commit, vram, ram, device := 10.0, 12.0, 8.0, 15.92
+
+	cfg := testConfig(backend.URL)
+	m := &cfg.Models[0]
+	m.OffloadsTensors = true
+	m.PeakCommitGiB, m.PeakVRAMGiB, m.PeakRAMGiB, m.DeviceVRAMGiB = &commit, &vram, &ram, &device
+	server, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.memoryStatus = fixedMemory(60, 40)
+
+	recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("complete profile rejected: status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	status := controlRequest(t, server.ControlHandler(), http.MethodGet, "/api/v1/status", nil)
+	for _, expected := range []string{`"reason":"commit_headroom_available"`, `"measured":true`} {
+		if !strings.Contains(status.Body.String(), expected) {
+			t.Errorf("capacity status missing %s: %s", expected, status.Body.String())
+		}
+	}
+	if strings.Contains(status.Body.String(), "missing_profile_fields") {
+		t.Errorf("complete profile reported missing fields: %s", status.Body.String())
+	}
+}
+
+func TestCapacityMessageFollowsReason(t *testing.T) {
+	// A single "commit headroom" sentence for every refusal made VRAM, physical
+	// memory, and an incomplete profile indistinguishable from a full pagefile.
+	for reason, want := range map[string]string{
+		"insufficient_vram_budget":     "VRAM budget",
+		"insufficient_physical_memory": "physical memory",
+		"insufficient_commit_headroom": "commit headroom",
+		"resource_profile_incomplete":  "resource profile is incomplete",
+	} {
+		if got := capacityMessage(reason); !strings.Contains(got, want) {
+			t.Errorf("capacityMessage(%q) = %q, want it to mention %q", reason, got, want)
+		}
+	}
+	if capacityMessage("insufficient_vram_budget") == capacityMessage("insufficient_commit_headroom") {
+		t.Error("distinct refusal reasons produced identical operator text")
 	}
 }
 

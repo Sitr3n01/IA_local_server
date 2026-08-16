@@ -77,7 +77,15 @@ Two rules make these numbers usable:
 
 ## Models that use host memory
 
-A model declaring `tensor_overrides` (partial weight offload) or a non-zero `cache_ram_mib` cannot be admitted on the `canary_resource_measurement_pending` path that covers small candidates. It fails closed with `resource_measurement_required_for_host_memory` until `resources.peak_vram_gib` and `resources.peak_commit_gib` are measured and recorded. Measurement is a precondition for offload, not a follow-up task.
+A model that uses host memory must present a *complete* resource profile before admission, and the required set is a property of how it runs rather than of its size:
+
+| Execution mode | Required measurements |
+|---|---|
+| Fully GPU-resident, no prompt cache | `peak_commit_gib` |
+| Host-RAM prompt cache (`cache_ram_mib > 0`) | `peak_commit_gib`, `peak_ram_gib` |
+| Partial weight offload (`tensor_overrides`) | `peak_commit_gib`, `peak_vram_gib`, `peak_ram_gib`, `runtimes[].device.vram_mib` |
+
+Anything missing fails closed with `resource_profile_incomplete`, and `/api/v1/status` names the absent fields in `missing_profile_fields`. A partial profile is worse than no profile because each missing field silently disables the check that consumes it — so `measured: true` now requires the whole set for that mode, not merely a known commit figure. `null` is never read as zero: an absent measurement means unknown, which is stricter than any number. Measurement is a precondition for offload, not a follow-up task.
 
 Adding such a model touches four files that CI checks against each other, and they must land together or `Test-V2HarnessConfig.ps1` fails:
 
