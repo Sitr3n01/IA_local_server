@@ -59,7 +59,7 @@ func (s *Server) handleModelControl(w http.ResponseWriter, r *http.Request, mode
 	if operation == "load" || operation == "switch" {
 		capacity, running := s.capacityFor(r.Context(), model)
 		if !capacity.Available {
-			s.writeError(w, http.StatusServiceUnavailable, "insufficient_capacity", "configured model cannot be admitted with the current commit headroom", "model")
+			s.writeError(w, http.StatusServiceUnavailable, "insufficient_capacity", capacityMessage(capacity.Reason), "model")
 			return
 		}
 		activeModel = s.activeModel(running)
