@@ -250,3 +250,70 @@ func TestStatusReadsActiveModelWithoutExposingRouterDetails(t *testing.T) {
 		t.Fatalf("router details leaked into status: %s", recorder.Body.String())
 	}
 }
+
+// The load/switch path built its own refusal string instead of using
+// capacityMessage, so an operator saw "commit headroom" for a VRAM overrun or an
+// incomplete profile. This pins every reason to distinct, accurate text.
+func TestModelControlRefusalMessageFollowsReason(t *testing.T) {
+	backend, _ := runningBackend(t, `{"running":[]}`)
+	commit, vram, device, ram := 8.0, 15.2, 15.92, 6.0
+
+	for _, testCase := range []struct {
+		name    string
+		apply   func(*Model)
+		memory  func() (memorySnapshot, error)
+		wantSub string
+		notSub  string
+	}{
+		{
+			name: "vram budget overrun",
+			apply: func(m *Model) {
+				m.PeakCommitGiB, m.PeakVRAMGiB, m.DeviceVRAMGiB = &commit, &vram, &device
+			},
+			memory:  fixedMemory(60, 40),
+			wantSub: "VRAM budget",
+			notSub:  "commit headroom",
+		},
+		{
+			name: "incomplete profile",
+			apply: func(m *Model) {
+				m.OffloadsTensors = true
+				m.PeakCommitGiB = &commit
+			},
+			memory:  fixedMemory(60, 40),
+			wantSub: "resource profile is incomplete",
+			notSub:  "commit headroom",
+		},
+		{
+			name: "physical memory shortfall",
+			apply: func(m *Model) {
+				m.PeakCommitGiB, m.PeakRAMGiB = &commit, &ram
+			},
+			memory:  fixedMemory(60, 7),
+			wantSub: "physical memory",
+			notSub:  "commit headroom",
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			cfg := testConfig(backend.URL)
+			testCase.apply(&cfg.Models[0])
+			server, err := New(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			server.memoryStatus = testCase.memory
+
+			recorder := controlRequest(t, server.ControlHandler(), http.MethodPost, "/api/v1/models/local-coding:load", nil)
+			if recorder.Code != http.StatusServiceUnavailable {
+				t.Fatalf("load status=%d body=%s", recorder.Code, recorder.Body.String())
+			}
+			body := recorder.Body.String()
+			if !strings.Contains(body, testCase.wantSub) {
+				t.Errorf("refusal does not mention %q: %s", testCase.wantSub, body)
+			}
+			if strings.Contains(body, testCase.notSub) {
+				t.Errorf("refusal still blames %q: %s", testCase.notSub, body)
+			}
+		})
+	}
+}
