@@ -454,6 +454,8 @@ In the preview, confirm the new model's `cmd:` contains `--no-context-shift`, `-
 
 Run the profiles in `model-test-matrix.json` (`qwen38-27b-*`), then the quality and stress evaluations. Leave `function_calling` false until `run-profile-stress-eval.py` produces a valid forced tool call. Then follow `MODEL_PROMOTION.md` as usual.
 
+If throughput disappoints, do not re-quantize on instinct: `TUNING.md` gives the bandwidth ceiling for a given weight split, so you can tell whether the configuration is at its hardware limit or something is actually broken. On this hardware the first gibibyte of offload costs ~37% of decode throughput, which frequently makes a smaller fully-resident quant the faster choice.
+
 ## Health interpretation
 
 | Observation | Meaning | Action |
@@ -465,7 +467,7 @@ Run the profiles in `model-test-matrix.json` (`qwen38-27b-*`), then the quality 
 | Model process absent while idle | Expected lazy state | No action |
 | Model starts after `/v1/models` | Contract regression | Stop cutover and file a blocking defect |
 
-Capacity `reason` values from `/api/v1/status`:
+Capacity `reason` values from `/api/v1/status` (for slowness rather than refusal, see `TUNING.md`):
 
 | Reason | Meaning | Action |
 |---|---|---|

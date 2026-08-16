@@ -61,7 +61,7 @@ flowchart LR
 
 Requests enter on loopback only. The edge strips the client's `Authorization` header, validates the payload against a route-specific contract, injects a *separate* router credential, and streams upstream bytes back incrementally with cancellation propagation. An unknown route, unknown model, unsupported encoding, or malformed tool shape **fails closed** — there is no second opinion to fall back to.
 
-Full detail: [Architecture](docs/ARCHITECTURE.md) · [Threat model](docs/THREAT_MODEL.md) · [Runbook](docs/RUNBOOK.md) · [ADRs](docs/adr/)
+Full detail: [Architecture](docs/ARCHITECTURE.md) · [Threat model](docs/THREAT_MODEL.md) · [Runbook](docs/RUNBOOK.md) · [Tuning](docs/TUNING.md) · [ADRs](docs/adr/)
 
 ## Security invariants
 
@@ -172,7 +172,7 @@ internal/            edge, credential, panel, supervisor, MCP, trayui, rotatelog
 config/              versioned model manifest + JSON Schema (source of truth)
 scripts/v2/          47 preview-first PowerShell deployment scripts
 integrations/        Codex and OpenCode profile templates (secret-free)
-docs/                architecture, threat model, runbook, benchmarks, promotion, 9 ADRs
+docs/                architecture, threat model, runbook, benchmarks, promotion, tuning, 9 ADRs
 incident-reports/    sanitized v1 credential-exposure record
 benchmarks/          recorded model benchmark evidence
 control/             legacy v1 Python panel — migration evidence only, never a rollback target
@@ -189,6 +189,7 @@ Long-form documentation is written in English.
 | [Runbook](docs/RUNBOOK.md) | Operational procedures and rollback boundaries |
 | [Model promotion](docs/MODEL_PROMOTION.md) | Qualification criteria and gate enforcement |
 | [Benchmarks](docs/BENCHMARKS.md) | Measurement methodology and evidence format |
+| [Tuning](docs/TUNING.md) | Bottleneck diagnosis and the memory-bandwidth ceiling |
 | [ADRs](docs/adr/) | Nine architecture decision records |
 | [Security policy](SECURITY.md) | Reporting process |
 

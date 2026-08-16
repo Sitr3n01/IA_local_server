@@ -73,6 +73,8 @@ Qwen3.8-class models interleave 48 Gated DeltaNet layers with 16 full-attention 
 
 **Cache restoration.** A prompt-cache measurement is meaningless as a single run. Issue the same ~90k-token prompt twice against a live server and record `prompt_tps` for both. The first is prefill; the second must be a checkpoint restore, and the ratio between them is the metric. If they are within an order of magnitude, checkpoints are not being restored and `--cache-ram` is only consuming commit. Note that `--cache-reuse` cannot produce this result on a recurrent model, and that any change to the system prompt invalidates every checkpoint — the harness prefix must be byte-stable across turns for the measurement to mean anything.
 
+When a measurement comes back bad, `TUNING.md` has the bottleneck decision tree and the bandwidth ceiling to compare it against.
+
 ## Performance gates
 
 - Edge overhead p95 below 50 ms for non-load time and below 5% throughput regression versus direct serving.

@@ -61,7 +61,7 @@ flowchart LR
 
 As requisições entram apenas por loopback. O edge remove o header `Authorization` do cliente, valida o payload contra um contrato específico da rota, injeta uma credencial de router *separada*, e devolve os bytes do upstream de forma incremental com propagação de cancelamento. Rota desconhecida, modelo desconhecido, encoding não suportado ou formato de ferramenta malformado **falham fechado** — não existe segunda opinião para recorrer.
 
-Detalhamento completo: [Arquitetura](docs/ARCHITECTURE.md) · [Threat model](docs/THREAT_MODEL.md) · [Runbook](docs/RUNBOOK.md) · [ADRs](docs/adr/)
+Detalhamento completo: [Arquitetura](docs/ARCHITECTURE.md) · [Threat model](docs/THREAT_MODEL.md) · [Runbook](docs/RUNBOOK.md) · [Tuning](docs/TUNING.md) · [ADRs](docs/adr/)
 
 ## Invariantes de segurança
 
@@ -172,7 +172,7 @@ internal/            edge, credential, panel, supervisor, MCP, trayui, rotatelog
 config/              manifesto versionado de modelos + JSON Schema (fonte da verdade)
 scripts/v2/          47 scripts PowerShell de deploy, preview-first
 integrations/        templates de perfil para Codex e OpenCode (sem segredos)
-docs/                arquitetura, threat model, runbook, benchmarks, promoção, 9 ADRs
+docs/                arquitetura, threat model, runbook, benchmarks, promoção, tuning, 9 ADRs
 incident-reports/    registro sanitizado da exposição de credencial da v1
 benchmarks/          evidência registrada de benchmark de modelos
 control/             painel Python legado da v1 — apenas evidência de migração, nunca alvo de rollback
@@ -189,6 +189,7 @@ A documentação longa é escrita em inglês.
 | [Runbook](docs/RUNBOOK.md) | Procedimentos operacionais e fronteiras de rollback |
 | [Promoção de modelo](docs/MODEL_PROMOTION.md) | Critérios de qualificação e aplicação do gate |
 | [Benchmarks](docs/BENCHMARKS.md) | Metodologia de medição e formato de evidência |
+| [Tuning](docs/TUNING.md) | Diagnóstico de gargalo e teto de banda de memória |
 | [ADRs](docs/adr/) | Nove registros de decisão arquitetural |
 | [Política de segurança](SECURITY.md) | Processo de reporte |
 
