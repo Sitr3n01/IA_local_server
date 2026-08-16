@@ -57,3 +57,67 @@ func TestRepositoryManifestExposesCanaryModels(t *testing.T) {
 		}
 	}
 }
+
+func TestLoadModelsJoinsRuntimeVRAMBudgetAndHostMemoryFields(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "models.yaml")
+	data := []byte(`provider:
+  public_model: local-coding
+runtimes:
+  - id: amd-rocm-baseline
+    device:
+      vram_mib: 16304
+  - id: runtime-without-budget
+    device: {}
+models:
+  - id: local-coding
+    state: candidate
+    deployments: [canary]
+    runtime: amd-rocm-baseline
+    cache_ram_mib: 6144
+    tensor_overrides:
+      - pattern: "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*"
+        buffer: CPU
+    resources:
+      peak_commit_gib: 22.5
+      peak_vram_gib: 14.6
+  - id: local-fast
+    state: candidate
+    deployments: [canary]
+    runtime: runtime-without-budget
+`)
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	models, err := LoadModels(path, "canary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(models) != 2 {
+		t.Fatalf("models = %+v", models)
+	}
+
+	coding := models[0]
+	if coding.DeviceVRAMGiB == nil || *coding.DeviceVRAMGiB != 16304.0/1024 {
+		t.Errorf("device VRAM budget = %v, want %v", coding.DeviceVRAMGiB, 16304.0/1024)
+	}
+	if coding.PeakVRAMGiB == nil || *coding.PeakVRAMGiB != 14.6 {
+		t.Errorf("peak VRAM = %v", coding.PeakVRAMGiB)
+	}
+	if coding.CacheRAMMiB == nil || *coding.CacheRAMMiB != 6144 {
+		t.Errorf("cache RAM = %v", coding.CacheRAMMiB)
+	}
+	if !coding.OffloadsTensors {
+		t.Error("tensor_overrides did not mark the model as offloading")
+	}
+
+	// A runtime that declares no budget must leave admission unconstrained
+	// rather than defaulting to some assumed device size.
+	fast := models[1]
+	if fast.DeviceVRAMGiB != nil {
+		t.Errorf("absent vram_mib produced a budget: %v", *fast.DeviceVRAMGiB)
+	}
+	if fast.OffloadsTensors || fast.CacheRAMMiB != nil {
+		t.Errorf("unexpected host-memory flags on %+v", fast)
+	}
+}

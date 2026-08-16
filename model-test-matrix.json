@@ -2,7 +2,10 @@
   "notes": [
     "Current AMD and Unsloth llama.cpp builds do not list TurboQuant KV cache types such as turbo4.",
     "These profiles use q4_0 KV cache as the supported long-context memory-saving mode.",
-    "UD profiles use Unsloth Dynamic GGUF weight quants where available; they are not the same as upstream TurboQuant/TQ cache types."
+    "UD profiles use Unsloth Dynamic GGUF weight quants where available; they are not the same as upstream TurboQuant/TQ cache types.",
+    "Qwen3.8-27B is a hybrid Gated DeltaNet model: only 16 of its 64 layers hold a KV cache, so context is cheap and weights are the binding constraint. It needs llama.cpp b10419 or newer; the pinned b8407 does not know the architecture.",
+    "ubatch values in 65..256 collapse throughput by up to 40x on hybrid models. Never sweep inside that band.",
+    "qwen38-27b-iq4xs-sanity is the go/no-go gate: it runs with no offload at a short context purely to measure whether the Gated DeltaNet kernel is GPU-accelerated on gfx1201. If tg128 lands near CPU speed, the remaining qwen38 profiles are not worth running."
   ],
   "profiles": [
     {
@@ -97,6 +100,111 @@
       "cache_type_k": "q8_0",
       "cache_type_v": "q8_0",
       "alias": "ornith10-9b-q5km-kv-q8-128k"
+    },
+    {
+      "id": "qwen38-27b-iq4xs-sanity",
+      "display_name": "Qwen 3.8 27B | AMD ROCm | IQ4_XS | 8k ctx | GDN kernel go/no-go",
+      "catalog_folder": "05 AMD ROCm - Qwen 3.8 27B - hybrid GDN",
+      "catalog_filename": "AMD--Qwen-3.8-27B--IQ4_XS--ctx-8192--kv-q8_0.gguf",
+      "family": "Qwen3.8-27B",
+      "source_model": "Qwen/Qwen3.8-27B",
+      "repo": "unsloth/Qwen3.8-27B-GGUF",
+      "filename": "Qwen3.8-27B-IQ4_XS.gguf",
+      "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
+      "context_size": 8192,
+      "cache_type_k": "q8_0",
+      "cache_type_v": "q8_0",
+      "alias": "qwen38-27b-iq4xs-sanity",
+      "runtime": "amd-rocm-qwen38",
+      "ubatch_size": 512,
+      "gpu_layers": 99,
+      "context_shift": false,
+      "note": "Gate zero. No offload, short context, no MTP: isolates Gated DeltaNet kernel throughput on gfx1201. Compare tg128 against the 9B baselines in benchmarks/."
+    },
+    {
+      "id": "qwen38-27b-iq4xs-kv-q8-96k",
+      "display_name": "Qwen 3.8 27B | AMD ROCm | IQ4_XS | 96k ctx | kv q8_0 | MTP",
+      "catalog_folder": "05 AMD ROCm - Qwen 3.8 27B - hybrid GDN",
+      "catalog_filename": "AMD--Qwen-3.8-27B--IQ4_XS--ctx-98304--kv-q8_0.gguf",
+      "family": "Qwen3.8-27B",
+      "source_model": "Qwen/Qwen3.8-27B",
+      "repo": "unsloth/Qwen3.8-27B-GGUF",
+      "filename": "Qwen3.8-27B-IQ4_XS.gguf",
+      "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
+      "context_size": 98304,
+      "cache_type_k": "q8_0",
+      "cache_type_v": "q8_0",
+      "alias": "qwen38-27b-iq4xs-kv-q8-96k",
+      "runtime": "amd-rocm-qwen38",
+      "ubatch_size": 512,
+      "gpu_layers": 99,
+      "context_shift": false,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "spec_decoding": {
+        "type": "draft-mtp",
+        "draft_n_max": 5
+      }
+    },
+    {
+      "id": "qwen38-27b-iq4xs-kv-q8-96k-nomtp",
+      "display_name": "Qwen 3.8 27B | AMD ROCm | IQ4_XS | 96k ctx | kv q8_0 | no MTP",
+      "catalog_folder": "05 AMD ROCm - Qwen 3.8 27B - hybrid GDN",
+      "catalog_filename": "AMD--Qwen-3.8-27B--IQ4_XS--ctx-98304--kv-q8_0.gguf",
+      "family": "Qwen3.8-27B",
+      "source_model": "Qwen/Qwen3.8-27B",
+      "repo": "unsloth/Qwen3.8-27B-GGUF",
+      "filename": "Qwen3.8-27B-IQ4_XS.gguf",
+      "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
+      "context_size": 98304,
+      "cache_type_k": "q8_0",
+      "cache_type_v": "q8_0",
+      "alias": "qwen38-27b-iq4xs-kv-q8-96k-nomtp",
+      "runtime": "amd-rocm-qwen38",
+      "ubatch_size": 512,
+      "gpu_layers": 99,
+      "context_shift": false,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "note": "Control for the MTP profile. Quality and determinism reference: llama.cpp has open reports of MTP retaining state between requests."
+    },
+    {
+      "id": "qwen38-27b-iq4xs-kv-q4-128k",
+      "display_name": "Qwen 3.8 27B | AMD ROCm | IQ4_XS | 128k ctx | kv q4_0 | MTP",
+      "catalog_folder": "05 AMD ROCm - Qwen 3.8 27B - hybrid GDN",
+      "catalog_filename": "AMD--Qwen-3.8-27B--IQ4_XS--ctx-131072--kv-q4_0.gguf",
+      "family": "Qwen3.8-27B",
+      "source_model": "Qwen/Qwen3.8-27B",
+      "repo": "unsloth/Qwen3.8-27B-GGUF",
+      "filename": "Qwen3.8-27B-IQ4_XS.gguf",
+      "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
+      "context_size": 131072,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "alias": "qwen38-27b-iq4xs-kv-q4-128k",
+      "runtime": "amd-rocm-qwen38",
+      "ubatch_size": 512,
+      "gpu_layers": 99,
+      "context_shift": false,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "spec_decoding": {
+        "type": "draft-mtp",
+        "draft_n_max": 5
+      },
+      "note": "KV q4_0 halves cache cost versus q8_0, buying 128k at the same VRAM. Requires a quality eval pass before it is preferred over the 96k q8_0 profile."
     }
   ]
 }

@@ -347,6 +347,88 @@ $codexHome = 'C:\Users\Sitr3n\.codex'
 .\scripts\v2\Install-V2Harness.ps1 -Environment Final -TargetCodexHome $codexHome -ExpectedPlanSha256 '<reviewed final plan_sha256>' -Apply -Replace
 ```
 
+## 11. Onboard a hybrid model with partial offload (Qwen3.8-27B)
+
+This procedure applies to any model too large to sit entirely in VRAM. It is written against Qwen3.8-27B IQ4_XS on the RX 9070 XT (16304 MiB) because that is the case it was built for.
+
+### 11.1 Gate zero: measure the Gated DeltaNet kernel before anything else
+
+The pinned `amd-rocm-baseline` runtime is b8407 and does not know this architecture; the GGUFs were quantized with b10419. Download an official ggml-org ROCm build for Windows (`llama-b<N>-windows-rocm-7.2.x-gfx110X-gfx115X-gfx120X-x64`, `N >= 10419`) and unpack it *outside* the repository, then measure without touching the manifest:
+
+```powershell
+.\scripts\bench-llama.ps1 `
+  -ModelPath 'C:\IA\models\Qwen3.8-27B-GGUF\Qwen3.8-27B-IQ4_XS.gguf' `
+  -RuntimeRoot 'C:\IA\local-llama\amd\<unpacked build directory>' `
+  -Label 'qwen38-sanity' -CacheTypeK q8_0 -CacheTypeV q8_0 -UBatchSize 512
+```
+
+Confirm the load log lists a ROCm device and that the Gated DeltaNet op is not falling back. Compare `tg128` against the 9B baselines in `benchmarks/`. If it lands near CPU-fallback speed, stop here and record the negative result — the rest of this procedure cannot recover it. See the hybrid section of `BENCHMARKS.md`.
+
+### 11.2 Find the split
+
+Sweep `-NGpuLayers` and `-ot` patterns and read `llm_load_tensors: CPU buffer size` from the load log. Target roughly 4 GiB resident in system RAM. Offload FFN tensors of a contiguous tail only — never reduce `--n-gpu-layers`, which would evict full-attention layers (`blk.3, 7, 11, … 63`) and push their KV cache into system RAM. Starting pattern:
+
+```
+blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*
+```
+
+### 11.3 Record the manifest entry
+
+Add the runtime and model to `config/models.yaml` together with the three catalog files listed in `MODEL_PROMOTION.md`; `Test-V2HarnessConfig.ps1` compares their cardinality against the manifest and fails if they drift. Fill `artifact.bytes` and `artifact.sha256` from the real files — `Assert-V2Artifact` verifies both on `-Apply`.
+
+```jsonc
+{
+  "id": "qwen38-27b-iq4xs",
+  "display_name": "Qwen 3.8 27B IQ4_XS - hybrid GDN, 96k context",
+  "state": "candidate",
+  "deployments": ["canary"],
+  "runtime": "amd-rocm-qwen38",
+  "artifact": { "path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
+                "bytes": 0, "sha256": "<compute with Get-FileHash>" },
+  "source": { "repository": "unsloth/Qwen3.8-27B-GGUF", "revision": "<40-hex upstream commit>",
+              "filename": "Qwen3.8-27B-IQ4_XS.gguf", "license": "Apache-2.0" },
+  "context_tokens": 98304,
+  "max_output_tokens": 16384,
+  "cache_type_k": "q8_0",
+  "cache_type_v": "q8_0",
+  "parallel": 1,
+  "batch_size": 2048,
+  "ubatch_size": 512,
+  "gpu_layers": 99,
+  "jinja": true,
+  "reasoning": "auto",
+  "context_shift": false,
+  "kv_unified": true,
+  "cache_ram_mib": 6144,
+  "ctx_checkpoints": 64,
+  "checkpoint_every_n_tokens": 8192,
+  "cache_idle_slots": true,
+  "spec_decoding": { "type": "draft-mtp", "draft_n_max": 5 },
+  "tensor_overrides": [
+    { "pattern": "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*", "buffer": "CPU" }
+  ],
+  "capabilities": { "responses": false, "chat_completions": true, "streaming": true,
+                    "function_calling": false, "structured_output": false },
+  "resources": { "peak_vram_gib": null, "peak_commit_gib": null, "peak_ram_gib": null }
+}
+```
+
+`context_shift: false` is mandatory: the recurrent state cannot be shifted, and the schema refuses `spec_decoding` without it. `cache_ram_mib` requires a measured `peak_commit_gib`, and `tensor_overrides` requires a measured `peak_vram_gib` — both are validated at generation time, and the edge refuses admission until they are present. Measure them from a live load, then fill them in; `6144` is a deliberately conservative starting cache. Raise it toward the 10 GiB budget only while watching commit headroom, because the commit requirement now includes it in full.
+
+### 11.4 Validate and generate
+
+```powershell
+.\scripts\v2\Test-V2Manifest.ps1 -SchemaValidatorPath 'C:\IA\local-ai-v2\bin\cia-manifest.exe'
+.\scripts\v2\Test-V2ConfigGeneration.ps1
+.\scripts\v2\New-V2Config.ps1 -Environment Canary
+```
+
+In the preview, confirm the new model's `cmd:` contains `--no-context-shift`, `--cache-ram`, `--spec-type draft-mtp`, and one `-ot` per override — and that every other model's `cmd:` is unchanged.
+
+### 11.5 Qualify
+
+Run the profiles in `model-test-matrix.json` (`qwen38-27b-*`), then the quality and stress evaluations. Leave `function_calling` false until `run-profile-stress-eval.py` produces a valid forced tool call. Then follow `MODEL_PROMOTION.md` as usual.
+
 ## Health interpretation
 
 | Observation | Meaning | Action |
@@ -357,6 +439,17 @@ $codexHome = 'C:\Users\Sitr3n\.codex'
 | `503` | Local provider cannot serve safely | Fix local dependency; do not enable fallback |
 | Model process absent while idle | Expected lazy state | No action |
 | Model starts after `/v1/models` | Contract regression | Stop cutover and file a blocking defect |
+
+Capacity `reason` values from `/api/v1/status`:
+
+| Reason | Meaning | Action |
+|---|---|---|
+| `commit_headroom_available` | Measured profile fits, including any declared prompt cache | No action |
+| `insufficient_commit_headroom` | Measured commit plus `cache_ram_mib` plus the 4 GiB reserve exceeds free commit | Free commit, lower `cache_ram_mib`, or raise the pagefile |
+| `insufficient_vram_budget` | Measured `peak_vram_gib` plus the 1 GiB reserve exceeds `device.vram_mib` | Shrink context, drop the KV type, or offload more weight |
+| `resource_measurement_required_for_host_memory` | Model declares offload or a prompt cache but has no measured profile | Measure and record `resources.peak_*`; this never resolves on its own |
+| `canary_resource_measurement_pending` | Unmeasured canary candidate that uses no host memory | Acceptable for small candidates; measure before qualifying |
+| `resource_measurement_required` | Unmeasured model outside the canary escape hatch | Measure and record `resources.peak_*` |
 
 ## Safe rollback
 

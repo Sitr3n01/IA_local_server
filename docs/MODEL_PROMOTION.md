@@ -55,6 +55,20 @@ Remove the model from every deployment before setting `retired`. A runtime, temp
 
 A load is admitted only if the measured profile peak plus at least 1 GiB dedicated VRAM reserve and 4 GiB system commit reserve fits current capacity. An unknown resource envelope is never eligible for final deployment.
 
+Both reserves are enforced in `internal/edge/capacity.go`. The commit requirement includes any `cache_ram_mib` the model declares, because llama-server's host-RAM prompt cache is charged against the Windows commit limit exactly like the process working set. The VRAM requirement is compared against `runtimes[].device.vram_mib`; a static device budget is valid only because `provider.max_loaded_models` is pinned to `1`.
+
+## Models that use host memory
+
+A model declaring `tensor_overrides` (partial weight offload) or a non-zero `cache_ram_mib` cannot be admitted on the `canary_resource_measurement_pending` path that covers small candidates. It fails closed with `resource_measurement_required_for_host_memory` until `resources.peak_vram_gib` and `resources.peak_commit_gib` are measured and recorded. Measurement is a precondition for offload, not a follow-up task.
+
+Adding such a model touches four files that CI checks against each other, and they must land together or `Test-V2HarnessConfig.ps1` fails:
+
+1. `config/models.yaml` — the runtime entry (with `device.vram_mib`) and the model entry, with real `artifact.bytes` and `artifact.sha256`.
+2. `integrations/codex/codex-model-catalog.json` — one entry per non-retired canary model.
+3. `integrations/opencode/opencode.local-provider.jsonc` and `opencode.canary-provider.jsonc` — the model lists must have the same cardinality and IDs as the canary manifest.
+
+Declare `capabilities.function_calling` and `capabilities.responses` as `false` until the stress evaluation demonstrates a valid forced tool call through `internal/edge/namespace.go`. A model family's tool-call serialization is not evidence for a specific quantization of it.
+
 ## Current status
 
 - `local-coding` / Ornith 1.0 9B Q4_K_M: canary candidate. Direct Responses and a function call were observed, but the complete gates and soak remain outstanding.

@@ -31,6 +31,43 @@ All notable changes are documented here. This project follows Keep a Changelog c
   and adding a needle-in-haystack plus forced-tool-call test the PowerShell
   suite did not have.
 
+- Manifest support for models too large to fit entirely in VRAM: optional typed
+  fields `context_shift`, `kv_unified`, `cache_ram_mib`, `ctx_checkpoints`,
+  `checkpoint_every_n_tokens`, `cache_idle_slots`, `spec_decoding`, and
+  `tensor_overrides`, plus `runtimes[].device.vram_mib`. `additionalProperties`
+  stays closed; a generic `extra_args` escape hatch was deliberately rejected
+  (ADR 0009).
+- `Test-V2ConfigGeneration.ps1`, run in CI, proving that a model declaring none
+  of the new fields still generates a byte-identical `llama-server` command line,
+  so growing the schema never rewrites a published deployment.
+- VRAM dimension in edge admission control: a measured `peak_vram_gib` plus the
+  documented 1 GiB reserve is checked against the runtime's declared device
+  budget, reported as `insufficient_vram_budget`.
+- Hybrid Gated DeltaNet benchmark protocol in `docs/BENCHMARKS.md`, including the
+  kernel go/no-go gate, the sweep matrix, and a cache-restoration measurement;
+  matching `qwen38-27b-*` profiles in `model-test-matrix.json`.
+- `docs/RUNBOOK.md` section 11: onboarding procedure for a partially offloaded
+  hybrid model, and a capacity-`reason` interpretation table.
+
+### Changed
+
+- `--parallel` is now emitted from `model.parallel` instead of a hardcoded `1`.
+  The schema still pins the value to `1`, so generated output is unchanged.
+- `--context-shift` is no longer emitted unconditionally. Models with a recurrent
+  state cannot be shifted, and a model that sets `context_shift: false` now gets
+  an explicit `--no-context-shift`.
+- Required commit for admission now includes `cache_ram_mib`. llama-server's
+  host-RAM prompt cache is charged against the Windows commit limit, and the gate
+  previously could not see it at all.
+- The `canary_resource_measurement_pending` escape hatch no longer covers models
+  that declare `tensor_overrides` or a non-zero `cache_ram_mib`; those fail closed
+  with `resource_measurement_required_for_host_memory` until measured.
+- `healthCheckTimeout` 180s to 600s and Codex `stream_idle_timeout_ms` 300s to
+  900s. Both were sized for models that load and prefill entirely in VRAM.
+- `scripts/bench-llama.ps1` accepts `-RuntimeRoot`, `-NGpuLayers`, `-Label`, and
+  `-RocBlasUseHipBlasLt`, and refuses `-UBatchSize` in the 65..256 band that
+  collapses throughput on hybrid models.
+
 ### Fixed
 
 - Tray dashboard `Abrir Codex`/`Abrir OpenCode` only enabled for the model with

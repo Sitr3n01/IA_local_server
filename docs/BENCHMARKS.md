@@ -58,6 +58,21 @@ Use versioned, non-secret fixtures representing:
 
 Score correctness, compile/test result, tool validity, instruction adherence, unsupported-feature honesty, and absence of reasoning/template artifacts. Publish fixture definitions and aggregate results, not private code or generated content.
 
+## Hybrid Gated DeltaNet models
+
+Qwen3.8-class models interleave 48 Gated DeltaNet layers with 16 full-attention layers. Two consequences change how they are measured.
+
+**Gate zero — is the kernel accelerated at all.** `GGML_OP_GATED_DELTA_NET` landed in llama.cpp with CPU and CUDA backends only. Vulkan falls back to CPU, and on RDNA 3.5 (gfx1151) the HIP path measures at CPU speed. Whether gfx1201 escapes that is unverified here. Run the `qwen38-27b-iq4xs-sanity` profile first: no offload, short context, no speculative decoding, so the number isolates kernel throughput. If `tg128` lands near the CPU-fallback range rather than in the tens of tokens per second, stop — no amount of quantization or cache tuning recovers a kernel that is not running on the GPU, and the remaining profiles are not worth the hours.
+
+**Sweeps.** Record each independently, one variable at a time:
+
+- `ubatch_size` across {288, 512, 1024, 2048}. Never sweep inside 65..256: that band collapses throughput by up to 40x on these models. Both `models.schema.json` and `bench-llama.ps1` refuse it, so a value inside the band in a report means the report is wrong.
+- `spec_draft_n_max` across {0, 3, 5, 7}, recording draft acceptance rate alongside tokens per second. Speculative decoding is the single largest lever on RDNA4 for this architecture; it is also the least stable, so every MTP profile needs a `-nomtp` control run for quality comparison.
+- `ROCBLAS_USE_HIPBLASLT` across {0, 1} via `bench-llama.ps1 -RocBlasUseHipBlasLt`. The pinned runtimes disable it; that choice has never been measured on gfx1201.
+- Weight split: vary `-NGpuLayers` or the `-ot` pattern and record `llm_load_tensors: CPU buffer size` from the load log against the resulting decode rate. This is the curve that decides whether a quant fits the hardware.
+
+**Cache restoration.** A prompt-cache measurement is meaningless as a single run. Issue the same ~90k-token prompt twice against a live server and record `prompt_tps` for both. The first is prefill; the second must be a checkpoint restore, and the ratio between them is the metric. If they are within an order of magnitude, checkpoints are not being restored and `--cache-ram` is only consuming commit. Note that `--cache-reuse` cannot produce this result on a recurrent model, and that any change to the system prompt invalidates every checkpoint — the harness prefix must be byte-stable across turns for the measurement to mean anything.
+
 ## Performance gates
 
 - Edge overhead p95 below 50 ms for non-load time and below 5% throughput regression versus direct serving.

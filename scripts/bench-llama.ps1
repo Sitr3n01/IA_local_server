@@ -4,18 +4,39 @@ param(
     [ValidateSet("amd", "unsloth")]
     [string]$Runtime = "amd",
 
+    # Points the sweep at a llama.cpp build that is not one of the two pinned
+    # runtimes. Required for architectures the pinned b8407 predates, such as the
+    # Gated DeltaNet hybrids, which need b10419 or newer.
+    [string]$RuntimeRoot,
+
     [int]$PromptTokens = 512,
     [int]$GenTokens = 128,
     [int]$BatchSize = 2048,
     [int]$UBatchSize = 512,
+    [int]$NGpuLayers = 99,
     [int]$Threads = 16,
     [int]$Repetitions = 5,
     [string]$CacheTypeK = "f16",
     [string]$CacheTypeV = "f16",
+    [string]$Label,
+
+    # The hipBLASLt path is the closest local analogue to a serving-kernel swap.
+    # It has never been A/B'd on gfx1201 in this repository; "0" preserves the
+    # pinned runtime's environment so existing baselines stay comparable.
+    [ValidateSet("0", "1")]
+    [string]$RocBlasUseHipBlasLt = "0",
+
     [string[]]$ExtraArgs = @()
 )
 
 $ErrorActionPreference = "Stop"
+
+# 65..256 collapses throughput by up to 40x on hybrid Gated DeltaNet models. The
+# manifest schema refuses the band outright; a bench sweep must not wander into
+# it either and then report the result as a tuning data point.
+if ($UBatchSize -ge 65 -and $UBatchSize -le 256) {
+    throw "UBatchSize $UBatchSize falls in the 65..256 throughput dead band for hybrid models. Pick a value below 65 or above 256."
+}
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $root = Split-Path -Parent $scriptDir
@@ -31,7 +52,7 @@ function Resolve-LlamaExe {
         [string]$ExeName
     )
 
-    $runtimeRoot = $runtimeRoots[$RuntimeName]
+    $runtimeRoot = if ([string]::IsNullOrWhiteSpace($RuntimeRoot)) { $runtimeRoots[$RuntimeName] } else { $RuntimeRoot }
     if (-not (Test-Path -LiteralPath $runtimeRoot)) {
         throw "Runtime '$RuntimeName' not found at $runtimeRoot"
     }
@@ -60,7 +81,8 @@ $benchExe = Resolve-LlamaExe -RuntimeName $Runtime -ExeName "llama-bench.exe"
 $benchDir = Split-Path -Parent $benchExe
 $benchDirOut = Join-Path $root "benchmarks"
 New-Item -ItemType Directory -Force -Path $benchDirOut | Out-Null
-$outFile = Join-Path $benchDirOut ("llama-bench-{0}-{1:yyyyMMdd-HHmmss}-{2}.txt" -f $Runtime, (Get-Date), $PID)
+$runLabel = if ([string]::IsNullOrWhiteSpace($Label)) { $Runtime } else { "$Runtime-$Label" }
+$outFile = Join-Path $benchDirOut ("llama-bench-{0}-{1:yyyyMMdd-HHmmss}-{2}.txt" -f $runLabel, (Get-Date), $PID)
 
 $torchLib = "C:\Users\Sitr3n\.unsloth\studio\unsloth_studio\Lib\site-packages\torch\lib"
 $ucrtDownlevel = "C:\Windows\System32\downlevel"
@@ -74,15 +96,15 @@ if ($Runtime -eq "unsloth") {
 else {
     # The AMD ROCm 7.2.1 package detects the gfx1201 dGPU and ignores the gfx1036 iGPU.
     Remove-Item Env:\HIP_VISIBLE_DEVICES -ErrorAction SilentlyContinue
-    $env:ROCBLAS_USE_HIPBLASLT = "0"
-    $deviceNote = "AMD runtime native selection, ROCBLAS_USE_HIPBLASLT=0, llama.cpp device ROCm0"
+    $env:ROCBLAS_USE_HIPBLASLT = $RocBlasUseHipBlasLt
+    $deviceNote = "AMD runtime native selection, ROCBLAS_USE_HIPBLASLT=$RocBlasUseHipBlasLt, llama.cpp device ROCm0"
 }
 
 $argsList = @(
     "--model", $resolvedModelPath,
     "--device", "ROCm0",
     "--split-mode", "none",
-    "--n-gpu-layers", "99",
+    "--n-gpu-layers", "$NGpuLayers",
     "--flash-attn", "1",
     "--n-prompt", "$PromptTokens",
     "--n-gen", "$GenTokens",

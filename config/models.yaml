@@ -30,7 +30,8 @@
       "device": {
         "backend": "ROCm",
         "selector": "ROCm0",
-        "gpu": "AMD Radeon RX 9070 XT (gfx1201)"
+        "gpu": "AMD Radeon RX 9070 XT (gfx1201)",
+        "vram_mib": 16304
       },
       "environment": {
         "ROCBLAS_USE_HIPBLASLT": "0"
@@ -50,7 +51,8 @@
       "device": {
         "backend": "ROCm",
         "selector": "ROCm0 after HIP isolation",
-        "gpu": "AMD Radeon RX 9070 XT (gfx1201)"
+        "gpu": "AMD Radeon RX 9070 XT (gfx1201)",
+        "vram_mib": 16304
       },
       "environment": {
         "HIP_VISIBLE_DEVICES": "1"

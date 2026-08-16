@@ -13,6 +13,14 @@ import (
 
 const commitReserveGiB = 4.0
 
+// vramReserveGiB is left to the Windows desktop compositor and to allocations
+// llama.cpp makes outside its own accounting. Unlike commit headroom there is no
+// cheap live probe here, so admission compares a measured per-model peak against
+// the device budget declared by the runtime. provider.max_loaded_models is
+// pinned to 1, which is what makes a static budget sound: exactly one model is
+// ever resident on the device.
+const vramReserveGiB = 1.0
+
 type capacityStatus struct {
 	Admission         string   `json:"admission"`
 	Model             string   `json:"model"`
@@ -20,6 +28,9 @@ type capacityStatus struct {
 	CommitHeadroomGiB *float64 `json:"commit_headroom_gib"`
 	RequiredCommitGiB *float64 `json:"required_commit_gib"`
 	ReserveCommitGiB  float64  `json:"reserve_commit_gib"`
+	RequiredVRAMGiB   *float64 `json:"required_vram_gib"`
+	DeviceVRAMGiB     *float64 `json:"device_vram_gib"`
+	ReserveVRAMGiB    float64  `json:"reserve_vram_gib"`
 	Measured          bool     `json:"measured"`
 	Available         bool     `json:"available"`
 	Reason            string   `json:"reason"`
@@ -46,27 +57,45 @@ func capacityFrom(model Model, running map[string]string, runningErr error, head
 		Model:            model.ID,
 		ModelRunning:     isRunning,
 		ReserveCommitGiB: commitReserveGiB,
+		ReserveVRAMGiB:   vramReserveGiB,
 	}
 	if metricErr == nil {
 		result.CommitHeadroomGiB = floatPointer(roundGiB(headroom))
 	}
-	if model.PeakCommitGiB != nil {
-		required := *model.PeakCommitGiB + commitReserveGiB
-		result.RequiredCommitGiB = floatPointer(roundGiB(required))
+	requiredCommit, haveCommit := requiredCommitGiB(model)
+	if haveCommit {
+		result.RequiredCommitGiB = floatPointer(roundGiB(requiredCommit))
 	}
-	result.Measured = runningErr == nil && metricErr == nil && model.PeakCommitGiB != nil
+	if model.PeakVRAMGiB != nil {
+		result.RequiredVRAMGiB = floatPointer(roundGiB(*model.PeakVRAMGiB + vramReserveGiB))
+	}
+	if model.DeviceVRAMGiB != nil {
+		result.DeviceVRAMGiB = floatPointer(roundGiB(*model.DeviceVRAMGiB))
+	}
+	result.Measured = runningErr == nil && metricErr == nil && haveCommit
 
 	switch {
 	case isRunning:
 		result.Available = true
 		result.Reason = "model_already_running"
-	case model.PeakCommitGiB != nil && metricErr == nil:
-		result.Available = headroom >= *model.PeakCommitGiB+commitReserveGiB
+	case exceedsVRAMBudget(model):
+		// A device budget overrun is a property of the manifest, not of live
+		// load, so it is checked before headroom and reported distinctly.
+		result.Available = false
+		result.Reason = "insufficient_vram_budget"
+	case haveCommit && metricErr == nil:
+		result.Available = headroom >= requiredCommit
 		if result.Available {
 			result.Reason = "commit_headroom_available"
 		} else {
 			result.Reason = "insufficient_commit_headroom"
 		}
+	case requiresMeasuredProfile(model):
+		// Partial weight offload and a host-RAM prompt cache both consume commit
+		// that the pending-measurement escape hatch cannot see. Admitting them
+		// unmeasured would trade a 503 for an out-of-memory stall.
+		result.Available = false
+		result.Reason = "resource_measurement_required_for_host_memory"
 	case isCanaryCandidate(model):
 		result.Available = true
 		result.Reason = "canary_resource_measurement_pending"
@@ -75,6 +104,35 @@ func capacityFrom(model Model, running map[string]string, runningErr error, head
 		result.Reason = "resource_measurement_required"
 	}
 	return result
+}
+
+// requiredCommitGiB is the measured peak plus the reserve, plus any prompt cache
+// the model asks llama-server to hold in host RAM. --cache-ram is charged
+// against the Windows commit limit exactly like the process working set, so
+// leaving it out understates the requirement by its full size.
+func requiredCommitGiB(model Model) (float64, bool) {
+	if model.PeakCommitGiB == nil {
+		return 0, false
+	}
+	required := *model.PeakCommitGiB + commitReserveGiB
+	if model.CacheRAMMiB != nil {
+		required += float64(*model.CacheRAMMiB) / 1024
+	}
+	return required, true
+}
+
+func exceedsVRAMBudget(model Model) bool {
+	if model.PeakVRAMGiB == nil || model.DeviceVRAMGiB == nil {
+		return false
+	}
+	return *model.PeakVRAMGiB+vramReserveGiB > *model.DeviceVRAMGiB
+}
+
+func requiresMeasuredProfile(model Model) bool {
+	if model.OffloadsTensors {
+		return true
+	}
+	return model.CacheRAMMiB != nil && *model.CacheRAMMiB > 0
 }
 
 func (s *Server) requireCapacity(w http.ResponseWriter, ctx context.Context, model Model) bool {

@@ -68,6 +68,42 @@ $incompleteFinalResources.runtimes[0].state = 'qualified'
 $incompleteFinalResources.models[0].resources.peak_vram_gib = 9.5
 Assert-V2SemanticRejection -Candidate $incompleteFinalResources -ExpectedMessage 'resources\.peak_commit_gib'
 
+# Hybrid-model tuning rules. These are relationships between fields, which the
+# JSON Schema cannot express; the per-field ranges (including the 65..256 ubatch
+# dead band) stay declarative in models.schema.json.
+$specWithContextShift = Copy-V2ManifestForSemanticTest -Value $manifest
+$specWithContextShift.models[0] | Add-Member -NotePropertyName 'spec_decoding' -NotePropertyValue ([pscustomobject]@{ type = 'draft-mtp'; draft_n_max = 5 })
+Assert-V2SemanticRejection -Candidate $specWithContextShift -ExpectedMessage 'must set context_shift=false'
+
+$offloadWithoutMeasurement = Copy-V2ManifestForSemanticTest -Value $manifest
+$offloadWithoutMeasurement.models[0] | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @([pscustomobject]@{ pattern = 'blk\.(4[4-9])\.ffn_.*'; buffer = 'CPU' })
+Assert-V2SemanticRejection -Candidate $offloadWithoutMeasurement -ExpectedMessage 'measure the split before offloading'
+
+$offloadWithWhitespace = Copy-V2ManifestForSemanticTest -Value $manifest
+$offloadWithWhitespace.models[0].resources.peak_vram_gib = 14.5
+$offloadWithWhitespace.models[0] | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @([pscustomobject]@{ pattern = 'blk\.4 4\.ffn_.*'; buffer = 'CPU' })
+Assert-V2SemanticRejection -Candidate $offloadWithWhitespace -ExpectedMessage 'containing whitespace'
+
+$offloadWithBadRegex = Copy-V2ManifestForSemanticTest -Value $manifest
+$offloadWithBadRegex.models[0].resources.peak_vram_gib = 14.5
+$offloadWithBadRegex.models[0] | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @([pscustomobject]@{ pattern = 'blk\.(4[4-9\.ffn_.*'; buffer = 'CPU' })
+Assert-V2SemanticRejection -Candidate $offloadWithBadRegex -ExpectedMessage 'invalid tensor_overrides regex'
+
+$cacheWithoutCommitMeasurement = Copy-V2ManifestForSemanticTest -Value $manifest
+$cacheWithoutCommitMeasurement.models[0] | Add-Member -NotePropertyName 'cache_ram_mib' -NotePropertyValue 6144
+Assert-V2SemanticRejection -Candidate $cacheWithoutCommitMeasurement -ExpectedMessage 'cannot account for the prompt cache'
+
+# The whole tuning surface together, measured, must be accepted.
+$tunedHybrid = Copy-V2ManifestForSemanticTest -Value $manifest
+$tunedHybrid.models[0].resources.peak_vram_gib = 14.5
+$tunedHybrid.models[0].resources.peak_commit_gib = 26
+$tunedHybrid.models[0] | Add-Member -NotePropertyName 'context_shift' -NotePropertyValue $false
+$tunedHybrid.models[0] | Add-Member -NotePropertyName 'kv_unified' -NotePropertyValue $true
+$tunedHybrid.models[0] | Add-Member -NotePropertyName 'cache_ram_mib' -NotePropertyValue 6144
+$tunedHybrid.models[0] | Add-Member -NotePropertyName 'spec_decoding' -NotePropertyValue ([pscustomobject]@{ type = 'draft-mtp'; draft_n_max = 5 })
+$tunedHybrid.models[0] | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @([pscustomobject]@{ pattern = 'blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*'; buffer = 'CPU' })
+Assert-V2ManifestSemantics -Manifest $tunedHybrid
+
 $qualifiedFinal = Copy-V2ManifestForSemanticTest -Value $manifest
 $qualifiedFinal.models[0].deployments = @('final')
 $qualifiedFinal.models[0].state = 'qualified'
@@ -95,7 +131,7 @@ if (-not $Quiet) {
         canary_models     = @($manifest.models | Where-Object { $_.deployments -contains 'canary' }).Count
         final_models      = @($manifest.models | Where-Object { $_.deployments -contains 'final' }).Count
         artifacts_hashed  = [bool]$VerifyArtifacts
-        semantic_policy_tests = 7
+        semantic_policy_tests = 13
         valid             = $true
     } | ConvertTo-Json -Depth 3
 }

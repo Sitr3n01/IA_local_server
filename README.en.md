@@ -101,7 +101,7 @@ The privilege split is deliberate at every layer: the control plane is a separat
 
 **CI.** Four jobs on every push: PowerShell parse + harness-config validation, Go format/vet/[Staticcheck](https://staticcheck.dev/)/[govulncheck](https://go.dev/blog/govulncheck) with a [CycloneDX SBOM](https://cyclonedx.org/) artifact, a separate race-detector run on the portable core, and a full-history [Gitleaks](https://github.com/gitleaks/gitleaks) secret scan. A dedicated step fails the build if a `.gguf`, `.safetensors`, `.exe`, or archive is ever tracked.
 
-**Decision records.** Eight [ADRs](docs/adr/) capture the *why* behind the architecture — the thin-edge split, fail-closed autonomy, the manifest/promotion gate, native panel over web UI, and the external-artifact ACL boundary.
+**Decision records.** Nine [ADRs](docs/adr/) capture the *why* behind the architecture — the thin-edge split, fail-closed autonomy, the manifest/promotion gate, native panel over web UI, the external-artifact ACL boundary, and partial weight offload with a host-RAM context cache for hybrid models.
 
 **Reproducibility.** Direct and transitive modules are pinned, and `go.mod` pins a patch-level toolchain floor (`go 1.26.5`) rather than a minor one — CI resolves its Go version from that file, so a stale floor would mean building and shipping against a standard library with known advisories. Deployment never copies from the worktree: release candidates build into a staging area, are reviewed by SHA-256, then install atomically into a protected directory.
 
@@ -172,7 +172,7 @@ internal/            edge, credential, panel, supervisor, MCP, trayui, rotatelog
 config/              versioned model manifest + JSON Schema (source of truth)
 scripts/v2/          47 preview-first PowerShell deployment scripts
 integrations/        Codex and OpenCode profile templates (secret-free)
-docs/                architecture, threat model, runbook, benchmarks, promotion, 8 ADRs
+docs/                architecture, threat model, runbook, benchmarks, promotion, 9 ADRs
 incident-reports/    sanitized v1 credential-exposure record
 benchmarks/          recorded model benchmark evidence
 control/             legacy v1 Python panel — migration evidence only, never a rollback target
@@ -189,7 +189,7 @@ Long-form documentation is written in English.
 | [Runbook](docs/RUNBOOK.md) | Operational procedures and rollback boundaries |
 | [Model promotion](docs/MODEL_PROMOTION.md) | Qualification criteria and gate enforcement |
 | [Benchmarks](docs/BENCHMARKS.md) | Measurement methodology and evidence format |
-| [ADRs](docs/adr/) | Eight architecture decision records |
+| [ADRs](docs/adr/) | Nine architecture decision records |
 | [Security policy](SECURITY.md) | Reporting process |
 
 ## License

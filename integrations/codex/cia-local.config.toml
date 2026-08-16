@@ -18,7 +18,10 @@ base_url = "http://127.0.0.1:8090/v1"
 wire_api = "responses"
 request_max_retries = 1
 stream_max_retries = 1
-stream_idle_timeout_ms = 300000
+# Raised from 300000. Time-to-first-token is bounded by prefill, and a cold
+# 96k-token prompt against a partially offloaded 27B runs far past five minutes
+# on DDR5. The edge already allows 1800s (DefaultHeaderTimeout).
+stream_idle_timeout_ms = 900000
 
 [model_providers.cia-local.auth]
 command = 'C:\IA\local-ai-v2\bin\cia-credential.exe'
