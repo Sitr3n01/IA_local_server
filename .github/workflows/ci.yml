@@ -38,6 +38,10 @@ jobs:
           ./scripts/v2/Test-V2HarnessConfig.ps1
           ./scripts/v2/Test-V2ConfigGeneration.ps1
 
+      - name: Agentic reuse harness self-test
+        shell: pwsh
+        run: ./scripts/v2/Test-V2AgenticHarness.ps1
+
       - name: Reject tracked binary/model artifacts
         shell: pwsh
         run: |
@@ -125,6 +129,30 @@ jobs:
 
       - name: Race-enabled unit and contract tests
         run: go test -race ./...
+
+  fork-gate:
+    name: Fork provenance gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # The gate's primary evidence is a compiled probe over the fork's own
+      # checkpoint predicate, so it needs a C++ driver. Running it here, on a
+      # runner that has one, keeps the executable half of the gate exercised
+      # rather than skipped on the Windows job.
+      - name: Gate unit tests with a C++ driver present
+        shell: bash
+        run: |
+          g++ --version
+          go test ./internal/forkgate/... -v -run TestProbe
 
   secrets:
     name: Secret scan

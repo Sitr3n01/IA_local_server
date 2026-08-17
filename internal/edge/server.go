@@ -429,13 +429,34 @@ func (s *Server) writeStatus(w http.ResponseWriter, r *http.Request) {
 	memory, metricErr := s.memoryStatus()
 	capacity := capacityFrom(s.publicModel(), s.cfg.Models, running, runningErr, memory, metricErr)
 	modelStatuses := make([]map[string]any, 0, len(s.cfg.Models))
+	runtimes := make([]RuntimeSummary, 0, len(s.cfg.Models))
+	seenRuntimes := make(map[string]struct{}, len(s.cfg.Models))
 	for _, model := range s.cfg.Models {
 		modelCapacity := capacityFrom(model, s.cfg.Models, running, runningErr, memory, metricErr)
 		_, active := running[model.ID]
 		modelStatuses = append(modelStatuses, map[string]any{
 			"id": model.ID, "available": modelCapacity.Available,
 			"active": active, "reason": modelCapacity.Reason, "capacity": modelCapacity,
+			"runtime": model.Runtime, "context_tokens": model.ContextTokens,
+			// Reported together on purpose: a checkpoint configuration is only
+			// meaningful on a runtime shown to restore checkpoints on this
+			// architecture, and the pair is what says whether the deployment is
+			// actually getting incremental reuse or only asking for it.
+			"checkpoints": map[string]any{
+				"configured":          model.Checkpoints.Configured(),
+				"ctx_checkpoints":     model.Checkpoints.Count,
+				"checkpoint_min_step": model.Checkpoints.MinStep,
+				"runtime_capable":     model.Runtime.CheckpointCapable,
+			},
 		})
+		if model.Runtime.ID == "" {
+			continue
+		}
+		if _, seen := seenRuntimes[model.Runtime.ID]; seen {
+			continue
+		}
+		seenRuntimes[model.Runtime.ID] = struct{}{}
+		runtimes = append(runtimes, model.Runtime)
 	}
 	upstreamReachable := s.upstreamReachable(r.Context())
 	ready := upstreamReachable && capacity.Available
@@ -445,6 +466,7 @@ func (s *Server) writeStatus(w http.ResponseWriter, r *http.Request) {
 		"ready":          ready,
 		"upstream":       map[string]any{"url": s.cfg.UpstreamURL, "reachable": upstreamReachable},
 		"models":         append([]Model(nil), s.cfg.Models...),
+		"runtimes":       runtimes,
 		"active_model":   s.activeModel(running),
 		"gate":           s.gate.snapshot(),
 		"capacity":       capacity,

@@ -44,6 +44,56 @@ function Get-V2ModelSetting {
     return $property.Value
 }
 
+# Distinguishes "the manifest declared this" from "the manifest left it to the
+# runtime". For a boolean the difference is invisible to Get-V2ModelSetting - a
+# declared $false and an absent field both read as $false - and it is exactly the
+# difference that matters for a runtime whose shipped default is $true.
+function Test-V2ModelSettingDeclared {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Model,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Name
+    )
+
+    $property = $Model.PSObject.Properties[$Name]
+    return ($null -ne $property -and $null -ne $property.Value)
+}
+
+# Runtimes without an explicit variant are upstream release builds, which is what
+# every entry predating fork support is. Reading the default here keeps the two
+# pinned baseline runtimes untouched.
+function Get-V2RuntimeVariant {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Runtime
+    )
+
+    $property = $Runtime.PSObject.Properties['variant']
+    if ($null -eq $property -or [string]::IsNullOrWhiteSpace([string]$property.Value)) {
+        return 'upstream'
+    }
+    return [string]$property.Value
+}
+
+# Settings a fork runtime ships with a different default than the upstream
+# baseline. Leaving any of them absent does not reproduce the baseline - it
+# silently enables a fork behaviour - so a fork profile has to state each one and
+# a comparison against upstream stays a comparison of one variable.
+#
+# The list is not guesswork: cia-fork-gate reads these defaults out of the pinned
+# commit and records them in observed_defaults, and its control-variables check
+# fails if it cannot.
+$script:V2ForkPinnedSettings = @(
+    'context_shift',
+    'kv_unified',
+    'cache_ram_mib',
+    'cache_idle_slots',
+    'ctx_checkpoints',
+    'checkpoint_min_step'
+)
+
 function Assert-V2ManifestSemantics {
     param(
         [Parameter(Mandatory = $true)]
@@ -71,6 +121,28 @@ function Assert-V2ManifestSemantics {
         if ($runtime.artifact.sha256 -notmatch '^[A-Fa-f0-9]{64}$') {
             throw "Runtime '$($runtime.id)' has an invalid SHA-256."
         }
+
+        # Provenance rules. The JSON Schema already refuses a fork without
+        # provenance and a revision that is not a full commit; these restate the
+        # two invariants that decide whether a runtime is identifiable at all,
+        # with an error an operator can act on.
+        $variant = Get-V2RuntimeVariant -Runtime $runtime
+        $provenance = $runtime.PSObject.Properties['provenance']
+        if ($variant -eq 'fork') {
+            if ($null -eq $provenance -or $null -eq $provenance.Value) {
+                throw "Runtime '$($runtime.id)' is a fork and must declare provenance; a fork build has no release identity to fall back on."
+            }
+            $revision = [string]$provenance.Value.source_revision
+            if ($revision -notmatch '^[0-9a-f]{40}$') {
+                throw "Runtime '$($runtime.id)' pins source_revision '$revision'; a runtime is identified by an exact commit, never by master, main, latest, HEAD, or an abbreviation."
+            }
+            if ([string]$runtime.build_commit -notlike "$($revision.Substring(0, 8))*") {
+                throw "Runtime '$($runtime.id)' reports build_commit '$($runtime.build_commit)', which does not begin the pinned source_revision '$revision'."
+            }
+        }
+        elseif ($null -ne $provenance -and $null -ne $provenance.Value) {
+            throw "Runtime '$($runtime.id)' declares provenance without variant 'fork'; provenance is what distinguishes a source build from an upstream release."
+        }
     }
 
     $modelIds = @{}
@@ -78,7 +150,7 @@ function Assert-V2ManifestSemantics {
         if ($modelIds.ContainsKey($model.id)) {
             throw "Duplicate model id '$($model.id)'."
         }
-        $modelIds[$model.id] = $true
+        $modelIds[$model.id] = $model
         if (-not $runtimeIds.ContainsKey($model.runtime)) {
             throw "Model '$($model.id)' references unknown runtime '$($model.runtime)'."
         }
@@ -120,6 +192,18 @@ function Assert-V2ManifestSemantics {
                 catch {
                     throw "Model '$($model.id)' has an invalid tensor_overrides regex '$($override.pattern)': $($_.Exception.Message)"
                 }
+            }
+        }
+
+        # Fork runtimes ship different defaults than the upstream baseline, so a
+        # field left absent does not mean "behave like upstream" - it means
+        # "behave like the fork". Requiring each one to be stated keeps the
+        # upstream-versus-fork comparison a comparison of the runtime, which is
+        # the only variable it is supposed to isolate.
+        if ((Get-V2RuntimeVariant -Runtime $runtimeIds[$model.runtime]) -eq 'fork') {
+            $unpinned = @($script:V2ForkPinnedSettings | Where-Object { -not (Test-V2ModelSettingDeclared -Model $model -Name $_) })
+            if ($unpinned.Count -gt 0) {
+                throw "Model '$($model.id)' runs on fork runtime '$($model.runtime)' and leaves $($unpinned -join ', ') to the fork's own defaults. State every one of them so the run differs from the upstream baseline only by the runtime."
             }
         }
 
@@ -168,6 +252,16 @@ function Assert-V2ManifestSemantics {
         throw "provider.public_model references unknown model '$($Manifest.provider.public_model)'."
     }
 
+    # The public model is what every harness resolves to, so an experimental
+    # runtime cannot reach it by being selected for some other model. Adopting a
+    # fork is deliberately a decision about one canary entry until the fork has
+    # been through the promotion gates in docs/MODEL_PROMOTION.md.
+    $publicModel = $modelIds[$Manifest.provider.public_model]
+    $publicRuntime = $runtimeIds[$publicModel.runtime]
+    if ((Get-V2RuntimeVariant -Runtime $publicRuntime) -eq 'fork' -and
+        $publicRuntime.state -notin @('qualified', 'enabled')) {
+        throw "provider.public_model '$($publicModel.id)' is served by fork runtime '$($publicRuntime.id)' in state '$($publicRuntime.state)'. Qualify the fork before it can serve the public model."
+    }
 }
 
 # Extracts every option token from a llama-server --help dump.
@@ -358,8 +452,18 @@ function New-V2LlamaServerCommand {
     if ($null -ne $checkpointMinStep) {
         $arguments.AddRange([string[]]@('--checkpoint-min-step', [string][int]$checkpointMinStep))
     }
-    if ([bool](Get-V2ModelSetting -Model $Model -Name 'cache_idle_slots' -Default $false)) {
-        $arguments.Add('--cache-idle-slots')
+    # Three states, not two. Absent keeps whatever the runtime does by itself,
+    # which is what every model generated before this field existed relies on.
+    # Declared is emitted either way, because a fork that saves idle slots to the
+    # prompt cache by default cannot be turned off by silence - only by
+    # --no-cache-idle-slots.
+    if (Test-V2ModelSettingDeclared -Model $Model -Name 'cache_idle_slots') {
+        if ([bool](Get-V2ModelSetting -Model $Model -Name 'cache_idle_slots' -Default $false)) {
+            $arguments.Add('--cache-idle-slots')
+        }
+        else {
+            $arguments.Add('--no-cache-idle-slots')
+        }
     }
     $specDecoding = Get-V2ModelSetting -Model $Model -Name 'spec_decoding'
     if ($null -ne $specDecoding) {

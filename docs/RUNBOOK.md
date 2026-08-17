@@ -485,6 +485,132 @@ Run the profiles in `model-test-matrix.json` (`qwen38-27b-*`), then the quality 
 
 If throughput disappoints, do not re-quantize on instinct: `TUNING.md` gives the bandwidth ceiling for a given weight split, so you can tell whether the configuration is at its hardware limit or something is actually broken. On this hardware the first gibibyte of offload costs ~37% of decode throughput, which frequently makes a smaller fully-resident quant the faster choice.
 
+## 12. Adopt the buun-llama-cpp agentic runtime (Qwen3.8 only)
+
+The upstream build cannot restore context checkpoints on a hybrid/recurrent
+model (§`TUNING.md` 1.4), so an agentic session re-prefills its whole context
+every turn. ADR 0010 adopts a pinned commit of `spiritbuun/buun-llama-cpp` as a
+**second** runtime for that one case. The upstream runtime, its hashes, its
+paths, the models bound to it and `provider.public_model` are not touched by any
+step below.
+
+### 12.1 Pin the commit and prove the correction
+
+Never pin `master`, `main`, `latest` or `HEAD` — the schema refuses them, and so
+should you. Resolve an exact commit, then gate it before compiling anything:
+
+```powershell
+go build -trimpath -o C:\IA\local-ai-v2\bin\cia-fork-gate.exe .\cmd\cia-fork-gate
+git ls-remote https://github.com/spiritbuun/buun-llama-cpp master   # read the SHA, then pin it
+C:\IA\local-ai-v2\bin\cia-fork-gate.exe `
+  --source C:\IA\src\buun-llama-cpp `
+  --revision <40-hex commit> `
+  --compiler clang++ `
+  --report C:\IA\local-llama\amd\fork-gate-report.json
+```
+
+The gate compiles the fork's own checkpoint predicate and asserts that recurrent
+selection ignores `pos_min` and the position threshold entirely, decides on the
+recurrent frontier instead, and leaves transformer selection unchanged. It also
+reads the fork's shipped defaults, which the profile has to pin.
+
+**If it fails, stop.** Do not patch the fork locally and do not build it anyway.
+Record the reason in the change and qualify a different commit; a private variant
+of llama.cpp is not a dependency this project is willing to carry.
+
+### 12.2 Build for gfx1201 only
+
+```powershell
+.\scripts\v2\Build-V2ForkRuntime.ps1 -Revision <40-hex commit>          # preview
+.\scripts\v2\Build-V2ForkRuntime.ps1 -Revision <40-hex commit> -Apply
+```
+
+Release, ROCm/HIP, `gfx1201`, target `llama-server` and nothing else. The install
+directory carries the commit, and the script refuses to write into any directory
+an existing manifest runtime occupies, so the baseline cannot be overwritten. It
+prints the runtime entry with the artifact SHA-256 and the gate report hash in it.
+
+### 12.3 Review the entry in, and pin every control variable
+
+Add the printed entry as a **new** `runtimes[]` element. Do not edit the existing
+ones. The model that uses it must state every setting whose fork default differs
+from upstream — `Assert-V2ManifestSemantics` refuses it otherwise:
+
+```json
+"context_shift": false,
+"kv_unified": true,
+"cache_ram_mib": 0,
+"cache_idle_slots": false,
+"ctx_checkpoints": 64,
+"checkpoint_min_step": 512,
+"cache_type_k": "q4_0",
+"cache_type_v": "q4_0",
+"parallel": 1,
+"batch_size": 2048
+```
+
+`cache_ram_mib: 0` and `cache_idle_slots: false` are not decoration: the fork
+ships an 8 GiB host prompt cache enabled and idle-slot saving on. Omitting either
+turns them on, adds commit pressure, and makes the comparison measure two things.
+The host prompt cache and `/slots` persistence are both out of scope for this
+qualification — what is being tested is checkpoint reuse inside a live session.
+
+Then validate and generate as in §11.4. `Test-V2Manifest.ps1` and
+`Test-V2ConfigGeneration.ps1` both cover the fork shape.
+
+### 12.4 Qualify progressively, against an upstream control
+
+Gates A → B → C → D from `BENCHMARKS.md`. Stop at the first one that fails; do
+not start at 256k.
+
+```powershell
+# B side: the fork
+.\scripts\v2\Measure-V2AgenticReuse.ps1 -BaseUrl http://127.0.0.1:19300 `
+  -Model qwen38-27b-buun -RuntimeLabel buun -BaseContextTokens 60000 `
+  -ServerProcessId <llama-server pid> -OutputPath .\buun-60k.json
+
+# A side: upstream, same fixture, same everything else
+.\scripts\v2\Measure-V2AgenticReuse.ps1 -BaseUrl http://127.0.0.1:19301 `
+  -Model qwen38-27b-upstream -RuntimeLabel upstream -BaseContextTokens 60000 `
+  -ServerProcessId <llama-server pid> -OutputPath .\upstream-60k.json
+
+.\scripts\v2\Compare-V2Runtimes.ps1 -BaselineReport .\upstream-60k.json `
+  -CandidateReport .\buun-60k.json -OutputPath .\ab-60k.json
+```
+
+The A side needs an upstream build that knows the Qwen3.8 architecture; the
+pinned `amd-rocm-baseline` (b8407) does not, so it is a separate runtime entry
+added the same way. Without it there is no comparison, only a measurement.
+
+Sweep `ctx_checkpoints` {32, 64, 128} and `checkpoint_min_step` {256, 512, 1024,
+2048} one variable at a time, and take the **smallest** checkpoint count that
+holds reuse without a relevant re-prefill. Sweep `spec_draft_n_max` {0, 2, 3, 5,
+7} separately, recording draft acceptance beside throughput. Near 256k, sweep the
+context size itself — ship the value with the better MTP acceptance rather than
+the round one.
+
+### 12.5 Measure the envelope, then promote deliberately
+
+The fork profile offloads tensors, so it stays refused with
+`resource_profile_incomplete` until `peak_commit_gib`, `peak_vram_gib` and
+`peak_ram_gib` are all measured on the RX 9070 XT under §11.0 discipline. There
+is no fork-specific allowance in admission and none will be added.
+
+The runtime starts `candidate`. It reaches `qualified` only after artifact and
+hash validation, the ROCm/gfx1201 and Gated DeltaNet gates, short context, the
+agentic checkpoint regression, 128k, 192k, ~256k, the MTP sweep, the memory
+measurement, resource admission, tool calling, streaming, Codex/OpenCode
+end-to-end, and the soak. `enabled` and any change to `provider.public_model`
+remain explicit operator decisions.
+
+### 12.6 Return to upstream
+
+Point the model's `runtime` field back at the upstream entry, set the fork
+runtime to `retired`, and regenerate. Nothing else changes: no code path knows
+the fork by name, and no abstraction was added for it. Do this when upstream
+merges an equivalent correction and matches the fork on these gates — or at any
+point the fork stops being worth its maintenance.
+
 ## Health interpretation
 
 | Observation | Meaning | Action |

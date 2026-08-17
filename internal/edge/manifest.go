@@ -17,21 +17,39 @@ type modelManifest struct {
 }
 
 type manifestRuntime struct {
-	ID     string `yaml:"id"`
-	Device struct {
-		VRAMMiB *int `yaml:"vram_mib"`
+	ID      string `yaml:"id"`
+	State   string `yaml:"state"`
+	Engine  string `yaml:"engine"`
+	Variant string `yaml:"variant"`
+	Device  struct {
+		VRAMMiB *int   `yaml:"vram_mib"`
+		Backend string `yaml:"backend"`
 	} `yaml:"device"`
+	Artifact struct {
+		SHA256 string `yaml:"sha256"`
+	} `yaml:"artifact"`
+	Provenance *struct {
+		SourceRepository string `yaml:"source_repository"`
+		SourceRevision   string `yaml:"source_revision"`
+		CheckpointFix    *struct {
+			Reference string `yaml:"reference"`
+			Evidence  string `yaml:"evidence"`
+		} `yaml:"checkpoint_fix"`
+	} `yaml:"provenance"`
 }
 
 type manifestModel struct {
-	ID          string   `yaml:"id"`
-	State       string   `yaml:"state"`
-	Status      string   `yaml:"status"`
-	Enabled     *bool    `yaml:"enabled"`
-	OwnedBy     string   `yaml:"owned_by"`
-	Deployments []string `yaml:"deployments"`
-	Runtime     string   `yaml:"runtime"`
-	CacheRAMMiB *int     `yaml:"cache_ram_mib"`
+	ID                string   `yaml:"id"`
+	State             string   `yaml:"state"`
+	Status            string   `yaml:"status"`
+	Enabled           *bool    `yaml:"enabled"`
+	OwnedBy           string   `yaml:"owned_by"`
+	Deployments       []string `yaml:"deployments"`
+	Runtime           string   `yaml:"runtime"`
+	CacheRAMMiB       *int     `yaml:"cache_ram_mib"`
+	ContextTokens     *int     `yaml:"context_tokens"`
+	CtxCheckpoints    *int     `yaml:"ctx_checkpoints"`
+	CheckpointMinStep *int     `yaml:"checkpoint_min_step"`
 	// Presence, not content: the edge only needs to know that part of the model
 	// lives outside VRAM, which makes an unmeasured capacity profile unsafe.
 	TensorOverrides []struct {
@@ -69,6 +87,7 @@ func LoadModels(path, environment string) ([]Model, string, error) {
 		return nil, "", errorsForManifest("provider.public_model is required")
 	}
 	deviceVRAM := make(map[string]*float64, len(manifest.Runtimes))
+	runtimes := make(map[string]RuntimeSummary, len(manifest.Runtimes))
 	for _, runtime := range manifest.Runtimes {
 		id := strings.TrimSpace(runtime.ID)
 		if id == "" {
@@ -78,6 +97,7 @@ func LoadModels(path, environment string) ([]Model, string, error) {
 			budget := float64(*runtime.Device.VRAMMiB) / 1024
 			deviceVRAM[id] = &budget
 		}
+		runtimes[id] = summarizeRuntime(runtime)
 	}
 
 	seen := make(map[string]struct{})
@@ -128,6 +148,12 @@ func LoadModels(path, environment string) ([]Model, string, error) {
 			DeviceVRAMGiB:   deviceVRAM[strings.TrimSpace(entry.Runtime)],
 			CacheRAMMiB:     entry.CacheRAMMiB,
 			OffloadsTensors: len(entry.TensorOverrides) > 0,
+			Runtime:         runtimes[strings.TrimSpace(entry.Runtime)],
+			ContextTokens:   entry.ContextTokens,
+			Checkpoints: CheckpointSummary{
+				Count:   entry.CtxCheckpoints,
+				MinStep: entry.CheckpointMinStep,
+			},
 		})
 		if id == publicModel {
 			publicFound = true
@@ -137,6 +163,45 @@ func LoadModels(path, environment string) ([]Model, string, error) {
 		return nil, "", errorsForManifest(fmt.Sprintf("provider.public_model %q is not deployed to %s", publicModel, environment))
 	}
 	return models, publicModel, nil
+}
+
+// summarizeRuntime reduces a manifest runtime to what an operator needs to tell
+// two builds apart at a glance, and nothing more. The installation path is
+// deliberately absent: it identifies the machine rather than the runtime, and
+// the runtime's identity is its repository, commit, and artifact hash.
+//
+// The artifact hash is abbreviated. The full value lives in the manifest, which
+// is where a verification belongs; twelve hex digits are enough to notice that
+// the running build is not the one that was qualified.
+func summarizeRuntime(runtime manifestRuntime) RuntimeSummary {
+	summary := RuntimeSummary{
+		ID:      strings.TrimSpace(runtime.ID),
+		State:   strings.ToLower(strings.TrimSpace(runtime.State)),
+		Engine:  strings.TrimSpace(runtime.Engine),
+		Variant: strings.ToLower(strings.TrimSpace(runtime.Variant)),
+		Backend: strings.TrimSpace(runtime.Device.Backend),
+	}
+	if summary.Variant == "" {
+		// Every runtime that predates fork support is an upstream release
+		// build, and reporting it as unknown would make the distinction the
+		// field exists to draw look absent rather than settled.
+		summary.Variant = "upstream"
+	}
+	if sha := strings.ToLower(strings.TrimSpace(runtime.Artifact.SHA256)); len(sha) >= 12 {
+		summary.ArtifactSHA256Prefix = sha[:12]
+	}
+	if runtime.Provenance != nil {
+		summary.SourceRepository = strings.TrimSpace(runtime.Provenance.SourceRepository)
+		summary.Commit = strings.ToLower(strings.TrimSpace(runtime.Provenance.SourceRevision))
+		if fix := runtime.Provenance.CheckpointFix; fix != nil && strings.TrimSpace(fix.Evidence) != "" {
+			// Capability, not configuration: it records that this build was
+			// shown to restore checkpoints on a hybrid/recurrent model, which is
+			// the reason a checkpoint configuration on it means anything.
+			summary.CheckpointCapable = true
+			summary.CheckpointFixReference = strings.TrimSpace(fix.Reference)
+		}
+	}
+	return summary
 }
 
 func containsDeployment(deployments []string, wanted string) bool {

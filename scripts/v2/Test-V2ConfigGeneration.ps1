@@ -183,11 +183,91 @@ if (-not $rejected) {
     throw 'A flag absent from the runtime help was accepted, or the error did not name the runtime, model, and flag.'
 }
 
+# 6. The first buun-llama-cpp qualification profile. Every setting whose fork
+#    default differs from the upstream baseline has to appear on the command
+#    line, because on this runtime silence is not neutrality: omitting
+#    --cache-ram leaves an 8 GiB host prompt cache enabled, and omitting
+#    --no-cache-idle-slots leaves idle slots being written into it. Both would
+#    change what is being compared and neither would be visible in the manifest.
+$fork = ($template | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
+$fork.id = 'qwen38-27b-buun'
+$fork.context_tokens = 262144
+$fork.cache_type_k = 'q4_0'
+$fork.cache_type_v = 'q4_0'
+$fork.batch_size = 2048
+$fork.ubatch_size = 288
+$fork | Add-Member -NotePropertyName 'context_shift' -NotePropertyValue $false
+$fork | Add-Member -NotePropertyName 'kv_unified' -NotePropertyValue $true
+$fork | Add-Member -NotePropertyName 'cache_ram_mib' -NotePropertyValue 0
+$fork | Add-Member -NotePropertyName 'ctx_checkpoints' -NotePropertyValue 64
+$fork | Add-Member -NotePropertyName 'checkpoint_min_step' -NotePropertyValue 512
+$fork | Add-Member -NotePropertyName 'cache_idle_slots' -NotePropertyValue $false
+$fork | Add-Member -NotePropertyName 'spec_decoding' -NotePropertyValue ([pscustomobject]@{ type = 'draft-mtp'; draft_n_max = 3 })
+$fork | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @(
+    [pscustomobject]@{ pattern = 'blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*'; buffer = 'CPU' })
+
+$forkCommand = New-V2LlamaServerCommand -Runtime $runtimesById[$fork.runtime] -Model $fork -RouterAPIKeyPath $routerAPIKeyPath
+Assert-Contains -Haystack $forkCommand -Needle '--cache-type-k q4_0 --cache-type-v q4_0 --parallel 1 --cont-batching --no-context-shift --kv-unified --cache-ram 0 --ctx-checkpoints 64 --checkpoint-min-step 512 --no-cache-idle-slots --spec-type draft-mtp --spec-draft-n-max 3 -ot "blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*=CPU" --jinja' -Label 'The buun qualification profile does not pin every control variable in order.'
+Assert-Contains -Haystack $forkCommand -Needle '--ctx-size 262144' -Label 'The buun profile lost its configured context.'
+Assert-NotContains -Haystack $forkCommand -Needle ' --context-shift ' -Label 'The buun profile enables context shift on a recurrent model.'
+Assert-NotContains -Haystack $forkCommand -Needle '--cache-idle-slots --' -Label 'The buun profile emitted the positive idle-slot flag.'
+
+# 7. The prompt cache stays off, and off is stated rather than assumed. A run
+#    that silently allocated 8 GiB of host cache would also be charged for it by
+#    admission only if the manifest declared it, so the two have to agree.
+if ($forkCommand -notmatch '--cache-ram\s+0(\s|$)') {
+    throw "The buun profile does not disable the host prompt cache explicitly: $forkCommand"
+}
+
+# 8. cache_idle_slots is three-valued. Absent must emit nothing, so a model
+#    generated before the field existed keeps its historical command line; only
+#    a declared value produces a flag, and a declared false produces the negative
+#    form rather than silence.
+$idleAbsent = ($template | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
+$idleAbsentCommand = New-V2LlamaServerCommand -Runtime $runtimesById[$idleAbsent.runtime] -Model $idleAbsent -RouterAPIKeyPath $routerAPIKeyPath
+Assert-NotContains -Haystack $idleAbsentCommand -Needle 'cache-idle-slots' -Label 'An undeclared cache_idle_slots emitted a flag.'
+
+$idleEnabled = ($template | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
+$idleEnabled | Add-Member -NotePropertyName 'cache_idle_slots' -NotePropertyValue $true
+$idleEnabledCommand = New-V2LlamaServerCommand -Runtime $runtimesById[$idleEnabled.runtime] -Model $idleEnabled -RouterAPIKeyPath $routerAPIKeyPath
+Assert-Contains -Haystack $idleEnabledCommand -Needle '--cache-idle-slots' -Label 'A declared cache_idle_slots=true emitted no flag.'
+Assert-NotContains -Haystack $idleEnabledCommand -Needle '--no-cache-idle-slots' -Label 'A declared cache_idle_slots=true emitted the negative flag.'
+
+# 9. The capability gate has to cover the negative flag too. A runtime whose
+#    help does not list --no-cache-idle-slots cannot be told to leave the cache
+#    alone, and generation must fail rather than produce a command that silently
+#    keeps the fork default.
+$forkHelpFixture = $helpFixture + @'
+
+       --cache-idle-slots, --no-cache-idle-slots   save idle slots to the prompt cache
+       --kv-unified             use a single unified KV buffer
+       --spec-type TYPE         speculative implementation
+       --spec-draft-n-max N     maximum draft tokens
+'@
+$forkSupported = Get-V2SupportedFlags -HelpText $forkHelpFixture
+foreach ($expected in @('--cache-idle-slots', '--no-cache-idle-slots', '--kv-unified', '--spec-type')) {
+    if (-not $forkSupported.Contains($expected)) {
+        throw "Help parsing lost the flag '$expected' from a two-form boolean option."
+    }
+}
+
+$negativeRejected = $false
+try {
+    Assert-V2CommandFlagsSupported -Command '"C:\r.exe" --model "C:\m.gguf" --no-cache-idle-slots' `
+        -SupportedFlags $supported -RuntimeId 'buun-fixture' -RuntimeSha256 ('0' * 64) -ModelId 'qwen38-27b-buun'
+}
+catch {
+    $negativeRejected = $_.Exception.Message -match 'no-cache-idle-slots'
+}
+if (-not $negativeRejected) {
+    throw 'A runtime whose help omits --no-cache-idle-slots accepted a profile that requires it.'
+}
+
 if (-not $Quiet) {
     [pscustomobject]@{
         manifest              = (Resolve-Path -LiteralPath $ManifestPath).Path
         byte_stable_models    = $untunedCount
-        generation_tests      = 5
+        generation_tests      = 9
         valid                 = $true
     } | ConvertTo-Json -Depth 3
 }

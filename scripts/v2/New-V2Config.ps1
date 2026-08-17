@@ -126,6 +126,15 @@ foreach ($model in $models) {
         "      context_tokens: $($model.context_tokens)",
         "      manifest_sha256: $(ConvertTo-V2YamlSingleQuoted $manifestSha256)"
     )
+    # Only a fork adds provenance lines. An upstream model keeps the metadata
+    # block it already had, so adopting the fork does not rewrite the generated
+    # configuration of every other model in the deployment.
+    if ((Get-V2RuntimeVariant -Runtime $runtime) -eq 'fork') {
+        $block += @(
+            "      runtime_variant: $(ConvertTo-V2YamlSingleQuoted 'fork')",
+            "      runtime_commit: $(ConvertTo-V2YamlSingleQuoted ([string]$runtime.provenance.source_revision))"
+        )
+    }
     foreach ($line in $block) { $modelBlocks.Add($line) }
 }
 

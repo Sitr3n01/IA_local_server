@@ -319,6 +319,50 @@ it against any candidate runtime before setting `cache_ram_mib`; if the second
 turn reprocesses the whole context, the feature is still broken in that build
 regardless of what the flags accept.
 
+## 1.5 The buun-llama-cpp runtime, and what it does not change
+
+`spiritbuun/buun-llama-cpp` carries a correction for §1.4. ADR 0010 adopts a
+pinned commit of it as a **separate, experimental runtime**; the upstream build
+stays exactly as it is and remains the baseline and the fallback. Four things
+about it change how you tune against it.
+
+**Its defaults are not upstream's.** The fork ships `cache_ram_mib = 8192`,
+`cache_idle_slots = true`, and dynamic variable-bitrate KV on both cache sides.
+Omitting a manifest field therefore does not mean "behave like upstream" — it
+enables a fork behaviour, and the result gets attributed to whatever you were
+actually testing. `Assert-V2ManifestSemantics` refuses a model on a fork runtime
+that leaves `context_shift`, `kv_unified`, `cache_ram_mib`, `cache_idle_slots`,
+`ctx_checkpoints` or `checkpoint_min_step` undeclared, and an explicit
+`--cache-type-k q4_0` is what turns the variable-bitrate cache off.
+
+**Context checkpoints are not the prompt cache.** They are different mechanisms
+and the first qualification uses only the first. `cache_ram_mib: 0` and
+`cache_idle_slots: false` are pinned, so what is being measured is whole-state
+reuse inside a live session — no host RAM budget, no cross-process persistence,
+no `/slots`. If you set `cache_ram_mib` on a fork profile you are running a
+different experiment, and §1.2's commit arithmetic applies to it in full.
+
+**Checkpoint count and spacing are a sweep, not a setting.** Start from
+`ctx_checkpoints` in {32, 64, 128} and `checkpoint_min_step` in {256, 512, 1024,
+2048}, and stop as soon as the results eliminate a region — the grid is not worth
+running blind. Pick the **smallest** count that gives consistent reuse without a
+relevant re-prefill. More checkpoints cost commit, and commit is what binds here;
+fitting in RAM is not a reason to allocate.
+
+**Speed is not the metric.** Judge on processed prompt tokens against new prompt
+tokens per turn, taken from the server's `cache_n` and `prompt_n` counters via
+`Measure-V2AgenticReuse.ps1`. A runtime that decodes faster while re-prefilling
+200k tokens a turn has failed. Everything in §1 and §3 still applies to decode,
+but it applies *after* this question is settled.
+
+`/slots` save and restore is out of scope and the runtime is not marked failed
+for lacking it. It is disk persistence between processes; the problem here is
+reuse within an active session.
+
+**Returning to upstream** is a manifest edit and nothing else: set the model's
+`runtime` back to the upstream entry and regenerate. No code path knows the fork
+by name.
+
 ## 2. Bottleneck decision tree
 
 ### The model will not start
