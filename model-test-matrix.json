@@ -9,8 +9,34 @@
     "MTP draft depth is set for an offloaded split: speculation amortizes weight reads but not arithmetic, so on a CPU-resident portion the optimum is shallow (2-3) and depth 7 can be slower than no speculation. Sweep {0,2,3,5,7} and re-sweep after any change to the -ot pattern. See docs/TUNING.md section 1.1.",
     "Qwen/Qwen3.8-27B (Alibaba, Apache-2.0) is the authoritative reference for this family; every GGUF is a derived artifact and its publisher and revision must be recorded and verified separately.",
     "The MTP head is blk.64. A GGUF that quantizes it to Q4_K measures 0% draft acceptance and speculation fails silently; Q5_K-Q8_0 reaches 73-74%. Verify with gguf-dump before benchmarking any qwen38 profile - the nominal quant label does not tell you.",
-    "cache_ram_mib is intentionally unset on the qwen38 profiles: context checkpoints are upstream-reported non-functional on hybrid/recurrent models, and the admission gate charges the cache to commit in full, so an inert cache costs headroom. Set it only after qwen38-27b-iq4xs-agentic-restore passes on the candidate runtime."
+    "cache_ram_mib is intentionally unset on the qwen38 profiles: context checkpoints are upstream-reported non-functional on hybrid/recurrent models, and the admission gate charges the cache to commit in full, so an inert cache costs headroom. Set it only after qwen38-27b-iq4xs-agentic-restore passes on the candidate runtime.",
+    "The qwen38-27b-buun-* profiles run on the pinned spiritbuun/buun-llama-cpp fork, which implements the hybrid/recurrent checkpoint correction the upstream profiles above cannot get. They are a candidate runtime under docs/adr/0010, not a replacement: the upstream baseline stays exactly as it is and remains the fallback.",
+    "cache_ram_mib is 0 and cache_idle_slots is false on every buun profile, stated rather than omitted. The fork ships cache_ram_mib=8192 and cache_idle_slots=true, so omitting either enables a host prompt cache the manifest never declared and admission never charged. This is a context-checkpoint experiment, not a prompt-cache experiment; the two are different mechanisms.",
+    "VBR, TurboQuant, TCQ and the fork's own KV types stay off for the first qualification. An explicit -ctk/-ctv q4_0 clears the fork's variable-bitrate alias, which is what keeps the KV format identical to the upstream control. Evaluate them later as a separate experiment against this configuration, never by editing it.",
+    "The buun profiles must be run against an upstream control at the same context, fixture and settings. Measure both with scripts/v2/Measure-V2AgenticReuse.ps1 and diff them with Compare-V2Runtimes.ps1, which refuses two reports whose control variables differ. A decode benchmark is not evidence for this question.",
+    "Everything about Qwen3.8-27B on buun-llama-cpp in this file is unverified on gfx1201. No profile here has been run; the checkpoint correction is verified at source level by cia-fork-gate and nothing more."
   ],
+  "sweeps": {
+    "context_checkpoints": {
+      "applies_to": "qwen38-27b-buun-*",
+      "ctx_checkpoints": [32, 64, 128],
+      "checkpoint_min_step": [256, 512, 1024, 2048],
+      "objective": "The smallest checkpoint count that keeps incremental reuse consistent without a relevant re-prefill. Judge on processed-versus-new prompt tokens, reuse ratio, TTFT, prompt tokens/s, peak RAM and commit, checkpoint creation and invalidation counts, and memory stability across turns - together, not on any one of them.",
+      "note": "Do not maximize the checkpoint count because host RAM allows it, and do not run the full grid blindly: eliminate a bad region from the first results and stop. A larger checkpoint count costs commit, which is this machine's binding constraint."
+    },
+    "spec_draft_n_max": {
+      "applies_to": "qwen38-27b-buun-*",
+      "values": [0, 2, 3, 5, 7],
+      "record": ["draft acceptance", "decode tokens/s", "TTFT", "prompt tokens/s"],
+      "note": "Confirm blk.64 is Q5_K or better with gguf-dump before sweeping; at Q4_K acceptance is 0% and the sweep measures nothing. Partial CPU offload moves the optimum down, so do not assume 7 wins - it can be slower than no speculation at all. Re-sweep after any change to the -ot pattern."
+    },
+    "context_size": {
+      "applies_to": "qwen38-27b-buun-agentic-256k",
+      "values": [260096, 261888, 262144, 262400, 264192],
+      "record": ["MTP acceptance", "reuse ratio", "processed prompt tokens"],
+      "note": "The target is functional capacity near 256k, not the round number. Draft acceptance collapses at particular context sizes on a ~2048-token period (llama.cpp #23658), so if a neighbouring value is substantially better, ship the better value."
+    }
+  },
   "profiles": [
     {
       "id": "qwen35-9b-ud-q4xl-kv-q4-256k",
@@ -243,6 +269,235 @@
       },
       "note": "Multi-turn checkpoint regression: 60k base, then repeated +2k increments interleaved with tool calls. Records prompt tokens processed vs new per turn; fails when a turn after the first reprocesses near the full context. Context checkpoints are upstream-reported broken on hybrid/recurrent models (llama.cpp #24055, #22384), so this profile doubles as the acceptance test for whether a given build fixed it.",
       "threads": "TBD - sweep {8, 16}; promote the winner to the manifest"
+    },
+    {
+      "id": "qwen38-27b-buun-gate-a",
+      "display_name": "Qwen 3.8 27B | buun-llama-cpp | IQ4_XS | 8k ctx | kernel and runtime go/no-go",
+      "catalog_folder": "06 buun-llama-cpp - Qwen 3.8 27B - agentic canary",
+      "catalog_filename": "BUUN--Qwen-3.8-27B--IQ4_XS--ctx-8192--kv-q4_0.gguf",
+      "family": "Qwen3.8-27B",
+      "source_model": "Qwen/Qwen3.8-27B",
+      "repo": "TBD - must pass the blk.64 >= Q5_K check",
+      "filename": "Qwen3.8-27B-IQ4_XS.gguf",
+      "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
+      "context_size": 8192,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "alias": "qwen38-27b-buun-gate-a",
+      "runtime": "amd-rocm-qwen38-buun",
+      "runtime_variant": "fork",
+      "gate": "A",
+      "ubatch_size": 512,
+      "gpu_layers": 99,
+      "context_shift": false,
+      "kv_unified": true,
+      "cache_ram_mib": 0,
+      "cache_idle_slots": false,
+      "ctx_checkpoints": 64,
+      "checkpoint_min_step": 512,
+      "note": "Gate A. Short context, no offload, no MTP: confirms ROCm and gfx1201 are actually in use, that the Gated DeltaNet kernel is not falling back to the CPU, and that the fork loads and serves at all. If GDN falls back here, stop - nothing below this line is worth running."
+    },
+    {
+      "id": "qwen38-27b-buun-agentic-60k",
+      "display_name": "Qwen 3.8 27B | buun-llama-cpp | IQ4_XS | 60k base | agentic reuse",
+      "catalog_folder": "06 buun-llama-cpp - Qwen 3.8 27B - agentic canary",
+      "catalog_filename": "BUUN--Qwen-3.8-27B--IQ4_XS--ctx-65536--kv-q4_0.gguf",
+      "family": "Qwen3.8-27B",
+      "source_model": "Qwen/Qwen3.8-27B",
+      "repo": "TBD - must pass the blk.64 >= Q5_K check",
+      "filename": "Qwen3.8-27B-IQ4_XS.gguf",
+      "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
+      "context_size": 65536,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "alias": "qwen38-27b-buun-agentic-60k",
+      "runtime": "amd-rocm-qwen38-buun",
+      "runtime_variant": "fork",
+      "gate": "B",
+      "ubatch_size": 288,
+      "batch_size": 2048,
+      "gpu_layers": 99,
+      "parallel": 1,
+      "context_shift": false,
+      "kv_unified": true,
+      "cache_ram_mib": 0,
+      "cache_idle_slots": false,
+      "ctx_checkpoints": 64,
+      "checkpoint_min_step": 512,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "spec_decoding": {
+        "type": "draft-mtp",
+        "draft_n_max": 3
+      },
+      "harness": "scripts/v2/Measure-V2AgenticReuse.ps1 -BaseContextTokens 60000 -IncrementTokens 2000 -Turns 6",
+      "note": "Gate B. The decisive test: a 60k standing context grown by 2k increments interleaved with tool calls, for at least six turns. After the first turn the server must process approximately the new tokens. This is the profile the fork exists for, and it is a regression gate, not an observation.",
+      "threads": "TBD - sweep {8, 16}; promote the winner to the manifest"
+    },
+    {
+      "id": "qwen38-27b-buun-agentic-128k",
+      "display_name": "Qwen 3.8 27B | buun-llama-cpp | IQ4_XS | 128k base | agentic reuse",
+      "catalog_folder": "06 buun-llama-cpp - Qwen 3.8 27B - agentic canary",
+      "catalog_filename": "BUUN--Qwen-3.8-27B--IQ4_XS--ctx-131072--kv-q4_0.gguf",
+      "family": "Qwen3.8-27B",
+      "source_model": "Qwen/Qwen3.8-27B",
+      "repo": "TBD - must pass the blk.64 >= Q5_K check",
+      "filename": "Qwen3.8-27B-IQ4_XS.gguf",
+      "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
+      "context_size": 131072,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "alias": "qwen38-27b-buun-agentic-128k",
+      "runtime": "amd-rocm-qwen38-buun",
+      "runtime_variant": "fork",
+      "gate": "C",
+      "ubatch_size": 288,
+      "batch_size": 2048,
+      "gpu_layers": 99,
+      "parallel": 1,
+      "context_shift": false,
+      "kv_unified": true,
+      "cache_ram_mib": 0,
+      "cache_idle_slots": false,
+      "ctx_checkpoints": 64,
+      "checkpoint_min_step": 512,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "spec_decoding": {
+        "type": "draft-mtp",
+        "draft_n_max": 3
+      },
+      "harness": "scripts/v2/Measure-V2AgenticReuse.ps1 -BaseContextTokens 128000 -IncrementTokens 2000 -Turns 6",
+      "note": "Gate C, first step. Advance only if reuse still holds, memory is stable across turns, no full re-prefill appears, the runtime does not fall back, and MTP acceptance has not collapsed. Repeat at 192k before attempting the 256k profile.",
+      "threads": "TBD - sweep {8, 16}; promote the winner to the manifest"
+    },
+    {
+      "id": "qwen38-27b-buun-agentic-192k",
+      "display_name": "Qwen 3.8 27B | buun-llama-cpp | IQ4_XS | 192k base | agentic reuse",
+      "catalog_folder": "06 buun-llama-cpp - Qwen 3.8 27B - agentic canary",
+      "catalog_filename": "BUUN--Qwen-3.8-27B--IQ4_XS--ctx-196608--kv-q4_0.gguf",
+      "family": "Qwen3.8-27B",
+      "source_model": "Qwen/Qwen3.8-27B",
+      "repo": "TBD - must pass the blk.64 >= Q5_K check",
+      "filename": "Qwen3.8-27B-IQ4_XS.gguf",
+      "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
+      "context_size": 196608,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "alias": "qwen38-27b-buun-agentic-192k",
+      "runtime": "amd-rocm-qwen38-buun",
+      "runtime_variant": "fork",
+      "gate": "C",
+      "ubatch_size": 288,
+      "batch_size": 2048,
+      "gpu_layers": 99,
+      "parallel": 1,
+      "context_shift": false,
+      "kv_unified": true,
+      "cache_ram_mib": 0,
+      "cache_idle_slots": false,
+      "ctx_checkpoints": 64,
+      "checkpoint_min_step": 512,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "spec_decoding": {
+        "type": "draft-mtp",
+        "draft_n_max": 3
+      },
+      "harness": "scripts/v2/Measure-V2AgenticReuse.ps1 -BaseContextTokens 192000 -IncrementTokens 2000 -Turns 6",
+      "note": "Gate C, second step. Same conditions as 128k. Record peak commit here specifically: at this context the KV cache and the CPU-resident weights are both near their largest and commit is the binding constraint on this machine.",
+      "threads": "TBD - sweep {8, 16}; promote the winner to the manifest"
+    },
+    {
+      "id": "qwen38-27b-buun-agentic-256k",
+      "display_name": "Qwen 3.8 27B | buun-llama-cpp | IQ4_XS | ~256k | agentic reuse at the limit",
+      "catalog_folder": "06 buun-llama-cpp - Qwen 3.8 27B - agentic canary",
+      "catalog_filename": "BUUN--Qwen-3.8-27B--IQ4_XS--ctx-262144--kv-q4_0.gguf",
+      "family": "Qwen3.8-27B",
+      "source_model": "Qwen/Qwen3.8-27B",
+      "repo": "TBD - must pass the blk.64 >= Q5_K check",
+      "filename": "Qwen3.8-27B-IQ4_XS.gguf",
+      "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
+      "context_size": 262144,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "alias": "qwen38-27b-buun-agentic-256k",
+      "runtime": "amd-rocm-qwen38-buun",
+      "runtime_variant": "fork",
+      "gate": "D",
+      "ubatch_size": 288,
+      "batch_size": 2048,
+      "gpu_layers": 99,
+      "parallel": 1,
+      "context_shift": false,
+      "kv_unified": true,
+      "cache_ram_mib": 0,
+      "cache_idle_slots": false,
+      "ctx_checkpoints": 64,
+      "checkpoint_min_step": 512,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "spec_decoding": {
+        "type": "draft-mtp",
+        "draft_n_max": 3
+      },
+      "harness": "scripts/v2/Measure-V2AgenticReuse.ps1 -BaseContextTokens 200000 -IncrementTokens 2000 -Turns 8",
+      "note": "Gate D. context_size is a starting point, not a target: sweep it per sweeps.context_size and ship whichever neighbouring value gives the better MTP acceptance. The runtime is only fit for 256k agentic use if incremental reuse still holds near the limit.",
+      "threads": "TBD - sweep {8, 16}; promote the winner to the manifest"
+    },
+    {
+      "id": "qwen38-27b-upstream-agentic-control",
+      "display_name": "Qwen 3.8 27B | upstream llama.cpp | IQ4_XS | agentic reuse control",
+      "catalog_folder": "06 buun-llama-cpp - Qwen 3.8 27B - agentic canary",
+      "catalog_filename": "AMD--Qwen-3.8-27B--IQ4_XS--ctx-131072--kv-q4_0.gguf",
+      "family": "Qwen3.8-27B",
+      "source_model": "Qwen/Qwen3.8-27B",
+      "repo": "TBD - must pass the blk.64 >= Q5_K check",
+      "filename": "Qwen3.8-27B-IQ4_XS.gguf",
+      "local_path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-IQ4_XS.gguf",
+      "context_size": 131072,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "alias": "qwen38-27b-upstream-agentic-control",
+      "runtime": "amd-rocm-qwen38",
+      "runtime_variant": "upstream",
+      "gate": "B",
+      "ubatch_size": 288,
+      "batch_size": 2048,
+      "gpu_layers": 99,
+      "parallel": 1,
+      "context_shift": false,
+      "kv_unified": true,
+      "ctx_checkpoints": 64,
+      "checkpoint_min_step": 512,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(4[4-9]|5[0-9]|6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "spec_decoding": {
+        "type": "draft-mtp",
+        "draft_n_max": 3
+      },
+      "harness": "scripts/v2/Measure-V2AgenticReuse.ps1 -BaseContextTokens 60000 -IncrementTokens 2000 -Turns 6",
+      "note": "The A side of the A/B. Same GGUF, quantization, context, KV types, batch and ubatch, tensor split, MTP settings, sampling, template and fixture as qwen38-27b-buun-agentic-60k; only the runtime differs. Upstream is expected to re-prefill here - that expectation is what has to be measured rather than assumed, because a fork that changes nothing is not worth carrying."
     }
   ]
 }

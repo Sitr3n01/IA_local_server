@@ -95,6 +95,49 @@ Adding such a model touches four files that CI checks against each other, and th
 
 Declare `capabilities.function_calling` and `capabilities.responses` as `false` until the stress evaluation demonstrates a valid forced tool call through `internal/edge/namespace.go`. A model family's tool-call serialization is not evidence for a specific quantization of it.
 
+## Runtimes that are not upstream release builds
+
+A runtime built from source is qualified as an artifact in its own right, and it
+is identified by repository + commit + artifact SHA-256 + backend + GPU target.
+A directory name is never identity, and a branch or tag is never a pin — the
+schema constrains `provenance.source_revision` to a full 40-hex commit, so
+`master`, `main`, `latest` and `HEAD` cannot be written at all.
+
+Such a runtime declares `variant: fork` and a typed `provenance` block: source
+repository, source revision, upstream ancestry where the fork publishes one,
+evidence for the behaviour it is being adopted for, and the build configuration
+(backend, GPU targets, Release, and `llama-server` as the only target).
+
+**Evidence has to be produced, not asserted.** For `spiritbuun/buun-llama-cpp`
+the claim is the hybrid/recurrent context-checkpoint correction, and
+`cia-fork-gate` establishes it by compiling the fork's own checkpoint predicate
+and interrogating its behaviour — the presence of a patch, a commit subject, or a
+flag in `--help` is explicitly not evidence, because llama.cpp accepts
+`--ctx-checkpoints` on builds where checkpoints are created and discarded. The
+gate's report is hashed into `provenance.checkpoint_fix.gate_report_sha256`.
+
+Additional promotion gates apply before such a runtime may leave `candidate`:
+
+1. Artifact and gate-report hash validation.
+2. ROCm and GPU-target validation, and no severe kernel fallback to the CPU.
+3. The agentic incremental-reuse regression at 60k, 128k, 192k and ~256k, each
+   passing `incremental_reuse_pass` with its supporting per-turn counts.
+4. An A/B against an upstream build over an identical fixture, produced by
+   `Compare-V2Runtimes.ps1`, which refuses reports whose controls differ.
+5. A complete measured resource profile for its execution mode, and the ordinary
+   soak, tool-calling, streaming and end-to-end harness gates.
+
+A fork runtime may not serve `provider.public_model` while it is `candidate`, and
+adopting one must leave every other model on the runtime it already had. Both are
+enforced by `Assert-V2ManifestSemantics` rather than left to review.
+
+**Control variables are part of the contract.** A fork whose defaults differ from
+the upstream baseline makes an omitted manifest field a changed variable rather
+than a neutral one, so a model on a fork runtime must state `context_shift`,
+`kv_unified`, `cache_ram_mib`, `cache_idle_slots`, `ctx_checkpoints` and
+`checkpoint_min_step` explicitly. Qualification measures one difference — the
+runtime — or it measures nothing.
+
 ## Current status
 
 - `local-coding` / Ornith 1.0 9B Q4_K_M: canary candidate. Direct Responses and a function call were observed, but the complete gates and soak remain outstanding.
@@ -102,3 +145,9 @@ Declare `capabilities.function_calling` and `capabilities.responses` as `false` 
   quantizations are canary candidates. They are generated independently and
   remain client-gated until their declared contracts pass.
 - Unsloth runtime `10068 (87d9271bd)`: candidate only; it can replace the AMD baseline only after an independent full comparison.
+- `spiritbuun/buun-llama-cpp` (ADR 0010): the qualification path exists and the
+  provenance gate passes on commit `799e3995cd4f19aa9f6a3fa9fb5b4674422bf0ee` at
+  source level. No runtime entry is in the manifest, because the artifact has not
+  been built on the target machine — every figure about it on gfx1201 is
+  `unverified on gfx1201`, and no `measured` value may be recorded until it runs
+  on the RX 9070 XT.

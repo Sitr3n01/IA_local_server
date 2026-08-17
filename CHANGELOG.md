@@ -6,6 +6,91 @@ All notable changes are documented here. This project follows Keep a Changelog c
 
 ### Added
 
+- Second llama.cpp runtime for Qwen3.8 agentic long context, built from a pinned
+  `spiritbuun/buun-llama-cpp` commit (ADR 0010). The upstream build is untouched
+  and remains the baseline and the fallback; the fork is a `candidate`,
+  experimental, and initially exclusive to Qwen3.8-27B. `engine` stays
+  `llama.cpp` because the fork preserves the `llama-server` interface, so
+  llama-swap remains the only lifecycle authority and no runtime abstraction was
+  introduced. Retiring it is a manifest edit.
+- Typed runtime provenance in `config/models.schema.json`: `variant`
+  (`upstream`/`fork`) and a closed `provenance` object carrying source
+  repository, a full 40-hex `source_revision`, optional upstream ancestry,
+  checkpoint-fix evidence with the gate-report hash, and the build configuration
+  (backend, GPU targets, Release, `llama-server` only). Branch names, tags and
+  `HEAD` cannot be expressed; `additionalProperties: false` stays closed
+  throughout and no `extra_args` or metadata map was added.
+- `cia-fork-gate` (`cmd/cia-fork-gate`, `internal/forkgate`): refuses to accept a
+  fork commit on the strength of a patch being present. It compiles the fork's
+  own checkpoint-selection predicate out of the pinned tree and asserts a
+  semantic invariant — for recurrent and hybrid models the verdict must not vary
+  with `pos_min` or the position threshold anywhere in their range, must turn on
+  the recurrent frontier instead, and must leave transformer selection unchanged
+  — which is the correction discussed in `ggml-org/llama.cpp#22384`. Structural
+  checks cover short-prompt capture, frontier-accurate capture, retention of
+  generation checkpoints, the option set the profile needs, and the fork's
+  shipped defaults. The gate fails closed, including when no compiler is
+  available, and its report hash is recorded in the manifest.
+- `Build-V2ForkRuntime.ps1`: pins the commit, verifies the checkout, runs the
+  provenance gate before compiling anything, builds Release/ROCm/`gfx1201`/
+  `llama-server` only, installs into a directory carrying the commit, refuses to
+  write where an existing manifest runtime lives, hashes the artifact, re-checks
+  the binary's own `--help`, and prints the manifest entry for review.
+- `Measure-V2AgenticReuse.ps1`: the agentic incremental-reuse regression from
+  `BENCHMARKS.md` as an executable gate. It grows a synthetic, seeded context by
+  small increments interleaved with tool calls and records per turn the context
+  size, new versus processed prompt tokens, reuse ratio, prefill and decode
+  throughput, turn latency, MTP acceptance and memory — from the server's own
+  `cache_n`/`prompt_n` counters, never from a rate. Emits
+  `incremental_reuse_pass` or `incremental_reuse_fail` and a non-zero exit,
+  plus `agentic_turn_efficiency` as supporting evidence.
+- `Compare-V2Runtimes.ps1`: upstream-versus-fork A/B that refuses two reports
+  whose fixture hash, seed, context, increment, turn count, output cap or
+  threshold differ, so a table can only be produced from a real comparison.
+- `Test-V2AgenticHarness.ps1`: exercises the measurement and comparison scripts
+  against scripted servers in the reusing and re-prefilling states, with no GPU
+  and no model, because a gate that cannot fail is not a gate.
+- Runtime observability in `/api/v1/status`: a `runtimes` block and per-model
+  runtime identity (id, state, engine, variant, backend, commit, abbreviated
+  artifact hash, checkpoint capability), configured context, and checkpoint
+  configuration. Installation paths, credentials, prompts and responses are
+  deliberately absent, and `/v1/models` is unchanged.
+- Buun qualification profiles and sweeps in `model-test-matrix.json` (gates A
+  through D, plus an upstream control at identical settings), with the checkpoint
+  count/spacing, `spec_draft_n_max` and near-256k context sweeps recorded as
+  sweeps rather than as settled values.
+
+### Changed
+
+- `cache_idle_slots` is three-valued in the generator. Absent still emits
+  nothing, so every model generated before the field existed keeps a
+  byte-identical command line; a declared value now emits `--cache-idle-slots`
+  or `--no-cache-idle-slots`. Silence cannot disable a runtime default that is
+  on, which is the case on the fork.
+- `Assert-V2ManifestSemantics` refuses a model on a fork runtime that leaves
+  `context_shift`, `kv_unified`, `cache_ram_mib`, `cache_idle_slots`,
+  `ctx_checkpoints` or `checkpoint_min_step` to the runtime's own defaults; a
+  fork runtime without provenance or pinned to a moving reference; provenance
+  declared without `variant: fork`; and a `provider.public_model` served by a
+  fork runtime that is not qualified or enabled.
+
+### Unchanged, deliberately
+
+- The upstream llama.cpp runtime entries, their hashes, paths, environments, and
+  every model bound to them, including all 4B/9B/12B behaviour and
+  `provider.public_model`. `Test-V2ConfigGeneration.ps1` still proves the
+  generated command line is byte-identical for all six existing models.
+- Admission control. The fork profile offloads tensors, so it fails closed with
+  `resource_profile_incomplete` until its VRAM, RAM and commit peaks are measured
+  on the target GPU; there is no fork branch in `capacity.go`.
+- `provider.max_loaded_models = 1`, `parallel = 1`, the loopback-only boundary,
+  the credential and ACL model, llama-swap as lifecycle authority, and the
+  absence of any cloud fallback.
+- The prompt cache and `/slots` persistence stay out of scope: `cache_ram_mib` is
+  pinned to `0` and `cache_idle_slots` to `false` on the fork profile. Context
+  checkpoints and prompt caching are different mechanisms, and only the first is
+  being qualified. VBR, TurboQuant, TCQ and the fork's own KV types stay off.
+
 - Go-based v2 edge, MCP, and Windows Credential Manager helper foundations.
 - Single provenance- and checksum-based model/runtime manifest with JSON Schema.
 - llama-swap v240 template with lazy loading, 900-second TTL, router authentication, no aliases, one active model, and no retained log buffer.

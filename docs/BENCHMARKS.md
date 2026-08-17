@@ -101,6 +101,63 @@ Record, per turn, how many prompt tokens the server actually processed against h
 
 Note the upstream defects in `TUNING.md` §1.4 before interpreting a failure — context checkpoints are reported broken on hybrid/recurrent models, so a failing result may be the runtime rather than the configuration. Use synthetic fixtures only; never store real prompts.
 
+`scripts/v2/Measure-V2AgenticReuse.ps1` runs this scenario and emits the verdict
+`incremental_reuse_pass` or `incremental_reuse_fail` with the supporting numbers.
+It reads `timings.cache_n` and `timings.prompt_n` from the server directly, and
+its own fixture is a seeded synthetic filler so the two sides of an A/B see byte-
+identical input. `scripts/v2/Test-V2AgenticHarness.ps1` checks the harness itself
+against scripted servers in both states, because a gate that cannot fail is not a
+gate.
+
+**Metrics for agentic long context.** Decode throughput alone answers the wrong
+question. Report these separately, per turn:
+
+| Metric | Source |
+|---|---|
+| Processed prompt tokens | `timings.prompt_n` |
+| New prompt tokens | Context growth since the previous turn |
+| Reuse ratio | `cache_n / (cache_n + prompt_n)` |
+| Prompt throughput | `timings.prompt_per_second` |
+| TTFT / prefill latency | `timings.prompt_ms` |
+| Decode throughput | `timings.predicted_per_second` |
+| Effective turn latency | Wall clock for the request |
+| MTP acceptance | `draft_n_accepted / draft_n` |
+| Peak VRAM / RAM / commit | Sampled per turn |
+
+Alongside them record `agentic_turn_efficiency = new_prompt_tokens /
+processed_prompt_tokens`. Ideal is ≈1.0 — 2k new against 2.1k processed is 0.95;
+2k new against 182k processed is 0.011. Treat it as evidence to read next to the
+raw counts and the server log, not as a threshold to tune against.
+
+## Runtime A/B: upstream against buun-llama-cpp
+
+The fork adopted in ADR 0010 is qualified against upstream, not against
+expectations. Run the identical fixture on both and diff the reports with
+`scripts/v2/Compare-V2Runtimes.ps1`, which refuses two reports whose fixture
+hash, seed, base context, increment, turn count, output cap or threshold differ.
+
+Everything except the runtime is held: model, GGUF, quantization, context, KV
+types, batch, ubatch, tensor split, MTP settings, sampling, template, prompt,
+tool sequence and hardware. Note that the fork's own defaults differ from
+upstream's — see `TUNING.md` §1.5 — so the profile pins them rather than omitting
+them; an omitted field is a changed variable here, not a neutral one.
+
+Compare: full re-prefill occurrences, processed against new prompt tokens, TTFT,
+prompt tokens/s, decode tokens/s, MTP acceptance, peak VRAM, RAM and commit, and
+stability across turns. "It felt faster" is not a result.
+
+Qualification is progressive, and each gate is a stop:
+
+| Gate | Context | What it establishes |
+|---|---|---|
+| A | Short | ROCm and gfx1201 active, no severe Gated DeltaNet CPU fallback, MTP initializes, prefill and decode sane |
+| B | ~60k | Incremental reuse across at least six turns with tool calls — the decisive test |
+| C | 128k then 192k | Reuse still holds, memory stable, no full re-prefill, no runtime fallback, MTP healthy |
+| D | ~256k | Reuse holds near the limit across several turns of incremental growth |
+
+Do not start at 256k. If the Gated DeltaNet kernel falls back at gate A, nothing
+below it is worth measuring.
+
 **Cache restoration.** A prompt-cache measurement is meaningless as a single run. Issue the same ~90k-token prompt twice against a live server and record `prompt_tps` for both. The first is prefill; the second must be a checkpoint restore, and the ratio between them is the metric. If they are within an order of magnitude, checkpoints are not being restored and `--cache-ram` is only consuming commit. Note that `--cache-reuse` cannot produce this result on a recurrent model, and that any change to the system prompt invalidates every checkpoint — the harness prefix must be byte-stable across turns for the measurement to mean anything.
 
 When a measurement comes back bad, `TUNING.md` has the bottleneck decision tree and the bandwidth ceiling to compare it against.

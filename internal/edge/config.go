@@ -47,6 +47,44 @@ type Model struct {
 	// OffloadsTensors marks a model that deliberately keeps part of its weights
 	// in system RAM. Such a model cannot be admitted on an unmeasured profile.
 	OffloadsTensors bool `json:"-"`
+
+	// Observability only. These are reported through /api/v1/status so an
+	// operator can see which build is actually serving, and are excluded from
+	// /v1/models so the public model list stays exactly what it was.
+	Runtime       RuntimeSummary    `json:"-"`
+	ContextTokens *int              `json:"-"`
+	Checkpoints   CheckpointSummary `json:"-"`
+}
+
+// RuntimeSummary identifies a runtime by what it is rather than by where it was
+// installed. Two builds of the same engine differ here by variant, commit, and
+// artifact hash; a directory name distinguishes nothing.
+type RuntimeSummary struct {
+	ID                     string `json:"id"`
+	State                  string `json:"state,omitempty"`
+	Engine                 string `json:"engine,omitempty"`
+	Variant                string `json:"variant,omitempty"`
+	Backend                string `json:"backend,omitempty"`
+	SourceRepository       string `json:"source_repository,omitempty"`
+	Commit                 string `json:"commit,omitempty"`
+	ArtifactSHA256Prefix   string `json:"artifact_sha256_prefix,omitempty"`
+	CheckpointCapable      bool   `json:"checkpoint_capable"`
+	CheckpointFixReference string `json:"checkpoint_fix_reference,omitempty"`
+}
+
+// CheckpointSummary is the checkpoint configuration a model asks the runtime
+// for. Nil means the field is absent from the manifest and the runtime's own
+// default applies, which is not the same as zero.
+type CheckpointSummary struct {
+	Count   *int `json:"ctx_checkpoints"`
+	MinStep *int `json:"checkpoint_min_step"`
+}
+
+// Configured reports whether the manifest states a checkpoint policy at all.
+// A configuration on a runtime that cannot restore hybrid checkpoints is inert,
+// which is why the status reports both this and the runtime's capability.
+func (c CheckpointSummary) Configured() bool {
+	return c.Count != nil || c.MinStep != nil
 }
 
 // Config contains every network and admission-control decision made by the

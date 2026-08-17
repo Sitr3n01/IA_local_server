@@ -22,7 +22,16 @@ llama-swap v240 ------------------+
         |
         | lazy lifecycle, TTL=900, one loaded model
         v
-llama-server (AMD ROCm) -> qualified GGUF
+    +---+--------------------------+
+    |                              |
+    v                              v
+llama-server                  llama-server
+llama.cpp upstream            buun-llama-cpp fork
+(baseline, fallback)          (agentic canary, Qwen3.8 only)
+    |                              |
+    +---+--------------------------+
+        v
+   qualified GGUF
 
 Unsloth -> export -> offline validation -> manifest promotion
 
@@ -70,6 +79,24 @@ No v2 listener may bind to `0.0.0.0`, `::`, a LAN address, or a public interface
 - Receives an explicit model, host, dynamic port, Jinja template support, 128k context, q4 KV cache, one slot, metrics, and no web UI.
 - Requires the router credential through `--api-key-file`; direct inference on the dynamic port without that credential returns `401`. Health and model-discovery endpoints may remain public on loopback and are not inference paths.
 - Uses the current AMD baseline only by its measured SHA-256. The directory name is not trusted as version identity.
+- May be one of two builds. Upstream llama.cpp is the baseline and the fallback;
+  `spiritbuun/buun-llama-cpp` is an experimental second runtime carrying the
+  hybrid/recurrent context-checkpoint correction that Qwen3.8 agentic use needs
+  (ADR 0010). Both are `llama-server`, so `engine` stays `llama.cpp`, llama-swap
+  remains the only lifecycle authority, and the fork holds no privilege the
+  baseline does not.
+- A fork build declares `variant: fork` and a typed `provenance` block —
+  repository, full 40-hex commit, upstream ancestry where published,
+  checkpoint-fix evidence, and build configuration. Identity is repository +
+  commit + artifact SHA-256 + backend + GPU target; a branch name cannot be
+  expressed and a directory name is never identity.
+- `cia-fork-gate` must pass on the pinned commit before it is built: it compiles
+  the fork's own checkpoint predicate and asserts that recurrent selection
+  ignores `pos_min` entirely and turns on the recurrent frontier instead. A patch
+  being present is not evidence.
+- Retiring the fork is a manifest edit. Nothing in the code knows it by name, so
+  when upstream matches it on the gates in `BENCHMARKS.md` the entry is retired
+  and the model's `runtime` field points back at the baseline.
 
 ### MCP
 
@@ -203,6 +230,12 @@ The task installer is preview-only unless `-Apply` is supplied. It refuses to re
 9. Legacy panel and Unsloth Startup shortcuts remain disabled; Unsloth is launched manually only when training or export is intended.
 10. Local delegation through MCP is explicit, stateless, text-only, and cannot
     select a model or perform an administrative action.
+11. A runtime is identified by repository, commit, artifact hash, backend and GPU
+    target — never by a directory name or a moving reference. A source-built
+    runtime declares provenance or it cannot be expressed.
+12. Adding a runtime never alters an existing one. The upstream baseline, its
+    hashes, its paths, the models bound to it, and `provider.public_model` are
+    untouched by the adoption of any experimental build.
 
 ## Concurrency is not a single setting
 

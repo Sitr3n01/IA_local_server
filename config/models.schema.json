@@ -70,6 +70,78 @@
       "type": "string",
       "pattern": "^[A-Fa-f0-9]{64}$"
     },
+    "git_revision": {
+      "type": "string",
+      "$comment": "A full 40-hex commit. Branch and tag names (master, main, latest, HEAD) cannot match, so a runtime can never be pinned to a moving reference.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "github_repository": {
+      "type": "string",
+      "pattern": "^https://github\\.com/[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "runtime_provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "$comment": "Identity of a runtime that is not an upstream release build. The runtime is identified by repository + commit + artifact SHA-256 + backend + GPU target, never by the directory it was unpacked into.",
+      "required": ["source_repository", "source_revision", "checkpoint_fix", "build"],
+      "properties": {
+        "source_repository": { "$ref": "#/$defs/github_repository" },
+        "source_revision": { "$ref": "#/$defs/git_revision" },
+        "upstream_base": {
+          "type": "object",
+          "additionalProperties": false,
+          "$comment": "Ancestry in ggml-org/llama.cpp, when the fork records a merge base. Optional because a fork may not publish one.",
+          "required": ["repository", "revision"],
+          "properties": {
+            "repository": { "$ref": "#/$defs/github_repository" },
+            "revision": { "$ref": "#/$defs/git_revision" },
+            "version_label": { "type": "string", "minLength": 1 }
+          }
+        },
+        "checkpoint_fix": {
+          "type": "object",
+          "additionalProperties": false,
+          "$comment": "Evidence that the pinned commit implements the hybrid/recurrent context-checkpoint correction, recorded by cia-fork-gate rather than asserted by hand.",
+          "required": ["reference", "evidence", "verified_utc", "gate_report_sha256"],
+          "properties": {
+            "reference": {
+              "type": "string",
+              "pattern": "^https://github\\.com/[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*/(pull|issues)/[0-9]+$"
+            },
+            "evidence": { "enum": ["identical-patch", "semantic-equivalent"] },
+            "verified_utc": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+            },
+            "gate_report_sha256": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "build": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["backend", "gpu_targets", "configuration", "targets"],
+          "properties": {
+            "backend": { "const": "ROCm" },
+            "gpu_targets": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "type": "string", "pattern": "^gfx[0-9a-f]+$" }
+            },
+            "configuration": { "const": "Release" },
+            "targets": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "$comment": "Only the server binary is built. A wider target list would grow the artifact without serving this deployment.",
+              "items": { "const": "llama-server" }
+            },
+            "toolchain": { "type": "string", "minLength": 1 },
+            "rocm_version": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
     "windows_path": {
       "type": "string",
       "pattern": "^[A-Za-z]:\\\\"
@@ -97,12 +169,28 @@
         "device",
         "environment"
       ],
+      "$comment": "engine stays llama.cpp for a fork that preserves the llama-server interface; variant is what distinguishes an upstream release build from a source-built fork.",
+      "allOf": [
+        {
+          "if": {
+            "properties": { "variant": { "const": "fork" } },
+            "required": ["variant"]
+          },
+          "then": { "required": ["provenance"] }
+        },
+        {
+          "if": { "required": ["provenance"] },
+          "then": { "required": ["variant"] }
+        }
+      ],
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "state": {
           "enum": ["candidate", "qualified", "enabled", "retired"]
         },
         "engine": { "const": "llama.cpp" },
+        "variant": { "enum": ["upstream", "fork"] },
+        "provenance": { "$ref": "#/$defs/runtime_provenance" },
         "version_label": { "type": "string", "minLength": 1 },
         "build_commit": { "type": "string", "minLength": 7 },
         "artifact": { "$ref": "#/$defs/artifact" },
