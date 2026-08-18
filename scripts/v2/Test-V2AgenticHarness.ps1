@@ -170,7 +170,14 @@ function Invoke-ScriptedRun {
             -BaseUrl "http://127.0.0.1:$port" -Model 'scripted' -RuntimeLabel $Label `
             -BaseContextTokens 2048 -IncrementTokens 256 -Turns $turns -MaxOutputTokens 32 `
             -OutputPath $reportPath -Quiet 2>&1 | Out-Null
+
+        # The child's exit code is evidence, not this script's status. One of the
+        # two scenarios is *supposed* to exit non-zero, and leaving that value in
+        # $LASTEXITCODE makes a passing run look like a failing one: the GitHub
+        # Actions pwsh shell appends `exit $LASTEXITCODE` after the script, so a
+        # stale value from a deliberately-failing child becomes the step's result.
         $exitCode = $LASTEXITCODE
+        $global:LASTEXITCODE = 0
 
         Assert-True (Test-Path -LiteralPath $reportPath -PathType Leaf) "No report was written for the '$Mode' server."
         return [pscustomobject]@{
@@ -248,9 +255,15 @@ try {
     }
     Assert-True $divergentRejected 'Two runs over different fixtures were compared as if they were an A/B.'
 
+    # This script signals failure by throwing, so a clean run has to leave a clean
+    # status behind for any wrapper that reads $LASTEXITCODE. Asserting it here
+    # keeps the previous regression - a passing self-test reported as a failed CI
+    # step - from returning silently.
+    Assert-True ($LASTEXITCODE -eq 0) "The harness self-test passed but left exit code $LASTEXITCODE behind; a wrapper reading it would report a failure."
+
     if (-not $Quiet) {
         [pscustomobject]@{
-            harness_tests            = 6
+            harness_tests            = 7
             reuse_verdict            = $reuse.Report.verdict
             reprefill_verdict        = $reprefill.Report.verdict
             reuse_mean_efficiency    = $reuse.Report.mean_turn_efficiency
