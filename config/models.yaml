@@ -57,6 +57,27 @@
       "environment": {
         "HIP_VISIBLE_DEVICES": "1"
       }
+    },
+    {
+      "id": "amd-rocm-qwen38",
+      "state": "candidate",
+      "engine": "llama.cpp",
+      "version_label": "b10549",
+      "build_commit": "b2e5e9b28",
+      "artifact": {
+        "path": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe",
+        "bytes": 9216,
+        "sha256": "C8B1E5A66E1BB45854BED3DAAAB116C37E74526E30143D737C67557BAB822359"
+      },
+      "device": {
+        "backend": "ROCm",
+        "selector": "ROCm0 after HIP isolation",
+        "gpu": "AMD Radeon RX 9070 XT (gfx1201)",
+        "vram_mib": 16304
+      },
+      "environment": {
+        "HIP_VISIBLE_DEVICES": "1"
+      }
     }
   ],
   "models": [
@@ -64,7 +85,9 @@
       "id": "local-coding",
       "display_name": "Ornith 1.0 9B Q5_K_M - local coding canary",
       "state": "candidate",
-      "deployments": ["canary"],
+      "deployments": [
+        "canary"
+      ],
       "runtime": "amd-rocm-baseline",
       "artifact": {
         "path": "C:\\IA\\models\\Ornith-1.0-9B-GGUF\\ornith-1.0-9b-Q5_K_M.gguf",
@@ -104,7 +127,9 @@
       "id": "local-fast",
       "display_name": "Qwen 3.5 4B Q4_K_M - 64k context",
       "state": "candidate",
-      "deployments": ["canary"],
+      "deployments": [
+        "canary"
+      ],
       "runtime": "amd-rocm-baseline",
       "artifact": {
         "path": "C:\\IA\\models\\Qwen3.5-4B-GGUF\\Qwen3.5-4B-Q4_K_M.gguf",
@@ -144,7 +169,9 @@
       "id": "qwen35-9b-q4km",
       "display_name": "Qwen 3.5 9B Q4_K_M - 256k context",
       "state": "candidate",
-      "deployments": ["canary"],
+      "deployments": [
+        "canary"
+      ],
       "runtime": "amd-rocm-baseline",
       "artifact": {
         "path": "C:\\IA\\models\\Qwen3.5-9B-GGUF\\Qwen3.5-9B-Q4_K_M.gguf",
@@ -174,13 +201,19 @@
         "function_calling": false,
         "structured_output": false
       },
-      "resources": {"peak_vram_gib": null, "peak_commit_gib": null, "peak_ram_gib": null}
+      "resources": {
+        "peak_vram_gib": null,
+        "peak_commit_gib": null,
+        "peak_ram_gib": null
+      }
     },
     {
       "id": "qwen35-9b-ud-q4xl",
       "display_name": "Qwen 3.5 9B UD Q4_K_XL - 256k context",
       "state": "candidate",
-      "deployments": ["canary"],
+      "deployments": [
+        "canary"
+      ],
       "runtime": "amd-rocm-baseline",
       "artifact": {
         "path": "C:\\IA\\models\\Qwen3.5-9B-GGUF\\Qwen3.5-9B-UD-Q4_K_XL.gguf",
@@ -210,13 +243,19 @@
         "function_calling": false,
         "structured_output": false
       },
-      "resources": {"peak_vram_gib": null, "peak_commit_gib": null, "peak_ram_gib": null}
+      "resources": {
+        "peak_vram_gib": null,
+        "peak_commit_gib": null,
+        "peak_ram_gib": null
+      }
     },
     {
       "id": "gemma4-12b-qat-q4_0",
       "display_name": "Gemma 4 12B QAT Q4_0 - 128k context",
       "state": "candidate",
-      "deployments": ["canary"],
+      "deployments": [
+        "canary"
+      ],
       "runtime": "unsloth-runtime-candidate",
       "artifact": {
         "path": "C:\\IA\\models\\gemma-4-12B-it-qat-q4_0-gguf\\gemma-4-12b-it-qat-q4_0.gguf",
@@ -246,13 +285,19 @@
         "function_calling": false,
         "structured_output": false
       },
-      "resources": {"peak_vram_gib": null, "peak_commit_gib": null, "peak_ram_gib": null}
+      "resources": {
+        "peak_vram_gib": null,
+        "peak_commit_gib": null,
+        "peak_ram_gib": null
+      }
     },
     {
       "id": "gemma4-12b-qat-ud-q4xl",
       "display_name": "Gemma 4 12B QAT UD Q4_K_XL - 128k context",
       "state": "candidate",
-      "deployments": ["canary"],
+      "deployments": [
+        "canary"
+      ],
       "runtime": "unsloth-runtime-candidate",
       "artifact": {
         "path": "C:\\IA\\models\\gemma-4-12B-it-qat-GGUF\\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
@@ -282,7 +327,261 @@
         "function_calling": false,
         "structured_output": false
       },
-      "resources": {"peak_vram_gib": null, "peak_commit_gib": null, "peak_ram_gib": null}
+      "resources": {
+        "peak_vram_gib": null,
+        "peak_commit_gib": null,
+        "peak_ram_gib": null
+      }
+    },
+    {
+      "id": "qwen38-27b-ws-32k",
+      "display_name": "Qwen 3.8 27B UD-IQ4_XS | workstation default | 32k ctx",
+      "state": "candidate",
+      "deployments": [
+        "canary"
+      ],
+      "runtime": "amd-rocm-qwen38",
+      "artifact": {
+        "path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+        "bytes": 14252845984,
+        "sha256": "40FAC4050E940397DBF13087AFD50F4734A11805BF9D65EF8DDD7483470E6199"
+      },
+      "source": {
+        "repository": "unsloth/Qwen3.8-27B-GGUF",
+        "revision": "4ca720788d1e01f1bff70c033e0d0028fd02e502",
+        "filename": "Qwen3.8-27B-UD-IQ4_XS.gguf",
+        "license": "Apache-2.0"
+      },
+      "context_tokens": 32768,
+      "max_output_tokens": 8192,
+      "cache_type_k": "q8_0",
+      "cache_type_v": "q8_0",
+      "parallel": 1,
+      "batch_size": 2048,
+      "ubatch_size": 288,
+      "gpu_layers": 99,
+      "jinja": true,
+      "reasoning": "auto",
+      "context_shift": false,
+      "threads": 8,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "capabilities": {
+        "responses": false,
+        "chat_completions": true,
+        "streaming": true,
+        "function_calling": true,
+        "structured_output": false
+      },
+      "resources": {
+        "peak_vram_gib": 12.56,
+        "peak_commit_gib": 14.32,
+        "peak_ram_gib": 14.24
+      }
+    },
+    {
+      "id": "qwen38-27b-ws-64k",
+      "display_name": "Qwen 3.8 27B UD-IQ4_XS | agentic extended | 64k ctx",
+      "state": "candidate",
+      "deployments": [
+        "canary"
+      ],
+      "runtime": "amd-rocm-qwen38",
+      "artifact": {
+        "path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+        "bytes": 14252845984,
+        "sha256": "40FAC4050E940397DBF13087AFD50F4734A11805BF9D65EF8DDD7483470E6199"
+      },
+      "source": {
+        "repository": "unsloth/Qwen3.8-27B-GGUF",
+        "revision": "4ca720788d1e01f1bff70c033e0d0028fd02e502",
+        "filename": "Qwen3.8-27B-UD-IQ4_XS.gguf",
+        "license": "Apache-2.0"
+      },
+      "context_tokens": 65536,
+      "max_output_tokens": 8192,
+      "cache_type_k": "q8_0",
+      "cache_type_v": "q8_0",
+      "parallel": 1,
+      "batch_size": 2048,
+      "ubatch_size": 288,
+      "gpu_layers": 99,
+      "jinja": true,
+      "reasoning": "auto",
+      "context_shift": false,
+      "threads": 8,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "capabilities": {
+        "responses": false,
+        "chat_completions": true,
+        "streaming": true,
+        "function_calling": true,
+        "structured_output": false
+      },
+      "resources": {
+        "peak_vram_gib": 12.7,
+        "peak_commit_gib": 14.34,
+        "peak_ram_gib": 14.26
+      }
+    },
+    {
+      "id": "qwen38-27b-ws-128k",
+      "display_name": "Qwen 3.8 27B UD-IQ4_XS | agentic huge, high-memory | 128k ctx",
+      "state": "candidate",
+      "deployments": [
+        "canary"
+      ],
+      "runtime": "amd-rocm-qwen38",
+      "artifact": {
+        "path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+        "bytes": 14252845984,
+        "sha256": "40FAC4050E940397DBF13087AFD50F4734A11805BF9D65EF8DDD7483470E6199"
+      },
+      "source": {
+        "repository": "unsloth/Qwen3.8-27B-GGUF",
+        "revision": "4ca720788d1e01f1bff70c033e0d0028fd02e502",
+        "filename": "Qwen3.8-27B-UD-IQ4_XS.gguf",
+        "license": "Apache-2.0"
+      },
+      "context_tokens": 131072,
+      "max_output_tokens": 8192,
+      "cache_type_k": "q8_0",
+      "cache_type_v": "q8_0",
+      "parallel": 1,
+      "batch_size": 2048,
+      "ubatch_size": 288,
+      "gpu_layers": 99,
+      "jinja": true,
+      "reasoning": "auto",
+      "context_shift": false,
+      "threads": 8,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "capabilities": {
+        "responses": false,
+        "chat_completions": true,
+        "streaming": true,
+        "function_calling": true,
+        "structured_output": false
+      },
+      "resources": {
+        "peak_vram_gib": 12.76,
+        "peak_commit_gib": 18.64,
+        "peak_ram_gib": 18.17
+      }
+    },
+    {
+      "id": "qwen38-27b-ws-8k-prefill",
+      "display_name": "Qwen 3.8 27B UD-IQ4_XS | short context, high prefill | 8k ctx",
+      "state": "candidate",
+      "deployments": [
+        "canary"
+      ],
+      "runtime": "amd-rocm-qwen38",
+      "artifact": {
+        "path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+        "bytes": 14252845984,
+        "sha256": "40FAC4050E940397DBF13087AFD50F4734A11805BF9D65EF8DDD7483470E6199"
+      },
+      "source": {
+        "repository": "unsloth/Qwen3.8-27B-GGUF",
+        "revision": "4ca720788d1e01f1bff70c033e0d0028fd02e502",
+        "filename": "Qwen3.8-27B-UD-IQ4_XS.gguf",
+        "license": "Apache-2.0"
+      },
+      "context_tokens": 8192,
+      "max_output_tokens": 8192,
+      "cache_type_k": "q8_0",
+      "cache_type_v": "q8_0",
+      "parallel": 1,
+      "batch_size": 2048,
+      "ubatch_size": 288,
+      "gpu_layers": 99,
+      "jinja": true,
+      "reasoning": "auto",
+      "context_shift": false,
+      "threads": 8,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(5[6-9]|6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "capabilities": {
+        "responses": false,
+        "chat_completions": true,
+        "streaming": true,
+        "function_calling": true,
+        "structured_output": false
+      },
+      "resources": {
+        "peak_vram_gib": 12.13,
+        "peak_commit_gib": 13.67,
+        "peak_ram_gib": 14.23
+      }
+    },
+    {
+      "id": "qwen38-27b-ws-32k-kv-q4",
+      "display_name": "Qwen 3.8 27B UD-IQ4_XS | experimental KV q4_0 | 32k ctx",
+      "state": "candidate",
+      "deployments": [
+        "canary"
+      ],
+      "runtime": "amd-rocm-qwen38",
+      "artifact": {
+        "path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+        "bytes": 14252845984,
+        "sha256": "40FAC4050E940397DBF13087AFD50F4734A11805BF9D65EF8DDD7483470E6199"
+      },
+      "source": {
+        "repository": "unsloth/Qwen3.8-27B-GGUF",
+        "revision": "4ca720788d1e01f1bff70c033e0d0028fd02e502",
+        "filename": "Qwen3.8-27B-UD-IQ4_XS.gguf",
+        "license": "Apache-2.0"
+      },
+      "context_tokens": 32768,
+      "max_output_tokens": 8192,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "parallel": 1,
+      "batch_size": 2048,
+      "ubatch_size": 288,
+      "gpu_layers": 99,
+      "jinja": true,
+      "reasoning": "auto",
+      "context_shift": false,
+      "threads": 8,
+      "tensor_overrides": [
+        {
+          "pattern": "blk\\.(6[0-3])\\.ffn_.*",
+          "buffer": "CPU"
+        }
+      ],
+      "capabilities": {
+        "responses": false,
+        "chat_completions": true,
+        "streaming": true,
+        "function_calling": true,
+        "structured_output": false
+      },
+      "resources": {
+        "peak_vram_gib": 12.55,
+        "peak_commit_gib": 14.32,
+        "peak_ram_gib": 14.24
+      }
     }
   ]
 }

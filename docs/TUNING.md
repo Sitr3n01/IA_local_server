@@ -363,6 +363,126 @@ reuse within an active session.
 `runtime` back to the upstream entry and regenerate. No code path knows the fork
 by name.
 
+## 1.6 The adapter is shared, and the load log is not a memory budget
+
+`llm_load_tensors` and the `llama_context` buffer lines are accurate. Measured
+against the adapter on the reference workstation, llama.cpp's charge to its own
+process (13012 MiB) matches the model's marginal dedicated cost (12961 MiB) to
+within 0.4%. Nothing is under-reported.
+
+What those lines cannot see is the rest of the card. Sampled with no model
+loaded, this workstation's desktop compositor and browser hold **2967-3126 MiB
+of dedicated VRAM**. A 12.7 GiB model on a 16.3 GiB adapter therefore sits at
+97-98% occupancy, not at the ~80% the load log implies.
+
+| Quantity, 4-block split, `ub` 288 | Value |
+|---|---:|
+| Adapter dedicated, idle | 2967 MiB |
+| Adapter dedicated, peak under load | 15928 MiB |
+| Marginal — the model's own cost | 12961 MiB |
+| llama.cpp's charge to the process | 13012 MiB |
+
+**The budget a model actually gets on this machine is about 16.3 − 3.0 =
+13.3 GiB, and it moves with whatever is on screen.** Past the adapter's limit
+the AMD driver does not fail an allocation; it pages the excess over PCIe.
+Prompt processing loses a factor of three, decode barely moves, and no error is
+raised anywhere.
+
+Two consequences for measurement:
+
+- **Sample idle and peak, and report both.** Their difference is the model's
+  cost; the peak alone is what the budget applies to. A report carrying only one
+  cannot distinguish a large model from a busy desktop.
+  `scripts/v2/Measure-V2MemoryProfile.ps1` and
+  `scripts/v2/Measure-V2ContextFootprint.ps1` do this.
+- **Watch shared GPU memory, not just dedicated.** Dedicated saturates and then
+  stops moving; shared is what keeps climbing. It is the only visible signal that
+  paging has started.
+
+`resources.peak_vram_gib` holds the *marginal* figure, and `vramReserveGiB` in
+`internal/edge/capacity.go` is what accounts for everything else on the card. It
+was 1.0 GiB, which was an estimate and too small by a factor of three; it is now
+3.0 GiB, measured. `cia-edge` also reports a live verdict on `/api/v1/status`
+and as `cia_edge_gpu_*` metrics, because a static manifest cannot know what the
+desktop is holding today.
+
+### The `ubatch` result on this hardware
+
+The compute buffer is charged to the adapter, so `ubatch` moves memory pressure
+directly. Measured on the 4-block split, KV `q8_0`, three repetitions:
+
+| `ubatch` | pp512 | pp8192 | tg128 | dedicated | shared | verdict |
+|---:|---:|---:|---:|---:|---:|---|
+| 256 | 997.92 | 281.09 | 23.45 | 15886 | 845 | elevated |
+| 288 | 956.82 | 269.00 | 23.66 | 15938 | 882 | elevated |
+| 384 | 292.13 | 283.11 | 23.31 | 15824 | 1185 | pressured |
+| 512 | 299.72 | 289.36 | 23.68 | 15885 | 1330 | pressured |
+
+Dedicated VRAM is flat. Shared memory rises monotonically with `ubatch`, and
+short-prompt prefill collapses by a factor of three once it does. Decode is
+unaffected across the whole band.
+
+The advantage does not extend to long prompts. Measured separately at three
+repetitions each:
+
+| `ubatch` | pp16384 | pp32768 | dedicated | shared |
+|---:|---:|---:|---:|---:|
+| 512 | 268.36 | 239.98 | 16057 | 2142 |
+| 288 | 249.90 | 222.04 | 15932 | 1906 |
+
+Past roughly 16k the KV cache rather than the compute buffer is what overflows,
+so `ubatch` stops being the lever and 288 costs a consistent ~7%. Context choice
+is the lever there; see 1.7.
+
+**288 is the default**: it triples short-prompt prefill, costs at most 7.5%
+anywhere else, leaves decode unchanged, lowers shared memory at every prompt
+length, and stays outside the dead band the schema refuses.
+
+> **A documented claim this contradicts.** `model-test-matrix.json` records that
+> `ubatch` in 65..256 collapses throughput by up to 40x on hybrid models, and
+> both `models.schema.json` and `bench-llama.ps1` refuse the band. Measured here,
+> 256 did not collapse — it was the fastest configuration at pp512 and level at
+> pp8192. One measurement on one machine does not overturn the note, and the
+> schema still refuses the band, so 256 cannot be shipped. It is recorded because
+> a future reader comparing these numbers to that note deserves to know they
+> disagree. `Measure-V2MemoryProfile.ps1 -AllowUBatchDeadBand` is how the band
+> gets characterized without producing a promotable report.
+
+## 1.7 Context is allocated at load, not as it fills
+
+llama-server sizes the KV cache and the recurrent state for the full declared
+`--ctx-size` when it starts. Declaring 128k on a session that will reach 20k
+costs the difference for the life of the process. Changing it requires a restart;
+llama.cpp has no hot resize and this repository does not pretend otherwise.
+
+On a Gated DeltaNet hybrid only 16 of 64 layers hold a KV cache, so the dense
+arithmetic overstates the cost roughly fourfold. Measured at load, 4-block split,
+`ub` 288:
+
+| Context | KV | Marginal VRAM | Shared GPU | Process WS |
+|---:|---|---:|---:|---:|
+| 32768 | `q8_0` | 12754 MiB | 1608 MiB | 12.75 GiB |
+| 32768 | `q4_0` | 12753 MiB | **1095 MiB** | 12.73 GiB |
+| 65536 | `q8_0` | 12902 MiB | 2713 MiB | 12.75 GiB |
+| 131072 | `q8_0` | 12956 MiB | **5171 MiB** | **16.63 GiB** |
+| 131072 | `q4_0` | 12590 MiB | 3507 MiB | 12.78 GiB |
+
+Read the columns together. Marginal *dedicated* VRAM barely moves — 200 MiB
+across a fourfold context increase — which is the hybrid working as advertised.
+But dedicated is already full, so the cache lands in **shared** memory instead,
+and that column more than triples. A 128k window is not cheap on this hardware;
+it is a 3.5 GiB KV cache reached over PCIe, plus 3.9 GiB of extra host RAM.
+
+Hence three named profiles rather than one maximal window, with 32768 as the
+default. 128k stays available and is marked `high-memory`. Nothing allocates it
+because the model supports it.
+
+`q4_0` halves the shared-memory cost at every context and leaves dedicated VRAM
+unchanged. It is a genuine lever and it is **not** the default: no quality
+evaluation has been run on it, and `docs/MODEL_PROMOTION.md` does not allow a
+cache-precision change on a memory argument alone. It ships as an experimental
+profile.
+
 ## 2. Bottleneck decision tree
 
 ### The model will not start

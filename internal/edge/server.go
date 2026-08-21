@@ -37,6 +37,11 @@ type Server struct {
 	events       *eventStore
 	metrics      metrics
 	memoryStatus func() (memorySnapshot, error)
+	// gpuMemory is observability only; nothing in the request path consults it.
+	// It is a field rather than a direct call so tests can supply a snapshot
+	// without a GPU, exactly as memoryStatus does.
+	gpuMemory func() (gpuMemorySnapshot, error)
+	gpuCache  gpuMemoryCache
 }
 
 func New(cfg Config) (*Server, error) {
@@ -78,6 +83,7 @@ func New(cfg Config) (*Server, error) {
 		gate:         newGate(cfg.MaxActive, cfg.MaxQueue, cfg.QueueWait),
 		events:       newEventStore(cfg.LogOutput),
 		memoryStatus: systemMemoryStatus,
+		gpuMemory:    gpuMemoryStatus,
 	}, nil
 }
 
@@ -459,17 +465,24 @@ func (s *Server) writeStatus(w http.ResponseWriter, r *http.Request) {
 		runtimes = append(runtimes, model.Runtime)
 	}
 	upstreamReachable := s.upstreamReachable(r.Context())
+	activeModel := s.activeModel(running)
 	ready := upstreamReachable && capacity.Available
 	s.writeJSON(w, http.StatusOK, map[string]any{
-		"service":        "cia-edge",
-		"version":        s.cfg.Version,
-		"ready":          ready,
-		"upstream":       map[string]any{"url": s.cfg.UpstreamURL, "reachable": upstreamReachable},
-		"models":         append([]Model(nil), s.cfg.Models...),
-		"runtimes":       runtimes,
-		"active_model":   s.activeModel(running),
-		"gate":           s.gate.snapshot(),
-		"capacity":       capacity,
+		"service":  "cia-edge",
+		"version":  s.cfg.Version,
+		"ready":    ready,
+		"upstream": map[string]any{"url": s.cfg.UpstreamURL, "reachable": upstreamReachable},
+		"models":   append([]Model(nil), s.cfg.Models...),
+		"runtimes": runtimes,
+
+		"active_model": activeModel,
+		"gate":         s.gate.snapshot(),
+		"capacity":     capacity,
+		// Deliberately not folded into capacity: capacity is a manifest-versus-
+		// budget decision that gates admission, while this is a live driver
+		// reading that gates nothing. Merging them would make a noisy sample
+		// look like grounds for a 503.
+		"gpu_memory":     s.gpuPressure(activeModel),
 		"model_statuses": modelStatuses,
 		"recent_events":  s.events.recent(),
 	})
@@ -487,6 +500,23 @@ func (s *Server) writeMetrics(w http.ResponseWriter) {
 	_, _ = fmt.Fprintf(w, "# TYPE cia_edge_queued_requests gauge\ncia_edge_queued_requests %d\n", gate.Queued)
 	_, _ = fmt.Fprintf(w, "# TYPE cia_edge_queue_rejections_total counter\ncia_edge_queue_rejections_total %d\n", gate.Rejected)
 	_, _ = fmt.Fprintf(w, "# TYPE cia_edge_queue_timeouts_total counter\ncia_edge_queue_timeouts_total %d\n", gate.TimedOut)
+
+	// Adapter memory, so the degradation that raises no error is alertable. The
+	// budget is the public model's declared device VRAM rather than the active
+	// model's: this handler has no request context to ask the router which model
+	// is loaded, and provider.max_loaded_models is 1, so on a single-runtime
+	// deployment the two are the same. Gauges are omitted entirely rather than
+	// emitted as zero when the probe is unavailable, because a scrape that
+	// records 0 MiB dedicated would look like an idle GPU.
+	pressure := s.gpuPressure(s.cfg.PublicModelID)
+	if pressure.DedicatedMiB != nil {
+		_, _ = fmt.Fprintf(w, "# TYPE cia_edge_gpu_dedicated_mib gauge\ncia_edge_gpu_dedicated_mib %.0f\n", *pressure.DedicatedMiB)
+		_, _ = fmt.Fprintf(w, "# TYPE cia_edge_gpu_shared_mib gauge\ncia_edge_gpu_shared_mib %.0f\n", *pressure.SharedMiB)
+	}
+	if pressure.Occupancy != nil {
+		_, _ = fmt.Fprintf(w, "# TYPE cia_edge_gpu_occupancy_ratio gauge\ncia_edge_gpu_occupancy_ratio %.4f\n", *pressure.Occupancy)
+	}
+	_, _ = fmt.Fprintf(w, "# TYPE cia_edge_gpu_memory_pressure gauge\ncia_edge_gpu_memory_pressure %d\n", gpuPressureLevel(pressure.State))
 }
 
 func (s *Server) upstreamReachable(ctx context.Context) bool {

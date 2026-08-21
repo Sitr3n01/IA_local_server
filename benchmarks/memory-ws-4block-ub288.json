@@ -1,0 +1,72 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "memory-and-throughput-profile",
+    "label":  "ws-4block-ub288",
+    "started_utc":  "2026-08-21T15:29:36.2774111Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "prompt_tokens":  [
+                                                512,
+                                                8192
+                                            ],
+                          "gen_tokens":  128,
+                          "batch_size":  2048,
+                          "ubatch_size":  288,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "cache_type_k":  "q8_0",
+                          "cache_type_v":  "q8_0",
+                          "tensor_override":  "blk\\.(6[0-3])\\.ffn_.*=CPU",
+                          "repetitions":  3,
+                          "device_vram_mib":  16304
+                      },
+    "throughput":  [
+                       {
+                           "test":  "pp512",
+                           "measured_at_pp":  512,
+                           "tokens_per_sec":  956.82,
+                           "stddev":  1.67
+                       },
+                       {
+                           "test":  "tg128",
+                           "measured_at_pp":  512,
+                           "tokens_per_sec":  23.66,
+                           "stddev":  0.08
+                       },
+                       {
+                           "test":  "pp8192",
+                           "measured_at_pp":  8192,
+                           "tokens_per_sec":  269,
+                           "stddev":  1.11
+                       },
+                       {
+                           "test":  "tg128",
+                           "measured_at_pp":  8192,
+                           "tokens_per_sec":  20.51,
+                           "stddev":  0.02
+                       }
+                   ],
+    "idle":  {
+                 "vram_dedicated_mib":  2925.6,
+                 "vram_shared_mib":  411.7,
+                 "commit_gib":  25.846,
+                 "physical_used_gib":  11.847
+             },
+    "peak":  {
+                 "vram_dedicated_mib":  15938.1,
+                 "vram_shared_mib":  881.5,
+                 "process_vram_mib":  13012.1,
+                 "process_ws_gib":  12.814,
+                 "process_private_gib":  12.8,
+                 "commit_gib":  39.85,
+                 "physical_used_gib":  25.37
+             },
+    "samples_taken":  35,
+    "gpu_pressure":  {
+                         "state":  "elevated",
+                         "occupancy":  0.9776,
+                         "shared_mib":  881.5,
+                         "message":  "GPU memory is elevated: 15.938 / 16.304 MiB dedicated (97,8%), 882 MiB shared."
+                     }
+}

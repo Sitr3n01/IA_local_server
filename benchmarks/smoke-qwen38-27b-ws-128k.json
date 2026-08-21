@@ -1,0 +1,31 @@
+{
+    "schema_version":  1,
+    "scenario":  "workstation-smoke",
+    "model":  "qwen38-27b-ws-128k",
+    "runtime":  "amd-rocm-qwen38",
+    "started_utc":  "2026-08-21T15:47:45.3588900Z",
+    "load_seconds":  8.6,
+    "checks":  13,
+    "failures":  [
+
+                 ],
+    "verdict":  "smoke_pass",
+    "idle":  {
+                 "vram_dedicated_mib":  2943.9,
+                 "vram_shared_mib":  411.6,
+                 "physical_used_gib":  10.682
+             },
+    "peak":  {
+                 "vram_dedicated_mib":  16005.1,
+                 "vram_shared_mib":  5176.1,
+                 "process_ws_gib":  18.172,
+                 "process_private_gib":  18.636,
+                 "physical_used_gib":  29.534
+             },
+    "gpu_pressure":  {
+                         "state":  "pressured",
+                         "occupancy":  0.9817,
+                         "shared_mib":  5176.1,
+                         "message":  "GPU memory pressure detected.\r\n\r\n  Dedicated VRAM : 16.005 / 16.304 MiB (98,2%)\r\n  Shared GPU     : 5.176 MiB\r\n\r\nDriver-level VRAM paging is likely. Prompt processing degrades\r\nwithout any error being raised. Consider a smaller context\r\nprofile or a wider CPU tensor split."
+                     }
+}

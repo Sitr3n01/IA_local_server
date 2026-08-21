@@ -329,6 +329,281 @@
                                             ],
                        "supports_search_tool":  false,
                        "use_responses_lite":  false
+                   },
+                   {
+                       "slug":  "qwen38-27b-ws-32k",
+                       "display_name":  "CIA Local - Qwen 3.8 27B UD-IQ4_XS | workstation default | 32k ctx",
+                       "description":  "Explicit local-only model served from this machine. No cloud fallback.",
+                       "default_reasoning_level":  "medium",
+                       "supported_reasoning_levels":  [
+                                                          {
+                                                              "effort":  "medium",
+                                                              "description":  "Local model default"
+                                                          }
+                                                      ],
+                       "shell_type":  "shell_command",
+                       "visibility":  "list",
+                       "supported_in_api":  true,
+                       "priority":  7,
+                       "additional_speed_tiers":  [
+
+                                                  ],
+                       "service_tiers":  [
+
+                                         ],
+                       "availability_nux":  null,
+                       "upgrade":  null,
+                       "base_instructions":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                       "model_messages":  {
+                                              "instructions_template":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                                              "instructions_variables":  null,
+                                              "approvals":  null,
+                                              "auto_review":  null,
+                                              "permissions":  null
+                                          },
+                       "include_skills_usage_instructions":  false,
+                       "default_reasoning_summary":  "none",
+                       "support_verbosity":  true,
+                       "default_verbosity":  "low",
+                       "web_search_tool_type":  "text_and_image",
+                       "truncation_policy":  {
+                                                 "mode":  "tokens",
+                                                 "limit":  10000
+                                             },
+                       "supports_parallel_tool_calls":  true,
+                       "supports_image_detail_original":  false,
+                       "context_window":  32768,
+                       "max_context_window":  32768,
+                       "comp_hash":  "cia-local-v2-qwen38-27b-ws-32k",
+                       "effective_context_window_percent":  85,
+                       "experimental_supported_tools":  [
+
+                                                        ],
+                       "input_modalities":  [
+                                                "text"
+                                            ],
+                       "supports_search_tool":  false,
+                       "use_responses_lite":  false
+                   },
+                   {
+                       "slug":  "qwen38-27b-ws-64k",
+                       "display_name":  "CIA Local - Qwen 3.8 27B UD-IQ4_XS | agentic extended | 64k ctx",
+                       "description":  "Explicit local-only model served from this machine. No cloud fallback.",
+                       "default_reasoning_level":  "medium",
+                       "supported_reasoning_levels":  [
+                                                          {
+                                                              "effort":  "medium",
+                                                              "description":  "Local model default"
+                                                          }
+                                                      ],
+                       "shell_type":  "shell_command",
+                       "visibility":  "list",
+                       "supported_in_api":  true,
+                       "priority":  8,
+                       "additional_speed_tiers":  [
+
+                                                  ],
+                       "service_tiers":  [
+
+                                         ],
+                       "availability_nux":  null,
+                       "upgrade":  null,
+                       "base_instructions":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                       "model_messages":  {
+                                              "instructions_template":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                                              "instructions_variables":  null,
+                                              "approvals":  null,
+                                              "auto_review":  null,
+                                              "permissions":  null
+                                          },
+                       "include_skills_usage_instructions":  false,
+                       "default_reasoning_summary":  "none",
+                       "support_verbosity":  true,
+                       "default_verbosity":  "low",
+                       "web_search_tool_type":  "text_and_image",
+                       "truncation_policy":  {
+                                                 "mode":  "tokens",
+                                                 "limit":  10000
+                                             },
+                       "supports_parallel_tool_calls":  true,
+                       "supports_image_detail_original":  false,
+                       "context_window":  65536,
+                       "max_context_window":  65536,
+                       "comp_hash":  "cia-local-v2-qwen38-27b-ws-64k",
+                       "effective_context_window_percent":  85,
+                       "experimental_supported_tools":  [
+
+                                                        ],
+                       "input_modalities":  [
+                                                "text"
+                                            ],
+                       "supports_search_tool":  false,
+                       "use_responses_lite":  false
+                   },
+                   {
+                       "slug":  "qwen38-27b-ws-128k",
+                       "display_name":  "CIA Local - Qwen 3.8 27B UD-IQ4_XS | agentic huge, high-memory | 128k ctx",
+                       "description":  "Explicit local-only model served from this machine. No cloud fallback.",
+                       "default_reasoning_level":  "medium",
+                       "supported_reasoning_levels":  [
+                                                          {
+                                                              "effort":  "medium",
+                                                              "description":  "Local model default"
+                                                          }
+                                                      ],
+                       "shell_type":  "shell_command",
+                       "visibility":  "list",
+                       "supported_in_api":  true,
+                       "priority":  9,
+                       "additional_speed_tiers":  [
+
+                                                  ],
+                       "service_tiers":  [
+
+                                         ],
+                       "availability_nux":  null,
+                       "upgrade":  null,
+                       "base_instructions":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                       "model_messages":  {
+                                              "instructions_template":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                                              "instructions_variables":  null,
+                                              "approvals":  null,
+                                              "auto_review":  null,
+                                              "permissions":  null
+                                          },
+                       "include_skills_usage_instructions":  false,
+                       "default_reasoning_summary":  "none",
+                       "support_verbosity":  true,
+                       "default_verbosity":  "low",
+                       "web_search_tool_type":  "text_and_image",
+                       "truncation_policy":  {
+                                                 "mode":  "tokens",
+                                                 "limit":  10000
+                                             },
+                       "supports_parallel_tool_calls":  true,
+                       "supports_image_detail_original":  false,
+                       "context_window":  131072,
+                       "max_context_window":  131072,
+                       "comp_hash":  "cia-local-v2-qwen38-27b-ws-128k",
+                       "effective_context_window_percent":  85,
+                       "experimental_supported_tools":  [
+
+                                                        ],
+                       "input_modalities":  [
+                                                "text"
+                                            ],
+                       "supports_search_tool":  false,
+                       "use_responses_lite":  false
+                   },
+                   {
+                       "slug":  "qwen38-27b-ws-8k-prefill",
+                       "display_name":  "CIA Local - Qwen 3.8 27B UD-IQ4_XS | short context, high prefill | 8k ctx",
+                       "description":  "Explicit local-only model served from this machine. No cloud fallback.",
+                       "default_reasoning_level":  "medium",
+                       "supported_reasoning_levels":  [
+                                                          {
+                                                              "effort":  "medium",
+                                                              "description":  "Local model default"
+                                                          }
+                                                      ],
+                       "shell_type":  "shell_command",
+                       "visibility":  "list",
+                       "supported_in_api":  true,
+                       "priority":  10,
+                       "additional_speed_tiers":  [
+
+                                                  ],
+                       "service_tiers":  [
+
+                                         ],
+                       "availability_nux":  null,
+                       "upgrade":  null,
+                       "base_instructions":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                       "model_messages":  {
+                                              "instructions_template":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                                              "instructions_variables":  null,
+                                              "approvals":  null,
+                                              "auto_review":  null,
+                                              "permissions":  null
+                                          },
+                       "include_skills_usage_instructions":  false,
+                       "default_reasoning_summary":  "none",
+                       "support_verbosity":  true,
+                       "default_verbosity":  "low",
+                       "web_search_tool_type":  "text_and_image",
+                       "truncation_policy":  {
+                                                 "mode":  "tokens",
+                                                 "limit":  10000
+                                             },
+                       "supports_parallel_tool_calls":  true,
+                       "supports_image_detail_original":  false,
+                       "context_window":  8192,
+                       "max_context_window":  8192,
+                       "comp_hash":  "cia-local-v2-qwen38-27b-ws-8k-prefill",
+                       "effective_context_window_percent":  85,
+                       "experimental_supported_tools":  [
+
+                                                        ],
+                       "input_modalities":  [
+                                                "text"
+                                            ],
+                       "supports_search_tool":  false,
+                       "use_responses_lite":  false
+                   },
+                   {
+                       "slug":  "qwen38-27b-ws-32k-kv-q4",
+                       "display_name":  "CIA Local - Qwen 3.8 27B UD-IQ4_XS | experimental KV q4_0 | 32k ctx",
+                       "description":  "Explicit local-only model served from this machine. No cloud fallback.",
+                       "default_reasoning_level":  "medium",
+                       "supported_reasoning_levels":  [
+                                                          {
+                                                              "effort":  "medium",
+                                                              "description":  "Local model default"
+                                                          }
+                                                      ],
+                       "shell_type":  "shell_command",
+                       "visibility":  "list",
+                       "supported_in_api":  true,
+                       "priority":  11,
+                       "additional_speed_tiers":  [
+
+                                                  ],
+                       "service_tiers":  [
+
+                                         ],
+                       "availability_nux":  null,
+                       "upgrade":  null,
+                       "base_instructions":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                       "model_messages":  {
+                                              "instructions_template":  "You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.",
+                                              "instructions_variables":  null,
+                                              "approvals":  null,
+                                              "auto_review":  null,
+                                              "permissions":  null
+                                          },
+                       "include_skills_usage_instructions":  false,
+                       "default_reasoning_summary":  "none",
+                       "support_verbosity":  true,
+                       "default_verbosity":  "low",
+                       "web_search_tool_type":  "text_and_image",
+                       "truncation_policy":  {
+                                                 "mode":  "tokens",
+                                                 "limit":  10000
+                                             },
+                       "supports_parallel_tool_calls":  true,
+                       "supports_image_detail_original":  false,
+                       "context_window":  32768,
+                       "max_context_window":  32768,
+                       "comp_hash":  "cia-local-v2-qwen38-27b-ws-32k-kv-q4",
+                       "effective_context_window_percent":  85,
+                       "experimental_supported_tools":  [
+
+                                                        ],
+                       "input_modalities":  [
+                                                "text"
+                                            ],
+                       "supports_search_tool":  false,
+                       "use_responses_lite":  false
                    }
                ]
 }

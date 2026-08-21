@@ -204,7 +204,7 @@ func TestForkProfileIsAdmittedOnMeasurementsLikeAnyOther(t *testing.T) {
 	models := loadForkDeployment(t)
 	fork := models["qwen38-27b-buun"]
 	fork.PeakCommitGiB = floatPointer(23.3)
-	fork.PeakVRAMGiB = floatPointer(14.5)
+	fork.PeakVRAMGiB = floatPointer(12.45)
 	fork.PeakRAMGiB = floatPointer(7.4)
 
 	roomy := capacityFrom(fork, []Model{fork}, map[string]string{}, nil, memorySnapshot{CommitGiB: 40, PhysicalGiB: 20}, nil)

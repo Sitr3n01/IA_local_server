@@ -629,10 +629,69 @@ Capacity `reason` values from `/api/v1/status` (for slowness rather than refusal
 | `commit_headroom_available` | Measured profile fits, including any declared prompt cache | No action |
 | `insufficient_commit_headroom` | Measured commit plus `cache_ram_mib` plus the 4 GiB reserve exceeds free commit | Free commit (step 11.0), lower `cache_ram_mib`, or raise the pagefile |
 | `insufficient_physical_memory` | Measured `peak_ram_gib` plus the 2 GiB reserve exceeds free physical RAM | Free RAM or offload less; raising the pagefile does **not** fix this and makes it slower |
-| `insufficient_vram_budget` | Measured `peak_vram_gib` plus the 1 GiB reserve exceeds `device.vram_mib` | Shrink context, drop the KV type, or offload more weight |
+| `insufficient_vram_budget` | Measured `peak_vram_gib` plus the 3 GiB reserve exceeds `device.vram_mib` | Shrink context, drop the KV type, or offload more weight |
 | `resource_profile_incomplete` | Model uses host memory and at least one required measurement is missing; `missing_profile_fields` names them | Measure and record the named fields; this never resolves on its own |
 | `canary_resource_measurement_pending` | Unmeasured canary candidate that uses no host memory | Acceptable for small candidates; measure before qualifying |
 | `resource_measurement_required` | Unmeasured model outside the canary escape hatch | Measure and record `resources.peak_*` |
+
+## 13. Operate the workstation memory profiles
+
+`provider.public_model` is unchanged; these are selectable canary models, and
+switching between them is a llama-swap model switch, not a reconfiguration.
+
+| Profile | Context | Split | KV | Use it when |
+|---|---:|---|---|---|
+| `qwen38-27b-ws-32k` | 32768 | 4-block | `q8_0` | **Default.** Everyday development. |
+| `qwen38-27b-ws-64k` | 65536 | 4-block | `q8_0` | A session genuinely exceeds 32k. |
+| `qwen38-27b-ws-128k` | 131072 | 4-block | `q8_0` | Marked high-memory. Costs ~3.5 GiB of shared GPU memory and ~4 GiB of host RAM over the default; see TUNING.md 1.7. |
+| `qwen38-27b-ws-8k-prefill` | 8192 | 8-block | `q8_0` | Prompts reliably under 8k. Worth 3.6x on prefill; loses to the default past 16k. |
+| `qwen38-27b-ws-32k-kv-q4` | 32768 | 4-block | `q4_0` | **Experimental.** Halves the shared-memory cost. No quality evaluation has been run. |
+
+**Switching requires a model reload.** `--ctx-size` is fixed for the life of a
+llama-server process; llama.cpp has no hot resize and none is simulated here.
+Request the profile by model id and llama-swap unloads the current one first,
+because `provider.max_loaded_models` is 1. Expect a cold load of roughly ten
+seconds.
+
+Do not select `qwen38-27b-ws-128k` because the model supports 128k. The window is
+allocated at load whether or not a session reaches it.
+
+### Reading the GPU pressure verdict
+
+`GET /api/v1/status` carries a `gpu_memory` block, and the metrics endpoint
+exposes `cia_edge_gpu_dedicated_mib`, `cia_edge_gpu_shared_mib`,
+`cia_edge_gpu_occupancy_ratio` and `cia_edge_gpu_memory_pressure`
+(-1 unknown, 0 ok, 1 elevated, 2 pressured).
+
+| State | Meaning | Action |
+|---|---|---|
+| `ok` | Adapter below 95% dedicated | None |
+| `elevated` | At or above 95% dedicated, shared below 1024 MiB | None required. The fastest configuration measured on this hardware sits here. |
+| `pressured` | At or above 95% dedicated **and** shared at or above 1024 MiB | The driver is likely paging over PCIe. Prompt processing degrades with no error. Switch to a smaller context profile, or close other GPU consumers. |
+| `unknown` | No adapter counters, or no declared device budget | Not a clean bill of health. Investigate before trusting a memory figure. |
+
+This is a diagnosis, never an action: nothing refuses a request or unloads a
+model on it. A verdict of `pressured` on the default profile with a browser and
+an IDE open is expected on this hardware and is not by itself a fault.
+
+**Close GPU consumers before blaming the model.** The desktop holds roughly
+3.0 GiB of dedicated VRAM on this workstation before anything loads, which is
+most of the difference between what llama.cpp's load log reports and what the
+adapter shows. `scripts/v2/Measure-V2ContextFootprint.ps1` records an idle sample
+alongside the peak precisely so the two can be told apart.
+
+### Re-measure after any change to the split, context, or KV type
+
+```powershell
+& C:\IA\local-llama\scripts\v2\Test-V2WorkstationSmoke.ps1 -ModelId qwen38-27b-ws-32k `
+    -OutputPath C:\IA\local-llama\benchmarks\smoke-qwen38-27b-ws-32k.json
+```
+
+The smoke report's `peak` block is what `resources.peak_vram_gib`,
+`peak_ram_gib` and `peak_commit_gib` should be set from. Take them from a serving
+run, not from a load-time footprint: measured on the default profile the working
+set under load was 14.24 GiB against 12.73 GiB at load, and admission control
+gates on the larger figure.
 
 ## Safe rollback
 

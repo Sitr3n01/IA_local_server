@@ -1,13 +1,20 @@
 [CmdletBinding()]
 param(
-    [string]$ManifestPath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'config\models.yaml'),
-    [string]$SchemaPath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'config\models.schema.json'),
+    [string]$ManifestPath,
+    [string]$SchemaPath,
     [string]$SchemaValidatorPath = 'C:\IA\local-ai-v2\bin\cia-manifest.exe',
     [switch]$VerifyArtifacts,
     [switch]$Quiet
 )
 
 $ErrorActionPreference = 'Stop'
+$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
+    $ManifestPath = Join-Path $repoRoot 'config\models.yaml'
+}
+if ([string]::IsNullOrWhiteSpace($SchemaPath)) {
+    $SchemaPath = Join-Path $repoRoot 'config\models.schema.json'
+}
 . (Join-Path $PSScriptRoot 'Common.ps1')
 
 Assert-V2ManifestSchema -ManifestPath $ManifestPath -SchemaPath $SchemaPath -ValidatorPath $SchemaValidatorPath
@@ -181,7 +188,12 @@ Assert-V2ManifestSemantics -Manifest $forkAccepted
 
 $forkManifestPath = Join-Path ([IO.Path]::GetTempPath()) ("cia-fork-manifest-{0}.json" -f [Guid]::NewGuid().ToString('N'))
 try {
-    Set-Content -LiteralPath $forkManifestPath -Value ($forkAccepted | ConvertTo-Json -Depth 20) -Encoding UTF8
+    # Not Set-Content -Encoding UTF8: that writes a byte-order mark under Windows
+    # PowerShell 5.1 and no mark under pwsh 7. cia-manifest decodes with Go's
+    # encoding/json, which rejects a BOM outright, so the same test passed on the
+    # CI runner and could not pass locally. Writing the encoding explicitly makes
+    # the two hosts agree.
+    [IO.File]::WriteAllText($forkManifestPath, ($forkAccepted | ConvertTo-Json -Depth 20), [Text.UTF8Encoding]::new($false))
     Assert-V2ManifestSchema -ManifestPath $forkManifestPath -SchemaPath $SchemaPath -ValidatorPath $SchemaValidatorPath
 }
 finally {

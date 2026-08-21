@@ -1,0 +1,60 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "memory-and-throughput-profile",
+    "label":  "ab-long-ub288",
+    "started_utc":  "2026-08-21T16:19:25.1437299Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "prompt_tokens":  [
+                                                16384,
+                                                32768
+                                            ],
+                          "gen_tokens":  0,
+                          "batch_size":  2048,
+                          "ubatch_size":  288,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "cache_type_k":  "q8_0",
+                          "cache_type_v":  "q8_0",
+                          "tensor_override":  "blk\\.(6[0-3])\\.ffn_.*=CPU",
+                          "repetitions":  3,
+                          "device_vram_mib":  16304
+                      },
+    "throughput":  [
+                       {
+                           "test":  "pp16384",
+                           "measured_at_pp":  16384,
+                           "tokens_per_sec":  249.9,
+                           "stddev":  0.38
+                       },
+                       {
+                           "test":  "pp32768",
+                           "measured_at_pp":  32768,
+                           "tokens_per_sec":  222.04,
+                           "stddev":  1.15
+                       }
+                   ],
+    "idle":  {
+                 "vram_dedicated_mib":  3258.4,
+                 "vram_shared_mib":  414,
+                 "commit_gib":  26.419,
+                 "physical_used_gib":  11.908
+             },
+    "peak":  {
+                 "vram_dedicated_mib":  15931.6,
+                 "vram_shared_mib":  1905.5,
+                 "process_vram_mib":  12618.3,
+                 "process_ws_gib":  13.233,
+                 "process_private_gib":  12.808,
+                 "commit_gib":  41.378,
+                 "physical_used_gib":  26.28
+             },
+    "samples_taken":  170,
+    "gpu_pressure":  {
+                         "state":  "pressured",
+                         "occupancy":  0.9772,
+                         "shared_mib":  1905.5,
+                         "message":  "GPU memory pressure detected.\r\n\r\n  Dedicated VRAM : 15.932 / 16.304 MiB (97,7%)\r\n  Shared GPU     : 1.906 MiB\r\n\r\nDriver-level VRAM paging is likely. Prompt processing degrades\r\nwithout any error being raised. Consider a smaller context\r\nprofile or a wider CPU tensor split."
+                     }
+}

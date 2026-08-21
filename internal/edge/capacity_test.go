@@ -109,7 +109,10 @@ func runningBackend(t *testing.T, running string) (*httptest.Server, *atomic.Int
 
 func TestCapacityRejectsModelExceedingDeviceVRAMBudget(t *testing.T) {
 	backend, inferenceCalls := runningBackend(t, `{"running":[]}`)
-	commit, vram, device := 8.0, 15.2, 15.92
+	// Marginal VRAM just over what the reserve leaves. The reserve is the share
+	// of the adapter the desktop already holds, measured at ~3.0 GiB on the
+	// reference workstation, so the usable budget here is 15.92 - 3.0 GiB.
+	commit, vram, device := 8.0, 13.5, 15.92
 
 	cfg := testConfig(backend.URL)
 	cfg.Models[0].PeakCommitGiB = &commit
@@ -131,7 +134,7 @@ func TestCapacityRejectsModelExceedingDeviceVRAMBudget(t *testing.T) {
 	}
 
 	status := controlRequest(t, server.ControlHandler(), http.MethodGet, "/api/v1/status", nil)
-	for _, expected := range []string{`"reason":"insufficient_vram_budget"`, `"required_vram_gib":16.2`, `"device_vram_gib":15.92`} {
+	for _, expected := range []string{`"reason":"insufficient_vram_budget"`, `"required_vram_gib":16.5`, `"device_vram_gib":15.92`} {
 		if !strings.Contains(status.Body.String(), expected) {
 			t.Errorf("capacity status missing %s: %s", expected, status.Body.String())
 		}
@@ -140,7 +143,11 @@ func TestCapacityRejectsModelExceedingDeviceVRAMBudget(t *testing.T) {
 
 func TestCapacityAdmitsModelInsideDeviceVRAMBudget(t *testing.T) {
 	backend, _ := runningBackend(t, `{"running":[]}`)
-	commit, vram, device := 8.0, 14.5, 15.92
+	// 12.45 GiB is the measured marginal cost of the shipped workstation profile
+	// (Qwen3.8-27B UD-IQ4_XS, 4-block split, 32k). It has to remain admissible:
+	// a reserve that refused the configuration this repository recommends would
+	// be calibrated wrong.
+	commit, vram, device := 8.0, 12.45, 15.92
 
 	cfg := testConfig(backend.URL)
 	cfg.Models[0].PeakCommitGiB = &commit

@@ -1,0 +1,11 @@
+﻿ggml_cuda_init: found 1 ROCm devices (Total VRAM: 16304 MiB):
+  Device 0: AMD Radeon RX 9070 XT, gfx1201 (0x1201), VMM: no, Wave Size: 32, VRAM: 16304 MiB
+load_backend: loaded ROCm backend from C:\IA\runtimes\llama.cpp\b10549-rocm-7.14\ggml-hip.dll
+load_backend: loaded RPC backend from C:\IA\runtimes\llama.cpp\b10549-rocm-7.14\ggml-rpc.dll
+load_backend: loaded CPU backend from C:\IA\runtimes\llama.cpp\b10549-rocm-7.14\ggml-cpu-zen4.dll
+| model                          |       size |     params | backend    | ngl | type_k | type_v |     sm |  fa | dev          | ot                    |            test |                  t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | -----: | -----: | -----: | --: | ------------ | --------------------- | --------------: | -------------------: |
+| qwen35 27B IQ4_XS - 4.25 bpw   |  13.26 GiB |    27.32 B | ROCm       |  99 |   q8_0 |   q8_0 |   none |   1 | ROCm0        | blk\.(5[8-9]|6[0-3])\.ffn_.*=CPU |           pp512 |        688.24 ± 6.43 |
+| qwen35 27B IQ4_XS - 4.25 bpw   |  13.26 GiB |    27.32 B | ROCm       |  99 |   q8_0 |   q8_0 |   none |   1 | ROCm0        | blk\.(5[8-9]|6[0-3])\.ffn_.*=CPU |           tg128 |         17.40 ± 0.24 |
+
+build: b2e5e9b28 (10549)

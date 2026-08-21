@@ -144,7 +144,8 @@
     },
     "windows_path": {
       "type": "string",
-      "pattern": "^[A-Za-z]:\\\\"
+      "$comment": "The trailing class refuses control characters anywhere in the path. A generator that mishandles backslash escaping can embed CR or BS and still produce a string that looks like a drive-rooted path; the manifest then validates and llama-server fails at load with an error that names a path the operator cannot see is wrong.",
+      "pattern": "^[A-Za-z]:\\\\[^\\x00-\\x1f]*$"
     },
     "artifact": {
       "type": "object",

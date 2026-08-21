@@ -13,13 +13,25 @@ import (
 
 const commitReserveGiB = 4.0
 
-// vramReserveGiB is left to the Windows desktop compositor and to allocations
-// llama.cpp makes outside its own accounting. Unlike commit headroom there is no
-// cheap live probe here, so admission compares a measured per-model peak against
-// the device budget declared by the runtime. provider.max_loaded_models is
-// pinned to 1, which is what makes a static budget sound: exactly one model is
-// ever resident on the device.
-const vramReserveGiB = 1.0
+// vramReserveGiB is what the model does not get: the share of the adapter the
+// rest of the machine is already holding. resources.peak_vram_gib is a model's
+// *marginal* cost, measured as adapter usage under load minus adapter usage
+// idle, so the reserve is the only term that accounts for everything else on the
+// card. provider.max_loaded_models is pinned to 1, which is what makes a static
+// budget sound: exactly one model is ever resident on the device.
+//
+// 1.0 GiB was an estimate and it was too small by a factor of three. Sampled on
+// the reference workstation with no model loaded, the desktop compositor and a
+// browser hold 2967-3126 MiB of dedicated VRAM. Admitting a 12.45 GiB model
+// against a 15.92 GiB card on a 1.0 GiB reserve implied 84% occupancy; the
+// adapter actually reached 98%, and past that point the AMD driver pages over
+// PCIe and prompt processing loses a factor of three
+// (benchmarks/REPORT-qwen38-27b-gfx1201-20260821.md).
+//
+// This remains a static figure, and the real one moves with whatever is on
+// screen. The live adapter probe in gpumemory.go is what observes that; this
+// constant only has to stop a manifest that cannot fit at all.
+const vramReserveGiB = 3.0
 
 // physicalReserveGiB is deliberately smaller than the commit reserve. The two
 // axes overlap: every allocation counted against commit is also counted here

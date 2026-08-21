@@ -38,6 +38,10 @@ jobs:
           ./scripts/v2/Test-V2HarnessConfig.ps1
           ./scripts/v2/Test-V2ConfigGeneration.ps1
 
+      - name: Memory telemetry self-test
+        shell: pwsh
+        run: ./scripts/v2/Test-V2Telemetry.ps1
+
       - name: Agentic reuse harness self-test
         shell: pwsh
         run: ./scripts/v2/Test-V2AgenticHarness.ps1

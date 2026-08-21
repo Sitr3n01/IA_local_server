@@ -40,6 +40,10 @@ func TestRepositoryManifestExposesCanaryModels(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadModels(%s): %v", path, err)
 	}
+	// Ordered and exact on purpose: this is the deployment's model list, and a
+	// model appearing in it by accident is exactly what the assertion catches.
+	// Extending it is a deliberate act, which is why adding the workstation
+	// profiles required editing this line.
 	want := []string{
 		"local-coding",
 		"local-fast",
@@ -47,6 +51,11 @@ func TestRepositoryManifestExposesCanaryModels(t *testing.T) {
 		"qwen35-9b-ud-q4xl",
 		"gemma4-12b-qat-q4_0",
 		"gemma4-12b-qat-ud-q4xl",
+		"qwen38-27b-ws-32k",
+		"qwen38-27b-ws-64k",
+		"qwen38-27b-ws-128k",
+		"qwen38-27b-ws-8k-prefill",
+		"qwen38-27b-ws-32k-kv-q4",
 	}
 	if len(models) != len(want) {
 		t.Fatalf("repository allowlist = %+v, want %d canary models", models, len(want))

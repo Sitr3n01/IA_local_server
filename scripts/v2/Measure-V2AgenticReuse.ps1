@@ -70,6 +70,14 @@ param(
     # is the honest result: this script never estimates a measurement.
     [int]$ServerProcessId = 0,
 
+    # The adapter's dedicated budget, so the GPU pressure verdict is computed
+    # against the same number the edge admission gate uses
+    # (runtimes[].device.vram_mib). Left at 0 the report still carries the raw
+    # dedicated and shared samples and simply does not classify them, rather than
+    # inventing a budget from a driver-reported total that Windows truncates.
+    [ValidateRange(0, 1048576)]
+    [int]$DeviceVramMib = 0,
+
     [int]$Seed = 20260817,
 
     [int]$TimeoutSeconds = 900,
@@ -81,6 +89,35 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+
+# Host and GPU sampling lives in Telemetry.ps1 so this script and the memory
+# profiler measure the same quantities the same way. It replaced three local
+# helpers that read localized Get-Counter paths; see that file's header.
+. (Join-Path $PSScriptRoot 'Telemetry.ps1')
+
+# Peaks skip nulls rather than treating them as zero. A turn whose sample failed
+# must not lower a maximum, and a run where every sample failed must report null
+# rather than 0 - the manifest reads these values, and a zero would look like a
+# measured model with no footprint.
+function Get-PeakMemoryValue {
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][object[]]$Turns,
+        [Parameter(Mandatory = $true)][string]$Field
+    )
+    $values = @($Turns | ForEach-Object { $_.memory.$Field } | Where-Object { $null -ne $_ })
+    if ($values.Count -eq 0) { return $null }
+    return ($values | Measure-Object -Maximum).Maximum
+}
+
+function Get-PeakMemoryGiBFromMib {
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][object[]]$Turns,
+        [Parameter(Mandatory = $true)][string]$Field
+    )
+    $peak = Get-PeakMemoryValue -Turns $Turns -Field $Field
+    if ($null -eq $peak) { return $null }
+    return [Math]::Round($peak / 1024, 3)
+}
 
 # Fixed vocabulary. Synthetic filler only: never a real prompt, never repository
 # content, so a stored fixture hash discloses nothing.
@@ -132,51 +169,6 @@ function Get-V2Sha256Hex {
 # Memory samples. Each returns $null rather than a plausible number when the
 # counter is unavailable, because docs/MODEL_PROMOTION.md forbids recording an
 # estimate as a measurement.
-function Get-V2CommitGiB {
-    try {
-        $sample = Get-Counter -Counter '\Memory\Committed Bytes' -ErrorAction Stop
-        return [Math]::Round($sample.CounterSamples[0].CookedValue / 1GB, 3)
-    }
-    catch {
-        return $null
-    }
-}
-
-function Get-V2ProcessRamGiB {
-    param([int]$ProcessId)
-
-    if ($ProcessId -le 0) { return $null }
-    try {
-        $process = Get-Process -Id $ProcessId -ErrorAction Stop
-        return [Math]::Round($process.WorkingSet64 / 1GB, 3)
-    }
-    catch {
-        return $null
-    }
-}
-
-function Get-V2ProcessVramGiB {
-    param([int]$ProcessId)
-
-    if ($ProcessId -le 0) { return $null }
-    try {
-        $samples = (Get-Counter -Counter '\GPU Process Memory(*)\Dedicated Usage' -ErrorAction Stop).CounterSamples
-        $total = 0
-        $matched = $false
-        foreach ($sample in $samples) {
-            if ($sample.InstanceName -match "pid_$ProcessId(_|$)") {
-                $total += $sample.CookedValue
-                $matched = $true
-            }
-        }
-        if (-not $matched) { return $null }
-        return [Math]::Round($total / 1GB, 3)
-    }
-    catch {
-        return $null
-    }
-}
-
 function Invoke-V2Chat {
     param(
         [Parameter(Mandatory = $true)][string]$Endpoint,
@@ -337,9 +329,11 @@ for ($turn = 1; $turn -le $Turns; $turn++) {
         mtp_draft_accepted       = $draftAccepted
         mtp_acceptance           = $acceptance
         tool_call_observed       = $toolCallObserved
-        commit_gib               = Get-V2CommitGiB
-        process_ram_gib          = Get-V2ProcessRamGiB -ProcessId $ServerProcessId
-        process_vram_gib         = Get-V2ProcessVramGiB -ProcessId $ServerProcessId
+        # One combined sample so every memory column in this row describes the
+        # same instant. vram_dedicated/shared are adapter-level: a process-level
+        # figure cannot show the driver paging the adapter's working set to
+        # system memory, which is the degradation that has no other symptom.
+        memory                   = Get-V2MemorySample -ProcessId $ServerProcessId
     })
 
     # Grow the conversation exactly as a harness would, so the next request sees
@@ -367,6 +361,23 @@ $verdict = if ($verdictFailures.Count -eq 0) { 'incremental_reuse_pass' } else {
 $measuredTurns = @($turnReports | Where-Object { $_.turn -gt 1 })
 $efficiencies = @($measuredTurns | Where-Object { $null -ne $_.agentic_turn_efficiency } | ForEach-Object { $_.agentic_turn_efficiency })
 
+# Classified from the run's worst instant, not from a final sample: paging that
+# happened at peak context is the finding, and it does not persist after the
+# conversation is released.
+$gpuPressure = $null
+if ($DeviceVramMib -gt 0) {
+    $peakDedicated = Get-PeakMemoryValue -Turns $turnReports -Field 'vram_dedicated_mib'
+    $peakShared = Get-PeakMemoryValue -Turns $turnReports -Field 'vram_shared_mib'
+    if ($null -ne $peakDedicated) {
+        $worst = [pscustomobject]@{
+            instance      = 'run-peak'
+            dedicated_mib = $peakDedicated
+            shared_mib    = $(if ($null -ne $peakShared) { $peakShared } else { 0 })
+        }
+        $gpuPressure = Test-V2GpuMemoryPressure -Sample $worst -TotalMib $DeviceVramMib
+    }
+}
+
 $report = [ordered]@{
     schema_version           = 1
     scenario                 = 'agentic-incremental-reuse'
@@ -388,9 +399,32 @@ $report = [ordered]@{
     turns                    = @($turnReports)
     peak_context_tokens      = ($turnReports | ForEach-Object { $_.context_tokens } | Measure-Object -Maximum).Maximum
     mean_turn_efficiency     = $(if ($efficiencies.Count -gt 0) { [Math]::Round(($efficiencies | Measure-Object -Average).Average, 4) } else { $null })
-    peak_commit_gib          = ($turnReports | Where-Object { $null -ne $_.commit_gib } | ForEach-Object { $_.commit_gib } | Measure-Object -Maximum).Maximum
-    peak_ram_gib             = ($turnReports | Where-Object { $null -ne $_.process_ram_gib } | ForEach-Object { $_.process_ram_gib } | Measure-Object -Maximum).Maximum
-    peak_vram_gib            = ($turnReports | Where-Object { $null -ne $_.process_vram_gib } | ForEach-Object { $_.process_vram_gib } | Measure-Object -Maximum).Maximum
+    # peak_vram_gib feeds resources.peak_vram_gib in the model manifest, which
+    # the edge admission gate compares against runtimes[].device.vram_mib. It is
+    # taken from the adapter, not from the process. The process counter is
+    # accurate for what llama-server was charged, but the budget applies to the
+    # whole device, and on this workstation the desktop already holds ~3.0 GiB of
+    # it. Gating on the process figure therefore compared the model's cost alone
+    # against a budget it does not have to itself.
+    # peak_process_vram_gib keeps the per-process quantity for attribution, and
+    # peak_vram_shared_gib is the paging signal itself.
+    # peak_commit_gib feeds resources.peak_commit_gib, which the edge compares
+    # against the host's *available* commit headroom. It therefore has to be this
+    # model's own commit demand, exactly as peak_ram_gib is this model's own
+    # resident footprint. It previously carried system-wide committed bytes,
+    # which is an absolute level rather than a demand: on this workstation that
+    # is around 40 GiB against 36 GiB of available headroom, so a correct
+    # manifest would have been refused by its own admission gate.
+    # peak_system_commit_gib keeps the system-wide observation, which is useful
+    # context for a reader and is not what the gate consumes.
+    peak_commit_gib          = (Get-PeakMemoryValue -Turns $turnReports -Field 'process_private_gib')
+    peak_system_commit_gib   = (Get-PeakMemoryValue -Turns $turnReports -Field 'commit_gib')
+    peak_ram_gib             = (Get-PeakMemoryValue -Turns $turnReports -Field 'process_ws_gib')
+    peak_vram_gib            = (Get-PeakMemoryGiBFromMib -Turns $turnReports -Field 'vram_dedicated_mib')
+    peak_process_vram_gib    = (Get-PeakMemoryGiBFromMib -Turns $turnReports -Field 'process_vram_mib')
+    peak_vram_shared_gib     = (Get-PeakMemoryGiBFromMib -Turns $turnReports -Field 'vram_shared_mib')
+    peak_physical_used_gib   = (Get-PeakMemoryValue -Turns $turnReports -Field 'physical_used_gib')
+    gpu_memory_pressure      = $gpuPressure
     verdict                  = $verdict
     failures                 = @($verdictFailures)
 }

@@ -165,11 +165,26 @@ function Invoke-ScriptedRun {
         # The failing scenario is expected to write to stderr and exit non-zero;
         # that is the behaviour under test, so its diagnostics are discarded here
         # rather than mixed into this script's own output.
+        #
+        # ErrorActionPreference is lowered for exactly this call. Windows
+        # PowerShell 5.1 wraps each stderr line of a native command redirected
+        # with 2>&1 in a NativeCommandError record; under 'Stop' that record
+        # terminates the caller, so the deliberately-failing scenario aborted this
+        # script before it could assert anything. pwsh 7 does not do this, which
+        # is why CI passed while a local 5.1 run could never reach the assertions.
+        # scripts/bench-llama.ps1 brackets its own native invocation the same way.
         $reportPath = Join-Path $workRoot "$Label.json"
-        & $host_ -NoProfile -File $measureScript `
-            -BaseUrl "http://127.0.0.1:$port" -Model 'scripted' -RuntimeLabel $Label `
-            -BaseContextTokens 2048 -IncrementTokens 256 -Turns $turns -MaxOutputTokens 32 `
-            -OutputPath $reportPath -Quiet 2>&1 | Out-Null
+        $previousPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            & $host_ -NoProfile -File $measureScript `
+                -BaseUrl "http://127.0.0.1:$port" -Model 'scripted' -RuntimeLabel $Label `
+                -BaseContextTokens 2048 -IncrementTokens 256 -Turns $turns -MaxOutputTokens 32 `
+                -OutputPath $reportPath -Quiet 2>&1 | Out-Null
+        }
+        finally {
+            $ErrorActionPreference = $previousPreference
+        }
 
         # The child's exit code is evidence, not this script's status. One of the
         # two scenarios is *supposed* to exit non-zero, and leaving that value in

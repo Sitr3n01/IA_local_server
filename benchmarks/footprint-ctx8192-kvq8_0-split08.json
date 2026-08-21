@@ -1,0 +1,43 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "context-footprint-at-load",
+    "started_utc":  "2026-08-21T15:36:14.9405497Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  8192,
+                          "cache_type_k":  "q8_0",
+                          "cache_type_v":  "q8_0",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "parallel":  1,
+                          "tensor_override":  "blk\\.(5[6-9]|6[0-3])\\.ffn_.*=CPU",
+                          "device_vram_mib":  16304
+                      },
+    "load_seconds":  6.6,
+    "idle":  {
+                 "vram_dedicated_mib":  2923.6,
+                 "vram_shared_mib":  411.6,
+                 "commit_gib":  25.824,
+                 "physical_used_gib":  12.072
+             },
+    "peak":  {
+                 "vram_dedicated_mib":  15235.7,
+                 "vram_shared_mib":  506,
+                 "process_vram_mib":  12309,
+                 "process_ws_gib":  12.712,
+                 "process_private_gib":  12.082,
+                 "commit_gib":  38.835,
+                 "physical_used_gib":  24.946
+             },
+    "marginal_vram_mib":  12312.1,
+    "gpu_pressure":  {
+                         "state":  "ok",
+                         "occupancy":  0.9345,
+                         "shared_mib":  506,
+                         "message":  "GPU memory is within budget: 15.236 / 16.304 MiB dedicated (93,4%), 506 MiB shared."
+                     },
+    "failure":  null
+}
