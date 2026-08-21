@@ -52,7 +52,7 @@ foreach ($runtime in @($manifest.runtimes)) { $runtimesById[$runtime.id] = $runt
 #    of New-V2LlamaServerCommand, from the pre-tuning flag list.
 $untunedFields = @(
     'context_shift', 'kv_unified', 'threads', 'threads_batch', 'cache_ram_mib', 'ctx_checkpoints',
-    'checkpoint_min_step', 'cache_idle_slots', 'spec_decoding', 'tensor_overrides'
+    'checkpoint_min_step', 'cache_idle_slots', 'spec_decoding', 'moe_offload', 'tensor_overrides'
 )
 $untunedCount = 0
 foreach ($model in @($manifest.models)) {
@@ -108,11 +108,12 @@ $tuned | Add-Member -NotePropertyName 'ctx_checkpoints' -NotePropertyValue 64
 $tuned | Add-Member -NotePropertyName 'checkpoint_min_step' -NotePropertyValue 8192
 $tuned | Add-Member -NotePropertyName 'cache_idle_slots' -NotePropertyValue $true
 $tuned | Add-Member -NotePropertyName 'spec_decoding' -NotePropertyValue ([pscustomobject]@{ type = 'draft-mtp'; draft_n_max = 5 })
+$tuned | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_layers = 4 })
 $tuned | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @(
     [pscustomobject]@{ pattern = 'blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*'; buffer = 'CPU' })
 
 $tunedCommand = New-V2LlamaServerCommand -Runtime $runtimesById[$tuned.runtime] -Model $tuned -RouterAPIKeyPath $routerAPIKeyPath
-Assert-Contains -Haystack $tunedCommand -Needle '--cont-batching --no-context-shift --kv-unified --threads 8 --threads-batch 16 --cache-ram 6144 --ctx-checkpoints 64 --checkpoint-min-step 8192 --cache-idle-slots --spec-type draft-mtp --spec-draft-n-max 5 -ot "blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*=CPU" --jinja' -Label 'Tuned hybrid command does not emit the optional flag block in order.'
+Assert-Contains -Haystack $tunedCommand -Needle '--cont-batching --no-context-shift --kv-unified --threads 8 --threads-batch 16 --cache-ram 6144 --n-cpu-moe 4 --ctx-checkpoints 64 --checkpoint-min-step 8192 --cache-idle-slots --spec-type draft-mtp --spec-draft-n-max 5 -ot "blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*=CPU" --jinja' -Label 'Tuned hybrid command does not emit the optional flag block in order.'
 Assert-NotContains -Haystack $tunedCommand -Needle ' --context-shift ' -Label 'Tuned hybrid command still enables context shift.'
 
 # 3. Turning context_shift back on must restore the historical flag exactly.
@@ -130,7 +131,22 @@ $multi | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @(
 $multiCommand = New-V2LlamaServerCommand -Runtime $runtimesById[$multi.runtime] -Model $multi -RouterAPIKeyPath $routerAPIKeyPath
 Assert-Contains -Haystack $multiCommand -Needle '-ot "blk\.6[0-3]\.ffn_.*=CPU" -ot "blk\.5[0-9]\.ffn_.*=CPU"' -Label 'Multiple tensor overrides did not each produce an -ot argument.'
 
-# 5. Runtime capability gate. The parsing and comparison halves are pure, so they
+# 5. Generic MoE offload emits llama.cpp's typed MoE placement flags without
+#    relying on tensor regexes. Declared zero is emitted too, so a sweep can pin
+#    its full-GPU control cell instead of inheriting a runtime default.
+$moeZero = ($template | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
+$moeZero | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_layers = 0 })
+$moeZeroCommand = New-V2LlamaServerCommand -Runtime $runtimesById[$moeZero.runtime] -Model $moeZero -RouterAPIKeyPath $routerAPIKeyPath
+Assert-Contains -Haystack $moeZeroCommand -Needle '--n-cpu-moe 0' -Label 'moe_offload.cpu_layers=0 did not emit --n-cpu-moe 0.'
+Assert-NotContains -Haystack $moeZeroCommand -Needle '--cpu-moe' -Label 'moe_offload.cpu_layers=0 emitted all-CPU MoE.'
+
+$moeAll = ($template | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
+$moeAll | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_all = $true })
+$moeAllCommand = New-V2LlamaServerCommand -Runtime $runtimesById[$moeAll.runtime] -Model $moeAll -RouterAPIKeyPath $routerAPIKeyPath
+Assert-Contains -Haystack $moeAllCommand -Needle '--cpu-moe' -Label 'moe_offload.cpu_all=true did not emit --cpu-moe.'
+Assert-NotContains -Haystack $moeAllCommand -Needle '--n-cpu-moe' -Label 'moe_offload.cpu_all=true emitted partial MoE placement.'
+
+# 6. Runtime capability gate. The parsing and comparison halves are pure, so they
 #    are asserted here without invoking a Windows binary; only Get-V2RuntimeHelpText
 #    needs the real executable and it is exercised during -Apply generation.
 $helpFixture = @'
@@ -142,13 +158,15 @@ usage: llama-server [options]
   -cram, --cache-ram N            prompt cache size in MiB
   -t,    --threads N              number of CPU threads
   -tb,   --threads-batch N        number of CPU threads for batch processing
+  -cmoe, --cpu-moe                keep all Mixture of Experts (MoE) weights in the CPU
+  -ncmoe, --n-cpu-moe N           keep the Mixture of Experts (MoE) weights of the first N layers in the CPU
   -cms,  --checkpoint-min-step N  minimum spacing between context checkpoints
   -ctxcp, --ctx-checkpoints N     number of context checkpoints
          --no-context-shift       disable context shift
          --jinja                  use the model's chat template
 '@
 $supported = Get-V2SupportedFlags -HelpText $helpFixture
-foreach ($expected in @('--model', '--ctx-size', '--override-tensor', '--cache-ram', '--checkpoint-min-step', '-ot', '-cms', '--jinja')) {
+foreach ($expected in @('--model', '--ctx-size', '--override-tensor', '--cache-ram', '--cpu-moe', '--n-cpu-moe', '--checkpoint-min-step', '-ot', '-cms', '--jinja')) {
     if (-not $supported.Contains($expected)) {
         throw "Help parsing lost the flag '$expected'."
     }
@@ -183,7 +201,21 @@ if (-not $rejected) {
     throw 'A flag absent from the runtime help was accepted, or the error did not name the runtime, model, and flag.'
 }
 
-# 6. The first buun-llama-cpp qualification profile. Every setting whose fork
+$moeRejected = $false
+try {
+    Assert-V2CommandFlagsSupported -Command '"C:\r.exe" --model "C:\m.gguf" --n-cpu-moe 4' `
+        -SupportedFlags (Get-V2SupportedFlags -HelpText 'usage: llama-server [options] --model FNAME') -RuntimeId 'legacy-fixture' -RuntimeSha256 ('0' * 64) -ModelId 'moe-model'
+}
+catch {
+    $moeRejected = $_.Exception.Message -match 'n-cpu-moe' -and
+                   $_.Exception.Message -match 'moe-model' -and
+                   $_.Exception.Message -match 'legacy-fixture'
+}
+if (-not $moeRejected) {
+    throw 'A runtime whose help omits --n-cpu-moe accepted a MoE partial-offload profile.'
+}
+
+# 7. The first buun-llama-cpp qualification profile. Every setting whose fork
 #    default differs from the upstream baseline has to appear on the command
 #    line, because on this runtime silence is not neutrality: omitting
 #    --cache-ram leaves an 8 GiB host prompt cache enabled, and omitting
@@ -212,14 +244,14 @@ Assert-Contains -Haystack $forkCommand -Needle '--ctx-size 262144' -Label 'The b
 Assert-NotContains -Haystack $forkCommand -Needle ' --context-shift ' -Label 'The buun profile enables context shift on a recurrent model.'
 Assert-NotContains -Haystack $forkCommand -Needle '--cache-idle-slots --' -Label 'The buun profile emitted the positive idle-slot flag.'
 
-# 7. The prompt cache stays off, and off is stated rather than assumed. A run
+# 8. The prompt cache stays off, and off is stated rather than assumed. A run
 #    that silently allocated 8 GiB of host cache would also be charged for it by
 #    admission only if the manifest declared it, so the two have to agree.
 if ($forkCommand -notmatch '--cache-ram\s+0(\s|$)') {
     throw "The buun profile does not disable the host prompt cache explicitly: $forkCommand"
 }
 
-# 8. cache_idle_slots is three-valued. Absent must emit nothing, so a model
+# 9. cache_idle_slots is three-valued. Absent must emit nothing, so a model
 #    generated before the field existed keeps its historical command line; only
 #    a declared value produces a flag, and a declared false produces the negative
 #    form rather than silence.
@@ -233,7 +265,7 @@ $idleEnabledCommand = New-V2LlamaServerCommand -Runtime $runtimesById[$idleEnabl
 Assert-Contains -Haystack $idleEnabledCommand -Needle '--cache-idle-slots' -Label 'A declared cache_idle_slots=true emitted no flag.'
 Assert-NotContains -Haystack $idleEnabledCommand -Needle '--no-cache-idle-slots' -Label 'A declared cache_idle_slots=true emitted the negative flag.'
 
-# 9. The capability gate has to cover the negative flag too. A runtime whose
+# 10. The capability gate has to cover the negative flag too. A runtime whose
 #    help does not list --no-cache-idle-slots cannot be told to leave the cache
 #    alone, and generation must fail rather than produce a command that silently
 #    keeps the fork default.
@@ -267,7 +299,7 @@ if (-not $Quiet) {
     [pscustomobject]@{
         manifest              = (Resolve-Path -LiteralPath $ManifestPath).Path
         byte_stable_models    = $untunedCount
-        generation_tests      = 9
+        generation_tests      = 12
         valid                 = $true
     } | ConvertTo-Json -Depth 3
 }

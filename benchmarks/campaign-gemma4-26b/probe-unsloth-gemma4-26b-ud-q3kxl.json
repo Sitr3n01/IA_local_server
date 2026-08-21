@@ -1,0 +1,41 @@
+{
+  "arch": "gemma4",
+  "block_count": 30,
+  "n_ctx_train": 262144,
+  "n_tensors": 658,
+  "mtp_tensor_count": 0,
+  "nextn_tensor_count": 0,
+  "mtp_tensors": [],
+  "mtp_worst_quant": null,
+  "mtp_verdict": "NO_MTP_HEAD",
+  "quant_mix": {
+    "F32": 392,
+    "Q8_0": 207,
+    "IQ4_NL": 29,
+    "IQ3_XXS": 29,
+    "IQ4_XS": 1
+  },
+  "category_tensors": {
+    "attention": 115,
+    "embedding": 1,
+    "expert_ffn": 90,
+    "norm": 270,
+    "other": 31,
+    "output": 1,
+    "router": 60,
+    "shared_ffn": 90
+  },
+  "category_span_bytes": {
+    "attention": 1179566080,
+    "embedding": 784334848,
+    "expert_ffn": 10312793088,
+    "norm": 2425856,
+    "other": 1984,
+    "output": 11264,
+    "router": 43591680,
+    "shared_ffn": 568719360
+  },
+  "bytes_fetched": 16777216,
+  "range_requests": 4,
+  "source": "https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF/resolve/c099eb48e663fd284577b04978a94ffccb261841/gemma-4-26B-A4B-it-UD-Q3_K_XL.gguf"
+}

@@ -1,0 +1,43 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "context-footprint-at-load",
+    "started_utc":  "2026-08-21T18:56:56.5177805Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  131072,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "parallel":  1,
+                          "tensor_override":  "blk\\.(6[0-3])\\.ffn_.*=CPU",
+                          "device_vram_mib":  16304
+                      },
+    "load_seconds":  8.5,
+    "idle":  {
+                 "vram_dedicated_mib":  3885.9,
+                 "vram_shared_mib":  403,
+                 "commit_gib":  30.641,
+                 "physical_used_gib":  10.826
+             },
+    "peak":  {
+                 "vram_dedicated_mib":  15856.8,
+                 "vram_shared_mib":  4093.6,
+                 "process_vram_mib":  11968.2,
+                 "process_ws_gib":  13.365,
+                 "process_private_gib":  12.789,
+                 "commit_gib":  46.792,
+                 "physical_used_gib":  27.178
+             },
+    "marginal_vram_mib":  11970.9,
+    "gpu_pressure":  {
+                         "state":  "pressured",
+                         "occupancy":  0.9726,
+                         "shared_mib":  4093.6,
+                         "message":  "GPU memory pressure detected.\r\n\r\n  Dedicated VRAM : 15.857 / 16.304 MiB (97,3%)\r\n  Shared GPU     : 4.094 MiB\r\n\r\nDriver-level VRAM paging is likely. Prompt processing degrades\r\nwithout any error being raised. Consider a smaller context\r\nprofile or a wider CPU tensor split."
+                     },
+    "failure":  null
+}

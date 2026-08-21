@@ -1,0 +1,31 @@
+{
+    "schema_version":  1,
+    "scenario":  "workstation-smoke",
+    "model":  "qwen38-27b-agent-128k",
+    "runtime":  "amd-rocm-qwen38",
+    "started_utc":  "2026-08-21T22:03:19.6527941Z",
+    "load_seconds":  12.6,
+    "checks":  13,
+    "failures":  [
+
+                 ],
+    "verdict":  "smoke_pass",
+    "idle":  {
+                 "vram_dedicated_mib":  3548.1,
+                 "vram_shared_mib":  444.7,
+                 "physical_used_gib":  14.748
+             },
+    "peak":  {
+                 "vram_dedicated_mib":  15208.6,
+                 "vram_shared_mib":  3545.1,
+                 "process_ws_gib":  13.267,
+                 "process_private_gib":  13.381,
+                 "physical_used_gib":  29.398
+             },
+    "gpu_pressure":  {
+                         "state":  "ok",
+                         "occupancy":  0.9328,
+                         "shared_mib":  3545.1,
+                         "message":  "GPU memory is within budget: 15.209 / 16.304 MiB dedicated (93,3%), 3.545 MiB shared."
+                     }
+}

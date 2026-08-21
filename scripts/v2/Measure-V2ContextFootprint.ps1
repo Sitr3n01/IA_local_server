@@ -47,7 +47,21 @@ param(
     [ValidateSet('f16', 'q8_0', 'q4_0')]
     [string]$CacheType = 'q8_0',
 
+    # K and V may be quantized independently. Both default to -CacheType, so an
+    # existing caller that only sets -CacheType produces a byte-identical command
+    # line and its earlier reports stay comparable.
+    [ValidateSet('f16', 'q8_0', 'q4_0')]
+    [string]$CacheTypeK,
+
+    [ValidateSet('f16', 'q8_0', 'q4_0')]
+    [string]$CacheTypeV,
+
     [string]$TensorOverride = 'blk\.(6[0-3])\.ffn_.*=CPU',
+
+    [ValidateRange(-1, 1024)]
+    [int]$NCpuMoe = -1,
+
+    [switch]$CpuMoe,
 
     [int]$UBatchSize = 288,
 
@@ -88,6 +102,12 @@ foreach ($required in @($serverExe, $ModelPath)) {
     }
 }
 
+if (-not $CacheTypeK) { $CacheTypeK = $CacheType }
+if (-not $CacheTypeV) { $CacheTypeV = $CacheType }
+if ($CpuMoe -and $NCpuMoe -ge 0) {
+    throw 'CpuMoe and NCpuMoe are mutually exclusive.'
+}
+
 $idle = Get-V2MemorySample -ProcessId 0
 
 $arguments = @(
@@ -99,8 +119,8 @@ $arguments = @(
     '-c', "$ContextTokens",
     '-b', "$BatchSize",
     '-ub', "$UBatchSize",
-    '-ctk', $CacheType,
-    '-ctv', $CacheType,
+    '-ctk', $CacheTypeK,
+    '-ctv', $CacheTypeV,
     '-t', "$Threads",
     '--parallel', "$Parallel",
     '--no-context-shift',
@@ -109,8 +129,13 @@ $arguments = @(
     '--no-webui'
 )
 if ($TensorOverride) { $arguments += @('-ot', $TensorOverride) }
+if ($CpuMoe) { $arguments += @('--cpu-moe') }
+elseif ($NCpuMoe -ge 0) { $arguments += @('--n-cpu-moe', "$NCpuMoe") }
 
-if (-not $Quiet) { Write-Host ("Loading ctx={0} kv={1} ub={2}" -f $ContextTokens, $CacheType, $UBatchSize) }
+if (-not $Quiet) {
+    $moe = if ($CpuMoe) { 'all' } elseif ($NCpuMoe -ge 0) { [string]$NCpuMoe } else { 'default' }
+    Write-Host ("Loading ctx={0} kv={1}/{2} ub={3} cpu_moe={4}" -f $ContextTokens, $CacheTypeK, $CacheTypeV, $UBatchSize, $moe)
+}
 
 # System32\downlevel supplies the UCRT API sets the ROCm build imports and the
 # runtime directory supplies the rocBLAS closure; without both, ggml-hip.dll
@@ -214,14 +239,16 @@ $report = [ordered]@{
         model_path      = $ModelPath
         runtime_root    = $RuntimeRoot
         context_tokens  = $ContextTokens
-        cache_type_k    = $CacheType
-        cache_type_v    = $CacheType
+        cache_type_k    = $CacheTypeK
+        cache_type_v    = $CacheTypeV
         ubatch_size     = $UBatchSize
         batch_size      = $BatchSize
         gpu_layers      = $NGpuLayers
         threads         = $Threads
         parallel        = $Parallel
         tensor_override = $TensorOverride
+        cpu_moe         = [bool]$CpuMoe
+        n_cpu_moe       = $(if ($NCpuMoe -ge 0) { $NCpuMoe } else { $null })
         device_vram_mib = $DeviceVramMib
     }
     load_seconds   = $loadSeconds

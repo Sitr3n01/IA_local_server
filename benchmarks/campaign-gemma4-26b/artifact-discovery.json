@@ -1,0 +1,80 @@
+{
+  "generated_utc": "2026-08-21T22:56:11.3170911Z",
+  "sources": [
+    {
+      "kind": "official-doc",
+      "url": "https://ai.google.dev/gemma/docs/core",
+      "note": "Gemma 4 overview, 256K context, MoE memory discussion"
+    },
+    {
+      "kind": "official-model-card",
+      "url": "https://ai.google.dev/gemma/docs/core/model_card_4",
+      "note": "26B A4B MoE architecture table"
+    },
+    {
+      "kind": "llama.cpp-issue",
+      "url": "https://github.com/ggml-org/llama.cpp/issues/20757",
+      "note": "--cpu-moe and --n-cpu-moe described for all tools"
+    }
+  ],
+  "repositories": [
+    {
+      "repository": "google/gemma-4-26B-A4B-it-qat-q4_0-gguf",
+      "revision": "d1c082be9cf3c8a514acf63b8761f4b41935842e",
+      "license": "apache-2.0",
+      "files": [
+        {
+          "filename": "gemma-4-26B_q4_0-it.gguf",
+          "bytes": 14439363584,
+          "sha256": "3eca3b8f6d7baf218a7dd6bba5fb59a56ee25fe2d567b6f5f589b4f697eca51d"
+        }
+      ]
+    },
+    {
+      "repository": "ggml-org/gemma-4-26B-A4B-it-GGUF",
+      "revision": "bb4531cda34d1ea09d9814959ed4d5833cf2a4c8",
+      "license": "apache-2.0",
+      "files": [
+        {
+          "filename": "gemma-4-26B-A4B-it-Q4_0.gguf",
+          "bytes": 14618145824,
+          "sha256": "d208665ab1cd3a69f7a9a4bc59430e8448c8093d9b06334f566ac59d6d504a03"
+        }
+      ]
+    },
+    {
+      "repository": "unsloth/gemma-4-26B-A4B-it-qat-GGUF",
+      "revision": "7b92b5b28818151e8669af2e45e88d6086f490dd",
+      "license": "apache-2.0",
+      "files": [
+        {
+          "filename": "gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf",
+          "bytes": 14249047104,
+          "sha256": "a7c5bc715f5ff8e99a3e8901ce7d2b42b402c669bf24f7c5250747633d0f5891"
+        }
+      ]
+    },
+    {
+      "repository": "unsloth/gemma-4-26B-A4B-it-GGUF",
+      "revision": "c099eb48e663fd284577b04978a94ffccb261841",
+      "license": "apache-2.0",
+      "files": [
+        {
+          "filename": "gemma-4-26B-A4B-it-UD-Q5_K_M.gguf",
+          "bytes": 21150365408,
+          "sha256": "769d386a69d43782321c1bad04d41d29a2e84b2c06e6a277cd99fd6265ec0e80"
+        },
+        {
+          "filename": "gemma-4-26B-A4B-it-UD-Q3_K_XL.gguf",
+          "bytes": 12907280096,
+          "sha256": "90a918830420e6a36e01c0d219e563f1d0ca7f223dffd90ad4e02ef4f3253fde"
+        },
+        {
+          "filename": "gemma-4-26B-A4B-it-UD-Q2_K_XL.gguf",
+          "bytes": 10546934240,
+          "sha256": "2a1d26dfe6ea00a467940a5728316af6edb366bbdba950d65b85d232392fb658"
+        }
+      ]
+    }
+  ]
+}

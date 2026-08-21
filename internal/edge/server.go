@@ -444,6 +444,7 @@ func (s *Server) writeStatus(w http.ResponseWriter, r *http.Request) {
 			"id": model.ID, "available": modelCapacity.Available,
 			"active": active, "reason": modelCapacity.Reason, "capacity": modelCapacity,
 			"runtime": model.Runtime, "context_tokens": model.ContextTokens,
+			"profile": model.Profile,
 			// Reported together on purpose: a checkpoint configuration is only
 			// meaningful on a runtime shown to restore checkpoints on this
 			// architecture, and the pair is what says whether the deployment is

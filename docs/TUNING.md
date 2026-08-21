@@ -483,6 +483,113 @@ evaluation has been run on it, and `docs/MODEL_PROMOTION.md` does not allow a
 cache-precision change on a memory argument alone. It ships as an experimental
 profile.
 
+## 1.8 Choosing a Qwen3.8 profile
+
+Three profiles, three jobs. The consolidation that produced them replaced five
+`qwen38-27b-ws-*` entries that differed only by context window, which is the one
+axis that does *not* distinguish what a profile is for.
+
+| Profile | Weights | KV | Context | Output | Use |
+|---|---|---|---:|---:|---|
+| Deep | UD-IQ4_XS | `q8_0`/`q8_0` | 32k | 8k | Hardest localized tasks |
+| **Agent** | UD-Q3_K_XL | `q4_0`/`q4_0` | 128k | 8k | **Daily agentic coding** |
+| Huge | UD-Q2_K_XL | `q4_0`/`q4_0` | 256k | 32k | Massive-context jobs |
+
+Selection rule: **maximum reasoning reliability → Deep. Normal coding-agent work
+→ Agent. Huge active context → Huge.** Pick Huge when the working set exceeds
+what Agent holds, not when the task is merely hard — a hard, localized problem is
+a Deep problem.
+
+`qwen38-27b-agent-128k` is the daily default rather than Deep, because a coding
+harness spends tens of thousands of tokens on system prompt, tool definitions,
+file contents, logs and history before the problem itself arrives.
+
+### What was measured, and what was not
+
+Measured in `benchmarks/REPORT-qwen38-27b-q3-q2-kvq4-20260821.md`, at 32k with
+KV `q4_0/q4_0`, ten coding tasks graded by real compilers and test runners:
+
+| | IQ4_XS | Q3_K_XL | Q2_K_XL |
+|---|---:|---:|---:|
+| Coding pass | 9/10 | 9/10 | 7/10 |
+| Incorrect answers | 1 | 0 | 0 |
+| Tool calling | 4/4 | 4/4 | 4/4 |
+| `tg128` | 16.04 | 23.12 | 22.16 |
+| `pp8192` | 258.80 | 743.34 | 521.37 |
+| `pp32768` | 222.66 | 207.95 | 428.49 |
+
+**On Q3.** Q3_K_XL matched IQ4_XS's coding quality in this suite and was
+substantially easier to keep below this workstation's VRAM occupancy cliff.
+Those are two separate claims, and the second is about this machine rather than
+about the quantization: it is not established that Q3 is universally better than
+IQ4.
+
+**On Q2.** At 32k, Q2_K_XL preserved tool calling, constraint adherence and
+correctness on the answers it completed, but exceeded the shipped 8192-token
+output budget on the more implementation-heavy tasks — three of ten generations
+returned nothing because the whole allowance went into `reasoning_content`. It
+produced no incorrect code. The Huge profile's 32768-token ceiling and
+24576-token reasoning budget exist to give it room to finish.
+
+**Not measured.** Long-context retention for either Agent or Huge, and decode
+throughput with the window actually filled beyond 32k. The memory envelope is
+measured to 256k; retrieval accuracy at that window is not. Both profiles are
+`candidate` in `canary` for that reason.
+
+### The occupancy cliff, and why it decides the split
+
+Prefill collapses above roughly 96% adapter occupancy, and the three
+quantizations sit on different sides of it rather than on one curve:
+
+| Model | pp512 occupancy | pp512 | pp32768 occupancy | pp32768 |
+|---|---:|---:|---:|---:|
+| Q3_K_XL | 94.2% | 819.34 | 96.1% | 207.95 |
+| IQ4_XS | 97.2% | 281.59 | 97.4% | 222.66 |
+| Q2_K_XL | 78.5% | 561.43 | 81.5% | 428.49 |
+
+Two independent signals support reading this as occupancy rather than as a
+property of the weights. Run-to-run spread at pp32768 is ±10.62 t/s for IQ4_XS
+against ±0.10 for Q3_K_XL — the signature of a configuration oscillating across
+a paging boundary. And §1.6's own measurement of IQ4_XS at pp512 (956.82 t/s
+with 882 MiB shared) disagrees with the campaign's (281.59 t/s with 1152 MiB)
+by 3.4x on the same GGUF and the same flags: the two runs sat on opposite sides
+of the threshold.
+
+The practical consequence is about reproducibility, not speed. The desktop's own
+VRAM was measured moving between 3477 and 4146 MiB during a single campaign, so
+IQ4_XS's prefill throughput here depends on what else is on screen.
+
+**The 4-block CPU split is unchanged for all three profiles.** A 5- or 6-block
+split might move Q3_K_XL further below the threshold and is the most promising
+untested lever identified so far, but it is `NOT MEASURED`; consolidating on an
+unmeasured hypothesis is exactly the trap §1.6 was written about. It is recorded
+as `qwen38-27b-q3-placement-sweep` in `model-test-matrix.json`.
+
+### Output and reasoning budgets are separate on this runtime
+
+`llama-server` b10549 distinguishes them, so the manifest does too:
+
+```
+--n-predict N               hard ceiling on generated tokens
+--reasoning-budget N        tokens the model may spend thinking
+--reasoning-budget-message  injected to force the answer to begin
+```
+
+Deep and Agent declare `n_predict: 8192` and leave reasoning unrestricted, which
+is the configuration they were qualified under. Huge declares
+`n_predict: 32768` with `reasoning_budget: 24576`, leaving roughly 8k for the
+answer.
+
+Long reasoning on the Huge profile is not a failure and must not be treated as a
+hang. Generous is not unlimited: reaching 32768 without a useful answer is
+recorded as an operational result, never silently raised to 64k and never
+retried indefinitely.
+
+Sizing any harness against this model: reasoning ran from 1404 to 35570
+characters before the answer began across thirty measured generations. A harness
+configured with a 2–4k output budget will see empty replies and misdiagnose the
+model as broken.
+
 ## 2. Bottleneck decision tree
 
 ### The model will not start

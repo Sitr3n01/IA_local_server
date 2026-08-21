@@ -1,0 +1,396 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "profile-qualification",
+    "label":  "q3kxl-32k-kvq4",
+    "started_utc":  "2026-08-21T19:50:00.1548131Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-Q3_K_XL.gguf",
+                          "model_bytes":  13146393504,
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  32768,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "parallel":  1,
+                          "tensor_override":  "blk\\.(6[0-3])\\.ffn_.*=CPU",
+                          "device_vram_mib":  16304,
+                          "command_line":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe --model C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-Q3_K_XL.gguf --host 127.0.0.1 --port 19399 --alias local --device ROCm0 --split-mode none --gpu-layers 99 --flash-attn on --ctx-size 32768 --batch-size 2048 --ubatch-size 288 --cache-type-k q4_0 --cache-type-v q4_0 --parallel 1 --cont-batching --no-context-shift --threads 8 -ot blk\\.(6[0-3])\\.ffn_.*=CPU --jinja --warmup --metrics --no-webui"
+                      },
+    "load_seconds":  6.8,
+    "idle":  {
+                 "vram_dedicated_mib":  3635.7,
+                 "vram_shared_mib":  444.8,
+                 "commit_gib":  30.206,
+                 "physical_used_gib":  13.044
+             },
+    "session_peak":  {
+                         "vram_dedicated_mib":  15918.8,
+                         "vram_shared_mib":  899.9,
+                         "process_vram_mib":  12241,
+                         "process_ws_gib":  16.351,
+                         "process_private_gib":  18.99,
+                         "commit_gib":  50.899,
+                         "physical_used_gib":  30.442
+                     },
+    "marginal_vram_mib":  12283.1,
+    "memory_samples":  285,
+    "gpu_pressure":  {
+                         "state":  "elevated",
+                         "occupancy":  0.9764,
+                         "shared_mib":  899.9,
+                         "message":  "GPU memory is elevated: 15.919 / 16.304 MiB dedicated (97,6%), 900 MiB shared."
+                     },
+    "eval_exit_code":  0,
+    "failure":  null,
+    "eval":  {
+                 "schema_version":  1,
+                 "scenario":  "profile-qualification",
+                 "label":  "q3kxl-32k-kvq4",
+                 "started_utc":  "2026-08-21T19:25:34Z",
+                 "server_props":  {
+                                      "default_generation_settings":  {
+                                                                          "params":  {
+                                                                                         "seed":  4294967295,
+                                                                                         "temperature":  1.0,
+                                                                                         "dynatemp_range":  0.0,
+                                                                                         "dynatemp_exponent":  1.0,
+                                                                                         "top_k":  20,
+                                                                                         "top_p":  0.949999988079071,
+                                                                                         "min_p":  0.05000000074505806,
+                                                                                         "top_n_sigma":  -1.0,
+                                                                                         "xtc_probability":  0.0,
+                                                                                         "xtc_threshold":  0.10000000149011612,
+                                                                                         "typical_p":  1.0,
+                                                                                         "repeat_last_n":  64,
+                                                                                         "repeat_penalty":  1.0,
+                                                                                         "presence_penalty":  0.0,
+                                                                                         "frequency_penalty":  0.0,
+                                                                                         "dry_multiplier":  0.0,
+                                                                                         "dry_base":  1.75,
+                                                                                         "dry_allowed_length":  2,
+                                                                                         "dry_penalty_last_n":  64,
+                                                                                         "mirostat":  0,
+                                                                                         "mirostat_tau":  5.0,
+                                                                                         "mirostat_eta":  0.10000000149011612,
+                                                                                         "adaptive_target":  -1.0,
+                                                                                         "adaptive_decay":  0.8999999761581421,
+                                                                                         "max_tokens":  -1,
+                                                                                         "n_predict":  -1,
+                                                                                         "n_keep":  0,
+                                                                                         "n_discard":  0,
+                                                                                         "ignore_eos":  false,
+                                                                                         "stream":  false,
+                                                                                         "n_probs":  0,
+                                                                                         "min_keep":  0,
+                                                                                         "chat_format":  "Content-only",
+                                                                                         "reasoning_format":  "none",
+                                                                                         "reasoning_in_content":  false,
+                                                                                         "generation_prompt":  "",
+                                                                                         "samplers":  [
+                                                                                                          "penalties",
+                                                                                                          "dry",
+                                                                                                          "top_n_sigma",
+                                                                                                          "top_k",
+                                                                                                          "typ_p",
+                                                                                                          "top_p",
+                                                                                                          "min_p",
+                                                                                                          "xtc",
+                                                                                                          "temperature"
+                                                                                                      ],
+                                                                                         "speculative.types":  "none",
+                                                                                         "timings_per_token":  false,
+                                                                                         "post_sampling_probs":  false,
+                                                                                         "backend_sampling":  false,
+                                                                                         "lora":  [
+
+                                                                                                  ]
+                                                                                     },
+                                                                          "n_ctx":  32768
+                                                                      },
+                                      "total_slots":  1,
+                                      "model_path":  "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-Q3_K_XL.gguf",
+                                      "build_info":  "b10549-b2e5e9b28"
+                                  },
+                 "suites":  {
+                                "coding":  {
+                                               "results":  [
+                                                               {
+                                                                   "id":  "py_bugfix",
+                                                                   "family":  "bugfix",
+                                                                   "lang":  "python",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  2139,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  722,
+                                                                   "decode_tps":  17.361661689697115,
+                                                                   "wall_s":  42.8,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "def find_insert_position(sorted_values, target):\n    \"\"\"Return the index where target should be inserted to keep the list sorted.\n\n    If target is already present, return the index of its FIRST occurrence.\n    \"\"\"\n    low = 0\n    high = len(sorted_values)\n    while low \u003c high:\n        mid = (low + high) // 2\n        if sorted_values[mid] \u003c target:\n            low = mid + 1\n        else:\n            high = mid\n    return low"
+                                                               },
+                                                               {
+                                                                   "id":  "py_impl",
+                                                                   "family":  "implement",
+                                                                   "lang":  "python",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  2089,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  623,
+                                                                   "decode_tps":  20.112144932125876,
+                                                                   "wall_s":  31.6,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "def merge_intervals(intervals):\n    if not intervals:\n        return []\n\n    sorted_intervals = sorted(intervals, key=lambda interval: interval[0])\n    merged = [[sorted_intervals[0][0], sorted_intervals[0][1]]]\n\n    for start, end in sorted_intervals[1:]:\n        last = merged[-1]\n        if start \u003c= last[1]:\n            if end \u003e last[1]:\n                last[1] = end\n        else:\n            merged.append([start, end])\n\n    return merged"
+                                                               },
+                                                               {
+                                                                   "id":  "go_bugfix",
+                                                                   "family":  "bugfix",
+                                                                   "lang":  "go",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  8396,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  2402,
+                                                                   "decode_tps":  20.00296787058485,
+                                                                   "wall_s":  126.9,
+                                                                   "detail":  "ok  \teval/pipeline\t0.272s\n",
+                                                                   "code":  "package pipeline\n\nimport \"sync\"\n\n// FanIn runs fn over every input concurrently and returns the results in the\n// same order as the inputs.\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\n\tout := make([]int, len(inputs))\n\n\tif len(inputs) == 0 {\n\t\treturn out\n\t}\n\n\tif workers \u003c= 0 {\n\t\tfor i := range inputs {\n\t\t\tout[i] = fn(inputs[i])\n\t\t}\n\t\treturn out\n\t}\n\n\tif workers \u003e len(inputs) {\n\t\tworkers = len(inputs)\n\t}\n\n\tjobs := make(chan int)\n\tvar wg sync.WaitGroup\n\n\tfor w := 0; w \u003c workers; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor i := range jobs {\n\t\t\t\tout[i] = fn(inputs[i])\n\t\t\t}\n\t\t}()\n\t}\n\n\tfor i := range inputs {\n\t\tjobs \u003c- i\n\t}\n\tclose(jobs)\n\n\twg.Wait()\n\treturn out\n}"
+                                                               },
+                                                               {
+                                                                   "id":  "go_impl",
+                                                                   "family":  "implement",
+                                                                   "lang":  "go",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  4295,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  1709,
+                                                                   "decode_tps":  20.072760937871312,
+                                                                   "wall_s":  86.7,
+                                                                   "detail":  "ok  \teval/cache\t0.253s\n",
+                                                                   "code":  "package cache\n\nimport \"container/list\"\n\n// LRU is a fixed-capacity least-recently-used cache.\ntype LRU struct {\n\tcapacity int\n\titems    map[string]*list.Element\n\torder    *list.List\n}\n\ntype entry struct {\n\tkey   string\n\tvalue int\n}\n\n// NewLRU creates a new LRU cache with the given capacity.\n// If capacity is negative, it is treated as zero.\nfunc NewLRU(capacity int) *LRU {\n\tif capacity \u003c 0 {\n\t\tcapacity = 0\n\t}\n\treturn \u0026LRU{\n\t\tcapacity: capacity,\n\t\titems:    make(map[string]*list.Element),\n\t\torder:    list.New(),\n\t}\n}\n\n// Get returns the value for key and marks it as most recently used.\nfunc (c *LRU) Get(key string) (int, bool) {\n\tif c == nil || c.capacity \u003c= 0 {\n\t\treturn 0, false\n\t}\n\n\telem, ok := c.items[key]\n\tif !ok {\n\t\treturn 0, false\n\t}\n\n\tc.order.MoveToFront(elem)\n\treturn elem.Value.(entry).value, true\n}\n\n// Put inserts or updates a key/value pair.\n// If the cache is full, the least recently used entry is evicted.\nfunc (c *LRU) Put(key string, value int) {\n\tif c == nil || c.capacity \u003c= 0 {\n\t\treturn\n\t}\n\n\tif elem, ok := c.items[key]; ok {\n\t\tc.order.MoveToFront(elem)\n\t\telem.Value = entry{key: key, value: value}\n\t\treturn\n\t}\n\n\tif c.order.Len() == c.capacity {\n\t\toldest := c.order.Back()\n\t\tif oldest != nil {\n\t\t\tc.order.Remove(oldest)\n\t\t\tdelete(c.items, oldest.Value.(entry).key)\n\t\t}\n\t}\n\n\tc.items[key] = c.order.PushFront(entry{key: key, value: value})\n}\n\n// Len returns the number of entries currently in the cache.\nfunc (c *LRU) Len() int {\n\tif c == nil {\n\t\treturn 0\n\t}\n\treturn len(c.items)\n}"
+                                                               },
+                                                               {
+                                                                   "id":  "ts_impl",
+                                                                   "family":  "implement",
+                                                                   "lang":  "typescript",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  2252,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  709,
+                                                                   "decode_tps":  20.304600555021093,
+                                                                   "wall_s":  35.6,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "export function groupConsecutive(values: number[]): number[][] {\n  const groups: number[][] = [];\n  let current: number[] = [];\n\n  for (const value of values) {\n    if (current.length \u003e 0 \u0026\u0026 value === current[current.length - 1] + 1) {\n      current.push(value);\n    } else {\n      if (current.length \u003e 0) {\n        groups.push(current);\n      }\n      current = [value];\n    }\n  }\n\n  if (current.length \u003e 0) {\n    groups.push(current);\n  }\n\n  return groups;\n}"
+                                                               },
+                                                               {
+                                                                   "id":  "ts_refactor",
+                                                                   "family":  "refactor",
+                                                                   "lang":  "typescript",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  23869,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  5687,
+                                                                   "decode_tps":  19.976894820419098,
+                                                                   "wall_s":  286.2,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "export type Fetcher = (id: string) =\u003e Promise\u003c{ id: string; parent: string | null }\u003e;\n\nexport async function ancestry(fetch: Fetcher, start: string): Promise\u003cstring[]\u003e {\n  const seen = new Set\u003cstring\u003e();\n  const chain: string[] = [];\n  let id = start;\n\n  while (true) {\n    if (seen.has(id)) {\n      throw new Error(\"cycle detected\");\n    }\n\n    seen.add(id);\n    chain.push(id);\n\n    if (chain.length \u003e 50) {\n      throw new Error(\"chain too long\");\n    }\n\n    const node = await fetch(id);\n\n    if (node.parent === null) {\n      return chain;\n    }\n\n    id = node.parent;\n  }\n}"
+                                                               },
+                                                               {
+                                                                   "id":  "cs_bugfix",
+                                                                   "family":  "bugfix",
+                                                                   "lang":  "csharp",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  21846,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  5547,
+                                                                   "decode_tps":  19.78400969723259,
+                                                                   "wall_s":  285.1,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "using System;\nusing System.Collections.Generic;\n\npublic static class Ledger\n{\n    // Returns, for each account, the running balance after every entry, and the\n    // final balance. Entries are (account, delta) in chronological order.\n    public static (Dictionary\u003cstring, List\u003cint\u003e\u003e Running, Dictionary\u003cstring, int\u003e Final, double AverageDelta)\n        Summarise(IEnumerable\u003c(string Account, int Delta)\u003e entries)\n    {\n        var totals = new Dictionary\u003cstring, int\u003e();\n        var running = new Dictionary\u003cstring, List\u003cint\u003e\u003e();\n        long deltaSum = 0;\n        int deltaCount = 0;\n\n        if (entries != null)\n        {\n            foreach (var e in entries)\n            {\n                if (!totals.TryGetValue(e.Account, out int current))\n                {\n                    current = 0;\n                    totals[e.Account] = current;\n                    running[e.Account] = new List\u003cint\u003e();\n                }\n\n                current += e.Delta;\n                totals[e.Account] = current;\n                running[e.Account].Add(current);\n\n                deltaSum += e.Delta;\n                deltaCount++;\n            }\n        }\n\n        double averageDelta = deltaCount == 0 ? 0.0 : (double)deltaSum / deltaCount;\n\n        return (Running: running, Final: totals, AverageDelta: averageDelta);\n    }\n}"
+                                                               },
+                                                               {
+                                                                   "id":  "unity_impl",
+                                                                   "family":  "implement",
+                                                                   "lang":  "csharp",
+                                                                   "passed":  false,
+                                                                   "compiled_or_ran":  false,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  true,
+                                                                   "no_answer":  true,
+                                                                   "reasoning_chars":  34896,
+                                                                   "finish_reason":  "length",
+                                                                   "output_tokens":  8192,
+                                                                   "decode_tps":  19.50807145682491,
+                                                                   "wall_s":  420.8,
+                                                                   "detail":  "no answer: generation stopped at the output cap with 34896 chars still in reasoning_content",
+                                                                   "code":  ""
+                                                               },
+                                                               {
+                                                                   "id":  "constraint_frozen_file",
+                                                                   "family":  "constraint",
+                                                                   "lang":  "csharp",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  6262,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  1555,
+                                                                   "decode_tps":  19.76678274584755,
+                                                                   "wall_s":  82.2,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "public class TelemetrySender\n{\n    private readonly NetworkManager _networkManager;\n\n    public TelemetrySender(NetworkManager networkManager)\n    {\n        _networkManager = networkManager;\n    }\n\n    public void Send(string opcode, string payload)\n    {\n        if (opcode != null \u0026\u0026 opcode.Length \u003e 8)\n        {\n            opcode = opcode.Substring(0, 8);\n        }\n\n        string frame = _networkManager.Encode(opcode ?? string.Empty, payload ?? string.Empty);\n        _networkManager.Enqueue(frame);\n    }\n}"
+                                                               },
+                                                               {
+                                                                   "id":  "no_invented_api",
+                                                                   "family":  "honesty",
+                                                                   "lang":  "csharp",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  2545,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  673,
+                                                                   "decode_tps":  19.48536427323085,
+                                                                   "wall_s":  36.8,
+                                                                   "detail":  "\nCompilação com êxito.\n    0 Aviso(s)\n    0 Erro(s)\n\nTempo Decorrido 00:00:01.00\n",
+                                                                   "code":  "public static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int zeroes = 0;\n\n        for (int i = 0; i \u003c buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                zeroes++;\n            }\n        }\n\n        return zeroes;\n    }\n}"
+                                                               }
+                                                           ],
+                                               "passed":  9,
+                                               "total":  10,
+                                               "compiled":  9,
+                                               "no_answer":  1,
+                                               "truncated":  1
+                                           },
+                                "tools":  {
+                                              "results":  [
+                                                              {
+                                                                  "id":  "tool_pick_tests",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "names":  [
+                                                                                "run_tests"
+                                                                            ]
+                                                              },
+                                                              {
+                                                                  "id":  "tool_pick_build",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "names":  [
+                                                                                "run_build"
+                                                                            ]
+                                                              },
+                                                              {
+                                                                  "id":  "tool_pick_read_range",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "names":  [
+                                                                                "read_file"
+                                                                            ]
+                                                              },
+                                                              {
+                                                                  "id":  "tool_refuse_edit",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "names":  [
+                                                                                "list_dir"
+                                                                            ]
+                                                              }
+                                                          ],
+                                              "passed":  4,
+                                              "total":  4
+                                          },
+                                "json":  {
+                                             "id":  "structured_json",
+                                             "parsed":  true,
+                                             "clean_json":  true,
+                                             "passed":  true,
+                                             "mismatches":  [
+
+                                                            ]
+                                         }
+                            }
+             }
+}

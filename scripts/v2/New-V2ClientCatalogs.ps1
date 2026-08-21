@@ -6,6 +6,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'Common.ps1')
+
 $manifestPath = Join-Path $RepoRoot 'config\models.yaml'
 $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $deployment = $Environment.ToLowerInvariant()
@@ -24,6 +26,35 @@ function Write-Utf8Json {
     $json = $Value | ConvertTo-Json -Depth 100
     $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     [System.IO.File]::WriteAllText($Path, $json + [Environment]::NewLine, $utf8NoBom)
+}
+
+# Codex expresses its auto-compaction point as a percentage of the context
+# window, so a model that declares compact_threshold_tokens has to be converted
+# into one. The alternative - a single global percentage - is what this work
+# removed from the profile TOMLs: 85% of a 256k window leaves 39k for output on
+# a profile whose output ceiling is 32k plus tool results, and 85% of a 32k
+# window leaves 4.9k on one whose ceiling is 8k. Neither is safe, and the second
+# fails silently.
+#
+# Models that declare no threshold keep the previous 85%, so this change is
+# confined to the profiles that opted into an explicit output reserve.
+function Get-V2EffectiveContextPercent {
+    param([Parameter(Mandatory = $true)][object]$Model)
+
+    $threshold = Get-V2ModelSetting -Model $Model -Name 'compact_threshold_tokens'
+    if ($null -eq $threshold) { return 85 }
+
+    $context = [int]$Model.context_tokens
+    if ($context -le 0) { throw "Model '$($Model.id)' has a non-positive context_tokens." }
+    if ([int]$threshold -ge $context) {
+        throw "Model '$($Model.id)' sets compact_threshold_tokens $threshold at or above context_tokens $context; the harness would never compact."
+    }
+
+    # Floor rather than round: rounding up would place the threshold above the
+    # declared token figure, which is the direction that loses the reserve.
+    $percent = [Math]::Floor(([double][int]$threshold / [double]$context) * 100.0)
+    if ($percent -lt 1) { $percent = 1 }
+    return [int]$percent
 }
 
 $instructions = 'You are Codex using an explicitly selected local model. Keep tool arguments exact, use shell_command for file edits and verification, and report capability limitations instead of inventing a cloud fallback. The apply_patch custom tool is intentionally unavailable because this local runtime accepts standard function tools only.'
@@ -62,7 +93,7 @@ $codexModels = foreach ($model in $models) {
         context_window = [int]$model.context_tokens
         max_context_window = [int]$model.context_tokens
         comp_hash = "cia-local-v2-$($model.id)"
-        effective_context_window_percent = 85
+        effective_context_window_percent = Get-V2EffectiveContextPercent -Model $model
         experimental_supported_tools = @()
         input_modalities = @('text')
         supports_search_tool = $false

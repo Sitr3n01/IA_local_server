@@ -14,26 +14,57 @@
     "cache_ram_mib is 0 and cache_idle_slots is false on every buun profile, stated rather than omitted. The fork ships cache_ram_mib=8192 and cache_idle_slots=true, so omitting either enables a host prompt cache the manifest never declared and admission never charged. This is a context-checkpoint experiment, not a prompt-cache experiment; the two are different mechanisms.",
     "VBR, TurboQuant, TCQ and the fork's own KV types stay off for the first qualification. An explicit -ctk/-ctv q4_0 clears the fork's variable-bitrate alias, which is what keeps the KV format identical to the upstream control. Evaluate them later as a separate experiment against this configuration, never by editing it.",
     "The buun profiles must be run against an upstream control at the same context, fixture and settings. Measure both with scripts/v2/Measure-V2AgenticReuse.ps1 and diff them with Compare-V2Runtimes.ps1, which refuses two reports whose control variables differ. A decode benchmark is not evidence for this question.",
-    "Everything about Qwen3.8-27B on buun-llama-cpp in this file is unverified on gfx1201. No profile here has been run; the checkpoint correction is verified at source level by cia-fork-gate and nothing more."
+    "Everything about Qwen3.8-27B on buun-llama-cpp in this file is unverified on gfx1201. No profile here has been run; the checkpoint correction is verified at source level by cia-fork-gate and nothing more.",
+    "qwen38-27b-q3-placement-sweep is planned, not run. The Agent profile ships the 4-block split that was actually compared, per the consolidation rule that an unmeasured hypothesis does not change a shipped configuration."
   ],
   "sweeps": {
     "context_checkpoints": {
       "applies_to": "qwen38-27b-buun-*",
-      "ctx_checkpoints": [32, 64, 128],
-      "checkpoint_min_step": [256, 512, 1024, 2048],
+      "ctx_checkpoints": [
+        32,
+        64,
+        128
+      ],
+      "checkpoint_min_step": [
+        256,
+        512,
+        1024,
+        2048
+      ],
       "objective": "The smallest checkpoint count that keeps incremental reuse consistent without a relevant re-prefill. Judge on processed-versus-new prompt tokens, reuse ratio, TTFT, prompt tokens/s, peak RAM and commit, checkpoint creation and invalidation counts, and memory stability across turns - together, not on any one of them.",
       "note": "Do not maximize the checkpoint count because host RAM allows it, and do not run the full grid blindly: eliminate a bad region from the first results and stop. A larger checkpoint count costs commit, which is this machine's binding constraint."
     },
     "spec_draft_n_max": {
       "applies_to": "qwen38-27b-buun-*",
-      "values": [0, 2, 3, 5, 7],
-      "record": ["draft acceptance", "decode tokens/s", "TTFT", "prompt tokens/s"],
+      "values": [
+        0,
+        2,
+        3,
+        5,
+        7
+      ],
+      "record": [
+        "draft acceptance",
+        "decode tokens/s",
+        "TTFT",
+        "prompt tokens/s"
+      ],
       "note": "Confirm blk.64 is Q5_K or better with gguf-dump before sweeping; at Q4_K acceptance is 0% and the sweep measures nothing. Partial CPU offload moves the optimum down, so do not assume 7 wins - it can be slower than no speculation at all. Re-sweep after any change to the -ot pattern."
     },
     "context_size": {
       "applies_to": "qwen38-27b-buun-agentic-256k",
-      "values": [260096, 261888, 262144, 262400, 264192],
-      "record": ["MTP acceptance", "reuse ratio", "processed prompt tokens"],
+      "values": [
+        260096,
+        261888,
+        262144,
+        262400,
+        264192
+      ],
+      "record": [
+        "MTP acceptance",
+        "reuse ratio",
+        "processed prompt tokens"
+      ],
       "note": "The target is functional capacity near 256k, not the round number. Draft acceptance collapses at particular context sizes on a ~2048-token period (llama.cpp #23658), so if a neighbouring value is substantially better, ship the better value."
     }
   },
@@ -498,6 +529,35 @@
       },
       "harness": "scripts/v2/Measure-V2AgenticReuse.ps1 -BaseContextTokens 60000 -IncrementTokens 2000 -Turns 6",
       "note": "The A side of the A/B. Same GGUF, quantization, context, KV types, batch and ubatch, tensor split, MTP settings, sampling, template and fixture as qwen38-27b-buun-agentic-60k; only the runtime differs. Upstream is expected to re-prefill here - that expectation is what has to be measured rather than assumed, because a fork that changes nothing is not worth carrying."
+    },
+    {
+      "id": "qwen38-27b-q3-placement-sweep",
+      "alias": "qwen38-27b-q3-placement-sweep",
+      "runtime": "amd-rocm-qwen38",
+      "state": "planned",
+      "model_file": "Qwen3.8-27B-UD-Q3_K_XL.gguf",
+      "purpose": "Re-sweep the CPU FFN split for a 12.24 GiB weight set. The shipped 4-block split was inherited from the 13.27 GiB IQ4_XS characterization and has never been re-derived for Q3_K_XL.",
+      "why_it_matters": "REPORT-qwen38-27b-q3-q2-kvq4-20260821 section 8.1 measures a prefill cliff at roughly 96% adapter occupancy. Q3_K_XL sits at 94.2% at pp512 and crosses to 96.1% at pp32768, where prefill falls from 819 to 208 t/s. Moving one or two more FFN blocks to the CPU may keep it below the threshold at 32k. This is the single most promising untested lever identified by that campaign and is explicitly NOT MEASURED.",
+      "sweep": {
+        "tensor_overrides": [
+          "blk\\.(6[0-3])\\.ffn_.*",
+          "blk\\.(6[0-2]|63)\\.ffn_.*",
+          "blk\\.(5[9]|6[0-3])\\.ffn_.*",
+          "blk\\.(5[8-9]|6[0-3])\\.ffn_.*"
+        ],
+        "note": "4, 5, 6 and 8 trailing blocks on CPU, all other variables held."
+      },
+      "record": [
+        "pp512",
+        "pp8192",
+        "pp32768",
+        "tg128",
+        "tg128@32768",
+        "peak dedicated MiB",
+        "peak shared MiB",
+        "occupancy ratio"
+      ],
+      "acceptance": "A split is better than the shipped one only if it raises pp32768 without dropping tg128 below the 22 t/s floor in docs/BENCHMARKS.md. The 8-block split is included because it was fastest below 8k on IQ4_XS and collapsed past 16k; whether that inversion survives a smaller weight set is unknown."
     }
   ]
 }

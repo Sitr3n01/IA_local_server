@@ -39,17 +39,26 @@ type manifestRuntime struct {
 }
 
 type manifestModel struct {
-	ID                string   `yaml:"id"`
-	State             string   `yaml:"state"`
-	Status            string   `yaml:"status"`
-	Enabled           *bool    `yaml:"enabled"`
-	OwnedBy           string   `yaml:"owned_by"`
-	Deployments       []string `yaml:"deployments"`
-	Runtime           string   `yaml:"runtime"`
-	CacheRAMMiB       *int     `yaml:"cache_ram_mib"`
-	ContextTokens     *int     `yaml:"context_tokens"`
-	CtxCheckpoints    *int     `yaml:"ctx_checkpoints"`
-	CheckpointMinStep *int     `yaml:"checkpoint_min_step"`
+	ID               string   `yaml:"id"`
+	State            string   `yaml:"state"`
+	Status           string   `yaml:"status"`
+	Enabled          *bool    `yaml:"enabled"`
+	OwnedBy          string   `yaml:"owned_by"`
+	Deployments      []string `yaml:"deployments"`
+	Runtime          string   `yaml:"runtime"`
+	CacheRAMMiB      *int     `yaml:"cache_ram_mib"`
+	ContextTokens    *int     `yaml:"context_tokens"`
+	MaxOutputTokens  *int     `yaml:"max_output_tokens"`
+	NPredict         *int     `yaml:"n_predict"`
+	ReasoningBudget  *int     `yaml:"reasoning_budget"`
+	CompactThreshold *int     `yaml:"compact_threshold_tokens"`
+	CacheTypeK       string   `yaml:"cache_type_k"`
+	CacheTypeV       string   `yaml:"cache_type_v"`
+	Artifact         struct {
+		Path string `yaml:"path"`
+	} `yaml:"artifact"`
+	CtxCheckpoints    *int `yaml:"ctx_checkpoints"`
+	CheckpointMinStep *int `yaml:"checkpoint_min_step"`
 	// Presence, not content: the edge only needs to know that part of the model
 	// lives outside VRAM, which makes an unmeasured capacity profile unsafe.
 	TensorOverrides []struct {
@@ -60,6 +69,20 @@ type manifestModel struct {
 		PeakVRAMGiB   *float64 `yaml:"peak_vram_gib"`
 		PeakRAMGiB    *float64 `yaml:"peak_ram_gib"`
 	} `yaml:"resources"`
+}
+
+// weightsName reduces a GGUF path to the filename an operator recognises. The
+// full path is deliberately not reported: /api/v1/status is reachable by the
+// MCP adapter, and a local filesystem layout is not something it needs.
+func weightsName(path string) string {
+	trimmed := strings.TrimSpace(path)
+	if trimmed == "" {
+		return ""
+	}
+	if idx := strings.LastIndexAny(trimmed, `\/`); idx >= 0 {
+		trimmed = trimmed[idx+1:]
+	}
+	return strings.TrimSuffix(trimmed, ".gguf")
 }
 
 // LoadModels reads the generated, version-controlled source of truth used to
@@ -150,6 +173,15 @@ func LoadModels(path, environment string) ([]Model, string, error) {
 			OffloadsTensors: len(entry.TensorOverrides) > 0,
 			Runtime:         runtimes[strings.TrimSpace(entry.Runtime)],
 			ContextTokens:   entry.ContextTokens,
+			Profile: ProfileSummary{
+				MaxOutputTokens:  entry.MaxOutputTokens,
+				NPredict:         entry.NPredict,
+				ReasoningBudget:  entry.ReasoningBudget,
+				CompactThreshold: entry.CompactThreshold,
+				CacheTypeK:       strings.TrimSpace(entry.CacheTypeK),
+				CacheTypeV:       strings.TrimSpace(entry.CacheTypeV),
+				Weights:          weightsName(entry.Artifact.Path),
+			},
 			Checkpoints: CheckpointSummary{
 				Count:   entry.CtxCheckpoints,
 				MinStep: entry.CheckpointMinStep,

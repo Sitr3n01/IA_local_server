@@ -2,8 +2,23 @@
 model = "local-coding"
 model_provider = "cia-local"
 model_catalog_json = 'C:\IA\local-ai-v2\config\codex-model-catalog.json'
-model_context_window = 131072
-model_auto_compact_token_limit = 110000
+# Context window and the auto-compaction threshold are deliberately NOT set
+# here. They were previously pinned globally at 131072 / 110000, which governed
+# whichever model the profile selected: a 32k profile inherited a 128k window and
+# a 110k compaction threshold, and a 256k profile was capped at 128k. Both are
+# wrong, and the second is silent.
+#
+# model_catalog_json above carries context_window, max_context_window and
+# effective_context_window_percent per model, generated from config/models.yaml
+# by scripts/v2/New-V2ClientCatalogs.ps1. That catalog is the single source of
+# truth for the context contract; a global override here can only disagree with
+# it.
+#
+# Codex's precedence between a global model_context_window and a catalog entry
+# could not be demonstrated on this machine - the Codex CLI is not installed
+# here, only the desktop application - so the keys are removed rather than
+# reordered or relied upon. See benchmarks/REPORT-qwen38-27b-q3-q2-kvq4-20260821.md
+# section 12.
 model_reasoning_effort = "medium"
 model_reasoning_summary = "none"
 model_verbosity = "low"

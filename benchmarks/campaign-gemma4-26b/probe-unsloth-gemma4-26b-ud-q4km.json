@@ -1,0 +1,20 @@
+{
+  "arch": "gemma4",
+  "block_count": 30,
+  "n_ctx_train": 262144,
+  "n_tensors": 658,
+  "mtp_tensor_count": 0,
+  "nextn_tensor_count": 0,
+  "mtp_tensors": [],
+  "mtp_worst_quant": null,
+  "mtp_verdict": "NO_MTP_HEAD",
+  "quant_mix": {
+    "F32": 392,
+    "Q8_0": 207,
+    "Q4_K": 30,
+    "Q5_1": 29
+  },
+  "bytes_fetched": 16777216,
+  "range_requests": 4,
+  "source": "https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF/resolve/main/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf"
+}

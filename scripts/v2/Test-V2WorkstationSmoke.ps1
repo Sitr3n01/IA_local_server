@@ -24,7 +24,7 @@ doubles as evidence for the resources block in the manifest. It never edits the
 manifest.
 
 .EXAMPLE
-./Test-V2WorkstationSmoke.ps1 -ModelId qwen38-27b-ws-32k
+./Test-V2WorkstationSmoke.ps1 -ModelId qwen38-27b-agent-128k
 #>
 [CmdletBinding()]
 param(

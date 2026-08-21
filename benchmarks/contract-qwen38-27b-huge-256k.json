@@ -1,0 +1,34 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "profile-output-contract",
+    "model":  "qwen38-27b-huge-256k",
+    "started_utc":  "2026-08-21T22:52:35.6887384Z",
+    "declared":  {
+                     "context_tokens":  262144,
+                     "max_output_tokens":  32768,
+                     "n_predict":  32768,
+                     "reasoning_budget":  24576,
+                     "compact_threshold_tokens":  221184
+                 },
+    "observed":  {
+                     "served_n_ctx":  262144,
+                     "over_budget_request":  {
+                                                 "asked":  36864,
+                                                 "status":  "served",
+                                                 "completion_tokens":  368
+                                             },
+                     "oversize_prompt":  "{\"error\":{\"code\":400,\"message\":\"request (315444 tokens) exceeds the available context size (262144 tokens), try increasing it\",\"type\":\"exceed_context_size_error\",\"n_prompt_tokens\":315444,\"n_ctx\":262144}}",
+                     "long_output":  {
+                                         "completion_tokens":  17310,
+                                         "finish_reason":  "stop"
+                                     },
+                     "cancellation":  {
+                                          "chunks_before_cancel":  12
+                                      }
+                 },
+    "checks":  9,
+    "failures":  [
+
+                 ],
+    "verdict":  "contract_pass"
+}

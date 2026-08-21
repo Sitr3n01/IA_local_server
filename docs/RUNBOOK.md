@@ -634,18 +634,117 @@ Capacity `reason` values from `/api/v1/status` (for slowness rather than refusal
 | `canary_resource_measurement_pending` | Unmeasured canary candidate that uses no host memory | Acceptable for small candidates; measure before qualifying |
 | `resource_measurement_required` | Unmeasured model outside the canary escape hatch | Measure and record `resources.peak_*` |
 
-## 13. Operate the workstation memory profiles
+## 13. Choosing a Qwen3.8 profile
 
 `provider.public_model` is unchanged; these are selectable canary models, and
 switching between them is a llama-swap model switch, not a reconfiguration.
 
-| Profile | Context | Split | KV | Use it when |
-|---|---:|---|---|---|
-| `qwen38-27b-ws-32k` | 32768 | 4-block | `q8_0` | **Default.** Everyday development. |
-| `qwen38-27b-ws-64k` | 65536 | 4-block | `q8_0` | A session genuinely exceeds 32k. |
-| `qwen38-27b-ws-128k` | 131072 | 4-block | `q8_0` | Marked high-memory. Costs ~3.5 GiB of shared GPU memory and ~4 GiB of host RAM over the default; see TUNING.md 1.7. |
-| `qwen38-27b-ws-8k-prefill` | 8192 | 8-block | `q8_0` | Prompts reliably under 8k. Worth 3.6x on prefill; loses to the default past 16k. |
-| `qwen38-27b-ws-32k-kv-q4` | 32768 | 4-block | `q4_0` | **Experimental.** Halves the shared-memory cost. No quality evaluation has been run. |
+Three profiles, three different jobs. One configuration cannot serve all three,
+because the thing each optimises for costs the others something measured.
+
+| Profile | Weights | KV | Context | Output | Use it when |
+|---|---|---|---:|---:|---|
+| `qwen38-27b-deep-32k` | UD-IQ4_XS | `q8_0`/`q8_0` | 32768 | 8192 | Hardest localized tasks: algorithms, architecture, a complex bug in a few highly relevant files. Reasoning matters more than how much context you can hold. |
+| **`qwen38-27b-agent-128k`** | UD-Q3_K_XL | `q4_0`/`q4_0` | 131072 | 8192 | **Daily default.** Codex, Claude Code, OpenCode, Unity work, refactors, features, repo investigation, tool loops. |
+| `qwen38-27b-huge-256k` | UD-Q2_K_XL | `q4_0`/`q4_0` | 262144 | 32768 | Huge active context: very large repositories, long investigations, long histories, many tool calls. Explicitly a **huge-context / high-thinking-budget** profile, not the highest-quality one. |
+
+### The selection rule
+
+- **Need maximum reasoning reliability?** → Deep
+- **Normal coding-agent work?** → Agent
+- **Need huge active context?** → Huge
+
+Choose Huge when the *working set* exceeds what Agent holds — not when the task
+is merely hard. A hard, localized problem is a Deep problem. A normal or large
+agentic problem is an Agent problem. Only a problem that is enormous *in context*
+is a Huge problem.
+
+**Agent is the daily default, not Deep.** A coding harness spends tens of
+thousands of tokens on the system prompt, tool definitions, file contents, logs
+and history before any of your problem arrives. 32k is opt-in for localized work,
+not a starting point.
+
+### Why Agent uses 3-bit weights
+
+Measured in `benchmarks/REPORT-qwen38-27b-q3-q2-kvq4-20260821.md`, at 32k with KV
+`q4_0/q4_0`, against an IQ4_XS control on identical settings:
+
+| | IQ4_XS | Q3_K_XL |
+|---|---:|---:|
+| Compiled coding suite | 9/10 | 9/10 |
+| Incorrect answers | 1 | **0** |
+| Tool calling | 4/4 | 4/4 |
+| `tg128` | 16.04 t/s | **23.12 t/s** |
+| `pp8192` | 258.80 t/s | **743.34 t/s** |
+| Shared GPU memory at 128k, at load | 4094 MiB | **3507 MiB** (`ok`) |
+
+Q3_K_XL matched IQ4_XS on coding quality in this suite and was substantially
+easier to keep below this workstation's VRAM occupancy cliff — those are two
+different claims and only the second is about the model being smaller. It is
+**not** established that Q3 is universally better than IQ4; what is established
+is that on this adapter, at these settings, it measured equal on quality and
+better on throughput and stability.
+
+### Known limitations
+
+- **Long-context retention is not yet validated** for either Agent or Huge.
+  The memory envelope up to 256k is measured; retrieval accuracy and
+  decode throughput with the window actually filled are not. Both profiles are
+  `candidate` in `canary` for exactly this reason.
+- **The occupancy cliff is real and moves with your desktop.** Prefill collapses
+  above roughly 96% adapter occupancy. IQ4_XS sits on that boundary here, so the
+  Deep profile's prefill throughput depends on what else is on screen; the same
+  GGUF measured 956 t/s and 281 t/s at pp512 in two runs that differed only in
+  how much VRAM the desktop held. Agent carries about two percentage points of
+  margin, Huge about eighteen.
+- **Qwen3.8 reasons before it answers, at length.** Measured across thirty
+  generations, reasoning ran from 1404 to 35570 characters before the first line
+  of the answer. A harness configured with a 2–4k output budget will see empty
+  replies from this model and misdiagnose it as broken.
+
+### The Huge profile's thinking budget
+
+Huge exists because Q2_K_XL was measured returning nothing on three of ten
+coding tasks: it spent the whole 8192-token output allowance inside
+`reasoning_content` and never began the answer. It never produced *incorrect*
+code — at 32k it preserved tool calling, constraint adherence and correctness on
+the answers it completed, but exceeded the shipped 8192-token output budget on
+the more implementation-heavy tasks.
+
+The profile therefore splits the budget explicitly, using flags the runtime
+really has (`llama-server --help` on b10549):
+
+```
+--n-predict 32768            hard ceiling on generated tokens
+--reasoning-budget 24576     tokens the model may spend thinking
+--reasoning-budget-message   injected to force the answer to begin
+```
+
+24576 thinking + roughly 8192 for the answer, 32768 total. Long reasoning on this
+profile is **not** a failure and must not be treated as a hang — but generous is
+not unlimited. On reaching 32768 without a useful answer, that is recorded as a
+real operational result. It is never silently raised to 64k and never retried
+indefinitely.
+
+Deep and Agent keep an 8192-token ceiling and leave reasoning unrestricted; the
+Q2 behaviour is specific to Q2 and the other two profiles were qualified without
+a reasoning budget.
+
+### Context and output accounting
+
+Each profile reserves room for generation, so a harness can never fill the window
+with input and leave nothing to answer with.
+
+| Profile | Context | Output reserve | Compact before | Codex `effective_context_window_percent` |
+|---|---:|---:|---:|---:|
+| Deep | 32768 | 8192 | 23552 | 71 |
+| Agent | 131072 | 8192 | 114688 | 87 |
+| Huge | 262144 | 32768 | 221184 | 84 |
+
+`compact_threshold_tokens` in `config/models.yaml` is the source of truth and is
+derived as `context_tokens − max_output_tokens − safety margin`.
+`New-V2ClientCatalogs.ps1` converts it into the percentage Codex expects. Models
+that declare no threshold keep the previous flat 85%.
 
 **Switching requires a model reload.** `--ctx-size` is fixed for the life of a
 llama-server process; llama.cpp has no hot resize and none is simulated here.
@@ -653,8 +752,19 @@ Request the profile by model id and llama-swap unloads the current one first,
 because `provider.max_loaded_models` is 1. Expect a cold load of roughly ten
 seconds.
 
-Do not select `qwen38-27b-ws-128k` because the model supports 128k. The window is
-allocated at load whether or not a session reaches it.
+### Retired profiles
+
+The five `qwen38-27b-ws-*` profiles are `state: retired` with no deployments.
+They remain in the manifest because the benchmark reports reference them by id;
+they are not offered to a harness.
+
+| Retired | Replaced by | Why |
+|---|---|---|
+| `qwen38-27b-ws-32k` | `qwen38-27b-deep-32k` | Same configuration, clearer name |
+| `qwen38-27b-ws-64k` | `qwen38-27b-agent-128k` | No distinct role once Deep and Agent exist |
+| `qwen38-27b-ws-128k` | `qwen38-27b-agent-128k` | Agent is better on every measured axis for this job |
+| `qwen38-27b-ws-8k-prefill` | — | Its only unique property was being the sole `ok`-pressure profile; Agent at 128k and Huge through 128k now reach `ok` |
+| `qwen38-27b-ws-32k-kv-q4` | `qwen38-27b-agent-128k` | The IQ4-versus-Q3 comparison at `q4_0` it existed to enable is complete |
 
 ### Reading the GPU pressure verdict
 
@@ -683,8 +793,8 @@ alongside the peak precisely so the two can be told apart.
 ### Re-measure after any change to the split, context, or KV type
 
 ```powershell
-& C:\IA\local-llama\scripts\v2\Test-V2WorkstationSmoke.ps1 -ModelId qwen38-27b-ws-32k `
-    -OutputPath C:\IA\local-llama\benchmarks\smoke-qwen38-27b-ws-32k.json
+& C:\IA\local-llama\scripts\v2\Test-V2WorkstationSmoke.ps1 -ModelId qwen38-27b-agent-128k `
+    -OutputPath C:\IA\local-llama\benchmarks\smoke-qwen38-27b-agent-128k.json
 ```
 
 The smoke report's `peak` block is what `resources.peak_vram_gib`,

@@ -56,41 +56,27 @@
                                                                                                           "output":  8192
                                                                                                       }
                                                                                         },
-                                                             "qwen38-27b-ws-32k":  {
-                                                                                       "name":  "Qwen 3.8 27B UD-IQ4_XS | workstation default | 32k ctx",
-                                                                                       "limit":  {
-                                                                                                     "context":  32768,
-                                                                                                     "output":  8192
-                                                                                                 }
-                                                                                   },
-                                                             "qwen38-27b-ws-64k":  {
-                                                                                       "name":  "Qwen 3.8 27B UD-IQ4_XS | agentic extended | 64k ctx",
-                                                                                       "limit":  {
-                                                                                                     "context":  65536,
-                                                                                                     "output":  8192
-                                                                                                 }
-                                                                                   },
-                                                             "qwen38-27b-ws-128k":  {
-                                                                                        "name":  "Qwen 3.8 27B UD-IQ4_XS | agentic huge, high-memory | 128k ctx",
-                                                                                        "limit":  {
-                                                                                                      "context":  131072,
-                                                                                                      "output":  8192
-                                                                                                  }
-                                                                                    },
-                                                             "qwen38-27b-ws-8k-prefill":  {
-                                                                                              "name":  "Qwen 3.8 27B UD-IQ4_XS | short context, high prefill | 8k ctx",
-                                                                                              "limit":  {
-                                                                                                            "context":  8192,
-                                                                                                            "output":  8192
-                                                                                                        }
-                                                                                          },
-                                                             "qwen38-27b-ws-32k-kv-q4":  {
-                                                                                             "name":  "Qwen 3.8 27B UD-IQ4_XS | experimental KV q4_0 | 32k ctx",
-                                                                                             "limit":  {
-                                                                                                           "context":  32768,
-                                                                                                           "output":  8192
-                                                                                                       }
-                                                                                         }
+                                                             "qwen38-27b-deep-32k":  {
+                                                                                         "name":  "Qwen3.8 Deep 32k - IQ4_XS / KV q8_0 - hardest localized tasks",
+                                                                                         "limit":  {
+                                                                                                       "context":  32768,
+                                                                                                       "output":  8192
+                                                                                                   }
+                                                                                     },
+                                                             "qwen38-27b-agent-128k":  {
+                                                                                           "name":  "Qwen3.8 Agent 128k - Q3_K_XL / KV q4_0 - daily agentic coding",
+                                                                                           "limit":  {
+                                                                                                         "context":  131072,
+                                                                                                         "output":  8192
+                                                                                                     }
+                                                                                       },
+                                                             "qwen38-27b-huge-256k":  {
+                                                                                          "name":  "Qwen3.8 Huge 256k - Q2_K_XL / KV q4_0 - huge context, high thinking budget",
+                                                                                          "limit":  {
+                                                                                                        "context":  262144,
+                                                                                                        "output":  32768
+                                                                                                    }
+                                                                                      }
                                                          }
                                           }
                  },

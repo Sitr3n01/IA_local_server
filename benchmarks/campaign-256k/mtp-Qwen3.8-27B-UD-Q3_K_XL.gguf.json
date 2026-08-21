@@ -1,0 +1,144 @@
+{
+  "arch": "qwen35",
+  "block_count": 65,
+  "n_ctx_train": 262144,
+  "n_tensors": 866,
+  "mtp_tensor_count": 15,
+  "nextn_tensor_count": 4,
+  "mtp_tensors": [
+    {
+      "name": "blk.64.attn_k.weight",
+      "type": "Q8_0",
+      "dims": [
+        5120,
+        1024
+      ]
+    },
+    {
+      "name": "blk.64.attn_k_norm.weight",
+      "type": "F32",
+      "dims": [
+        256
+      ]
+    },
+    {
+      "name": "blk.64.attn_norm.weight",
+      "type": "F32",
+      "dims": [
+        5120
+      ]
+    },
+    {
+      "name": "blk.64.attn_output.weight",
+      "type": "Q6_K",
+      "dims": [
+        6144,
+        5120
+      ]
+    },
+    {
+      "name": "blk.64.attn_q.weight",
+      "type": "Q6_K",
+      "dims": [
+        5120,
+        12288
+      ]
+    },
+    {
+      "name": "blk.64.attn_q_norm.weight",
+      "type": "F32",
+      "dims": [
+        256
+      ]
+    },
+    {
+      "name": "blk.64.attn_v.weight",
+      "type": "Q8_0",
+      "dims": [
+        5120,
+        1024
+      ]
+    },
+    {
+      "name": "blk.64.ffn_down.weight",
+      "type": "Q6_K",
+      "dims": [
+        17408,
+        5120
+      ]
+    },
+    {
+      "name": "blk.64.ffn_gate.weight",
+      "type": "Q6_K",
+      "dims": [
+        5120,
+        17408
+      ]
+    },
+    {
+      "name": "blk.64.ffn_up.weight",
+      "type": "Q6_K",
+      "dims": [
+        5120,
+        17408
+      ]
+    },
+    {
+      "name": "blk.64.nextn.eh_proj.weight",
+      "type": "Q6_K",
+      "dims": [
+        10240,
+        5120
+      ]
+    },
+    {
+      "name": "blk.64.nextn.enorm.weight",
+      "type": "F32",
+      "dims": [
+        5120
+      ]
+    },
+    {
+      "name": "blk.64.nextn.hnorm.weight",
+      "type": "F32",
+      "dims": [
+        5120
+      ]
+    },
+    {
+      "name": "blk.64.nextn.shared_head_norm.weight",
+      "type": "F32",
+      "dims": [
+        5120
+      ]
+    },
+    {
+      "name": "blk.64.post_attention_norm.weight",
+      "type": "F32",
+      "dims": [
+        5120
+      ]
+    }
+  ],
+  "mtp_worst_quant": "Q6_K",
+  "mtp_verdict": "PASS",
+  "quant_mix": {
+    "F32": 360,
+    "IQ4_XS": 156,
+    "IQ3_S": 111,
+    "Q8_0": 98,
+    "Q4_K": 36,
+    "IQ3_XXS": 34,
+    "Q5_K": 26,
+    "IQ2_S": 15,
+    "Q3_K": 12,
+    "Q6_K": 7,
+    "IQ2_XS": 4,
+    "Q2_K": 3,
+    "IQ4_NL": 2,
+    "IQ2_XXS": 2
+  },
+  "bytes_fetched": 12582912,
+  "range_requests": 3,
+  "source": "https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/resolve/4ca720788d1e01f1bff70c033e0d0028fd02e502/Qwen3.8-27B-UD-Q3_K_XL.gguf"
+}

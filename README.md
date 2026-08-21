@@ -130,6 +130,29 @@ Dois gates medidos bloqueiam o cutover, e nenhum dos dois foi contornado com con
 
 O soak de 72 horas / 500 requisições / 20 ciclos não foi executado. Registrar isso no README em vez de publicar assim mesmo *é* a posição de engenharia: um gate de promoção que cede para o próprio autor não é um gate.
 
+## Perfis Qwen3.8
+
+Três perfis, três finalidades. Selecione pelo id do modelo; trocar de perfil é
+uma troca de modelo no llama-swap, não uma reconfiguração.
+
+| Perfil | Pesos | KV | Contexto | Saída | Quando usar |
+|---|---|---|---:|---:|---|
+| `qwen38-27b-deep-32k` | UD-IQ4_XS | `q8_0`/`q8_0` | 32k | 8k | Tarefas difíceis e localizadas: algoritmos, arquitetura, bug complexo em poucos arquivos |
+| **`qwen38-27b-agent-128k`** | UD-Q3_K_XL | `q4_0`/`q4_0` | 128k | 8k | **Padrão diário.** Codex, Claude Code, OpenCode, Unity, refactors, investigação de repositório |
+| `qwen38-27b-huge-256k` | UD-Q2_K_XL | `q4_0`/`q4_0` | 256k | 32k | Contexto ativo enorme. Perfil de **contexto gigante / orçamento alto de raciocínio**, não de qualidade máxima |
+
+Regra de seleção: **confiabilidade de raciocínio → Deep. Trabalho normal de agente
+→ Agent. Contexto ativo enorme → Huge.** Escolha Huge quando o *working set*
+excede o do Agent, não quando a tarefa é apenas difícil.
+
+O padrão diário é o Agent, não o Deep: um harness de coding gasta dezenas de
+milhares de tokens em system prompt, definições de ferramentas, arquivos, logs e
+histórico antes de o problema chegar.
+
+Detalhes, evidência medida e limitações conhecidas: [TUNING §1.8](docs/TUNING.md)
+e [RUNBOOK §13](docs/RUNBOOK.md). Retenção em contexto longo ainda **não** foi
+validada para Agent e Huge; ambos são `candidate` em `canary` por isso.
+
 ## Baseline de hardware
 
 Desenvolvido contra AMD ROCm no Windows. O runtime é pinado pelo SHA-256 medido em vez do rótulo do diretório, porque nomes de arquivo do fornecedor se provaram pouco confiáveis como identidade de versão. Metodologia de benchmark e resultados registrados: [Benchmarks](docs/BENCHMARKS.md).

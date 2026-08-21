@@ -166,6 +166,7 @@ function Assert-V2ManifestSemantics {
         # between fields live here.
         $contextShift = [bool](Get-V2ModelSetting -Model $model -Name 'context_shift' -Default $true)
         $specDecoding = Get-V2ModelSetting -Model $model -Name 'spec_decoding'
+        $moeOffload = Get-V2ModelSetting -Model $model -Name 'moe_offload'
         $tensorOverrides = @(Get-V2ModelSetting -Model $model -Name 'tensor_overrides' -Default @())
         $cacheRamMib = Get-V2ModelSetting -Model $model -Name 'cache_ram_mib'
         $peakVramGib = Get-V2ModelSetting -Model $model.resources -Name 'peak_vram_gib'
@@ -176,6 +177,23 @@ function Assert-V2ManifestSemantics {
             # reconciled against a shifted context, and every model that ships an
             # MTP head is a recurrent hybrid that cannot be shifted anyway.
             throw "Model '$($model.id)' enables spec_decoding and must set context_shift=false."
+        }
+
+        if ($null -ne $moeOffload) {
+            $hasCpuAll = Test-V2ModelSettingDeclared -Model $moeOffload -Name 'cpu_all'
+            $hasCpuLayers = Test-V2ModelSettingDeclared -Model $moeOffload -Name 'cpu_layers'
+            if ($hasCpuAll -and $hasCpuLayers) {
+                throw "Model '$($model.id)' declares moe_offload.cpu_all and moe_offload.cpu_layers; choose one MoE CPU placement mode."
+            }
+            if (-not $hasCpuAll -and -not $hasCpuLayers) {
+                throw "Model '$($model.id)' declares moe_offload without cpu_all or cpu_layers."
+            }
+            if ($hasCpuLayers -and [int]$moeOffload.cpu_layers -lt 0) {
+                throw "Model '$($model.id)' declares a negative moe_offload.cpu_layers."
+            }
+            if ($null -eq $peakVramGib -and $model.gpu_layers -ge 99) {
+                throw "Model '$($model.id)' declares moe_offload without resources.peak_vram_gib; measure the MoE placement before offloading."
+            }
         }
 
         if ($tensorOverrides.Count -gt 0) {
@@ -437,6 +455,34 @@ function New-V2LlamaServerCommand {
     $cacheRamMib = Get-V2ModelSetting -Model $Model -Name 'cache_ram_mib'
     if ($null -ne $cacheRamMib) {
         $arguments.AddRange([string[]]@('--cache-ram', [string][int]$cacheRamMib))
+    }
+    $moeOffload = Get-V2ModelSetting -Model $Model -Name 'moe_offload'
+    if ($null -ne $moeOffload) {
+        if (Test-V2ModelSettingDeclared -Model $moeOffload -Name 'cpu_all') {
+            $arguments.Add('--cpu-moe')
+        }
+        elseif (Test-V2ModelSettingDeclared -Model $moeOffload -Name 'cpu_layers') {
+            $arguments.AddRange([string[]]@('--n-cpu-moe', [string][int]$moeOffload.cpu_layers))
+        }
+    }
+    # The output contract, enforced at the server rather than trusted to the
+    # harness. max_output_tokens is what the catalogs advertise; --n-predict is
+    # what a client cannot exceed by asking for more.
+    $nPredict = Get-V2ModelSetting -Model $Model -Name 'n_predict'
+    if ($null -ne $nPredict) {
+        $arguments.AddRange([string[]]@('--n-predict', [string][int]$nPredict))
+    }
+    # Thinking budget, separate from the output ceiling above. A model that
+    # spends its entire output allowance inside reasoning_content returns an
+    # empty answer, which a harness reads as a failed turn; bounding the
+    # thinking half leaves the rest for the answer.
+    $reasoningBudget = Get-V2ModelSetting -Model $Model -Name 'reasoning_budget'
+    if ($null -ne $reasoningBudget) {
+        $arguments.AddRange([string[]]@('--reasoning-budget', [string][int]$reasoningBudget))
+    }
+    $reasoningBudgetMessage = Get-V2ModelSetting -Model $Model -Name 'reasoning_budget_message'
+    if ($null -ne $reasoningBudgetMessage) {
+        $arguments.AddRange([string[]]@('--reasoning-budget-message', ('"{0}"' -f $reasoningBudgetMessage)))
     }
     $ctxCheckpoints = Get-V2ModelSetting -Model $Model -Name 'ctx_checkpoints'
     if ($null -ne $ctxCheckpoints) {

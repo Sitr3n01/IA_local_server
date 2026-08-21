@@ -82,6 +82,14 @@ $specWithContextShift = Copy-V2ManifestForSemanticTest -Value $manifest
 $specWithContextShift.models[0] | Add-Member -NotePropertyName 'spec_decoding' -NotePropertyValue ([pscustomobject]@{ type = 'draft-mtp'; draft_n_max = 5 })
 Assert-V2SemanticRejection -Candidate $specWithContextShift -ExpectedMessage 'must set context_shift=false'
 
+$moeWithBothModes = Copy-V2ManifestForSemanticTest -Value $manifest
+$moeWithBothModes.models[0] | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_all = $true; cpu_layers = 4 })
+Assert-V2SemanticRejection -Candidate $moeWithBothModes -ExpectedMessage 'moe_offload\.cpu_all and moe_offload\.cpu_layers'
+
+$moeWithoutMeasurement = Copy-V2ManifestForSemanticTest -Value $manifest
+$moeWithoutMeasurement.models[0] | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_layers = 4 })
+Assert-V2SemanticRejection -Candidate $moeWithoutMeasurement -ExpectedMessage 'measure the MoE placement before offloading'
+
 $offloadWithoutMeasurement = Copy-V2ManifestForSemanticTest -Value $manifest
 $offloadWithoutMeasurement.models[0] | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @([pscustomobject]@{ pattern = 'blk\.(4[4-9])\.ffn_.*'; buffer = 'CPU' })
 Assert-V2SemanticRejection -Candidate $offloadWithoutMeasurement -ExpectedMessage 'measure the split before offloading'
@@ -108,8 +116,14 @@ $tunedHybrid.models[0] | Add-Member -NotePropertyName 'context_shift' -NotePrope
 $tunedHybrid.models[0] | Add-Member -NotePropertyName 'kv_unified' -NotePropertyValue $true
 $tunedHybrid.models[0] | Add-Member -NotePropertyName 'cache_ram_mib' -NotePropertyValue 6144
 $tunedHybrid.models[0] | Add-Member -NotePropertyName 'spec_decoding' -NotePropertyValue ([pscustomobject]@{ type = 'draft-mtp'; draft_n_max = 5 })
+$tunedHybrid.models[0] | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_layers = 4 })
 $tunedHybrid.models[0] | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @([pscustomobject]@{ pattern = 'blk\.(4[4-9]|5[0-9]|6[0-3])\.ffn_.*'; buffer = 'CPU' })
 Assert-V2ManifestSemantics -Manifest $tunedHybrid
+
+$allMoeAccepted = Copy-V2ManifestForSemanticTest -Value $manifest
+$allMoeAccepted.models[0].resources.peak_vram_gib = 14.5
+$allMoeAccepted.models[0] | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_all = $true })
+Assert-V2ManifestSemantics -Manifest $allMoeAccepted
 
 # Fork runtime policy. A fork build has no release identity, so the manifest has
 # to carry one: an exact commit, and every setting whose fork default differs
@@ -269,7 +283,7 @@ if (-not $Quiet) {
         canary_models     = @($manifest.models | Where-Object { $_.deployments -contains 'canary' }).Count
         final_models      = @($manifest.models | Where-Object { $_.deployments -contains 'final' }).Count
         artifacts_hashed  = [bool]$VerifyArtifacts
-        semantic_policy_tests = 26
+        semantic_policy_tests = 29
         fork_runtimes     = @($manifest.runtimes | Where-Object { (Get-V2RuntimeVariant -Runtime $_) -eq 'fork' }).Count
         valid             = $true
     } | ConvertTo-Json -Depth 3

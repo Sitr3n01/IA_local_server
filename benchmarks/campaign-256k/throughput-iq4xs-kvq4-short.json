@@ -1,0 +1,90 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "throughput-sweep",
+    "label":  "iq4xs-kvq4-short",
+    "started_utc":  "2026-08-21T21:29:14.6512842Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-IQ4_XS.gguf",
+                          "model_bytes":  14252845984,
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "tensor_override":  "blk\\.(6[0-3])\\.ffn_.*=CPU",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "repetitions":  3,
+                          "device_vram_mib":  16304
+                      },
+    "results":  [
+                    {
+                        "tag":  "iq4xs-kvq4-short-pp512",
+                        "kind":  "pp",
+                        "n":  512,
+                        "depth":  0,
+                        "tokens_per_second":  null,
+                        "stddev":  null,
+                        "timed_out":  false,
+                        "wall_s":  19.5,
+                        "peak":  {
+                                     "vram_dedicated_mib":  15846.6,
+                                     "vram_shared_mib":  1151.8,
+                                     "process_ws_gib":  12.825,
+                                     "physical_used_gib":  26.766
+                                 },
+                        "failure":  "llama-bench exited ; see C:\\IA\\IA_local_server\\benchmarks\\campaign-256k\\bench-iq4xs-kvq4-short-pp512.err"
+                    },
+                    {
+                        "tag":  "iq4xs-kvq4-short-pp8192",
+                        "kind":  "pp",
+                        "n":  8192,
+                        "depth":  0,
+                        "tokens_per_second":  null,
+                        "stddev":  null,
+                        "timed_out":  false,
+                        "wall_s":  135.8,
+                        "peak":  {
+                                     "vram_dedicated_mib":  15851.6,
+                                     "vram_shared_mib":  1301.5,
+                                     "process_ws_gib":  12.884,
+                                     "physical_used_gib":  27.003
+                                 },
+                        "failure":  "llama-bench exited ; see C:\\IA\\IA_local_server\\benchmarks\\campaign-256k\\bench-iq4xs-kvq4-short-pp8192.err"
+                    },
+                    {
+                        "tag":  "iq4xs-kvq4-short-pp32768",
+                        "kind":  "pp",
+                        "n":  32768,
+                        "depth":  0,
+                        "tokens_per_second":  null,
+                        "stddev":  null,
+                        "timed_out":  false,
+                        "wall_s":  605.2,
+                        "peak":  {
+                                     "vram_dedicated_mib":  15873.3,
+                                     "vram_shared_mib":  1663.8,
+                                     "process_ws_gib":  12.992,
+                                     "physical_used_gib":  27.507
+                                 },
+                        "failure":  "llama-bench exited ; see C:\\IA\\IA_local_server\\benchmarks\\campaign-256k\\bench-iq4xs-kvq4-short-pp32768.err"
+                    },
+                    {
+                        "tag":  "iq4xs-kvq4-short-tg128",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  0,
+                        "tokens_per_second":  null,
+                        "stddev":  null,
+                        "timed_out":  false,
+                        "wall_s":  31.3,
+                        "peak":  {
+                                     "vram_dedicated_mib":  15751.8,
+                                     "vram_shared_mib":  931.6,
+                                     "process_ws_gib":  12.781,
+                                     "physical_used_gib":  26.693
+                                 },
+                        "failure":  "llama-bench exited ; see C:\\IA\\IA_local_server\\benchmarks\\campaign-256k\\bench-iq4xs-kvq4-short-tg128.err"
+                    }
+                ]
+}

@@ -23,7 +23,26 @@ const (
 	DefaultMaxActive       = 1
 	DefaultMaxQueue        = 4
 	DefaultQueueWait       = 120 * time.Second
-	DefaultHeaderTimeout   = 1800 * time.Second
+	// Time allowed for the upstream's response *headers*. Streaming requests
+	// see them immediately, so this binds only non-streaming ones - where
+	// llama-server buffers the whole completion before replying and the wait is
+	// therefore the entire generation.
+	//
+	// 1800s was sized for an 8192-token ceiling. The Huge profile raises that
+	// ceiling to 32768, and decode was measured as low as 16.04 t/s on this
+	// adapter once occupancy passes ~96%; 32768 tokens at that rate is 2043s,
+	// and a long prefill is charged on top of it. The old value would have
+	// turned a working generation into a timeout that looks like a hang.
+	//
+	// Derived, not guessed: 32768 tokens at a conservative 12 t/s floor is
+	// 2731s, plus roughly 1100s to prefill a 221184-token compaction threshold
+	// at the ~200 t/s measured for a filled window. Rounded to one hour.
+	//
+	// The edge has no per-model timeout today, so this is a single global knob
+	// and raising it is a real trade: a genuinely hung upstream now takes an
+	// hour to surface on a non-streaming request. Per-profile timeouts are the
+	// correct fix and are recorded as a follow-up rather than improvised here.
+	DefaultHeaderTimeout   = 3600 * time.Second
 	DefaultShutdownTimeout = 15 * time.Second
 )
 
@@ -53,7 +72,24 @@ type Model struct {
 	// /v1/models so the public model list stays exactly what it was.
 	Runtime       RuntimeSummary    `json:"-"`
 	ContextTokens *int              `json:"-"`
+	Profile       ProfileSummary    `json:"-"`
 	Checkpoints   CheckpointSummary `json:"-"`
+}
+
+// ProfileSummary is what an operator needs to see to know which of the three
+// Qwen3.8 classes is actually serving. Context alone does not distinguish them:
+// Deep and Agent differ by weights and cache precision, Agent and Huge by
+// output and reasoning budget. Reported through /api/v1/status only, never
+// consulted on the request path, and excluded from /v1/models so the public
+// model list is byte-identical to what it was.
+type ProfileSummary struct {
+	Weights          string `json:"weights,omitempty"`
+	CacheTypeK       string `json:"cache_type_k,omitempty"`
+	CacheTypeV       string `json:"cache_type_v,omitempty"`
+	MaxOutputTokens  *int   `json:"max_output_tokens,omitempty"`
+	NPredict         *int   `json:"n_predict,omitempty"`
+	ReasoningBudget  *int   `json:"reasoning_budget,omitempty"`
+	CompactThreshold *int   `json:"compact_threshold_tokens,omitempty"`
 }
 
 // RuntimeSummary identifies a runtime by what it is rather than by where it was
