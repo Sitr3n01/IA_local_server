@@ -82,48 +82,6 @@
   ],
   "models": [
     {
-      "id": "gemma4-12b-qat-q4_0",
-      "display_name": "Gemma 4 12B QAT Q4_0 - 128k context",
-      "state": "candidate",
-      "deployments": [
-        "canary"
-      ],
-      "runtime": "unsloth-runtime-candidate",
-      "artifact": {
-        "path": "C:\\IA\\models\\gemma-4-12B-it-qat-q4_0-gguf\\gemma-4-12b-it-qat-q4_0.gguf",
-        "bytes": 6975879296,
-        "sha256": "93567E57A8FE10B23569B9D9EC38CD005DEEDF71E29477C421A4B83F418A538B"
-      },
-      "source": {
-        "repository": "google/gemma-4-12B-it-qat-q4_0-gguf",
-        "revision": "29d097773436b69ff9feafd636ab4cf873786537",
-        "filename": "gemma-4-12b-it-qat-q4_0.gguf",
-        "license": "Apache-2.0"
-      },
-      "context_tokens": 131072,
-      "max_output_tokens": 8192,
-      "cache_type_k": "q4_0",
-      "cache_type_v": "q4_0",
-      "parallel": 1,
-      "batch_size": 2048,
-      "ubatch_size": 512,
-      "gpu_layers": 99,
-      "jinja": true,
-      "reasoning": "auto",
-      "capabilities": {
-        "responses": false,
-        "chat_completions": true,
-        "streaming": true,
-        "function_calling": false,
-        "structured_output": false
-      },
-      "resources": {
-        "peak_vram_gib": null,
-        "peak_commit_gib": null,
-        "peak_ram_gib": null
-      }
-    },
-    {
       "id": "gemma4-12b-qat-ud-q4xl",
       "display_name": "Gemma 4 12B QAT UD Q4_K_XL - 128k context",
       "state": "candidate",

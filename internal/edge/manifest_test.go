@@ -51,7 +51,6 @@ func TestRepositoryManifestExposesCanaryModels(t *testing.T) {
 	// benchmark references can remain elsewhere, but the runtime allowlist is the
 	// current inventory only.
 	want := []string{
-		"gemma4-12b-qat-q4_0",
 		"gemma4-12b-qat-ud-q4xl",
 		"qwen38-27b-deep-32k",
 		"qwen38-27b-agent-128k",
