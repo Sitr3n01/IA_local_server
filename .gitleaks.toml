@@ -1,0 +1,10 @@
+title = "IA_local_server gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic eval-fixture needles, not real credentials. This file manufactures distinctive, credential-shaped strings on purpose so long-context retention probes have an unguessable exact answer."
+paths = [
+  '''scripts/v2/eval/fixture_corpus\.py''',
+]
