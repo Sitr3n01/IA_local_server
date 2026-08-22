@@ -1,0 +1,288 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a coding agent. When a tool can do what the user asked, call it. Do not describe the call in prose."
+      },
+      {
+        "role": "user",
+        "content": "Read the file `docs/reports/Release Notes.md`. Preserve the path exactly. Use a tool."
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false,
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "read_file",
+          "description": "Read a file from the repository.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Repository-relative path."
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "read_files",
+          "description": "Read multiple files from the repository.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "paths"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "read_file_range",
+          "description": "Read an inclusive line range from one repository file.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Repository-relative path."
+              },
+              "start_line": {
+                "type": "integer"
+              },
+              "end_line": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "search_file",
+          "description": "Search inside one file.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "query": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "query"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "search_files",
+          "description": "Search across repository files.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string"
+              },
+              "filters": {
+                "type": "object",
+                "properties": {
+                  "include": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "exclude": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "case_sensitive": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "include",
+                  "case_sensitive"
+                ]
+              }
+            },
+            "required": [
+              "query",
+              "filters"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "edit_file",
+          "description": "Replace the full contents of a file.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "contents": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "contents"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "run_tests",
+          "description": "Run the test suite for one package.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "package": {
+                "type": "string"
+              },
+              "verbose": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "package"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "run_build",
+          "description": "Build one target.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "target": {
+                "type": "string"
+              },
+              "configuration": {
+                "type": "string",
+                "enum": [
+                  "Debug",
+                  "Release"
+                ]
+              }
+            },
+            "required": [
+              "target"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "list_dir",
+          "description": "List a directory.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      }
+    ],
+    "tool_choice": "auto"
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"tool_calls\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"\",\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"read_file\",\"arguments\":\"{\\\"path\\\":\\\"docs/reports/Release Notes.md\\\"}\"},\"id\":\"xnDawT2az8I1CSc6nFhuNHDb1hossKnS\"}]}}],\"created\":1787407560,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":26,\"prompt_tokens\":626,\"total_tokens\":652,\"prompt_tokens_details\":{\"cached_tokens\":595}},\"id\":\"chatcmpl-CC9HgjT4e7pCS2fCrp8sjwLV0cTxivva\",\"timings\":{\"cache_n\":595,\"prompt_n\":31,\"prompt_ms\":207.513,\"prompt_per_token_ms\":6.693967741935484,\"prompt_per_second\":149.38823109877453,\"predicted_n\":26,\"predicted_ms\":483.712,\"predicted_per_token_ms\":19.34848,\"predicted_per_second\":51.6836464673194}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "tool_calls",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "read_file",
+                "arguments": "{\"path\":\"docs/reports/Release Notes.md\"}"
+              },
+              "id": "xnDawT2az8I1CSc6nFhuNHDb1hossKnS"
+            }
+          ]
+        }
+      }
+    ],
+    "created": 1787407560,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 26,
+      "prompt_tokens": 626,
+      "total_tokens": 652,
+      "prompt_tokens_details": {
+        "cached_tokens": 595
+      }
+    },
+    "id": "chatcmpl-CC9HgjT4e7pCS2fCrp8sjwLV0cTxivva",
+    "timings": {
+      "cache_n": 595,
+      "prompt_n": 31,
+      "prompt_ms": 207.513,
+      "prompt_per_token_ms": 6.693967741935484,
+      "prompt_per_second": 149.38823109877453,
+      "predicted_n": 26,
+      "predicted_ms": 483.712,
+      "predicted_per_token_ms": 19.34848,
+      "predicted_per_second": 51.6836464673194
+    }
+  }
+}

@@ -1,0 +1,597 @@
+{
+  "schema_version": 1,
+  "scenario": "profile-qualification",
+  "label": "huge-q2-rescue-full-rb0-current",
+  "started_utc": "2026-08-22T06:52:50.7167074Z",
+  "configuration": {
+    "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q2_K_XL.gguf",
+    "model_bytes": 10546934240,
+    "runtime_root": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+    "context_tokens": 262144,
+    "cache_type_k": "q4_0",
+    "cache_type_v": "q4_0",
+    "ubatch_size": 288,
+    "batch_size": 2048,
+    "gpu_layers": 99,
+    "threads": 8,
+    "parallel": 1,
+    "tensor_override": "",
+    "n_predict": 16384,
+    "reasoning_budget": 0,
+    "reasoning_budget_message": null,
+    "cpu_moe": false,
+    "n_cpu_moe": 4,
+    "device_vram_mib": 16304,
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "seed": 20260822,
+    "system_policy": "current",
+    "strict_tool_policy": false,
+    "tool_schema_policy": false,
+    "capture_diagnostics": true,
+    "command_line": "\"C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe\" --model \"C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q2_K_XL.gguf\" --host 127.0.0.1 --port 19431 --alias local --device ROCm0 --split-mode none --gpu-layers 99 --flash-attn on --ctx-size 262144 --batch-size 2048 --ubatch-size 288 --cache-type-k q4_0 --cache-type-v q4_0 --parallel 1 --cont-batching --no-context-shift --threads 8 --n-cpu-moe 4 --n-predict 16384 --reasoning-budget 0 --jinja --warmup --metrics --no-webui"
+  },
+  "load_seconds": 8.7,
+  "idle": {
+    "vram_dedicated_mib": 2863.0,
+    "vram_shared_mib": 342.4,
+    "commit_gib": 28.878,
+    "physical_used_gib": 14.16
+  },
+  "session_peak": {
+    "vram_dedicated_mib": 15111.8,
+    "vram_shared_mib": 587.7,
+    "process_vram_mib": 12246.3,
+    "process_ws_gib": 10.939,
+    "process_private_gib": 10.061,
+    "commit_gib": 42.283,
+    "physical_used_gib": 25.34
+  },
+  "marginal_vram_mib": 12248.8,
+  "memory_samples": 13,
+  "gpu_pressure": {
+    "state": "ok",
+    "occupancy": 0.9269,
+    "shared_mib": 587.7,
+    "message": "GPU memory is within budget: 15.112 / 16.304 MiB dedicated (92,7%), 588 MiB shared."
+  },
+  "eval_exit_code": 0,
+  "failure": null,
+  "eval": {
+    "schema_version": 1,
+    "scenario": "profile-qualification",
+    "label": "huge-q2-rescue-full-rb0-current",
+    "started_utc": "2026-08-22T06:51:48Z",
+    "server_props": {
+      "default_generation_settings": {
+        "params": {
+          "seed": 4294967295,
+          "temperature": 1.0,
+          "dynatemp_range": 0.0,
+          "dynatemp_exponent": 1.0,
+          "top_k": 64,
+          "top_p": 0.949999988079071,
+          "min_p": 0.05000000074505806,
+          "top_n_sigma": -1.0,
+          "xtc_probability": 0.0,
+          "xtc_threshold": 0.10000000149011612,
+          "typical_p": 1.0,
+          "repeat_last_n": 64,
+          "repeat_penalty": 1.0,
+          "presence_penalty": 0.0,
+          "frequency_penalty": 0.0,
+          "dry_multiplier": 0.0,
+          "dry_base": 1.75,
+          "dry_allowed_length": 2,
+          "dry_penalty_last_n": 64,
+          "mirostat": 0,
+          "mirostat_tau": 5.0,
+          "mirostat_eta": 0.10000000149011612,
+          "adaptive_target": -1.0,
+          "adaptive_decay": 0.8999999761581421,
+          "max_tokens": -1,
+          "n_predict": -1,
+          "n_keep": 0,
+          "n_discard": 0,
+          "ignore_eos": false,
+          "stream": false,
+          "n_probs": 0,
+          "min_keep": 0,
+          "chat_format": "Content-only",
+          "reasoning_format": "none",
+          "reasoning_in_content": false,
+          "generation_prompt": "",
+          "samplers": [
+            "penalties",
+            "dry",
+            "top_n_sigma",
+            "top_k",
+            "typ_p",
+            "top_p",
+            "min_p",
+            "xtc",
+            "temperature"
+          ],
+          "speculative.types": "none",
+          "timings_per_token": false,
+          "post_sampling_probs": false,
+          "backend_sampling": false,
+          "lora": []
+        },
+        "n_ctx": 262144
+      },
+      "total_slots": 1,
+      "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q2_K_XL.gguf",
+      "build_info": "b10549-b2e5e9b28"
+    },
+    "diagnostic_config": {
+      "max_tokens_override": 16384,
+      "temperature": 0.0,
+      "seed": 20260822,
+      "system_policy": "current",
+      "strict_tool_policy": false,
+      "tool_schema_policy": false,
+      "capture_dir": "C:\\IA\\IA_local_server\\benchmarks\\campaign-gemma4-26b\\quality-rescue\\capture-huge-q2-rescue-full-rb0-current",
+      "only_coding": [],
+      "only_tools": []
+    },
+    "suites": {
+      "chat": {
+        "results": [
+          {
+            "id": "system_user_stop",
+            "passed": true,
+            "finish_reason": "stop",
+            "reasoning_chars": 0
+          },
+          {
+            "id": "multi_turn",
+            "passed": true,
+            "finish_reason": "stop",
+            "reasoning_chars": 0
+          },
+          {
+            "id": "streaming",
+            "passed": true,
+            "chunks": 11,
+            "done": true
+          },
+          {
+            "id": "tool_result_continuation",
+            "passed": true,
+            "call_ok": true,
+            "args_ok": true,
+            "continuation_ok": true,
+            "finish_reason": "stop",
+            "reasoning_chars": 178
+          }
+        ],
+        "passed": 4,
+        "total": 4
+      },
+      "coding": {
+        "results": [
+          {
+            "id": "py_bugfix",
+            "family": "bugfix",
+            "lang": "python",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 126,
+            "reasoning_content": "",
+            "decode_tps": 68.06551278379236,
+            "wall_s": 2.2,
+            "detail": "OK\n",
+            "code": "def find_insert_position(sorted_values, target):\n    \"\"\"Return the index where target should be inserted to keep the list sorted.\n\n    If target is already present, return the index of its FIRST occurrence.\n    \"\"\"\n    low = 0\n    high = len(sorted_values)\n    while low < high:\n        mid = (low + high) // 2\n        if sorted_values[mid] < target:\n            low = mid + 1\n        else:\n            high = mid\n    return low",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "py_impl",
+            "family": "implement",
+            "lang": "python",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 274,
+            "reasoning_content": "",
+            "decode_tps": 68.94959708684164,
+            "wall_s": 4.3,
+            "detail": "OK\n",
+            "code": "def merge_intervals(intervals):\n    if not intervals:\n        return []\n\n    # Sort intervals by start time to ensure we can merge sequentially\n    # We create a copy via sorted() to avoid mutating the input\n    sorted_intervals = sorted(intervals, key=lambda x: x[0])\n\n    merged = []\n    if not sorted_intervals:\n        return merged\n\n    # Initialize with the first interval\n    current_start, current_end = sorted_intervals[0]\n\n    for i in range(1, len(sorted_intervals)):\n        next_start, next_end = sorted_intervals[i]\n\n        # If the next interval overlaps or touches the current one\n        if next_start <= current_end:\n            # Update the end to be the maximum of the two\n            current_end = max(current_end, next_end)\n        else:\n            # No overlap, push the current interval and move to the next\n            merged.append([current_start, current_end])\n            current_start, current_end = next_start, next_end\n\n    # Add the last interval\n    merged.append([current_start, current_end])\n\n    return merged",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "go_bugfix",
+            "family": "bugfix",
+            "lang": "go",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 243,
+            "reasoning_content": "",
+            "decode_tps": 68.10948064269456,
+            "wall_s": 8.6,
+            "detail": "ok  \teval/pipeline\t0.244s\n",
+            "code": "package pipeline\n\nimport \"sync\"\n\n// FanIn runs fn over every input concurrently and returns the results in the\n// same order as the inputs. It currently deadlocks on any non-empty input.\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\n\tout := make([]int, len(inputs))\n\tjobs := make(chan int)\n\tvar wg sync.WaitGroup\n\n\t// Start workers\n\tfor w := 0; w < workers; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor i := range jobs {\n\t\t\t\tout[i] = fn(inputs[i])\n\t\t\t}\n\t\t}()\n\t}\n\n\t// Feed jobs in a separate goroutine to prevent deadlock\n\t// when the jobs channel buffer is full (or unbuffered)\n\tgo func() {\n\t\tfor i := range inputs {\n\t\t\tjobs <- i\n\t\t}\n\t\tclose(jobs)\n\t}()\n\n\twg.Wait()\n\treturn out\n}",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "go_impl",
+            "family": "implement",
+            "lang": "go",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 548,
+            "reasoning_content": "",
+            "decode_tps": 68.62263335027363,
+            "wall_s": 8.9,
+            "detail": "ok  \teval/cache\t0.248s\n",
+            "code": "package cache\n\nimport (\n\t\"container/list\"\n)\n\n// entry holds the key and value stored in the LRU cache.\ntype entry struct {\n\tkey   string\n\tvalue int\n}\n\n// LRU is a fixed-capacity least recently used cache.\ntype LRU struct {\n\tcapacity int\n\tcache    map[string]*list.Element\n\tlist     *list.List\n}\n\n// NewLRU initializes a new LRU cache with the given capacity.\nfunc NewLRU(capacity int) *LRU {\n\treturn &LRU{\n\t\tcapacity: capacity,\n\t\tcache:     make(map[string]*list.Element),\n\t\tlist:      list.New(),\n\t}\n}\n\n// Get retrieves a value from the cache. If the key exists, it moves the entry to the front.\nfunc (c *LRU) Get(key string) (int, bool) {\n\tif element, ok := c.cache[key]; ok {\n\t\tc.list.MoveToFront(element)\n\t\treturn element.Value.(*entry).value, true\n\t}\n\treturn 0, false\n}\n\n// Put adds a value to the cache. If the key exists, it updates the value and moves it to the front.\n// If the cache is at capacity, it evicts the least recently used entry.\nfunc (c *LRU) Put(key string, value int) {\n\tif element, ok := c.cache[key]; ok {\n\t\tc.list.MoveToFront(element)\n\t\telement.Value.(*entry).value = value\n\t\treturn\n\t}\n\n\tif c.list.Len() >= c.capacity {\n\t\tc.evict()\n\t}\n\n\tent := &entry{key: key, value: value}\n\telement := c.list.PushFront(ent)\n\tc.cache[key] = element\n}\n\n// evict removes the least recently used element from the cache.\nfunc (c *LRU) evict() {\n\telement := c.list.Back()\n\tif element != nil {\n\t\tc.list.Remove(element)\n\t\tkv := element.Value.(*entry)\n\t\tdelete(c.cache, kv.key)\n\t}\n}\n\n// Len returns the current number of items in the cache.\nfunc (c *LRU) Len() int {\n\treturn c.list.Len()\n}",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "ts_impl",
+            "family": "implement",
+            "lang": "typescript",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 170,
+            "reasoning_content": "",
+            "decode_tps": 69.47984673321383,
+            "wall_s": 2.7,
+            "detail": "OK\n",
+            "code": "export function groupConsecutive(values: number[]): number[][] {\n  if (values.length === 0) {\n    return [];\n  }\n\n  const result: number[][] = [];\n  let currentRun: number[] = [values[0]];\n\n  for (let i = 1; i < values.length; i++) {\n    const prev = values[i - 1];\n    const current = values[i];\n\n    if (current === prev + 1) {\n      currentRun.push(current);\n    } else {\n      result.push(currentRun);\n      currentRun = [current];\n    }\n  }\n\n  result.push(currentRun);\n  return result;\n}",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "ts_refactor",
+            "family": "refactor",
+            "lang": "typescript",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 259,
+            "reasoning_content": "",
+            "decode_tps": 68.47469952744494,
+            "wall_s": 4.2,
+            "detail": "OK\n",
+            "code": "export type Fetcher = (id: string) => Promise<{ id: string; parent: string | null }>;\n\n// Walks from a node to the root and returns the chain, root last.\n// Rewrite this to use async/await and a plain loop. Behaviour must not change,\n// including that a cycle throws Error(\"cycle detected\") and that the chain is\n// capped at 50 entries with Error(\"chain too long\").\nexport async function ancestry(fetch: Fetcher, start: string): Promise<string[]> {\n  const seen = new Set<string>();\n  const chain: string[] = [];\n  let currentId: string | null = start;\n\n  while (currentId !== null) {\n    if (seen.has(currentId)) {\n      throw new Error(\"cycle detected\");\n    }\n    seen.add(currentId);\n    chain.push(currentId);\n\n    if (chain.length > 50) {\n      throw new Error(\"chain too long\");\n    }\n\n    const node = await fetch(currentId);\n    currentId = node.parent;\n  }\n\n  return chain;\n}",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "cs_bugfix",
+            "family": "bugfix",
+            "lang": "csharp",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 338,
+            "reasoning_content": "",
+            "decode_tps": 69.03027417923619,
+            "wall_s": 6.9,
+            "detail": "OK\n",
+            "code": "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic static class Ledger\n{\n    // Returns, for each account, the running balance after every entry, and the\n    // final balance. Entries are (account, delta) in chronological order.\n    // BUG: callers report that the running balances are all identical to the\n    // final balance, and that AverageDelta is truncated to a whole number.\n    public static (Dictionary<string, List<int>> Running, Dictionary<string, int> Final, double AverageDelta)\n        Summarise(IEnumerable<(string Account, int Delta)> entries)\n    {\n        var totals = new Dictionary<string, int>();\n        var running = new Dictionary<string, List<int>>();\n\n        foreach (var e in entries)\n        {\n            if (!totals.ContainsKey(e.Account))\n            {\n                totals[e.Account] = 0;\n                running[e.Account] = new List<int>();\n            }\n            totals[e.Account] += e.Delta;\n            running[e.Account].Add(totals[e.Account]);\n        }\n\n        var deltas = entries.Select(e => e.Delta).ToList();\n        double average = 0;\n        if (deltas.Count > 0)\n        {\n            average = deltas.Average(d => (double)d);\n        }\n        \n        return (running, totals, average);\n    }\n}",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "unity_impl",
+            "family": "implement",
+            "lang": "csharp",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 443,
+            "reasoning_content": "",
+            "decode_tps": 69.18035522077689,
+            "wall_s": 7.6,
+            "detail": "\nCompilação com êxito.\n    0 Aviso(s)\n    0 Erro(s)\n\nTempo Decorrido 00:00:00.83\n",
+            "code": "using UnityEngine;\nusing System.Collections.Generic;\n\npublic class ProjectilePool : MonoBehaviour\n{\n    [SerializeField] private GameObject prefab;\n    [SerializeField] private int prewarmCount;\n\n    private Queue<GameObject> pool = new Queue<GameObject>();\n    private HashSet<GameObject> activeObjects = new HashSet<GameObject>();\n\n    private void Awake()\n    {\n        if (prefab == null)\n        {\n            Debug.LogError(\"ProjectilePool: Prefab is not assigned.\");\n            return;\n        }\n\n        for (int i = 0; i < prewarmCount; i++)\n        {\n            GameObject obj = Instantiate(prefab, transform);\n            obj.SetActive(false);\n            pool.Enqueue(obj);\n        }\n    }\n\n    public GameObject Rent()\n    {\n        GameObject obj;\n\n        if (pool.Count > 0)\n        {\n            obj = pool.Dequeue();\n        }\n        else\n        {\n            obj = Instantiate(prefab, transform);\n        }\n\n        obj.SetActive(true);\n        activeObjects.Add(obj);\n        return obj;\n    }\n\n    public void Return(GameObject go)\n    {\n        if (go == null) return;\n\n        // Ensure we don't add the same object twice to the pool\n        // and only return objects that are actually part of this pool's management\n        if (activeObjects.Contains(go))\n        {\n            activeObjects.Remove(go);\n            go.SetActive(false);\n            pool.Enqueue(go);\n        }\n    }\n\n    private void OnDestroy()\n    {\n        // Cleanup to prevent memory leaks in editor/play mode transitions\n        foreach (var obj in pool)\n        {\n            if (obj != null) Destroy(obj);\n        }\n        foreach (var obj in activeObjects)\n        {\n            if (obj != null) Destroy(obj);\n        }\n    }\n}",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "constraint_frozen_file",
+            "family": "constraint",
+            "lang": "csharp",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 178,
+            "reasoning_content": "",
+            "decode_tps": 68.48056332034007,
+            "wall_s": 4.3,
+            "detail": "OK\n",
+            "code": "// TelemetrySender.cs\nusing System;\n\npublic class TelemetrySender\n{\n    private readonly NetworkManager _networkManager;\n\n    public TelemetrySender(NetworkManager networkManager)\n    {\n        _networkManager = networkManager ?? throw new ArgumentNullException(nameof(networkManager));\n    }\n\n    public void Send(string opcode, string payload)\n    {\n        // Opcodes longer than 8 characters must be truncated to their first 8 characters\n        // before passing to the NetworkManager.\n        string processedOpcode = opcode.Length > 8 ? opcode.Substring(0, 8) : opcode;\n\n        string frame = _networkManager.Encode(processedOpcode, payload);\n        _networkManager.Enqueue(frame);\n    }\n}",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "no_invented_api",
+            "family": "honesty",
+            "lang": "csharp",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 99,
+            "reasoning_content": "",
+            "decode_tps": 68.15902474172599,
+            "wall_s": 2.6,
+            "detail": "\nCompilação com êxito.\n    0 Aviso(s)\n    0 Erro(s)\n\nTempo Decorrido 00:00:00.82\n",
+            "code": "public static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int count = 0;\n        for (int i = 0; i < buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                count++;\n            }\n        }\n        return count;\n    }\n}",
+            "failure_taxonomy": []
+          }
+        ],
+        "passed": 10,
+        "total": 10,
+        "compiled": 10,
+        "no_answer": 0,
+        "truncated": 0
+      },
+      "tools": {
+        "results": [
+          {
+            "id": "tool_pick_tests",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "run_tests"
+            ],
+            "raw_arguments_before_parser": "{\"package\":\"internal/edge\",\"verbose\":true}",
+            "arguments_after_parser": {
+              "package": "internal/edge",
+              "verbose": true
+            },
+            "arguments_observed_by_verifier": {
+              "package": "internal/edge",
+              "verbose": true
+            }
+          },
+          {
+            "id": "tool_pick_build",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "run_build"
+            ],
+            "raw_arguments_before_parser": "{\"configuration\":\"Release\",\"target\":\"cia-edge\"}",
+            "arguments_after_parser": {
+              "configuration": "Release",
+              "target": "cia-edge"
+            },
+            "arguments_observed_by_verifier": {
+              "configuration": "Release",
+              "target": "cia-edge"
+            }
+          },
+          {
+            "id": "tool_pick_read_range",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "read_file_range"
+            ],
+            "raw_arguments_before_parser": "{\"end_line\":80,\"path\":\"config/models.schema.json\",\"start_line\":40}",
+            "arguments_after_parser": {
+              "end_line": 80,
+              "path": "config/models.schema.json",
+              "start_line": 40
+            },
+            "arguments_observed_by_verifier": {
+              "end_line": 80,
+              "path": "config/models.schema.json",
+              "start_line": 40
+            }
+          },
+          {
+            "id": "tool_pick_read_many",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "read_files"
+            ],
+            "raw_arguments_before_parser": "{\"paths\":[\"README.md\",\"docs/BENCHMARKS.md\"]}",
+            "arguments_after_parser": {
+              "paths": [
+                "README.md",
+                "docs/BENCHMARKS.md"
+              ]
+            },
+            "arguments_observed_by_verifier": {
+              "paths": [
+                "README.md",
+                "docs/BENCHMARKS.md"
+              ]
+            }
+          },
+          {
+            "id": "tool_pick_search_one",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "search_file"
+            ],
+            "raw_arguments_before_parser": "{\"path\":\"docs/TUNING.md\",\"query\":\"reasoning_budget\"}",
+            "arguments_after_parser": {
+              "path": "docs/TUNING.md",
+              "query": "reasoning_budget"
+            },
+            "arguments_observed_by_verifier": {
+              "path": "docs/TUNING.md",
+              "query": "reasoning_budget"
+            }
+          },
+          {
+            "id": "tool_pick_search_many_nested",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": false,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": false,
+            "detail": "filters={'case_sensitive': False, 'exclude': ['vendor'], 'include': ['*.go']} want {'include': ['*.go'], 'exclude': ['vendor/**'], 'case_sensitive': False}",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "search_files"
+            ],
+            "raw_arguments_before_parser": "{\"filters\":{\"case_sensitive\":false,\"exclude\":[\"vendor\"],\"include\":[\"*.go\"]},\"query\":\"resource_profile_incomplete\"}",
+            "arguments_after_parser": {
+              "filters": {
+                "case_sensitive": false,
+                "exclude": [
+                  "vendor"
+                ],
+                "include": [
+                  "*.go"
+                ]
+              },
+              "query": "resource_profile_incomplete"
+            },
+            "arguments_observed_by_verifier": {
+              "filters": {
+                "case_sensitive": false,
+                "exclude": [
+                  "vendor"
+                ],
+                "include": [
+                  "*.go"
+                ]
+              },
+              "query": "resource_profile_incomplete"
+            },
+            "failure_taxonomy": [
+              "WRONG_TOOL_ARGUMENT"
+            ]
+          },
+          {
+            "id": "tool_refuse_edit",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "list_dir"
+            ],
+            "raw_arguments_before_parser": "{\"path\":\"src/net\"}",
+            "arguments_after_parser": {
+              "path": "src/net"
+            },
+            "arguments_observed_by_verifier": {
+              "path": "src/net"
+            }
+          }
+        ],
+        "passed": 6,
+        "total": 7
+      },
+      "json": {
+        "id": "structured_json",
+        "parsed": true,
+        "clean_json": true,
+        "passed": true,
+        "mismatches": [],
+        "finish_reason": "stop",
+        "reasoning_chars": 0,
+        "reasoning_content": ""
+      }
+    }
+  }
+}

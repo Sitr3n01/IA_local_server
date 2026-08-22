@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a coding agent. If the user asks for a value that is not present in the supplied context, do not guess. State the specific file or source that must be read."
+      },
+      {
+        "role": "user",
+        "content": "The current release notes mention ticket REL-42 and say the migration result is recorded elsewhere. What checksum was written to archive.json? Answer only if the supplied context contains the checksum."
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"The supplied context does not contain the checksum written to `archive.json`. Please provide the file or source where the migration result is recorded.\"}}],\"created\":1787408607,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":32,\"prompt_tokens\":91,\"total_tokens\":123,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-MnSck6hwhJD335S0oVQElFPQAjMDKfvM\",\"timings\":{\"cache_n\":0,\"prompt_n\":91,\"prompt_ms\":471.895,\"prompt_per_token_ms\":5.18565934065934,\"prompt_per_second\":192.83950878903144,\"predicted_n\":32,\"predicted_ms\":553.422,\"predicted_per_token_ms\":17.85232258064516,\"predicted_per_second\":56.015120468647794}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "The supplied context does not contain the checksum written to `archive.json`. Please provide the file or source where the migration result is recorded."
+        }
+      }
+    ],
+    "created": 1787408607,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 32,
+      "prompt_tokens": 91,
+      "total_tokens": 123,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-MnSck6hwhJD335S0oVQElFPQAjMDKfvM",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 91,
+      "prompt_ms": 471.895,
+      "prompt_per_token_ms": 5.18565934065934,
+      "prompt_per_second": 192.83950878903144,
+      "predicted_n": 32,
+      "predicted_ms": 553.422,
+      "predicted_per_token_ms": 17.85232258064516,
+      "predicted_per_second": 56.015120468647794
+    }
+  }
+}

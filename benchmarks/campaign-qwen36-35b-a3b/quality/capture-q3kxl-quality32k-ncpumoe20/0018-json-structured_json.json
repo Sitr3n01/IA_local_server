@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Return only JSON. No prose, no fence."
+      },
+      {
+        "role": "user",
+        "content": "Reply with a single JSON object and nothing else, with exactly the keys \"language\", \"lines\", \"has_tests\", \"entrypoints\". For a Go package with 412 lines, a _test.go file, and the exported functions NewLRU, Get, Put and Len, fill it in. \"lines\" must be a number, \"has_tests\" a boolean, \"entrypoints\" an array of strings."
+      }
+    ],
+    "max_tokens": 4096,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260821,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\\"language\\\":\\\"Go\\\",\\\"lines\\\":412,\\\"has_tests\\\":true,\\\"entrypoints\\\":[\\\"NewLRU\\\",\\\"Get\\\",\\\"Put\\\",\\\"Len\\\"]}\",\"reasoning_content\":\"Here's a thinking process:\\n\\n1.  **Analyze User Input:**\\n   - **Output Format:** Single JSON object, nothing else. No prose, no markdown fences.\\n   - **Required Keys:** \\\"language\\\", \\\"lines\\\", \\\"has_tests\\\", \\\"entrypoints\\\"\\n   - **Values to Fill:**\\n     - \\\"language\\\": \\\"Go\\\" (implied by \\\"Go package\\\")\\n     - \\\"lines\\\": 412 (explicitly stated)\\n     - \\\"has_tests\\\": true (explicitly stated: \\\"a _test.go file\\\")\\n     - \\\"entrypoints\\\": [\\\"NewLRU\\\", \\\"Get\\\", \\\"Put\\\", \\\"Len\\\"] (explicitly stated: \\\"exported functions NewLRU, Get, Put and Len\\\")\\n   - **Constraints:** \\\"lines\\\" must be a number, \\\"has_tests\\\" a boolean, \\\"entrypoints\\\" an array of strings.\\n\\n2.  **Construct JSON:**\\n   ```json\\n   {\\n     \\\"language\\\": \\\"Go\\\",\\n     \\\"lines\\\": 412,\\n     \\\"has_tests\\\": true,\\n     \\\"entrypoints\\\": [\\\"NewLRU\\\", \\\"Get\\\", \\\"Put\\\", \\\"Len\\\"]\\n   }\\n   ```\\n\\n3.  **Verify Constraints:**\\n   - Single JSON object? Yes.\\n   - Nothing else? Yes.\\n   - Exactly the keys \\\"language\\\", \\\"lines\\\", \\\"has_tests\\\", \\\"entrypoints\\\"? Yes.\\n   - \\\"lines\\\" is a number? Yes (412).\\n   - \\\"has_tests\\\" is a boolean? Yes (true).\\n   - \\\"entrypoints\\\" is an array of strings? Yes.\\n   - Matches the prompt's specifics? Yes.\\n\\n4.  **Final Output Generation:** (Ensure no markdown, just raw JSON as requested: \\\"Reply with a single JSON object and nothing else, with exactly the keys...\\\")\\n   I will output exactly the JSON string. No backticks, no extra text.\\n   Wait, the prompt says \\\"No prose, no fence.\\\" So I will output raw JSON.\\n   Let's double check the exact wording: \\\"Reply with a single JSON object and nothing else, with exactly the keys \\\"language\\\", \\\"lines\\\", \\\"has_tests\\\", \\\"entrypoints\\\". For a Go package with 412 lines, a _test.go file, and the exported functions NewLRU, Get, Put and Len, fill it in. \\\"lines\\\" must be a number, \\\"has_tests\\\" a boolean, \\\"entrypoints\\\" an array of strings.\\\"\\n\\n   All constraints met. Output matches exactly.\\n   Proceed. \\n   Output: `{\\\"language\\\":\\\"Go\\\",\\\"lines\\\":412,\\\"has_tests\\\":true,\\\"entrypoints\\\":[\\\"NewLRU\\\",\\\"Get\\\",\\\"Put\\\",\\\"Len\\\"]}` (formatted or minified, doesn't matter, but I'll keep it clean)\\n   I will output it exactly as requested.✅\\n   Note: I'll make sure there's absolutely no markdown formatting to strictly comply with \\\"no fence\\\".\\n   Ready. \\n   Output matches the JSON.✅\\n   Proceeds. \\n   [Self-Correction/Verification during thought]\\n   - Check key names: \\\"language\\\", \\\"lines\\\", \\\"has_tests\\\", \\\"entrypoints\\\" -> exact match.\\n   - Check types: string, number, boolean, array of strings -> exact match.\\n   - Check values: \\\"Go\\\", 412, true, [\\\"NewLRU\\\", \\\"Get\\\", \\\"Put\\\", \\\"Len\\\"] -> exact match.\\n   - Format: raw JSON only.\\n   All good.✅\\n   Output generation. \\n   `{\\\"language\\\": \\\"Go\\\", \\\"lines\\\": 412, \\\"has_tests\\\": true, \\\"entrypoints\\\": [\\\"NewLRU\\\", \\\"Get\\\", \\\"Put\\\", \\\"Len\\\"]}` (I'll use standard spacing for readability, but it's valid JSON either way)\\n   Done. \\n   [Output Generation] -> *Proceeds*\\n\"}}],\"created\":1787423594,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":866,\"prompt_tokens\":112,\"total_tokens\":978,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-Pu6ScV7JmiEbtssQR6kCpujyxUf7F6Gm\",\"timings\":{\"cache_n\":0,\"prompt_n\":112,\"prompt_ms\":882.881,\"prompt_per_token_ms\":7.882866071428571,\"prompt_per_second\":126.8574133999939,\"predicted_n\":866,\"predicted_ms\":21942.365,\"predicted_per_token_ms\":25.366895953757226,\"predicted_per_second\":39.42145707629966}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\"language\":\"Go\",\"lines\":412,\"has_tests\":true,\"entrypoints\":[\"NewLRU\",\"Get\",\"Put\",\"Len\"]}",
+          "reasoning_content": "Here's a thinking process:\n\n1.  **Analyze User Input:**\n   - **Output Format:** Single JSON object, nothing else. No prose, no markdown fences.\n   - **Required Keys:** \"language\", \"lines\", \"has_tests\", \"entrypoints\"\n   - **Values to Fill:**\n     - \"language\": \"Go\" (implied by \"Go package\")\n     - \"lines\": 412 (explicitly stated)\n     - \"has_tests\": true (explicitly stated: \"a _test.go file\")\n     - \"entrypoints\": [\"NewLRU\", \"Get\", \"Put\", \"Len\"] (explicitly stated: \"exported functions NewLRU, Get, Put and Len\")\n   - **Constraints:** \"lines\" must be a number, \"has_tests\" a boolean, \"entrypoints\" an array of strings.\n\n2.  **Construct JSON:**\n   ```json\n   {\n     \"language\": \"Go\",\n     \"lines\": 412,\n     \"has_tests\": true,\n     \"entrypoints\": [\"NewLRU\", \"Get\", \"Put\", \"Len\"]\n   }\n   ```\n\n3.  **Verify Constraints:**\n   - Single JSON object? Yes.\n   - Nothing else? Yes.\n   - Exactly the keys \"language\", \"lines\", \"has_tests\", \"entrypoints\"? Yes.\n   - \"lines\" is a number? Yes (412).\n   - \"has_tests\" is a boolean? Yes (true).\n   - \"entrypoints\" is an array of strings? Yes.\n   - Matches the prompt's specifics? Yes.\n\n4.  **Final Output Generation:** (Ensure no markdown, just raw JSON as requested: \"Reply with a single JSON object and nothing else, with exactly the keys...\")\n   I will output exactly the JSON string. No backticks, no extra text.\n   Wait, the prompt says \"No prose, no fence.\" So I will output raw JSON.\n   Let's double check the exact wording: \"Reply with a single JSON object and nothing else, with exactly the keys \"language\", \"lines\", \"has_tests\", \"entrypoints\". For a Go package with 412 lines, a _test.go file, and the exported functions NewLRU, Get, Put and Len, fill it in. \"lines\" must be a number, \"has_tests\" a boolean, \"entrypoints\" an array of strings.\"\n\n   All constraints met. Output matches exactly.\n   Proceed. \n   Output: `{\"language\":\"Go\",\"lines\":412,\"has_tests\":true,\"entrypoints\":[\"NewLRU\",\"Get\",\"Put\",\"Len\"]}` (formatted or minified, doesn't matter, but I'll keep it clean)\n   I will output it exactly as requested.✅\n   Note: I'll make sure there's absolutely no markdown formatting to strictly comply with \"no fence\".\n   Ready. \n   Output matches the JSON.✅\n   Proceeds. \n   [Self-Correction/Verification during thought]\n   - Check key names: \"language\", \"lines\", \"has_tests\", \"entrypoints\" -> exact match.\n   - Check types: string, number, boolean, array of strings -> exact match.\n   - Check values: \"Go\", 412, true, [\"NewLRU\", \"Get\", \"Put\", \"Len\"] -> exact match.\n   - Format: raw JSON only.\n   All good.✅\n   Output generation. \n   `{\"language\": \"Go\", \"lines\": 412, \"has_tests\": true, \"entrypoints\": [\"NewLRU\", \"Get\", \"Put\", \"Len\"]}` (I'll use standard spacing for readability, but it's valid JSON either way)\n   Done. \n   [Output Generation] -> *Proceeds*\n"
+        }
+      }
+    ],
+    "created": 1787423594,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 866,
+      "prompt_tokens": 112,
+      "total_tokens": 978,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-Pu6ScV7JmiEbtssQR6kCpujyxUf7F6Gm",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 112,
+      "prompt_ms": 882.881,
+      "prompt_per_token_ms": 7.882866071428571,
+      "prompt_per_second": 126.8574133999939,
+      "predicted_n": 866,
+      "predicted_ms": 21942.365,
+      "predicted_per_token_ms": 25.366895953757226,
+      "predicted_per_second": 39.42145707629966
+    }
+  }
+}

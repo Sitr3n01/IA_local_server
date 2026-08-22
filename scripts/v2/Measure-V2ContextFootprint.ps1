@@ -56,7 +56,7 @@ param(
     [ValidateSet('f16', 'q8_0', 'q4_0')]
     [string]$CacheTypeV,
 
-    [string]$TensorOverride = 'blk\.(6[0-3])\.ffn_.*=CPU',
+    [string]$TensorOverride = '',
 
     [ValidateRange(-1, 1024)]
     [int]$NCpuMoe = -1,
@@ -94,6 +94,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 . (Join-Path $PSScriptRoot 'Telemetry.ps1')
+. (Join-Path $PSScriptRoot 'Common.ps1')
 
 $serverExe = Join-Path $RuntimeRoot 'llama-server.exe'
 foreach ($required in @($serverExe, $ModelPath)) {
@@ -110,27 +111,11 @@ if ($CpuMoe -and $NCpuMoe -ge 0) {
 
 $idle = Get-V2MemorySample -ProcessId 0
 
-$arguments = @(
-    '--model', $ModelPath,
-    '--device', 'ROCm0',
-    '--split-mode', 'none',
-    '-ngl', "$NGpuLayers",
-    '-fa', '1',
-    '-c', "$ContextTokens",
-    '-b', "$BatchSize",
-    '-ub', "$UBatchSize",
-    '-ctk', $CacheTypeK,
-    '-ctv', $CacheTypeV,
-    '-t', "$Threads",
-    '--parallel', "$Parallel",
-    '--no-context-shift',
-    '--host', '127.0.0.1',
-    '--port', "$Port",
-    '--no-webui'
-)
-if ($TensorOverride) { $arguments += @('-ot', $TensorOverride) }
-if ($CpuMoe) { $arguments += @('--cpu-moe') }
-elseif ($NCpuMoe -ge 0) { $arguments += @('--n-cpu-moe', "$NCpuMoe") }
+$modelSpec = New-V2BenchmarkModelSpec -ModelPath $ModelPath -Alias 'local' -ContextTokens $ContextTokens `
+    -CacheTypeK $CacheTypeK -CacheTypeV $CacheTypeV -UBatchSize $UBatchSize -BatchSize $BatchSize `
+    -NGpuLayers $NGpuLayers -Threads $Threads -Parallel $Parallel -TensorOverride $TensorOverride `
+    -NCpuMoe $NCpuMoe -CpuMoe:$CpuMoe
+$arguments = New-V2LlamaServerArguments -Model $modelSpec -Port "$Port" -Alias 'local' -IncludeNoWebui
 
 if (-not $Quiet) {
     $moe = if ($CpuMoe) { 'all' } elseif ($NCpuMoe -ge 0) { [string]$NCpuMoe } else { 'default' }

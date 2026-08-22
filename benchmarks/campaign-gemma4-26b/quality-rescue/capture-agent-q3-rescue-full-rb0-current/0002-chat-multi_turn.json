@@ -1,0 +1,67 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Remember facts from prior assistant turns."
+      },
+      {
+        "role": "user",
+        "content": "Remember this project code: VX-417. Reply OK."
+      },
+      {
+        "role": "assistant",
+        "content": "OK"
+      },
+      {
+        "role": "user",
+        "content": "What project code did I give you? Reply with only the code."
+      }
+    ],
+    "max_tokens": 256,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"VX-417\"}}],\"created\":1787381316,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":9,\"prompt_tokens\":62,\"total_tokens\":71,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-1jCWmaXTIiJrp3HziczMab3Y2femk1LX\",\"timings\":{\"cache_n\":0,\"prompt_n\":62,\"prompt_ms\":322.427,\"prompt_per_token_ms\":5.200435483870968,\"prompt_per_second\":192.29158848359472,\"predicted_n\":9,\"predicted_ms\":155.815,\"predicted_per_token_ms\":19.476875,\"predicted_per_second\":51.342938741456216}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "VX-417"
+        }
+      }
+    ],
+    "created": 1787381316,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 9,
+      "prompt_tokens": 62,
+      "total_tokens": 71,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-1jCWmaXTIiJrp3HziczMab3Y2femk1LX",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 62,
+      "prompt_ms": 322.427,
+      "prompt_per_token_ms": 5.200435483870968,
+      "prompt_per_second": 192.29158848359472,
+      "predicted_n": 9,
+      "predicted_ms": 155.815,
+      "predicted_per_token_ms": 19.476875,
+      "predicted_per_second": 51.342938741456216
+    }
+  }
+}

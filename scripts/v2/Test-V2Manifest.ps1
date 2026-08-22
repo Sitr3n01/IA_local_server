@@ -44,6 +44,20 @@ function Assert-V2SemanticRejection {
     throw "Semantic policy accepted a manifest expected to fail with '$ExpectedMessage'."
 }
 
+function Set-V2FirstModelRuntimeState {
+    param(
+        [Parameter(Mandatory = $true)][object]$Candidate,
+        [Parameter(Mandatory = $true)][string]$State
+    )
+
+    $runtimeId = [string]$Candidate.models[0].runtime
+    $matches = @($Candidate.runtimes | Where-Object { $_.id -eq $runtimeId })
+    if ($matches.Count -ne 1) {
+        throw "Semantic fixture expected one runtime '$runtimeId'; found $($matches.Count)."
+    }
+    $matches[0].state = $State
+}
+
 # Keep the promotion invariants executable instead of relying only on the
 # current manifest snapshot to happen to exercise them.
 $retiredModel = Copy-V2ManifestForSemanticTest -Value $manifest
@@ -51,7 +65,7 @@ $retiredModel.models[0].state = 'retired'
 Assert-V2SemanticRejection -Candidate $retiredModel -ExpectedMessage 'Retired model'
 
 $retiredRuntime = Copy-V2ManifestForSemanticTest -Value $manifest
-$retiredRuntime.runtimes[0].state = 'retired'
+Set-V2FirstModelRuntimeState -Candidate $retiredRuntime -State 'retired'
 Assert-V2SemanticRejection -Candidate $retiredRuntime -ExpectedMessage 'retired runtime'
 
 $invalidArtifactHash = Copy-V2ManifestForSemanticTest -Value $manifest
@@ -60,18 +74,19 @@ Assert-V2SemanticRejection -Candidate $invalidArtifactHash -ExpectedMessage 'inv
 
 $candidateFinalModel = Copy-V2ManifestForSemanticTest -Value $manifest
 $candidateFinalModel.models[0].deployments = @('final')
-$candidateFinalModel.runtimes[0].state = 'qualified'
+Set-V2FirstModelRuntimeState -Candidate $candidateFinalModel -State 'qualified'
 Assert-V2SemanticRejection -Candidate $candidateFinalModel -ExpectedMessage "while state is 'candidate'"
 
 $candidateFinalRuntime = Copy-V2ManifestForSemanticTest -Value $manifest
 $candidateFinalRuntime.models[0].deployments = @('final')
 $candidateFinalRuntime.models[0].state = 'qualified'
+Set-V2FirstModelRuntimeState -Candidate $candidateFinalRuntime -State 'candidate'
 Assert-V2SemanticRejection -Candidate $candidateFinalRuntime -ExpectedMessage 'cannot enter final deployment with runtime'
 
 $incompleteFinalResources = Copy-V2ManifestForSemanticTest -Value $manifest
 $incompleteFinalResources.models[0].deployments = @('final')
 $incompleteFinalResources.models[0].state = 'qualified'
-$incompleteFinalResources.runtimes[0].state = 'qualified'
+Set-V2FirstModelRuntimeState -Candidate $incompleteFinalResources -State 'qualified'
 $incompleteFinalResources.models[0].resources.peak_vram_gib = 9.5
 Assert-V2SemanticRejection -Candidate $incompleteFinalResources -ExpectedMessage 'resources\.peak_commit_gib'
 
@@ -88,19 +103,28 @@ Assert-V2SemanticRejection -Candidate $moeWithBothModes -ExpectedMessage 'moe_of
 
 $moeWithoutMeasurement = Copy-V2ManifestForSemanticTest -Value $manifest
 $moeWithoutMeasurement.models[0] | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_layers = 4 })
-Assert-V2SemanticRejection -Candidate $moeWithoutMeasurement -ExpectedMessage 'measure the MoE placement before offloading'
+Assert-V2SemanticRejection -Candidate $moeWithoutMeasurement -ExpectedMessage 'resources\.peak_vram_gib'
+
+$moeZeroWithoutRam = Copy-V2ManifestForSemanticTest -Value $manifest
+$moeZeroWithoutRam.models[0].resources.peak_commit_gib = 12
+$moeZeroWithoutRam.models[0] | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_layers = 0 })
+Assert-V2ManifestSemantics -Manifest $moeZeroWithoutRam
 
 $offloadWithoutMeasurement = Copy-V2ManifestForSemanticTest -Value $manifest
 $offloadWithoutMeasurement.models[0] | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @([pscustomobject]@{ pattern = 'blk\.(4[4-9])\.ffn_.*'; buffer = 'CPU' })
-Assert-V2SemanticRejection -Candidate $offloadWithoutMeasurement -ExpectedMessage 'measure the split before offloading'
+Assert-V2SemanticRejection -Candidate $offloadWithoutMeasurement -ExpectedMessage 'resources\.peak_vram_gib'
 
 $offloadWithWhitespace = Copy-V2ManifestForSemanticTest -Value $manifest
 $offloadWithWhitespace.models[0].resources.peak_vram_gib = 14.5
+$offloadWithWhitespace.models[0].resources.peak_commit_gib = 26
+$offloadWithWhitespace.models[0].resources.peak_ram_gib = 18
 $offloadWithWhitespace.models[0] | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @([pscustomobject]@{ pattern = 'blk\.4 4\.ffn_.*'; buffer = 'CPU' })
 Assert-V2SemanticRejection -Candidate $offloadWithWhitespace -ExpectedMessage 'containing whitespace'
 
 $offloadWithBadRegex = Copy-V2ManifestForSemanticTest -Value $manifest
 $offloadWithBadRegex.models[0].resources.peak_vram_gib = 14.5
+$offloadWithBadRegex.models[0].resources.peak_commit_gib = 26
+$offloadWithBadRegex.models[0].resources.peak_ram_gib = 18
 $offloadWithBadRegex.models[0] | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @([pscustomobject]@{ pattern = 'blk\.(4[4-9\.ffn_.*'; buffer = 'CPU' })
 Assert-V2SemanticRejection -Candidate $offloadWithBadRegex -ExpectedMessage 'invalid tensor_overrides regex'
 
@@ -112,6 +136,7 @@ Assert-V2SemanticRejection -Candidate $cacheWithoutCommitMeasurement -ExpectedMe
 $tunedHybrid = Copy-V2ManifestForSemanticTest -Value $manifest
 $tunedHybrid.models[0].resources.peak_vram_gib = 14.5
 $tunedHybrid.models[0].resources.peak_commit_gib = 26
+$tunedHybrid.models[0].resources.peak_ram_gib = 18
 $tunedHybrid.models[0] | Add-Member -NotePropertyName 'context_shift' -NotePropertyValue $false
 $tunedHybrid.models[0] | Add-Member -NotePropertyName 'kv_unified' -NotePropertyValue $true
 $tunedHybrid.models[0] | Add-Member -NotePropertyName 'cache_ram_mib' -NotePropertyValue 6144
@@ -122,8 +147,50 @@ Assert-V2ManifestSemantics -Manifest $tunedHybrid
 
 $allMoeAccepted = Copy-V2ManifestForSemanticTest -Value $manifest
 $allMoeAccepted.models[0].resources.peak_vram_gib = 14.5
+$allMoeAccepted.models[0].resources.peak_commit_gib = 26
+$allMoeAccepted.models[0].resources.peak_ram_gib = 18
 $allMoeAccepted.models[0] | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_all = $true })
 Assert-V2ManifestSemantics -Manifest $allMoeAccepted
+
+$nPredictBelowOutput = Copy-V2ManifestForSemanticTest -Value $manifest
+$nPredictBelowOutput.models[0] | Add-Member -NotePropertyName 'n_predict' -NotePropertyValue 1024
+$nPredictBelowOutput.models[0].max_output_tokens = 2048
+Assert-V2SemanticRejection -Candidate $nPredictBelowOutput -ExpectedMessage 'n_predict lower than max_output_tokens'
+
+$reasoningAbovePredict = Copy-V2ManifestForSemanticTest -Value $manifest
+$reasoningAbovePredict.models[0].max_output_tokens = 8192
+$reasoningAbovePredict.models[0] | Add-Member -NotePropertyName 'n_predict' -NotePropertyValue 8192
+$reasoningAbovePredict.models[0] | Add-Member -NotePropertyName 'reasoning_budget' -NotePropertyValue 32768
+Assert-V2SemanticRejection -Candidate $reasoningAbovePredict -ExpectedMessage 'reasoning_budget greater than n_predict'
+
+$messageWithoutBudget = Copy-V2ManifestForSemanticTest -Value $manifest
+$messageWithoutBudget.models[0] | Add-Member -NotePropertyName 'reasoning_budget_message' -NotePropertyValue 'write the answer'
+Assert-V2SemanticRejection -Candidate $messageWithoutBudget -ExpectedMessage 'reasoning_budget_message without a positive reasoning_budget'
+
+$reasoningCrowdsAnswer = Copy-V2ManifestForSemanticTest -Value $manifest
+$reasoningCrowdsAnswer.models[0].max_output_tokens = 32768
+$reasoningCrowdsAnswer.models[0] | Add-Member -NotePropertyName 'n_predict' -NotePropertyValue 32768
+$reasoningCrowdsAnswer.models[0] | Add-Member -NotePropertyName 'reasoning_budget' -NotePropertyValue 32767
+Assert-V2SemanticRejection -Candidate $reasoningCrowdsAnswer -ExpectedMessage 'reserve at least 8192 answer tokens'
+
+$compactInvadesOutput = Copy-V2ManifestForSemanticTest -Value $manifest
+$compactInvadesOutput.models[0].context_tokens = 32768
+$compactInvadesOutput.models[0].max_output_tokens = 8192
+$compactInvadesOutput.models[0] | Add-Member -NotePropertyName 'compact_threshold_tokens' -NotePropertyValue 24576
+Assert-V2SemanticRejection -Candidate $compactInvadesOutput -ExpectedMessage 'invade the max_output_tokens reserve'
+
+$compactAtContext = Copy-V2ManifestForSemanticTest -Value $manifest
+$compactAtContext.models[0].context_tokens = 32768
+$compactAtContext.models[0].max_output_tokens = 8192
+$compactAtContext.models[0] | Add-Member -NotePropertyName 'compact_threshold_tokens' -NotePropertyValue 32768
+Assert-V2SemanticRejection -Candidate $compactAtContext -ExpectedMessage 'greater than or equal to context_tokens'
+
+foreach ($profileId in @('qwen38-27b-deep-32k', 'qwen38-27b-agent-128k', 'qwen38-27b-huge-256k')) {
+    $profileManifest = Copy-V2ManifestForSemanticTest -Value $manifest
+    $profileManifest.models = @($profileManifest.models | Where-Object { $_.id -eq $profileId })
+    $profileManifest.provider.public_model = $profileId
+    Assert-V2ManifestSemantics -Manifest $profileManifest
+}
 
 # Fork runtime policy. A fork build has no release identity, so the manifest has
 # to carry one: an exact commit, and every setting whose fork default differs
@@ -259,7 +326,7 @@ if ($forkSeparation.provider.public_model -ne $manifest.provider.public_model) {
 $qualifiedFinal = Copy-V2ManifestForSemanticTest -Value $manifest
 $qualifiedFinal.models[0].deployments = @('final')
 $qualifiedFinal.models[0].state = 'qualified'
-$qualifiedFinal.runtimes[0].state = 'qualified'
+Set-V2FirstModelRuntimeState -Candidate $qualifiedFinal -State 'qualified'
 $qualifiedFinal.models[0].resources.peak_vram_gib = 9.5
 $qualifiedFinal.models[0].resources.peak_commit_gib = 12
 $qualifiedFinal.models[0].resources.peak_ram_gib = 4
@@ -283,7 +350,7 @@ if (-not $Quiet) {
         canary_models     = @($manifest.models | Where-Object { $_.deployments -contains 'canary' }).Count
         final_models      = @($manifest.models | Where-Object { $_.deployments -contains 'final' }).Count
         artifacts_hashed  = [bool]$VerifyArtifacts
-        semantic_policy_tests = 29
+        semantic_policy_tests = 39
         fork_runtimes     = @($manifest.runtimes | Where-Object { (Get-V2RuntimeVariant -Runtime $_) -eq 'fork' }).Count
         valid             = $true
     } | ConvertTo-Json -Depth 3

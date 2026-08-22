@@ -1,0 +1,289 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a coding agent. When a tool can do what the user asked, call it. Do not describe the call in prose."
+      },
+      {
+        "role": "user",
+        "content": "Search all Go files for resource_profile_incomplete, case-insensitive, excluding vendor. Use a tool."
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false,
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "read_file",
+          "description": "Read a file from the repository.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Repository-relative path."
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "read_files",
+          "description": "Read multiple files from the repository.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "paths"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "read_file_range",
+          "description": "Read an inclusive line range from one repository file.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Repository-relative path."
+              },
+              "start_line": {
+                "type": "integer"
+              },
+              "end_line": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "search_file",
+          "description": "Search inside one file.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "query": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "query"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "search_files",
+          "description": "Search across repository files.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string"
+              },
+              "filters": {
+                "type": "object",
+                "properties": {
+                  "include": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "exclude": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "case_sensitive": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "include",
+                  "case_sensitive"
+                ]
+              }
+            },
+            "required": [
+              "query",
+              "filters"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "edit_file",
+          "description": "Replace the full contents of a file.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "contents": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "contents"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "run_tests",
+          "description": "Run the test suite for one package.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "package": {
+                "type": "string"
+              },
+              "verbose": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "package"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "run_build",
+          "description": "Build one target.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "target": {
+                "type": "string"
+              },
+              "configuration": {
+                "type": "string",
+                "enum": [
+                  "Debug",
+                  "Release"
+                ]
+              }
+            },
+            "required": [
+              "target"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "list_dir",
+          "description": "List a directory.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      }
+    ],
+    "tool_choice": "auto"
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"tool_calls\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"\",\"reasoning_content\":\"The user wants to search for the string `resource_profile_incomplete` in all Go files, case-insensitively, and excluding the `vendor` directory. I should use the `search_files` tool for this.\\n\\nThe `search_files` tool takes:\\n- `query`: The string to search for.\\n- `filters`:\\n    - `include`: A list of file patterns to include. Since the user specified \\\"all Go files\\\", I'll use `[\\\"*.go\\\"]`.\\n    - `exclude`: A list of file patterns to exclude. The user specified \\\"excluding vendor\\\", so I'll use `[\\\"vendor/*\\\"]`.\\n    - `case_sensitive`: A boolean. The user specified \\\"case-insensitive\\\", so I'll set this to `false`.\\n\\nLet's construct the tool call.\",\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"search_files\",\"arguments\":\"{\\\"filters\\\":{\\\"case_sensitive\\\":false,\\\"exclude\\\":[\\\"vendor/*\\\"],\\\"include\\\":[\\\"*.go\\\"]},\\\"query\\\":\\\"resource_profile_incomplete\\\"}\"},\"id\":\"uapihDK4bayYpewAyB9fGgqfbifTzWDF\"}]}}],\"created\":1787380436,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":221,\"prompt_tokens\":626,\"total_tokens\":847,\"prompt_tokens_details\":{\"cached_tokens\":595}},\"id\":\"chatcmpl-Ao9VRg7gzvOc5nE3tiqGaZEn7lRvAj4e\",\"timings\":{\"cache_n\":595,\"prompt_n\":31,\"prompt_ms\":197.591,\"prompt_per_token_ms\":6.373903225806452,\"prompt_per_second\":156.88973688072838,\"predicted_n\":221,\"predicted_ms\":4143.133,\"predicted_per_token_ms\":18.832422727272725,\"predicted_per_second\":53.09991255409855}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "tool_calls",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "The user wants to search for the string `resource_profile_incomplete` in all Go files, case-insensitively, and excluding the `vendor` directory. I should use the `search_files` tool for this.\n\nThe `search_files` tool takes:\n- `query`: The string to search for.\n- `filters`:\n    - `include`: A list of file patterns to include. Since the user specified \"all Go files\", I'll use `[\"*.go\"]`.\n    - `exclude`: A list of file patterns to exclude. The user specified \"excluding vendor\", so I'll use `[\"vendor/*\"]`.\n    - `case_sensitive`: A boolean. The user specified \"case-insensitive\", so I'll set this to `false`.\n\nLet's construct the tool call.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "search_files",
+                "arguments": "{\"filters\":{\"case_sensitive\":false,\"exclude\":[\"vendor/*\"],\"include\":[\"*.go\"]},\"query\":\"resource_profile_incomplete\"}"
+              },
+              "id": "uapihDK4bayYpewAyB9fGgqfbifTzWDF"
+            }
+          ]
+        }
+      }
+    ],
+    "created": 1787380436,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 221,
+      "prompt_tokens": 626,
+      "total_tokens": 847,
+      "prompt_tokens_details": {
+        "cached_tokens": 595
+      }
+    },
+    "id": "chatcmpl-Ao9VRg7gzvOc5nE3tiqGaZEn7lRvAj4e",
+    "timings": {
+      "cache_n": 595,
+      "prompt_n": 31,
+      "prompt_ms": 197.591,
+      "prompt_per_token_ms": 6.373903225806452,
+      "prompt_per_second": 156.88973688072838,
+      "predicted_n": 221,
+      "predicted_ms": 4143.133,
+      "predicted_per_token_ms": 18.832422727272725,
+      "predicted_per_second": 53.09991255409855
+    }
+  }
+}

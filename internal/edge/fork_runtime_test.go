@@ -252,8 +252,15 @@ func TestAdoptingAForkLeavesTheRepositoryDeploymentUnchanged(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if publicModel != "local-coding" {
-		t.Fatalf("provider.public_model = %q; adopting a fork must not move it", publicModel)
+	publicFound := false
+	for _, model := range before {
+		if model.ID == publicModel {
+			publicFound = true
+			break
+		}
+	}
+	if !publicFound {
+		t.Fatalf("provider.public_model = %q is not present in the canary manifest", publicModel)
 	}
 	for _, model := range before {
 		if model.Runtime.Variant != "upstream" {

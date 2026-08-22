@@ -1,0 +1,289 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a coding agent. When a tool can do what the user asked, call it. Do not describe the call in prose."
+      },
+      {
+        "role": "user",
+        "content": "Read README.md and docs/BENCHMARKS.md together. Use a tool."
+      }
+    ],
+    "max_tokens": 4096,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260821,
+    "stream": false,
+    "timings_per_token": false,
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "read_file",
+          "description": "Read a file from the repository.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Repository-relative path."
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "read_files",
+          "description": "Read multiple files from the repository.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "paths"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "read_file_range",
+          "description": "Read an inclusive line range from one repository file.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Repository-relative path."
+              },
+              "start_line": {
+                "type": "integer"
+              },
+              "end_line": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "search_file",
+          "description": "Search inside one file.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "query": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "query"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "search_files",
+          "description": "Search across repository files.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string"
+              },
+              "filters": {
+                "type": "object",
+                "properties": {
+                  "include": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "exclude": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "case_sensitive": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "include",
+                  "case_sensitive"
+                ]
+              }
+            },
+            "required": [
+              "query",
+              "filters"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "edit_file",
+          "description": "Replace the full contents of a file.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "contents": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "contents"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "run_tests",
+          "description": "Run the test suite for one package.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "package": {
+                "type": "string"
+              },
+              "verbose": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "package"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "run_build",
+          "description": "Build one target.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "target": {
+                "type": "string"
+              },
+              "configuration": {
+                "type": "string",
+                "enum": [
+                  "Debug",
+                  "Release"
+                ]
+              }
+            },
+            "required": [
+              "target"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "list_dir",
+          "description": "List a directory.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      }
+    ],
+    "tool_choice": "auto"
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"tool_calls\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"\",\"reasoning_content\":\"The user wants to read two files: `README.md` and `docs/BENCHMARKS.md`.\\nI should use the `read_files` tool to read both files at once.\\nThe `paths` parameter should be `[\\\"README.md\\\", \\\"docs/BENCHMARKS.md\\\"]`.\\n\",\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"read_files\",\"arguments\":\"{\\\"paths\\\":[\\\"README.md\\\", \\\"docs/BENCHMARKS.md\\\"]}\"},\"id\":\"OEJts1ioNrGBawxacvgKGZWslr7YnTye\"}]}}],\"created\":1787422751,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":97,\"prompt_tokens\":934,\"total_tokens\":1031,\"prompt_tokens_details\":{\"cached_tokens\":909}},\"id\":\"chatcmpl-n43oaeG7KrS8r8WvIajRk45nrscBmxk9\",\"timings\":{\"cache_n\":909,\"prompt_n\":25,\"prompt_ms\":232.336,\"prompt_per_token_ms\":9.29344,\"prompt_per_second\":107.60278217753599,\"predicted_n\":97,\"predicted_ms\":2110.776,\"predicted_per_token_ms\":21.98725,\"predicted_per_second\":45.480903705556635}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "tool_calls",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "The user wants to read two files: `README.md` and `docs/BENCHMARKS.md`.\nI should use the `read_files` tool to read both files at once.\nThe `paths` parameter should be `[\"README.md\", \"docs/BENCHMARKS.md\"]`.\n",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "read_files",
+                "arguments": "{\"paths\":[\"README.md\", \"docs/BENCHMARKS.md\"]}"
+              },
+              "id": "OEJts1ioNrGBawxacvgKGZWslr7YnTye"
+            }
+          ]
+        }
+      }
+    ],
+    "created": 1787422751,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 97,
+      "prompt_tokens": 934,
+      "total_tokens": 1031,
+      "prompt_tokens_details": {
+        "cached_tokens": 909
+      }
+    },
+    "id": "chatcmpl-n43oaeG7KrS8r8WvIajRk45nrscBmxk9",
+    "timings": {
+      "cache_n": 909,
+      "prompt_n": 25,
+      "prompt_ms": 232.336,
+      "prompt_per_token_ms": 9.29344,
+      "prompt_per_second": 107.60278217753599,
+      "predicted_n": 97,
+      "predicted_ms": 2110.776,
+      "predicted_per_token_ms": 21.98725,
+      "predicted_per_second": 45.480903705556635
+    }
+  }
+}

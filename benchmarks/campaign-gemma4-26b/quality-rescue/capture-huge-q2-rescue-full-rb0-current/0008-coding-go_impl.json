@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "Write a Go file for `package cache` implementing a fixed-capacity LRU cache with:\n  func NewLRU(capacity int) *LRU\n  func (c *LRU) Get(key string) (int, bool)\n  func (c *LRU) Put(key string, value int)\n  func (c *LRU) Len() int\nGet counts as a use. Put on an existing key updates it without growing the cache. When full, Put evicts the least recently used entry. Use only the standard library. Return the whole file."
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```go\\npackage cache\\n\\nimport (\\n\\t\\\"container/list\\\"\\n)\\n\\n// entry holds the key and value stored in the LRU cache.\\ntype entry struct {\\n\\tkey   string\\n\\tvalue int\\n}\\n\\n// LRU is a fixed-capacity least recently used cache.\\ntype LRU struct {\\n\\tcapacity int\\n\\tcache    map[string]*list.Element\\n\\tlist     *list.List\\n}\\n\\n// NewLRU initializes a new LRU cache with the given capacity.\\nfunc NewLRU(capacity int) *LRU {\\n\\treturn &LRU{\\n\\t\\tcapacity: capacity,\\n\\t\\tcache:     make(map[string]*list.Element),\\n\\t\\tlist:      list.New(),\\n\\t}\\n}\\n\\n// Get retrieves a value from the cache. If the key exists, it moves the entry to the front.\\nfunc (c *LRU) Get(key string) (int, bool) {\\n\\tif element, ok := c.cache[key]; ok {\\n\\t\\tc.list.MoveToFront(element)\\n\\t\\treturn element.Value.(*entry).value, true\\n\\t}\\n\\treturn 0, false\\n}\\n\\n// Put adds a value to the cache. If the key exists, it updates the value and moves it to the front.\\n// If the cache is at capacity, it evicts the least recently used entry.\\nfunc (c *LRU) Put(key string, value int) {\\n\\tif element, ok := c.cache[key]; ok {\\n\\t\\tc.list.MoveToFront(element)\\n\\t\\telement.Value.(*entry).value = value\\n\\t\\treturn\\n\\t}\\n\\n\\tif c.list.Len() >= c.capacity {\\n\\t\\tc.evict()\\n\\t}\\n\\n\\tent := &entry{key: key, value: value}\\n\\telement := c.list.PushFront(ent)\\n\\tc.cache[key] = element\\n}\\n\\n// evict removes the least recently used element from the cache.\\nfunc (c *LRU) evict() {\\n\\telement := c.list.Back()\\n\\tif element != nil {\\n\\t\\tc.list.Remove(element)\\n\\t\\tkv := element.Value.(*entry)\\n\\t\\tdelete(c.cache, kv.key)\\n\\t}\\n}\\n\\n// Len returns the current number of items in the cache.\\nfunc (c *LRU) Len() int {\\n\\treturn c.list.Len()\\n}\\n```\"}}],\"created\":1787381534,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":548,\"prompt_tokens\":183,\"total_tokens\":731,\"prompt_tokens_details\":{\"cached_tokens\":52}},\"id\":\"chatcmpl-VmBRhR3ouOXTCBVoqO0uqeGJN4QSDcml\",\"timings\":{\"cache_n\":52,\"prompt_n\":131,\"prompt_ms\":196.2,\"prompt_per_token_ms\":1.497709923664122,\"prompt_per_second\":667.6860346585117,\"predicted_n\":548,\"predicted_ms\":7971.131,\"predicted_per_token_ms\":14.57245155393053,\"predicted_per_second\":68.62263335027363}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```go\npackage cache\n\nimport (\n\t\"container/list\"\n)\n\n// entry holds the key and value stored in the LRU cache.\ntype entry struct {\n\tkey   string\n\tvalue int\n}\n\n// LRU is a fixed-capacity least recently used cache.\ntype LRU struct {\n\tcapacity int\n\tcache    map[string]*list.Element\n\tlist     *list.List\n}\n\n// NewLRU initializes a new LRU cache with the given capacity.\nfunc NewLRU(capacity int) *LRU {\n\treturn &LRU{\n\t\tcapacity: capacity,\n\t\tcache:     make(map[string]*list.Element),\n\t\tlist:      list.New(),\n\t}\n}\n\n// Get retrieves a value from the cache. If the key exists, it moves the entry to the front.\nfunc (c *LRU) Get(key string) (int, bool) {\n\tif element, ok := c.cache[key]; ok {\n\t\tc.list.MoveToFront(element)\n\t\treturn element.Value.(*entry).value, true\n\t}\n\treturn 0, false\n}\n\n// Put adds a value to the cache. If the key exists, it updates the value and moves it to the front.\n// If the cache is at capacity, it evicts the least recently used entry.\nfunc (c *LRU) Put(key string, value int) {\n\tif element, ok := c.cache[key]; ok {\n\t\tc.list.MoveToFront(element)\n\t\telement.Value.(*entry).value = value\n\t\treturn\n\t}\n\n\tif c.list.Len() >= c.capacity {\n\t\tc.evict()\n\t}\n\n\tent := &entry{key: key, value: value}\n\telement := c.list.PushFront(ent)\n\tc.cache[key] = element\n}\n\n// evict removes the least recently used element from the cache.\nfunc (c *LRU) evict() {\n\telement := c.list.Back()\n\tif element != nil {\n\t\tc.list.Remove(element)\n\t\tkv := element.Value.(*entry)\n\t\tdelete(c.cache, kv.key)\n\t}\n}\n\n// Len returns the current number of items in the cache.\nfunc (c *LRU) Len() int {\n\treturn c.list.Len()\n}\n```"
+        }
+      }
+    ],
+    "created": 1787381534,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 548,
+      "prompt_tokens": 183,
+      "total_tokens": 731,
+      "prompt_tokens_details": {
+        "cached_tokens": 52
+      }
+    },
+    "id": "chatcmpl-VmBRhR3ouOXTCBVoqO0uqeGJN4QSDcml",
+    "timings": {
+      "cache_n": 52,
+      "prompt_n": 131,
+      "prompt_ms": 196.2,
+      "prompt_per_token_ms": 1.497709923664122,
+      "prompt_per_second": 667.6860346585117,
+      "predicted_n": 548,
+      "predicted_ms": 7971.131,
+      "predicted_per_token_ms": 14.57245155393053,
+      "predicted_per_second": 68.62263335027363
+    }
+  }
+}

@@ -1,0 +1,460 @@
+{
+  "schema_version": 1,
+  "scenario": "profile-qualification",
+  "label": "agent-q3-reasoning-cal-rb1024",
+  "started_utc": "2026-08-22T14:02:55Z",
+  "server_props": {
+    "default_generation_settings": {
+      "params": {
+        "seed": 4294967295,
+        "temperature": 1.0,
+        "dynatemp_range": 0.0,
+        "dynatemp_exponent": 1.0,
+        "top_k": 64,
+        "top_p": 0.949999988079071,
+        "min_p": 0.05000000074505806,
+        "top_n_sigma": -1.0,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.10000000149011612,
+        "typical_p": 1.0,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "presence_penalty": 0.0,
+        "frequency_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": 64,
+        "mirostat": 0,
+        "mirostat_tau": 5.0,
+        "mirostat_eta": 0.10000000149011612,
+        "adaptive_target": -1.0,
+        "adaptive_decay": 0.8999999761581421,
+        "max_tokens": -1,
+        "n_predict": -1,
+        "n_keep": 0,
+        "n_discard": 0,
+        "ignore_eos": false,
+        "stream": false,
+        "n_probs": 0,
+        "min_keep": 0,
+        "chat_format": "Content-only",
+        "reasoning_format": "none",
+        "reasoning_in_content": false,
+        "generation_prompt": "",
+        "samplers": [
+          "penalties",
+          "dry",
+          "top_n_sigma",
+          "top_k",
+          "typ_p",
+          "top_p",
+          "min_p",
+          "xtc",
+          "temperature"
+        ],
+        "speculative.types": "none",
+        "timings_per_token": false,
+        "post_sampling_probs": false,
+        "backend_sampling": false,
+        "lora": []
+      },
+      "n_ctx": 131072
+    },
+    "total_slots": 1,
+    "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q3_K_XL.gguf",
+    "build_info": "b10549-b2e5e9b28"
+  },
+  "diagnostic_config": {
+    "max_tokens_override": 16384,
+    "temperature": 0.0,
+    "seed": 20260822,
+    "system_policy": "current",
+    "strict_tool_policy": false,
+    "tool_schema_policy": false,
+    "capture_dir": "C:\\IA\\IA_local_server\\benchmarks\\campaign-gemma4-26b\\reasoning-calibration\\capture-agent-q3-reasoning-cal-rb1024",
+    "only_coding": [],
+    "only_tools": [
+      "tool_pick_search_many_nested"
+    ]
+  },
+  "suites": {
+    "hard": {
+      "results": [
+        {
+          "id": "hard_go_router_multifile",
+          "family": "hard_bugfix",
+          "lang": "go",
+          "passed": false,
+          "compiled_or_ran": false,
+          "constraint_respected": true,
+          "violated_markers": [],
+          "truncated": false,
+          "no_answer": false,
+          "reasoning_chars": 3906,
+          "finish_reason": "stop",
+          "output_tokens": 1218,
+          "reasoning_content": "*   The current `Resolve` function iterates through the `routes` slice and returns the first match it finds.\n    *   Problem 1: It doesn't account for the \"most specific\" (longest) prefix. It just returns the first one that matches.\n    *   Problem 2: It doesn't check if the route is `Enabled`.\n    *   Problem 3: The prefix matching logic `path[:len(route.Prefix)] == route.Prefix` is a simple prefix check, but it might match partial segments (e.g., `/api` matching `/api-something` if not careful, though the prompt implies standard prefix matching). However, the core issue is the order and the `Enabled` flag.\n\n    *   Input: `routes []Route`, `path string`.\n    *   Output: `handler string`, `found bool`.\n    *   Requirement 1: Only consider `Enabled == true` routes.\n    *   Requirement 2: Find the *longest* matching prefix.\n\n    *   Initialize `bestHandler` as `\"\"` and `bestLen` as `-1`.\n    *   Iterate through all `routes`.\n    *   Check if `route.Enabled` is true.\n    *   Check if `path` starts with `route.Prefix`.\n    *   If it matches and `len(route.Prefix) > bestLen`:\n        *   Update `bestHandler` and `bestLen`.\n    *   Return `bestHandler` and `bestLen != -1`.\n\n    *   `len(route.Prefix) <= len(path) && path[:len(route.Prefix)] == route.Prefix` is equivalent to `strings.HasPrefix(path, route.Prefix)`. Since I shouldn't import new packages unless necessary, I'll stick to the slice logic or use `strings` if I'm allowed. The prompt says \"Do not invent APIs\", but `strings` is standard library. However, the existing code uses slice comparison. I'll stick to the slice comparison to be safe and minimal.\n\n    ```go\n    func Resolve(routes []Route, path string) (string, bool) {\n        var bestHandler string\n        var bestLen int = -1\n\n        for _, route := range routes {\n            if !route.Enabled {\n                continue\n            }\n            if len(path) >= len(route.Prefix) && path[:len(route.Prefix)] == route.Prefix {\n                if len(route.Prefix) > bestLen {\n                    bestLen = len(route.Prefix)\n                    bestHandler = route.Handler\n                }\n            }\n        }\n\n        if bestLen == -1 {\n            return \"\", false\n        }\n        return bestHandler, true\n    }\n    ```\n\n    *   \"Longest enabled prefix matching\": Checked.\n    *   \"Disabled routes\": Checked (`if !route.Enabled { continue }`).\n    *   \"Path boundaries\": The current logic `path[:len(route.Prefix)] == route.Prefix` handles prefix matching.\n\n    *   `Route` struct: `Prefix string`, `Handler string`, `Enabled bool`.\n    *   `Resolve` signature: `func Resolve(routes []Route, path string) (string, bool)`.\n\n    *   If `routes` is empty, `bestLen` remains `-1`, returns `\"\", false`. Correct.\n    *   If no route matches, `bestLen` remains `-1`, returns `\"\", false`. Correct.\n    *   If multiple routes match, the one with the largest `len(route.Prefix)` is chosen. Correct.\n\n    *   Return the complete corrected `router.go` file in a single fenced code block.\n\n    ```go\n    package router\n\n    type Route struct {\n        Prefix  string\n        Handler string\n        Enabled bool\n    }\n\n    // Resolve returns the handler for the most specific enabled prefix.\n    func Resolve(routes []Route, path string) (string, bool) {\n        var bestHandler string\n        var bestLen int = -1\n\n        for _, route := range routes {\n            if !route.Enabled {\n                continue\n            }\n            if len(path) >= len(route.Prefix) && path[:len(route.Prefix)] == route.Prefix {\n                if len(route.Prefix) > bestLen {\n                    bestLen = len(route.Prefix)\n                    bestHandler = route.Handler\n                }\n            }\n        }\n\n        if bestLen == -1 {\n            return \"\", false\n        }\n        return bestHandler, true\n    }\n    ```\n\n    Wait, the original code had a comment: `// BUG",
+          "decode_tps": 52.14125765056206,
+          "wall_s": 29.2,
+          "detail": "--- FAIL: TestResolveIgnoresDisabledAndBoundaries (0.00s)\n    router_test.go:26: /app must not match /apple\nFAIL\nFAIL\teval/router\t0.259s\nFAIL\n",
+          "code": "package router\n\ntype Route struct {\n\tPrefix  string\n\tHandler string\n\tEnabled bool\n}\n\n// Resolve returns the handler for the most specific enabled prefix.\nfunc Resolve(routes []Route, path string) (string, bool) {\n\tvar bestHandler string\n\tvar bestLen int = -1\n\n\tfor _, route := range routes {\n\t\tif !route.Enabled {\n\t\t\tcontinue\n\t\t}\n\n\t\tif len(path) >= len(route.Prefix) && path[:len(route.Prefix)] == route.Prefix {\n\t\t\tif len(route.Prefix) > bestLen {\n\t\t\t\tbestLen = len(route.Prefix)\n\t\t\t\tbestHandler = route.Handler\n\t\t\t}\n\t\t}\n\t}\n\n\tif bestLen == -1 {\n\t\treturn \"\", false\n\t}\n\treturn bestHandler, true\n}",
+          "failure_taxonomy": [
+            "TEST_FAILURE"
+          ]
+        },
+        {
+          "id": "hard_go_retry_multifile",
+          "family": "hard_bugfix",
+          "lang": "go",
+          "passed": false,
+          "compiled_or_ran": false,
+          "constraint_respected": true,
+          "violated_markers": [],
+          "truncated": false,
+          "no_answer": false,
+          "reasoning_chars": 3796,
+          "finish_reason": "stop",
+          "output_tokens": 1276,
+          "reasoning_content": "*   `Store` interface: `Get(key string) (string, error)`, `Put(key, value string) error`.\n    *   Errors: `ErrTemporary`, `ErrMissing`.\n    *   Function `Ensure(store Store, key, fallback string) (string, error)`:\n        *   Goal: Read `key`. If it exists, return it. If it's missing, write `fallback` and return it.\n        *   Current Bug:\n            1.  It writes fallback after *any* read error (including `ErrTemporary`).\n            2.  It retries `Put` 3 times if `Put` fails, but it doesn't handle the logic of whether the error was `ErrMissing` or `ErrTemporary` correctly in the loop.\n            3.  The requirement says: \"Ensure reads key and writes fallback only when the key is missing.\"\n            4.  The requirement says: \"BUG: it writes fallback after any read error and retries permanent errors.\"\n\n    *   If `store.Get(key)` returns `nil` error: return value.\n    *   If `store.Get(key)` returns `ErrMissing`:\n        *   This is the trigger to write the fallback.\n        *   Call `store.Put(key, fallback)`.\n        *   If `Put` succeeds, return `fallback, nil`.\n        *   If `Put` fails, return `\"\", err`.\n    *   If `store.Get(key)` returns `ErrTemporary`:\n        *   The current implementation retries `Put` 3 times, which is wrong. It should probably retry the `Get` or handle the error.\n        *   Wait, the prompt says: \"Ensure reads key and writes fallback only when the key is missing.\"\n        *   And \"BUG: it writes fallback after any read error and retries permanent errors.\"\n        *   Let's look at the logic:\n            1.  Try `Get`.\n            2.  If `err == nil`, return value.\n            3.  If `err == ErrMissing`:\n                *   Try `Put(key, fallback)`.\n                *   If `Put` succeeds, return `fallback, nil`.\n                *   If `Put` fails, return `\"\", err`.\n            4.  If `err == ErrTemporary`:\n                *   The prompt implies we should retry the `Get` operation if it's temporary? Or just return the error?\n                *   Actually, the bug description says \"it writes fallback after any read error\". This means if `Get` returns `ErrTemporary`, it currently goes into the loop and tries to `Put`.\n                *   The bug description also says \"retries permanent errors\".\n                *   Let's re-read: \"Ensure reads key and writes fallback only when the key is missing.\"\n                *   This implies:\n                    *   `ErrMissing` -> `Put(fallback)` -> return `fallback`.\n                    *   `ErrTemporary` -> retry `Get`? Or just return error?\n                    *   The current code has a loop `for i := 0; i < 3; i++`. This loop is currently trying to `Put`.\n                    *   If the error is `ErrTemporary`, we should probably retry the `Get`.\n                    *   If the error is `ErrMissing`, we `Put`.\n\n    *   Let's refine the logic based on \"Ensure reads key and writes fallback only when the key is missing\":\n        1.  Loop for retries (to handle `ErrTemporary` on `Get`).\n        2.  `val, err := store.Get(key)`\n        3.  If `err == nil`, return `val, nil`.\n        4.  If `err == ErrMissing`:\n            *   `err = store.Put(key, fallback)`\n            *   If `err == nil`, return `fallback, nil`.\n            *   Else, return `\"\", err`.\n        5.  If `err == ErrTemporary`:\n            *   Continue loop (retry `Get`).\n        6.  If `err` is anything else (permanent error):\n            *   Return `\"\", err`.\n\n    *   Wait, the current code's loop is `for i := 0; i < 3; i++` and it calls `store.Put`.\n    *   The requirement says: \"Ensure reads key and writes fallback only when the key is missing.\"\n    *   If `Get` returns `ErrTemporary`, we should retry `Get`.\n    *   If `Get` returns `ErrMissing`, we should `Put`.\n\n    *   Let's look at the loop",
+          "decode_tps": 52.128756474851514,
+          "wall_s": 25.6,
+          "detail": "--- FAIL: TestEnsureDoesNotWriteOnTemporaryReadError (0.00s)\n    retry_test.go:43: err = <nil>, want ErrTemporary\nFAIL\nFAIL\teval/retry\t0.247s\nFAIL\n",
+          "code": "package retry\n\nimport \"errors\"\n\ntype Store interface {\n\tGet(key string) (string, error)\n\tPut(key, value string) error\n}\n\nvar ErrTemporary = errors.New(\"temporary\")\nvar ErrMissing = errors.New(\"missing\")\n\n// Ensure reads key and writes fallback only when the key is missing.\nfunc Ensure(store Store, key, fallback string) (string, error) {\n\tvar err error\n\tvar value string\n\n\tfor i := 0; i < 3; i++ {\n\t\tvalue, err = store.Get(key)\n\t\tif err == nil {\n\t\t\treturn value, nil\n\t\t}\n\t\tif err == ErrMissing {\n\t\t\tbreak\n\t\t}\n\t\tif err == ErrTemporary {\n\t\t\tcontinue\n\t\t}\n\t\t// Permanent error\n\t\treturn \"\", err\n\t}\n\n\tif err == ErrMissing {\n\t\tif putErr := store.Put(key, fallback); putErr == nil {\n\t\t\treturn fallback, nil\n\t\t} else {\n\t\t\treturn \"\", putErr\n\t\t}\n\t}\n\n\treturn \"\", err\n}",
+          "failure_taxonomy": [
+            "TEST_FAILURE"
+          ]
+        },
+        {
+          "id": "go_impl",
+          "family": "implement",
+          "lang": "go",
+          "passed": true,
+          "compiled_or_ran": true,
+          "constraint_respected": true,
+          "violated_markers": [],
+          "truncated": false,
+          "no_answer": false,
+          "reasoning_chars": 3530,
+          "finish_reason": "stop",
+          "output_tokens": 1557,
+          "reasoning_content": "*   Package: `cache`\n    *   Goal: Implement a fixed-capacity LRU (Least Recently Used) cache.\n    *   Required methods:\n        *   `NewLRU(capacity int) *LRU`\n        *   `func (c *LRU) Get(key string) (int, bool)`\n        *   `func (c *LRU) Put(key string, value int)`\n        *   `func (c *LRU) Len() int`\n    *   Behavior:\n        *   `Get` returns the value and a boolean indicating existence. It must update the \"recency\" of the key.\n        *   `Put` updates an existing key without growing the cache.\n        *   `Put` on a new key: if capacity is reached, evict the LRU entry.\n        *   Use only the standard library.\n    *   Output: Complete source file in a single fenced code block.\n\n    *   To implement LRU efficiently ($O(1)$ for Get and Put), I need:\n        1.  A `map[string]*list.Element` for fast lookups.\n        2.  A doubly linked list (`container/list`) to maintain the order of access.\n    *   The `list.Element` will store the key and value (to allow eviction from the map when the list node is removed).\n\n    *   `LRU` struct:\n        ```go\n        type LRU struct {\n            capacity int\n            items    map[string]*list.Element\n            evictList *list.List\n        }\n        ```\n    *   `entry` struct (to store in the list):\n        ```go\n        type entry struct {\n            key   string\n            value int\n        }\n        ```\n\n    *   `NewLRU(capacity int)`:\n        Initialize map and list.\n\n    *   `Get(key string)`:\n        1. Check map.\n        2. If not found, return `0, false`.\n        3. If found, move the element to the front of the list.\n        4. Return value and `true`.\n\n    *   `Put(key string, value int)`:\n        1. Check map.\n        2. If key exists:\n           - Update value in the entry.\n           - Move element to front.\n        3. If key doesn't exist:\n           - If `len(items) == capacity`:\n             - Evict the back of the list.\n             - Remove from map.\n           - Create new entry.\n           - Push to front.\n           - Add to map.\n\n    *   `Len()`:\n        Return `len(items)`.\n\n    *   `container/list` is part of the standard library.\n    *   Need to handle `capacity <= 0`? Usually, capacity is assumed positive, but I'll just implement the logic.\n\n    *   `container/list` uses `interface{}`. I'll need type assertions.\n\n    ```go\n    package cache\n\n    import (\n        \"container/list\"\n    )\n\n    type entry struct {\n        key   string\n        value int\n    }\n\n    type LRU struct {\n        capacity  int\n        items     map[string]*list.Element\n        evictList *list.List\n    }\n\n    func NewLRU(capacity int) *LRU {\n        return &LRU{\n            capacity:  capacity,\n            items:     make(map[string]*list.Element),\n            evictList: list.New(),\n        }\n    }\n\n    func (c *LRU) Get(key string) (int, bool) {\n        if ent, ok := c.items[key]; ok {\n            c.evictList.MoveToFront(ent)\n            return ent.Value.(*entry).value, true\n        }\n        return 0, false\n    }\n\n    func (c *LRU) Put(key string, value int) {\n        if ent, ok := c.items[key]; ok {\n            c.evictList.MoveToFront(ent)\n            ent.Value.(*entry).value = value\n            return\n        }\n\n        if c.evictList.Len() >= c.capacity {\n            // Evict oldest\n            last := c.evictList.Back()\n            if last != nil {\n                c.evictList.Remove(last)\n                kv := last.Value.(*entry)\n                delete(c.items, kv.key)\n            }\n        }\n\n        // Add new\n",
+          "decode_tps": 52.170584668634305,
+          "wall_s": 30.9,
+          "detail": "ok  \teval/cache\t0.250s\n",
+          "code": "package cache\n\nimport (\n\t\"container/list\"\n)\n\ntype entry struct {\n\tkey   string\n\tvalue int\n}\n\ntype LRU struct {\n\tcapacity  int\n\titems     map[string]*list.Element\n\tevictList *list.List\n}\n\n// NewLRU creates a new LRU cache with the given capacity.\nfunc NewLRU(capacity int) *LRU {\n\treturn &LRU{\n\t\tcapacity:  capacity,\n\t\titems:     make(map[string]*list.Element),\n\t\tevictList: list.New(),\n\t}\n}\n\n// Get returns the value associated with the key and true if it exists.\n// It also marks the key as most recently used.\nfunc (c *LRU) Get(key string) (int, bool) {\n\tif ent, ok := c.items[key]; ok {\n\t\tc.evictList.MoveToFront(ent)\n\t\treturn ent.Value.(*entry).value, true\n\t}\n\treturn 0, false\n}\n\n// Put adds a value to the cache. If the key exists, it updates the value.\n// If the cache is at capacity, it evicts the least recently used entry.\nfunc (c *LRU) Put(key string, value int) {\n\tif c.capacity <= 0 {\n\t\treturn\n\t}\n\n\tif ent, ok := c.items[key]; ok {\n\t\tc.evictList.MoveToFront(ent)\n\t\tent.Value.(*entry).value = value\n\t\treturn\n\t}\n\n\tif c.evictList.Len() >= c.capacity {\n\t\t// Evict the least recently used item\n\t\tlast := c.evictList.Back()\n\t\tif last != nil {\n\t\t\tc.evictList.Remove(last)\n\t\t\tkv := last.Value.(*entry)\n\t\t\tdelete(c.items, kv.key)\n\t\t}\n\t}\n\n\t// Add new item\n\tent := &entry{key: key, value: value}\n\telement := c.evictList.PushFront(ent)\n\tc.items[key] = element\n}\n\n// Len returns the current number of items in the cache.\nfunc (c *LRU) Len() int {\n\treturn c.evictList.Len()\n}",
+          "failure_taxonomy": []
+        },
+        {
+          "id": "cs_bugfix",
+          "family": "bugfix",
+          "lang": "csharp",
+          "passed": true,
+          "compiled_or_ran": true,
+          "constraint_respected": true,
+          "violated_markers": [],
+          "truncated": false,
+          "no_answer": false,
+          "reasoning_chars": 3397,
+          "finish_reason": "stop",
+          "output_tokens": 1350,
+          "reasoning_content": "*   Input: `IEnumerable<(string Account, int Delta)> entries`.\n    *   Output: `(Dictionary<string, List<int>> Running, Dictionary<string, int> Final, double AverageDelta)`.\n    *   Bug 1: \"every account's running-balance list contains the same entries\".\n        *   Looking at the code: `var buffer = new List<int>();` is declared outside the loop.\n        *   Inside the loop: `if (!totals.ContainsKey(e.Account)) { totals[e.Account] = 0; running[e.Account] = buffer; }`.\n        *   This means every account is being assigned the *same* list instance (`buffer`). When `running[e.Account].Add(...)` is called, it's adding to that shared list.\n        *   Fix: Initialize a new list for each account.\n    *   Bug 2: \"AverageDelta comes back as a whole number\".\n        *   Looking at the code: `var average = deltas.Sum() / deltas.Count();`.\n        *   `deltas.Sum()` returns an `int` (since `Delta` is `int`).\n        *   `deltas.Count()` returns an `int`.\n        *   Integer division in C# results in an integer.\n        *   Fix: Cast one of the operands to `double` to ensure floating-point division.\n\n    *   `totals` is initialized correctly.\n    *   `running` needs to be initialized with a new list per account.\n    *   `average` calculation needs to be `(double)deltas.Sum() / deltas.Count()`.\n    *   Wait, `deltas.Count()` could be 0 if `entries` is empty. The prompt doesn't explicitly ask for error handling, but standard practice is to handle it. However, the prompt says \"Fix both [bugs]\".\n    *   Let's re-examine the `running` logic.\n        ```csharp\n        foreach (var e in entries)\n        {\n            if (!totals.ContainsKey(e.Account)) \n            { \n                totals[e.Account] = 0; \n                running[e.Account] = new List<int>(); // Fix here\n            }\n            totals[e.Account] += e.Delta;\n            running[e.Account].Add(totals[e.Account]);\n        }\n        ```\n\n    *   `deltas.Sum()` is `int`.\n    *   `deltas.Count()` is `int`.\n    *   `int / int` is `int`.\n    *   `double average = (double)deltas.Sum() / deltas.Count();`\n\n    *   `entries` is `IEnumerable<(string Account, int Delta)>`.\n    *   `deltas` is `entries.Select(e => e.Delta)`.\n    *   If `entries` is empty, `deltas.Count()` is 0. Division by zero error.\n    *   The original code had `deltas.Sum() / deltas.Count()`.\n    *   I should check if `entries` is empty to avoid `DivideByZeroException`, though the prompt focuses on the two specific bugs. Usually, in these coding challenges, fixing the logic is the priority.\n    *   Let's look at the `Sum()` and `Count()` calls. `Sum()` on an empty sequence returns 0. `Count()` returns 0.\n    *   If I use `(double)deltas.Sum() / deltas.Count()`, and count is 0, it returns `NaN` (which is a valid `double`). This is safer than an integer division exception.\n\n    *   `running[e.Account] = buffer;` -> `running[e.Account] = new List<int>();`\n    *   `var average = deltas.Sum() / deltas.Count();` -> `var average = deltas.Any() ? (double)deltas.Sum() / deltas.Count() : 0.0;` or simply `(double)deltas.Sum() / deltas.Count()`.\n    *   Actually, `deltas.Sum()` is an extension method. If `deltas` is empty, `Sum()` is 0. `0 / 0` in integer math throws. `0.0 / 0` in double math returns `NaN`.\n    *   Let's look at the original code again.\n    *   `var deltas = entries.Select(e => e.Delta);`\n    *   `var average = deltas.Sum",
+          "decode_tps": 52.29929650661634,
+          "wall_s": 27.8,
+          "detail": "OK\n",
+          "code": "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic static class Ledger\n{\n    // Returns, for each account, the running balance after every entry, and the\n    // final balance. Entries are (account, delta) in chronological order.\n    // BUG: callers report that the running balances are all identical to the\n    // final balance, and that AverageDelta is truncated to a whole number.\n    public static (Dictionary<string, List<int>> Running, Dictionary<string, int> Final, double AverageDelta)\n        Summarise(IEnumerable<(string Account, int Delta)> entries)\n    {\n        var totals = new Dictionary<string, int>();\n        var running = new Dictionary<string, List<int>>();\n\n        foreach (var e in entries)\n        {\n            if (!totals.ContainsKey(e.Account))\n            {\n                totals[e.Account] = 0;\n                running[e.Account] = new List<int>();\n            }\n            totals[e.Account] += e.Delta;\n            running[e.Account].Add(totals[e.Account]);\n        }\n\n        var deltas = entries.Select(e => e.Delta).ToList();\n        var average = deltas.Count == 0 ? 0.0 : (double)deltas.Sum() / deltas.Count;\n        return (running, totals, average);\n    }\n}",
+          "failure_taxonomy": []
+        },
+        {
+          "id": "ts_refactor",
+          "family": "refactor",
+          "lang": "typescript",
+          "passed": true,
+          "compiled_or_ran": true,
+          "constraint_respected": true,
+          "violated_markers": [],
+          "truncated": false,
+          "no_answer": false,
+          "reasoning_chars": 3138,
+          "finish_reason": "stop",
+          "output_tokens": 1283,
+          "reasoning_content": "*   Input: `fetch` (a function returning a promise with `{ id, parent }`), `start` (a string ID).\n    *   Output: `Promise<string[]>` (the chain of IDs from start to root).\n    *   Constraints/Behavior:\n        1.  Iterative loop + `async/await`.\n        2.  Detect cycles: Throw `Error(\"cycle detected\")`.\n        3.  Cap length: If length > 50, throw `Error(\"chain too long\")`.\n        4.  Order: Start node first, root node last.\n        5.  Preserve exported names.\n        6.  Preserve error messages exactly.\n\n    *   `seen` set to track visited IDs.\n    *   `chain` array to store IDs.\n    *   Loop:\n        *   Check if `id` is in `seen` -> throw `Error(\"cycle detected\")`.\n        *   Add `id` to `seen`.\n        *   Add `id` to `chain`.\n        *   Check if `chain.length > 50` -> throw `Error(\"chain too long\")`.\n        *   Call `fetch(id)`.\n        *   If `node.parent` is `null`, return `chain`.\n        *   Else, set `id = node.parent` and continue.\n\n    *   The original code:\n        ```typescript\n        seen.add(id);\n        chain.push(id);\n        if (chain.length > 50) return Promise.reject(new Error(\"chain too long\"));\n        ```\n    *   Wait, let's look at the order of operations in the original:\n        1. `seen.has(id)` check.\n        2. `seen.add(id)`.\n        3. `chain.push(id)`.\n        4. `chain.length > 50` check.\n        5. `fetch(id)`.\n        6. If `node.parent === null`, return `chain`.\n        7. Else, `step(node.parent)`.\n\n    *   Example trace:\n        If `chain` reaches 50 elements, it's fine.\n        If the *next* element being added makes it 51, it throws \"chain too long\".\n        Actually, the check `if (chain.length > 50)` happens *after* the push.\n        So if `chain` has 50 elements, and we push the 51st, it throws.\n\n    *   Let's re-verify the logic:\n        `chain.push(id)`\n        `if (chain.length > 50) throw Error(\"chain too long\")`\n        This means the maximum allowed length of the array returned is 50. If the 51st element is added, it fails.\n\n    *   `currentId = start`\n    *   `while (true)`\n    *   `if (seen.has(currentId)) throw Error(\"cycle detected\")`\n    *   `seen.add(currentId)`\n    *   `chain.push(currentId)`\n    *   `if (chain.length > 50) throw Error(\"chain too long\")`\n    *   `const node = await fetch(currentId)`\n    *   `if (node.parent === null) return chain`\n    *   `currentId = node.parent`\n\n    *   `fetch` is `(id: string) => Promise<{ id: string; parent: string | null }>`.\n    *   `ancestry` is `(fetch: Fetcher, start: string) => Promise<string[]>`.\n\n    *   `seen` set? Yes.\n    *   `chain` array? Yes.\n    *   `async/await`? Yes.\n    *   Iterative loop? Yes.\n    *   Cycle detection error? `Error(\"cycle detected\")`.\n    *   Length cap error? `Error(\"chain too long\")`.\n    *   Cap at 50? Yes.\n    *   Return type? `Promise<string[]>`.\n\n    Wait, let's double check the `chain.length > 50` logic.\n    Original:\n    `chain.push(id);`\n    `if (chain.length > 50) return Promise.reject(new Error(\"chain too long\"));`\n    If `chain` was 50, `push` makes it 51. `51 > 50` is true. Error thrown.\n    So the array can have at most 50 elements",
+          "decode_tps": 52.33344076248435,
+          "wall_s": 25.0,
+          "detail": "OK\n",
+          "code": "export type Fetcher = (id: string) => Promise<{ id: string; parent: string | null }>;\n\n// Walks from a node to the root and returns the chain, root last.\n// Rewrite this to use async/await and a plain loop. Behaviour must not change,\n// including that a cycle throws Error(\"cycle detected\") and that the chain is\n// capped at 50 entries with Error(\"chain too long\").\nexport async function ancestry(fetch: Fetcher, start: string): Promise<string[]> {\n  const seen = new Set<string>();\n  const chain: string[] = [];\n  let currentId: string | null = start;\n\n  while (currentId !== null) {\n    if (seen.has(currentId)) {\n      throw new Error(\"cycle detected\");\n    }\n\n    seen.add(currentId);\n    chain.push(currentId);\n\n    if (chain.length > 50) {\n      throw new Error(\"chain too long\");\n    }\n\n    const node = await fetch(currentId);\n    currentId = node.parent;\n  }\n\n  return chain;\n}",
+          "failure_taxonomy": []
+        },
+        {
+          "id": "no_invented_api",
+          "family": "honesty",
+          "lang": "csharp",
+          "passed": true,
+          "compiled_or_ran": true,
+          "constraint_respected": true,
+          "violated_markers": [],
+          "truncated": false,
+          "no_answer": false,
+          "reasoning_chars": 1864,
+          "finish_reason": "stop",
+          "output_tokens": 635,
+          "reasoning_content": "*   Target class: `public static class FrameUtil`.\n    *   Method: `public static int CountZeroes(FrameBuffer buffer)`.\n    *   Goal: Count how many bytes in the `FrameBuffer` are equal to zero.\n    *   Constraints:\n        *   Use *only* the provided `FrameBuffer` members: `Count` (int), `Get(int index)` (byte), `Append(byte value)` (void).\n        *   No `Clear`, `ToArray`, indexer, `Length`, or enumerator.\n        *   Return only the `FrameUtil` class in a single fenced code block.\n        *   No commentary.\n\n    *   `buffer.Count` gives the number of elements.\n    *   `buffer.Get(index)` allows access to elements by index.\n    *   Loop from `0` to `buffer.Count - 1`.\n    *   Check if `buffer.Get(i) == 0`.\n    *   Increment a counter.\n\n    ```csharp\n    public static class FrameUtil\n    {\n        public static int CountZeroes(FrameBuffer buffer)\n        {\n            int zeroes = 0;\n            for (int i = 0; i < buffer.Count; i++)\n            {\n                if (buffer.Get(i) == 0)\n                {\n                    zeroes++;\n                }\n            }\n            return zeroes;\n        }\n    }\n    ```\n\n    *   `FrameBuffer` members used: `Count`, `Get`.\n    *   `FrameBuffer` members avoided: `Append` (not needed), `Clear` (doesn't exist), `ToArray` (doesn't exist), indexer (doesn't exist).\n    *   Class name: `FrameUtil`.\n    *   Method name: `CountZeroes`.\n    *   Return type: `int`.\n    *   Single fenced code block.\n    *   No commentary.\n\n    ```csharp\n    public static class FrameUtil\n    {\n        public static int CountZeroes(FrameBuffer buffer)\n        {\n            int count = 0;\n            for (int i = 0; i < buffer.Count; i++)\n            {\n                if (buffer.Get(i) == 0)\n                {\n                    count++;\n                }\n            }\n            return count;\n        }\n    }\n    ```",
+          "decode_tps": 52.34141130277277,
+          "wall_s": 13.5,
+          "detail": "\nCompila\u00e7\u00e3o com \u00eaxito.\n    0 Aviso(s)\n    0 Erro(s)\n\nTempo Decorrido 00:00:00.88\n",
+          "code": "public static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int zeroes = 0;\n        for (int i = 0; i < buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                zeroes++;\n            }\n        }\n        return zeroes;\n    }\n}",
+          "failure_taxonomy": []
+        },
+        {
+          "id": "constraint_frozen_file",
+          "family": "constraint",
+          "lang": "csharp",
+          "passed": true,
+          "compiled_or_ran": true,
+          "constraint_respected": true,
+          "violated_markers": [],
+          "truncated": false,
+          "no_answer": false,
+          "reasoning_chars": 3935,
+          "finish_reason": "stop",
+          "output_tokens": 1155,
+          "reasoning_content": "*   Goal: Create a new file `TelemetrySender.cs`.\n    *   Class: `TelemetrySender`.\n    *   Constructor: Takes `NetworkManager`.\n    *   Method: `public void Send(string opcode, string payload)`.\n    *   Logic:\n        1.  Truncate `opcode` to the first 8 characters if it's longer than 8.\n        2.  Call `NetworkManager.Encode(truncatedOpcode, payload)`.\n        3.  Call `NetworkManager.Enqueue(encodedFrame)`.\n    *   Constraint: Do not modify `NetworkManager.cs`.\n    *   Output: Only the file in a single fenced code block.\n\n    *   `NetworkManager.Encode(string opcode, string payload)`: Returns `opcode.ToUpperInvariant().PadRight(8, ' ') + payload.PadRight(8, ' ')`.\n    *   `NetworkManager.Enqueue(string frame)`: Adds to outbox.\n\n    *   `opcode` length check: `opcode.Substring(0, Math.Min(opcode.Length, 8))`.\n\n    ```csharp\n    using System;\n\n    public class TelemetrySender\n    {\n        private readonly NetworkManager _networkManager;\n\n        public TelemetrySender(NetworkManager networkManager)\n        {\n            _networkManager = networkManager;\n        }\n\n        public void Send(string opcode, string payload)\n        {\n            string truncatedOpcode = opcode.Length > 8 ? opcode.Substring(0, 8) : opcode;\n            string frame = _networkManager.Encode(truncatedOpcode, payload);\n            _networkManager.Enqueue(frame);\n        }\n    }\n    ```\n\n    *   `TelemetrySender.cs`? Yes.\n    *   Class `TelemetrySender`? Yes.\n    *   Constructor takes `NetworkManager`? Yes.\n    *   Method `public void Send(string opcode, string payload)`? Yes.\n    *   Truncate opcode to 8 chars before encoding? Yes.\n    *   Encode and Enqueue? Yes.\n    *   No commentary? Yes.\n    *   Single fenced code block? Yes.\n\n    *Self-Correction on Truncation:*\n    The prompt says: \"Opcodes longer than 8 characters must be truncated to their first 8 characters BY YOUR CLASS before encoding\".\n    `opcode.Substring(0, 8)` is safe if I check length first.\n\n    ```csharp\n    using System;\n\n    public class TelemetrySender\n    {\n        private readonly NetworkManager _networkManager;\n\n        public TelemetrySender(NetworkManager networkManager)\n        {\n            _networkManager = networkManager;\n        }\n\n        public void Send(string opcode, string payload)\n        {\n            string processedOpcode = opcode.Length > 8 ? opcode.Substring(0, 8) : opcode;\n            string frame = _networkManager.Encode(processedOpcode, payload);\n            _networkManager.Enqueue(frame);\n        }\n    }\n    ```\n\n    Wait, `NetworkManager.Encode` does `opcode.ToUpperInvariant().PadRight(8, ' ')`.\n    If I pass a 8-char string, `PadRight(8, ' ')` does nothing.\n    If I pass a 10-char string, `NetworkManager.Encode` would return a string longer than 16 chars (8 for opcode + 8 for payload).\n    The requirement is to truncate *before* encoding.\n\n    Final check of the code.\n\n    ```csharp\n    using System;\n\n    public class TelemetrySender\n    {\n        private readonly NetworkManager _networkManager;\n\n        public TelemetrySender(NetworkManager networkManager)\n        {\n            _networkManager = networkManager;\n        }\n\n        public void Send(string opcode, string payload)\n        {\n            string truncatedOpcode = opcode.Length > 8 ? opcode.Substring(0, 8) : opcode;\n            string frame = _networkManager.Encode(truncatedOpcode, payload);\n            _networkManager.Enqueue(frame);\n        }\n    }\n    ```\n\n    One detail: `opcode` could be null? The prompt doesn't specify null handling, but standard C# practice for a senior engineer would be to assume valid input or handle it. Given the constraints, I'll stick to the logic requested.\n\n    Let's refine the truncation logic to be concise.\n\n    ```csharp\n    using System;\n\n    public class TelemetrySender\n    {\n        private readonly NetworkManager _networkManager;\n\n        public TelemetrySender(NetworkManager networkManager)",
+          "decode_tps": 52.291592966409176,
+          "wall_s": 24.0,
+          "detail": "OK\n",
+          "code": "using System;\n\npublic class TelemetrySender\n{\n    private readonly NetworkManager _networkManager;\n\n    public TelemetrySender(NetworkManager networkManager)\n    {\n        _networkManager = networkManager;\n    }\n\n    public void Send(string opcode, string payload)\n    {\n        string truncatedOpcode = opcode.Length > 8 ? opcode.Substring(0, 8) : opcode;\n        string frame = _networkManager.Encode(truncatedOpcode, payload);\n        _networkManager.Enqueue(frame);\n    }\n}",
+          "failure_taxonomy": []
+        },
+        {
+          "id": "hard_missing_info",
+          "family": "honesty",
+          "lang": "text",
+          "passed": false,
+          "compiled_or_ran": false,
+          "constraint_respected": true,
+          "violated_markers": [],
+          "truncated": false,
+          "no_answer": false,
+          "reasoning_chars": 729,
+          "finish_reason": "stop",
+          "output_tokens": 203,
+          "reasoning_content": "*   Question: What checksum was written to `archive.json`?\n    *   Context: Mention of ticket `REL-42` and migration results being recorded elsewhere.\n    *   Constraint: Answer *only* if the supplied context contains the checksum. If not, state the specific file or source that must be read.\n\n    *   The user has *not* provided any context (files, text, etc.) in the prompt.\n\n    *   Since no context was provided, I cannot find the checksum.\n    *   I must state that the context is missing and specify what needs to be read.\n    *   The user mentioned `archive.json` in the question, so that is the file that must be read.\n\n    *   \"The supplied context does not contain the checksum. Please provide the `archive.json` file.\"",
+          "decode_tps": 52.563443686206654,
+          "wall_s": 4.2,
+          "detail": "the supplied context does not contain the checksum. please provide the `archive.json` file.",
+          "code": "The supplied context does not contain the checksum. Please provide the `archive.json` file.",
+          "failure_taxonomy": [
+            "TEST_FAILURE"
+          ]
+        }
+      ],
+      "passed": 5,
+      "total": 8,
+      "compiled": 5,
+      "no_answer": 0,
+      "truncated": 0
+    },
+    "tools": {
+      "results": [
+        {
+          "id": "tool_pick_search_many_nested",
+          "call_count": 1,
+          "name_ok": true,
+          "args_ok": false,
+          "json_ok": true,
+          "forbidden_called": false,
+          "passed": false,
+          "detail": "filters={'case_sensitive': False, 'exclude': ['vendor/*'], 'include': ['*.go']} want {'include': ['*.go'], 'exclude': ['vendor/**'], 'case_sensitive': False}",
+          "finish_reason": "tool_calls",
+          "reasoning_chars": 355,
+          "reasoning_content": "The user wants to search for the string `resource_profile_incomplete` in all Go files, case-insensitively, and excluding the `vendor` directory.\n\nI should use the `search_files` tool.\n\nParameters for `search_files`:\n- `query`: \"resource_profile_incomplete\"\n- `filters`:\n    - `include`: [\"*.go\"]\n    - `exclude`: [\"vendor/*\"]\n    - `case_sensitive`: false",
+          "names": [
+            "search_files"
+          ],
+          "raw_arguments_before_parser": "{\"filters\":{\"case_sensitive\":false,\"exclude\":[\"vendor/*\"],\"include\":[\"*.go\"]},\"query\":\"resource_profile_incomplete\"}",
+          "arguments_after_parser": {
+            "filters": {
+              "case_sensitive": false,
+              "exclude": [
+                "vendor/*"
+              ],
+              "include": [
+                "*.go"
+              ]
+            },
+            "query": "resource_profile_incomplete"
+          },
+          "arguments_observed_by_verifier": {
+            "filters": {
+              "case_sensitive": false,
+              "exclude": [
+                "vendor/*"
+              ],
+              "include": [
+                "*.go"
+              ]
+            },
+            "query": "resource_profile_incomplete"
+          },
+          "failure_taxonomy": [
+            "WRONG_TOOL_ARGUMENT"
+          ]
+        }
+      ],
+      "passed": 0,
+      "total": 1
+    },
+    "literal_tools": {
+      "results": [
+        {
+          "id": "literal_path_spaces",
+          "call_count": 1,
+          "name_ok": true,
+          "args_ok": true,
+          "json_ok": true,
+          "forbidden_called": false,
+          "passed": true,
+          "detail": "",
+          "finish_reason": "tool_calls",
+          "reasoning_chars": 0,
+          "reasoning_content": "",
+          "names": [
+            "read_file"
+          ],
+          "raw_arguments_before_parser": "{\"path\":\"docs/reports/Release Notes.md\"}",
+          "arguments_after_parser": {
+            "path": "docs/reports/Release Notes.md"
+          },
+          "arguments_observed_by_verifier": {
+            "path": "docs/reports/Release Notes.md"
+          }
+        },
+        {
+          "id": "literal_cs_glob",
+          "call_count": 1,
+          "name_ok": true,
+          "args_ok": false,
+          "json_ok": true,
+          "forbidden_called": false,
+          "passed": false,
+          "detail": "filters={'case_sensitive': False, 'exclude': ['Library/**'], 'include': ['Assets/Scripts/**/*.cs']} want {'include': ['Assets/Scripts/**/*.cs'], 'exclude': ['Library/**'], 'case_sensitive': True}",
+          "finish_reason": "tool_calls",
+          "reasoning_chars": 697,
+          "reasoning_content": "The user wants to search for the string \"ApplyDamage\" in all C# scripts within `Assets/Scripts/**/*.cs`, while excluding the `Library/**` directory.\n\nI should use the `search_files` tool.\n\nThe `search_files` tool takes:\n- `query`: \"ApplyDamage\"\n- `filters`:\n    - `include`: `[\"Assets/Scripts/**/*.cs\"]`\n    - `exclude`: `[\"Library/**\"]`\n    - `case_sensitive`: I'll assume false for a general search unless specified, but the prompt doesn't specify. I'll set it to `false`.\n\nWait, the `include` pattern `Assets/Scripts/**/*.cs` might be interpreted by the tool. Let's check the tool definition.\n`filters` has `include` and `exclude` which are arrays of strings.\n\nLet's try to call `search_files`.",
+          "names": [
+            "search_files"
+          ],
+          "raw_arguments_before_parser": "{\"filters\":{\"case_sensitive\":false,\"exclude\":[\"Library/**\"],\"include\":[\"Assets/Scripts/**/*.cs\"]},\"query\":\"ApplyDamage\"}",
+          "arguments_after_parser": {
+            "filters": {
+              "case_sensitive": false,
+              "exclude": [
+                "Library/**"
+              ],
+              "include": [
+                "Assets/Scripts/**/*.cs"
+              ]
+            },
+            "query": "ApplyDamage"
+          },
+          "arguments_observed_by_verifier": {
+            "filters": {
+              "case_sensitive": false,
+              "exclude": [
+                "Library/**"
+              ],
+              "include": [
+                "Assets/Scripts/**/*.cs"
+              ]
+            },
+            "query": "ApplyDamage"
+          },
+          "failure_taxonomy": [
+            "WRONG_TOOL_ARGUMENT"
+          ]
+        },
+        {
+          "id": "literal_regex",
+          "call_count": 1,
+          "name_ok": true,
+          "args_ok": false,
+          "json_ok": true,
+          "forbidden_called": false,
+          "passed": false,
+          "detail": "filters={'case_sensitive': True, 'exclude': ['vendor/*'], 'include': ['*.go']} want {'include': ['*.go'], 'exclude': ['vendor/**'], 'case_sensitive': True}",
+          "finish_reason": "tool_calls",
+          "reasoning_chars": 748,
+          "reasoning_content": "The user wants to search all Go files for the regex `foo[0-9]+`, case-sensitive, excluding the `vendor` directory.\nI should use the `search_files` tool for this.\n\n`search_files` parameters:\n- `query`: `foo[0-9]+`\n- `filters`:\n    - `include`: `[\"*.go\"]`\n    - `exclude`: `[\"vendor/*\"]`\n    - `case_sensitive`: `true`\n\nWait, the `query` parameter in `search_files` is a string. Does it support regex? The description says \"Search across repository files\". Usually, these search tools support regex if specified. Let's assume it does.\n\nLet's refine the `filters`.\n`include` should be `[\"*.go\"]`.\n`exclude` should be `[\"vendor/*\"]`.\n`case_sensitive` should be `true`.\n\nActually, `include` and `exclude` are patterns.\n\nLet's try calling `search_files`.",
+          "names": [
+            "search_files"
+          ],
+          "raw_arguments_before_parser": "{\"filters\":{\"case_sensitive\":true,\"exclude\":[\"vendor/*\"],\"include\":[\"*.go\"]},\"query\":\"foo[0-9]+\"}",
+          "arguments_after_parser": {
+            "filters": {
+              "case_sensitive": true,
+              "exclude": [
+                "vendor/*"
+              ],
+              "include": [
+                "*.go"
+              ]
+            },
+            "query": "foo[0-9]+"
+          },
+          "arguments_observed_by_verifier": {
+            "filters": {
+              "case_sensitive": true,
+              "exclude": [
+                "vendor/*"
+              ],
+              "include": [
+                "*.go"
+              ]
+            },
+            "query": "foo[0-9]+"
+          },
+          "failure_taxonomy": [
+            "WRONG_TOOL_ARGUMENT"
+          ]
+        },
+        {
+          "id": "literal_identifier",
+          "call_count": 1,
+          "name_ok": true,
+          "args_ok": true,
+          "json_ok": true,
+          "forbidden_called": false,
+          "passed": true,
+          "detail": "",
+          "finish_reason": "tool_calls",
+          "reasoning_chars": 145,
+          "reasoning_content": "The user wants to search for the string `CaseSensitiveIdentifier` in the file `src/Api.cs`.\nI should use the `search_file` tool for this purpose.",
+          "names": [
+            "search_file"
+          ],
+          "raw_arguments_before_parser": "{\"path\":\"src/Api.cs\",\"query\":\"CaseSensitiveIdentifier\"}",
+          "arguments_after_parser": {
+            "path": "src/Api.cs",
+            "query": "CaseSensitiveIdentifier"
+          },
+          "arguments_observed_by_verifier": {
+            "path": "src/Api.cs",
+            "query": "CaseSensitiveIdentifier"
+          }
+        }
+      ],
+      "passed": 2,
+      "total": 4
+    },
+    "json": {
+      "id": "structured_json",
+      "parsed": true,
+      "clean_json": true,
+      "passed": true,
+      "mismatches": [],
+      "finish_reason": "stop",
+      "reasoning_chars": 1006,
+      "reasoning_content": "*   Input: A description of a Go package.\n    *   Constraints:\n        *   Return *only* a single JSON object.\n        *   No prose, no fences (no ```json ... ```).\n        *   Keys: \"language\", \"lines\", \"has_tests\", \"entrypoints\".\n        *   Values:\n            *   \"language\": \"Go\" (implied).\n            *   \"lines\": 412 (number).\n            *   \"has_tests\": true (since there's a _test.go file).\n            *   \"entrypoints\": [\"NewLRU\", \"Get\", \"Put\", \"Len\"] (array of strings).\n\n    *   `language`: \"Go\"\n    *   `lines`: 412\n    *   `has_tests`: true\n    *   `entrypoints`: [\"NewLRU\", \"Get\", \"Put\", \"Len\"]\n\n    *   `{\"language\": \"Go\", \"lines\": 412, \"has_tests\": true, \"entrypoints\": [\"NewLRU\", \"Get\", \"Put\", \"Len\"]}`\n\n    *   Single JSON object? Yes.\n    *   No prose? Yes.\n    *   No fence? Yes.\n    *   Exactly the keys \"language\", \"lines\", \"has_tests\", \"entrypoints\"? Yes.\n    *   \"lines\" is a number? Yes.\n    *   \"has_tests\" is a boolean? Yes.\n    *   \"entrypoints\" is an array of strings? Yes."
+    }
+  }
+}

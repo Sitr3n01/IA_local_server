@@ -1,0 +1,34 @@
+[
+  {
+    "model": "q2kxl",
+    "label": "q2kxl-quality32k-ncpumoe6",
+    "context": 32768,
+    "ctk": "q4_0",
+    "ctv": "q4_0",
+    "ncpumoe": 6
+  },
+  {
+    "model": "q3ks",
+    "label": "q3ks-quality32k-ncpumoe16",
+    "context": 32768,
+    "ctk": "q4_0",
+    "ctv": "q4_0",
+    "ncpumoe": 16
+  },
+  {
+    "model": "q3kxl",
+    "label": "q3kxl-quality32k-ncpumoe20",
+    "context": 32768,
+    "ctk": "q4_0",
+    "ctv": "q4_0",
+    "ncpumoe": 20
+  },
+  {
+    "model": "iq4xs",
+    "label": "iq4xs-quality32k-ncpumoe20",
+    "context": 32768,
+    "ctk": "q4_0",
+    "ctv": "q4_0",
+    "ncpumoe": 20
+  }
+]

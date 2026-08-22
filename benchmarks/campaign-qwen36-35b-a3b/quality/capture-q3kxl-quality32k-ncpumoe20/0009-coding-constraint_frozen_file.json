@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you. DO NOT MODIFY NetworkManager.cs UNDER ANY CIRCUMSTANCES. It is frozen."
+      },
+      {
+        "role": "user",
+        "content": "DO NOT MODIFY NetworkManager.cs.\n\nHere is the frozen file, for reference only:\n\n```csharp\n// NetworkManager.cs -- FROZEN. Reproduces a wire format other clients depend on.\nusing System;\nusing System.Collections.Generic;\n\npublic class NetworkManager\n{\n    private readonly List<string> _outbox = new List<string>();\n\n    // Serialises a payload for the wire. Pads every field to 8 characters and\n    // uppercases the opcode. This is the shipped format and cannot change.\n    public string Encode(string opcode, string payload)\n    {\n        return opcode.ToUpperInvariant().PadRight(8, ' ') + payload.PadRight(8, ' ');\n    }\n\n    public void Enqueue(string frame) { _outbox.Add(frame); }\n    public IReadOnlyList<string> Outbox => _outbox;\n}\n```\n\nWrite a NEW file `TelemetrySender.cs` containing a class `TelemetrySender` with a constructor taking a NetworkManager and a method `public void Send(string opcode, string payload)`.\nSend must encode the frame through the NetworkManager and enqueue it. Opcodes longer than 8 characters must be truncated to their first 8 characters BY YOUR CLASS before encoding — NetworkManager.Encode must not be changed to do it.\nReturn only TelemetrySender.cs."
+      }
+    ],
+    "max_tokens": 8192,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260821,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```csharp\\nusing System;\\n\\npublic class TelemetrySender\\n{\\n    private readonly NetworkManager _networkManager;\\n\\n    public TelemetrySender(NetworkManager networkManager)\\n    {\\n        _networkManager = networkManager;\\n    }\\n\\n    public void Send(string opcode, string payload)\\n    {\\n        if (opcode.Length > 8)\\n        {\\n            opcode = opcode.Substring(0, 8);\\n        }\\n\\n        string frame = _networkManager.Encode(opcode, payload);\\n        _networkManager.Enqueue(frame);\\n    }\\n}\\n```\",\"reasoning_content\":\"The user wants a new C# file `TelemetrySender.cs`.\\nThe class `TelemetrySender` needs:\\n1. A constructor taking a `NetworkManager`.\\n2. A method `public void Send(string opcode, string payload)`.\\n3. Logic to truncate `opcode` to 8 characters if it's longer than 8.\\n4. Logic to call `NetworkManager.Encode(opcode, payload)` and `NetworkManager.Enqueue(frame)`.\\n\\nConstraints:\\n- Do not modify `NetworkManager.cs`.\\n- Return only the code block for `TelemetrySender.cs`.\\n\\nImplementation details:\\n- `TelemetrySender` class.\\n- Private field for `NetworkManager`.\\n- Constructor initializes the field.\\n- `Send` method:\\n  - Check `opcode.Length > 8`.\\n  - If so, `opcode = opcode.Substring(0, 8)`.\\n  - Call `_networkManager.Encode(opcode, payload)`.\\n  - Call `_networkManager.Enqueue(result)`.\\n\\nLet's write the code.\\n\\n```csharp\\nusing System;\\n\\npublic class TelemetrySender\\n{\\n    private readonly NetworkManager _networkManager;\\n\\n    public TelemetrySender(NetworkManager networkManager)\\n    {\\n        _networkManager = networkManager;\\n    }\\n\\n    public void Send(string opcode, string payload)\\n    {\\n        if (opcode.Length > 8)\\n        {\\n            opcode = opcode.Substring(0, 8);\\n        }\\n\\n        string frame = _networkManager.Encode(opcode, payload);\\n        _networkManager.Enqueue(frame);\\n    }\\n}\\n```\\n\\nDouble check constraints:\\n- \\\"Opcodes longer than 8 characters must be truncated to their first 8 characters BY YOUR CLASS before encoding\\\" -> Done.\\n- \\\"NetworkManager.Encode must not be changed\\\" -> Not changed.\\n- \\\"Return only TelemetrySender.cs\\\" -> Will do.\\n\\nOne edge case: `opcode` could be null? The prompt doesn't specify, but usually in these tasks, we assume valid strings unless specified. `opcode.Length` would throw if null. Given the context of `NetworkManager.Encode` taking `string opcode`, it likely expects non-null. I'll assume non-null for simplicity as per standard coding interview/task patterns unless null handling is requested.\\n\\nAlso, `payload` padding is handled by `NetworkManager.Encode`, so I don't need to worry about that.\\n\\nFinal code structure looks good.\\n\"}}],\"created\":1787423518,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":638,\"prompt_tokens\":360,\"total_tokens\":998,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-mMdonbcNoBf1LnodsuiVerbitlTPTjKm\",\"timings\":{\"cache_n\":0,\"prompt_n\":360,\"prompt_ms\":1616.776,\"prompt_per_token_ms\":4.491044444444444,\"prompt_per_second\":222.66535376576593,\"predicted_n\":638,\"predicted_ms\":16125.682,\"predicted_per_token_ms\":25.315042386185244,\"predicted_per_second\":39.502205240063645}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```csharp\nusing System;\n\npublic class TelemetrySender\n{\n    private readonly NetworkManager _networkManager;\n\n    public TelemetrySender(NetworkManager networkManager)\n    {\n        _networkManager = networkManager;\n    }\n\n    public void Send(string opcode, string payload)\n    {\n        if (opcode.Length > 8)\n        {\n            opcode = opcode.Substring(0, 8);\n        }\n\n        string frame = _networkManager.Encode(opcode, payload);\n        _networkManager.Enqueue(frame);\n    }\n}\n```",
+          "reasoning_content": "The user wants a new C# file `TelemetrySender.cs`.\nThe class `TelemetrySender` needs:\n1. A constructor taking a `NetworkManager`.\n2. A method `public void Send(string opcode, string payload)`.\n3. Logic to truncate `opcode` to 8 characters if it's longer than 8.\n4. Logic to call `NetworkManager.Encode(opcode, payload)` and `NetworkManager.Enqueue(frame)`.\n\nConstraints:\n- Do not modify `NetworkManager.cs`.\n- Return only the code block for `TelemetrySender.cs`.\n\nImplementation details:\n- `TelemetrySender` class.\n- Private field for `NetworkManager`.\n- Constructor initializes the field.\n- `Send` method:\n  - Check `opcode.Length > 8`.\n  - If so, `opcode = opcode.Substring(0, 8)`.\n  - Call `_networkManager.Encode(opcode, payload)`.\n  - Call `_networkManager.Enqueue(result)`.\n\nLet's write the code.\n\n```csharp\nusing System;\n\npublic class TelemetrySender\n{\n    private readonly NetworkManager _networkManager;\n\n    public TelemetrySender(NetworkManager networkManager)\n    {\n        _networkManager = networkManager;\n    }\n\n    public void Send(string opcode, string payload)\n    {\n        if (opcode.Length > 8)\n        {\n            opcode = opcode.Substring(0, 8);\n        }\n\n        string frame = _networkManager.Encode(opcode, payload);\n        _networkManager.Enqueue(frame);\n    }\n}\n```\n\nDouble check constraints:\n- \"Opcodes longer than 8 characters must be truncated to their first 8 characters BY YOUR CLASS before encoding\" -> Done.\n- \"NetworkManager.Encode must not be changed\" -> Not changed.\n- \"Return only TelemetrySender.cs\" -> Will do.\n\nOne edge case: `opcode` could be null? The prompt doesn't specify, but usually in these tasks, we assume valid strings unless specified. `opcode.Length` would throw if null. Given the context of `NetworkManager.Encode` taking `string opcode`, it likely expects non-null. I'll assume non-null for simplicity as per standard coding interview/task patterns unless null handling is requested.\n\nAlso, `payload` padding is handled by `NetworkManager.Encode`, so I don't need to worry about that.\n\nFinal code structure looks good.\n"
+        }
+      }
+    ],
+    "created": 1787423518,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 638,
+      "prompt_tokens": 360,
+      "total_tokens": 998,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-mMdonbcNoBf1LnodsuiVerbitlTPTjKm",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 360,
+      "prompt_ms": 1616.776,
+      "prompt_per_token_ms": 4.491044444444444,
+      "prompt_per_second": 222.66535376576593,
+      "predicted_n": 638,
+      "predicted_ms": 16125.682,
+      "predicted_per_token_ms": 25.315042386185244,
+      "predicted_per_second": 39.502205240063645
+    }
+  }
+}

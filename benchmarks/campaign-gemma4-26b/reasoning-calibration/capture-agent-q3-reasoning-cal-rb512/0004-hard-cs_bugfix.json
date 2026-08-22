@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "Two bugs are reported against this C# class: every account's running-balance list contains the same entries, and AverageDelta comes back as a whole number. Fix both. Keep the public signature. Return the whole file.\n\n```csharp\nusing System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic static class Ledger\n{\n    // Returns, for each account, the running balance after every entry, and the\n    // final balance. Entries are (account, delta) in chronological order.\n    // BUG: callers report that the running balances are all identical to the\n    // final balance, and that AverageDelta is truncated to a whole number.\n    public static (Dictionary<string, List<int>> Running, Dictionary<string, int> Final, double AverageDelta)\n        Summarise(IEnumerable<(string Account, int Delta)> entries)\n    {\n        var totals = new Dictionary<string, int>();\n        var running = new Dictionary<string, List<int>>();\n        var buffer = new List<int>();\n\n        foreach (var e in entries)\n        {\n            if (!totals.ContainsKey(e.Account)) { totals[e.Account] = 0; running[e.Account] = buffer; }\n            totals[e.Account] += e.Delta;\n            running[e.Account].Add(totals[e.Account]);\n        }\n\n        var deltas = entries.Select(e => e.Delta);\n        var average = deltas.Sum() / deltas.Count();\n        return (running, totals, average);\n    }\n}\n```"
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```csharp\\nusing System;\\nusing System.Collections.Generic;\\nusing System.Linq;\\n\\npublic static class Ledger\\n{\\n    // Returns, for each account, the running balance after every entry, and the\\n    // final balance. Entries are (account, delta) in chronological order.\\n    // BUG: callers report that the running balances are all identical to the\\n    // final balance, and that AverageDelta is truncated to a whole number.\\n    public static (Dictionary<string, List<int>> Running, Dictionary<string, int> Final, double AverageDelta)\\n        Summarise(IEnumerable<(string Account, int Delta)> entries)\\n    {\\n        var totals = new Dictionary<string, int>();\\n        var running = new Dictionary<string, List<int>>();\\n\\n        foreach (var e in entries)\\n        {\\n            if (!totals.ContainsKey(e.Account))\\n            {\\n                totals[e.Account] = 0;\\n                running[e.Account] = new List<int>();\\n            }\\n            totals[e.Account] += e.Delta;\\n            running[e.Account].Add(totals[e.Account]);\\n        }\\n\\n        var deltas = entries.Select(e => e.Delta).ToList();\\n        double average = 0;\\n        if (deltas.Count > 0)\\n        {\\n            average = (double)deltas.Sum() / deltas.Count;\\n        }\\n\\n        return (running, totals, average);\\n    }\\n}\\n```\",\"reasoning_content\":\"*   Input: `IEnumerable<(string Account, int Delta)> entries`.\\n    *   Output: `(Dictionary<string, List<int>> Running, Dictionary<string, int> Final, double AverageDelta)`.\\n    *   Bug 1: \\\"every account's running-balance list contains the same entries\\\".\\n        *   Looking at the code: `var buffer = new List<int>();` is declared outside the loop.\\n        *   Inside the loop: `if (!totals.ContainsKey(e.Account)) { totals[e.Account] = 0; running[e.Account] = buffer; }`.\\n        *   This means every account is being assigned the *same* list instance (`buffer`). When `running[e.Account].Add(...)` is called, it's adding to that shared list.\\n        *   Fix: Initialize a new list for each account.\\n    *   Bug 2: \\\"AverageDelta comes back as a whole number\\\".\\n        *   Looking at the code: `var average = deltas.Sum() / deltas.Count();`.\\n        *   `deltas.Sum()` returns an `int` (since `Delta` is `int`).\\n        *   `deltas.Count()` returns an `int`.\\n        *   Integer division in C# results in an integer.\\n        *   Fix: Cast one of the operands to `double` to ensure floating-point division.\\n\\n    *   `totals` is initialized correctly.\\n    *   `running` needs to be initialized with a new list per account.\\n    *   `average` calculation needs to be `(double)deltas.Sum() / deltas.Count()`.\\n    *   Wait, `deltas.Count()` could be 0 if `entries` is empty. The prompt doesn't explicitly ask for error handling, but standard practice is to handle it. However, the prompt says \\\"Fix both [bugs]\\\".\\n    *   Let's re-examine the `running` logic.\\n        ```csharp\\n        foreach (var e in entries)\\n        {\\n            if (!totals.ContainsKey(e.Account)) \\n            { \\n                totals[e.Account] = 0; \\n                running[e.Account] = new List<int>(); // Fix here\\n            }\\n            totals[e.Account] += e\"}}],\"created\":1787407293,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":850,\"prompt_tokens\":411,\"total_tokens\":1261,\"prompt_tokens_details\":{\"cached_tokens\":52}},\"id\":\"chatcmpl-Ijy5pO0jHtHjNSqSrcHcNgAbH5j5Owdh\",\"timings\":{\"cache_n\":52,\"prompt_n\":359,\"prompt_ms\":485.513,\"prompt_per_token_ms\":1.3524038997214485,\"prompt_per_second\":739.4240730938204,\"predicted_n\":850,\"predicted_ms\":16651.98,\"predicted_per_token_ms\":19.61363957597173,\"predicted_per_second\":50.98492791848177}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```csharp\nusing System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic static class Ledger\n{\n    // Returns, for each account, the running balance after every entry, and the\n    // final balance. Entries are (account, delta) in chronological order.\n    // BUG: callers report that the running balances are all identical to the\n    // final balance, and that AverageDelta is truncated to a whole number.\n    public static (Dictionary<string, List<int>> Running, Dictionary<string, int> Final, double AverageDelta)\n        Summarise(IEnumerable<(string Account, int Delta)> entries)\n    {\n        var totals = new Dictionary<string, int>();\n        var running = new Dictionary<string, List<int>>();\n\n        foreach (var e in entries)\n        {\n            if (!totals.ContainsKey(e.Account))\n            {\n                totals[e.Account] = 0;\n                running[e.Account] = new List<int>();\n            }\n            totals[e.Account] += e.Delta;\n            running[e.Account].Add(totals[e.Account]);\n        }\n\n        var deltas = entries.Select(e => e.Delta).ToList();\n        double average = 0;\n        if (deltas.Count > 0)\n        {\n            average = (double)deltas.Sum() / deltas.Count;\n        }\n\n        return (running, totals, average);\n    }\n}\n```",
+          "reasoning_content": "*   Input: `IEnumerable<(string Account, int Delta)> entries`.\n    *   Output: `(Dictionary<string, List<int>> Running, Dictionary<string, int> Final, double AverageDelta)`.\n    *   Bug 1: \"every account's running-balance list contains the same entries\".\n        *   Looking at the code: `var buffer = new List<int>();` is declared outside the loop.\n        *   Inside the loop: `if (!totals.ContainsKey(e.Account)) { totals[e.Account] = 0; running[e.Account] = buffer; }`.\n        *   This means every account is being assigned the *same* list instance (`buffer`). When `running[e.Account].Add(...)` is called, it's adding to that shared list.\n        *   Fix: Initialize a new list for each account.\n    *   Bug 2: \"AverageDelta comes back as a whole number\".\n        *   Looking at the code: `var average = deltas.Sum() / deltas.Count();`.\n        *   `deltas.Sum()` returns an `int` (since `Delta` is `int`).\n        *   `deltas.Count()` returns an `int`.\n        *   Integer division in C# results in an integer.\n        *   Fix: Cast one of the operands to `double` to ensure floating-point division.\n\n    *   `totals` is initialized correctly.\n    *   `running` needs to be initialized with a new list per account.\n    *   `average` calculation needs to be `(double)deltas.Sum() / deltas.Count()`.\n    *   Wait, `deltas.Count()` could be 0 if `entries` is empty. The prompt doesn't explicitly ask for error handling, but standard practice is to handle it. However, the prompt says \"Fix both [bugs]\".\n    *   Let's re-examine the `running` logic.\n        ```csharp\n        foreach (var e in entries)\n        {\n            if (!totals.ContainsKey(e.Account)) \n            { \n                totals[e.Account] = 0; \n                running[e.Account] = new List<int>(); // Fix here\n            }\n            totals[e.Account] += e"
+        }
+      }
+    ],
+    "created": 1787407293,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 850,
+      "prompt_tokens": 411,
+      "total_tokens": 1261,
+      "prompt_tokens_details": {
+        "cached_tokens": 52
+      }
+    },
+    "id": "chatcmpl-Ijy5pO0jHtHjNSqSrcHcNgAbH5j5Owdh",
+    "timings": {
+      "cache_n": 52,
+      "prompt_n": 359,
+      "prompt_ms": 485.513,
+      "prompt_per_token_ms": 1.3524038997214485,
+      "prompt_per_second": 739.4240730938204,
+      "predicted_n": 850,
+      "predicted_ms": 16651.98,
+      "predicted_per_token_ms": 19.61363957597173,
+      "predicted_per_second": 50.98492791848177
+    }
+  }
+}

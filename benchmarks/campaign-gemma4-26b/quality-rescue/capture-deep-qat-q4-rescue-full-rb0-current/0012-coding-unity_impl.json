@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "Write a Unity MonoBehaviour `ProjectilePool` in C# that pools GameObjects. Requirements:\n  - a [SerializeField] GameObject prefab and int prewarmCount\n  - Awake() prewarms `prewarmCount` inactive instances\n  - public GameObject Rent() returns a pooled instance, activating it, and instantiates a new one only when the pool is empty\n  - public void Return(GameObject go) deactivates it and puts it back\n  - Return(null) is ignored; returning the same object twice must not add it twice\nUse only UnityEngine and System.Collections.Generic. Return the whole file."
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```csharp\\nusing UnityEngine;\\nusing System.Collections.Generic;\\n\\npublic class ProjectilePool : MonoBehaviour\\n{\\n    [SerializeField] private GameObject prefab;\\n    [SerializeField] private int prewarmCount;\\n\\n    private readonly Queue<GameObject> _pool = new Queue<GameObject>();\\n    private readonly HashSet<GameObject> _inUse = new HashSet<GameObject>();\\n\\n    private void Awake()\\n    {\\n        for (int i = 0; i < prewarmCount; i++)\\n        {\\n            CreateNewInstance();\\n        }\\n    }\\n\\n    private GameObject CreateNewInstance()\\n    {\\n        GameObject obj = Instantiate(prefab, transform);\\n        obj.SetActive(false);\\n        _pool.Enqueue(obj);\\n        return obj;\\n    }\\n\\n    public GameObject Rent()\\n    {\\n        GameObject obj;\\n\\n        if (_pool.Count > 0)\\n        {\\n            obj = _pool.Dequeue();\\n        }\\n        else\\n        {\\n            obj = Instantiate(prefab, transform);\\n        }\\n\\n        obj.SetActive(true);\\n        _inUse.Add(obj);\\n        return obj;\\n    }\\n\\n    public void Return(GameObject go)\\n    {\\n        if (go == null || !_inUse.Contains(go))\\n        {\\n            return;\\n        }\\n\\n        _inUse.Remove(go);\\n        go.SetActive(false);\\n        _pool.Enqueue(go);\\n    }\\n}\\n```\"}}],\"created\":1787381472,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":328,\"prompt_tokens\":189,\"total_tokens\":517,\"prompt_tokens_details\":{\"cached_tokens\":52}},\"id\":\"chatcmpl-XNTKTXGsjwzDPbaLH7ntzRbfoDubUQVt\",\"timings\":{\"cache_n\":52,\"prompt_n\":137,\"prompt_ms\":327.486,\"prompt_per_token_ms\":2.3904087591240875,\"prompt_per_second\":418.33849385927954,\"predicted_n\":328,\"predicted_ms\":5418.371,\"predicted_per_token_ms\":16.569941896024464,\"predicted_per_second\":60.35024179776541}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```csharp\nusing UnityEngine;\nusing System.Collections.Generic;\n\npublic class ProjectilePool : MonoBehaviour\n{\n    [SerializeField] private GameObject prefab;\n    [SerializeField] private int prewarmCount;\n\n    private readonly Queue<GameObject> _pool = new Queue<GameObject>();\n    private readonly HashSet<GameObject> _inUse = new HashSet<GameObject>();\n\n    private void Awake()\n    {\n        for (int i = 0; i < prewarmCount; i++)\n        {\n            CreateNewInstance();\n        }\n    }\n\n    private GameObject CreateNewInstance()\n    {\n        GameObject obj = Instantiate(prefab, transform);\n        obj.SetActive(false);\n        _pool.Enqueue(obj);\n        return obj;\n    }\n\n    public GameObject Rent()\n    {\n        GameObject obj;\n\n        if (_pool.Count > 0)\n        {\n            obj = _pool.Dequeue();\n        }\n        else\n        {\n            obj = Instantiate(prefab, transform);\n        }\n\n        obj.SetActive(true);\n        _inUse.Add(obj);\n        return obj;\n    }\n\n    public void Return(GameObject go)\n    {\n        if (go == null || !_inUse.Contains(go))\n        {\n            return;\n        }\n\n        _inUse.Remove(go);\n        go.SetActive(false);\n        _pool.Enqueue(go);\n    }\n}\n```"
+        }
+      }
+    ],
+    "created": 1787381472,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 328,
+      "prompt_tokens": 189,
+      "total_tokens": 517,
+      "prompt_tokens_details": {
+        "cached_tokens": 52
+      }
+    },
+    "id": "chatcmpl-XNTKTXGsjwzDPbaLH7ntzRbfoDubUQVt",
+    "timings": {
+      "cache_n": 52,
+      "prompt_n": 137,
+      "prompt_ms": 327.486,
+      "prompt_per_token_ms": 2.3904087591240875,
+      "prompt_per_second": 418.33849385927954,
+      "predicted_n": 328,
+      "predicted_ms": 5418.371,
+      "predicted_per_token_ms": 16.569941896024464,
+      "predicted_per_second": 60.35024179776541
+    }
+  }
+}

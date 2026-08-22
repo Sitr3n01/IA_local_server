@@ -1,0 +1,104 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "qwen36-spill-reproduction",
+    "generated_utc":  "2026-08-22T20:03:19.6866608Z",
+    "shared_margin_mib":  400,
+    "cells":  [
+                  {
+                      "model":  "q2kxl",
+                      "context":  131072,
+                      "ncpumoe":  2,
+                      "first_spill_mib":  875.1,
+                      "repeat_spill_mib":  634.9,
+                      "first_marginal_mib":  11636.4,
+                      "repeat_marginal_mib":  11849.4,
+                      "first_idle_mib":  3739.9,
+                      "repeat_idle_mib":  3557.9,
+                      "verdict":  "structural"
+                  },
+                  {
+                      "model":  "q2kxl",
+                      "context":  262144,
+                      "ncpumoe":  6,
+                      "first_spill_mib":  1667.1,
+                      "repeat_spill_mib":  995.3,
+                      "first_marginal_mib":  10941.3,
+                      "repeat_marginal_mib":  11539.9,
+                      "first_idle_mib":  3553.7,
+                      "repeat_idle_mib":  3603.6,
+                      "verdict":  "structural"
+                  },
+                  {
+                      "model":  "q3ks",
+                      "context":  131072,
+                      "ncpumoe":  10,
+                      "first_spill_mib":  1327.2,
+                      "repeat_spill_mib":  592.4,
+                      "first_marginal_mib":  11538.4,
+                      "repeat_marginal_mib":  12233.7,
+                      "first_idle_mib":  3739.9,
+                      "repeat_idle_mib":  3530.3,
+                      "verdict":  "structural"
+                  },
+                  {
+                      "model":  "q3ks",
+                      "context":  262144,
+                      "ncpumoe":  14,
+                      "first_spill_mib":  1667.1,
+                      "repeat_spill_mib":  1007.2,
+                      "first_marginal_mib":  11124.1,
+                      "repeat_marginal_mib":  11753.2,
+                      "first_idle_mib":  3647.1,
+                      "repeat_idle_mib":  3506.3,
+                      "verdict":  "structural"
+                  },
+                  {
+                      "model":  "q3kxl",
+                      "context":  131072,
+                      "ncpumoe":  14,
+                      "first_spill_mib":  875.1,
+                      "repeat_spill_mib":  633.2,
+                      "first_marginal_mib":  11592.1,
+                      "repeat_marginal_mib":  11853.7,
+                      "first_idle_mib":  3758.6,
+                      "repeat_idle_mib":  3506.3,
+                      "verdict":  "structural"
+                  },
+                  {
+                      "model":  "q3kxl",
+                      "context":  262144,
+                      "ncpumoe":  18,
+                      "first_spill_mib":  1033.0,
+                      "repeat_spill_mib":  235.0,
+                      "first_marginal_mib":  12004.4,
+                      "repeat_marginal_mib":  12107,
+                      "first_idle_mib":  3768,
+                      "repeat_idle_mib":  3507.3,
+                      "verdict":  "transient"
+                  },
+                  {
+                      "model":  "iq4xs",
+                      "context":  32768,
+                      "ncpumoe":  14,
+                      "first_spill_mib":  401.0,
+                      "repeat_spill_mib":  409.8,
+                      "first_marginal_mib":  11915.9,
+                      "repeat_marginal_mib":  11992.4,
+                      "first_idle_mib":  3635.9,
+                      "repeat_idle_mib":  3563.6,
+                      "verdict":  "structural"
+                  },
+                  {
+                      "model":  "iq4xs",
+                      "context":  262144,
+                      "ncpumoe":  18,
+                      "first_spill_mib":  1666.1,
+                      "repeat_spill_mib":  1033.3,
+                      "first_marginal_mib":  11091.6,
+                      "repeat_marginal_mib":  11739.2,
+                      "first_idle_mib":  3824.6,
+                      "repeat_idle_mib":  3619.3,
+                      "verdict":  "structural"
+                  }
+              ]
+}

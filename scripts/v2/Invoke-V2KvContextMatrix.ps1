@@ -39,7 +39,7 @@ param(
     # q8_0/q4_0 and q4_0/q4_0.
     [string[]]$KvPairs = @('q8_0/q8_0', 'q8_0/q4_0', 'q4_0/q4_0'),
 
-    [string]$TensorOverride = 'blk\.(6[0-3])\.ffn_.*=CPU',
+    [string]$TensorOverride = '',
 
     [ValidateRange(-1, 1024)]
     [int]$NCpuMoe = -1,

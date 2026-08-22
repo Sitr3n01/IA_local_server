@@ -59,6 +59,10 @@ type manifestModel struct {
 	} `yaml:"artifact"`
 	CtxCheckpoints    *int `yaml:"ctx_checkpoints"`
 	CheckpointMinStep *int `yaml:"checkpoint_min_step"`
+	MoEOffload        *struct {
+		CPULayers *int  `yaml:"cpu_layers"`
+		CPUAll    *bool `yaml:"cpu_all"`
+	} `yaml:"moe_offload"`
 	// Presence, not content: the edge only needs to know that part of the model
 	// lives outside VRAM, which makes an unmeasured capacity profile unsafe.
 	TensorOverrides []struct {
@@ -159,6 +163,7 @@ func LoadModels(path, environment string) ([]Model, string, error) {
 		if ownedBy == "" {
 			ownedBy = "local"
 		}
+		moeOffload := summarizeMoEOffload(entry.MoEOffload)
 		models = append(models, Model{
 			ID:              id,
 			Object:          "model",
@@ -170,7 +175,7 @@ func LoadModels(path, environment string) ([]Model, string, error) {
 			PeakRAMGiB:      entry.Resources.PeakRAMGiB,
 			DeviceVRAMGiB:   deviceVRAM[strings.TrimSpace(entry.Runtime)],
 			CacheRAMMiB:     entry.CacheRAMMiB,
-			OffloadsTensors: len(entry.TensorOverrides) > 0,
+			OffloadsTensors: len(entry.TensorOverrides) > 0 || moeOffload.Offloads(),
 			Runtime:         runtimes[strings.TrimSpace(entry.Runtime)],
 			ContextTokens:   entry.ContextTokens,
 			Profile: ProfileSummary{
@@ -187,6 +192,9 @@ func LoadModels(path, environment string) ([]Model, string, error) {
 				MinStep: entry.CheckpointMinStep,
 			},
 		})
+		if moeOffload.Configured() {
+			models[len(models)-1].Profile.MoEOffload = &moeOffload
+		}
 		if id == publicModel {
 			publicFound = true
 		}
@@ -234,6 +242,19 @@ func summarizeRuntime(runtime manifestRuntime) RuntimeSummary {
 		}
 	}
 	return summary
+}
+
+func summarizeMoEOffload(raw *struct {
+	CPULayers *int  `yaml:"cpu_layers"`
+	CPUAll    *bool `yaml:"cpu_all"`
+}) MoEOffloadSummary {
+	if raw == nil {
+		return MoEOffloadSummary{}
+	}
+	return MoEOffloadSummary{
+		CPULayers: raw.CPULayers,
+		CPUAll:    raw.CPUAll,
+	}
 }
 
 func containsDeployment(deployments []string, wanted string) bool {

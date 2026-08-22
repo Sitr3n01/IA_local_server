@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "You are fixing a multi-file Go package. Return only the corrected `retry.go` file. Preserve the Store interface and exported errors.\n\n`retry.go`:\n```go\npackage retry\n\nimport \"errors\"\n\ntype Store interface {\n\tGet(key string) (string, error)\n\tPut(key, value string) error\n}\n\nvar ErrTemporary = errors.New(\"temporary\")\nvar ErrMissing = errors.New(\"missing\")\n\n// Ensure reads key and writes fallback only when the key is missing.\n// BUG: it writes fallback after any read error and retries permanent errors.\nfunc Ensure(store Store, key, fallback string) (string, error) {\n\tvalue, err := store.Get(key)\n\tif err == nil {\n\t\treturn value, nil\n\t}\n\tfor i := 0; i < 3; i++ {\n\t\tif putErr := store.Put(key, fallback); putErr == nil {\n\t\t\treturn fallback, nil\n\t\t}\n\t}\n\treturn \"\", err\n}\n```\n\nThe hidden tests distinguish missing keys from temporary read failures."
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```go\\npackage retry\\n\\nimport \\\"errors\\\"\\n\\ntype Store interface {\\n\\tGet(key string) (string, error)\\n\\tPut(key, value string) error\\n}\\n\\nvar ErrTemporary = errors.New(\\\"temporary\\\")\\nvar ErrMissing = errors.New(\\\"missing\\\")\\n\\n// Ensure reads key and writes fallback only when the key is missing.\\nfunc Ensure(store Store, key, fallback string) (string, error) {\\n\\tvalue, err := store.Get(key)\\n\\tif err == nil {\\n\\t\\treturn value, nil\\n\\t}\\n\\n\\tif !errors.Is(err, ErrMissing) {\\n\\t\\treturn \\\"\\\", err\\n\\t}\\n\\n\\tif err := store.Put(key, fallback); err != nil {\\n\\t\\treturn \\\"\\\", err\\n\\t}\\n\\n\\treturn fallback, nil\\n}\\n```\"}}],\"created\":1787408572,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":183,\"prompt_tokens\":304,\"total_tokens\":487,\"prompt_tokens_details\":{\"cached_tokens\":52}},\"id\":\"chatcmpl-V90r5V9gVSMlsE44hJVTeKXb3bzR46iz\",\"timings\":{\"cache_n\":52,\"prompt_n\":252,\"prompt_ms\":434.931,\"prompt_per_token_ms\":1.7259166666666665,\"prompt_per_second\":579.4022500120709,\"predicted_n\":183,\"predicted_ms\":3207.181,\"predicted_per_token_ms\":17.621873626373628,\"predicted_per_second\":56.747654716088675}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```go\npackage retry\n\nimport \"errors\"\n\ntype Store interface {\n\tGet(key string) (string, error)\n\tPut(key, value string) error\n}\n\nvar ErrTemporary = errors.New(\"temporary\")\nvar ErrMissing = errors.New(\"missing\")\n\n// Ensure reads key and writes fallback only when the key is missing.\nfunc Ensure(store Store, key, fallback string) (string, error) {\n\tvalue, err := store.Get(key)\n\tif err == nil {\n\t\treturn value, nil\n\t}\n\n\tif !errors.Is(err, ErrMissing) {\n\t\treturn \"\", err\n\t}\n\n\tif err := store.Put(key, fallback); err != nil {\n\t\treturn \"\", err\n\t}\n\n\treturn fallback, nil\n}\n```"
+        }
+      }
+    ],
+    "created": 1787408572,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 183,
+      "prompt_tokens": 304,
+      "total_tokens": 487,
+      "prompt_tokens_details": {
+        "cached_tokens": 52
+      }
+    },
+    "id": "chatcmpl-V90r5V9gVSMlsE44hJVTeKXb3bzR46iz",
+    "timings": {
+      "cache_n": 52,
+      "prompt_n": 252,
+      "prompt_ms": 434.931,
+      "prompt_per_token_ms": 1.7259166666666665,
+      "prompt_per_second": 579.4022500120709,
+      "predicted_n": 183,
+      "predicted_ms": 3207.181,
+      "predicted_per_token_ms": 17.621873626373628,
+      "predicted_per_second": 56.747654716088675
+    }
+  }
+}

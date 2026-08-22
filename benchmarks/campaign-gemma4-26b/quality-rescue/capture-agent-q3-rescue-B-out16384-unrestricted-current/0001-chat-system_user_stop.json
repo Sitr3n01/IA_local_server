@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Follow the user's instruction exactly."
+      },
+      {
+        "role": "user",
+        "content": "Reply with exactly: GEMMA-READY"
+      }
+    ],
+    "max_tokens": 256,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"GEMMA-READY\",\"reasoning_content\":\"The user wants me to reply with exactly the string \\\"GEMMA-READY\\\".\\n\\n    *   Instruction: \\\"Reply with exactly: GEMMA-READY\\\"\\n    *   Constraint: \\\"exactly\\\" implies no extra words, punctuation, or formatting.\\n\\n    *   Input: \\\"Reply with exactly: GEMMA-READY\\\"\\n    *   Output: \\\"GEMMA-READY\\\"\\n\\nDoes \\\"GEMMA-READY\\\" match the instruction? Yes.\"}}],\"created\":1787379432,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":102,\"prompt_tokens\":32,\"total_tokens\":134,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-DkhYHTn9XhwLTc3y4ezTfsVHsfVuHdZl\",\"timings\":{\"cache_n\":0,\"prompt_n\":32,\"prompt_ms\":362.896,\"prompt_per_token_ms\":11.3405,\"prompt_per_second\":88.17953353026762,\"predicted_n\":102,\"predicted_ms\":1926.503,\"predicted_per_token_ms\":19.07428712871287,\"predicted_per_second\":52.426598868519804}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "GEMMA-READY",
+          "reasoning_content": "The user wants me to reply with exactly the string \"GEMMA-READY\".\n\n    *   Instruction: \"Reply with exactly: GEMMA-READY\"\n    *   Constraint: \"exactly\" implies no extra words, punctuation, or formatting.\n\n    *   Input: \"Reply with exactly: GEMMA-READY\"\n    *   Output: \"GEMMA-READY\"\n\nDoes \"GEMMA-READY\" match the instruction? Yes."
+        }
+      }
+    ],
+    "created": 1787379432,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 102,
+      "prompt_tokens": 32,
+      "total_tokens": 134,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-DkhYHTn9XhwLTc3y4ezTfsVHsfVuHdZl",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 32,
+      "prompt_ms": 362.896,
+      "prompt_per_token_ms": 11.3405,
+      "prompt_per_second": 88.17953353026762,
+      "predicted_n": 102,
+      "predicted_ms": 1926.503,
+      "predicted_per_token_ms": 19.07428712871287,
+      "predicted_per_second": 52.426598868519804
+    }
+  }
+}

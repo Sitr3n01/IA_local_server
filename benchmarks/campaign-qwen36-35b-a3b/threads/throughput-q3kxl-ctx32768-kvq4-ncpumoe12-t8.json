@@ -1,0 +1,79 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "throughput-sweep",
+    "label":  "q3kxl-ctx32768-kvq4-ncpumoe12-t8",
+    "started_utc":  "2026-08-22T17:56:26.4026455Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.6-35B-A3B-GGUF\\Qwen3.6-35B-A3B-UD-Q3_K_XL.gguf",
+                          "model_bytes":  16845511648,
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  32768,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "tensor_override":  "",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "repetitions":  3,
+                          "device_vram_mib":  16304,
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  12
+                      },
+    "results":  [
+                    {
+                        "tag":  "q3kxl-ctx32768-kvq4-ncpumoe12-t8-pp512",
+                        "kind":  "pp",
+                        "n":  512,
+                        "depth":  0,
+                        "tokens_per_second":  427.26,
+                        "stddev":  43.12,
+                        "relative_stddev_percent":  10.09,
+                        "timed_out":  false,
+                        "wall_s":  13.4,
+                        "peak":  {
+                                     "vram_dedicated_mib":  15875.5,
+                                     "vram_shared_mib":  493.7,
+                                     "process_ws_gib":  15.026,
+                                     "physical_used_gib":  26.863
+                                 },
+                        "failure":  null
+                    },
+                    {
+                        "tag":  "q3kxl-ctx32768-kvq4-ncpumoe12-t8-pp8192",
+                        "kind":  "pp",
+                        "n":  8192,
+                        "depth":  0,
+                        "tokens_per_second":  283.45,
+                        "stddev":  5.53,
+                        "relative_stddev_percent":  1.95,
+                        "timed_out":  false,
+                        "wall_s":  120.5,
+                        "peak":  {
+                                     "vram_dedicated_mib":  15780.6,
+                                     "vram_shared_mib":  784.7,
+                                     "process_ws_gib":  15.52,
+                                     "physical_used_gib":  27.824
+                                 },
+                        "failure":  null
+                    },
+                    {
+                        "tag":  "q3kxl-ctx32768-kvq4-ncpumoe12-t8-tg128",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  0,
+                        "tokens_per_second":  48.65,
+                        "stddev":  2.02,
+                        "relative_stddev_percent":  4.15,
+                        "timed_out":  false,
+                        "wall_s":  15.3,
+                        "peak":  {
+                                     "vram_dedicated_mib":  15220.4,
+                                     "vram_shared_mib":  453.8,
+                                     "process_ws_gib":  13.981,
+                                     "physical_used_gib":  25.582
+                                 },
+                        "failure":  null
+                    }
+                ]
+}

@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Return only JSON. No prose, no fence.\n\nTool arguments are API contracts. Preserve user-provided paths, globs, regular expressions, exclude patterns, identifiers and literal values exactly unless the user explicitly asks you to transform them."
+      },
+      {
+        "role": "user",
+        "content": "Reply with a single JSON object and nothing else, with exactly the keys \"language\", \"lines\", \"has_tests\", \"entrypoints\". For a Go package with 412 lines, a _test.go file, and the exported functions NewLRU, Get, Put and Len, fill it in. \"lines\" must be a number, \"has_tests\" a boolean, \"entrypoints\" an array of strings."
+      }
+    ],
+    "max_tokens": 4096,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```json\\n{\\n  \\\"language\\\": \\\"go\\\",\\n  \\\"lines\\\": 412,\\n  \\\"has_tests\\\": true,\\n  \\\"entrypoints\\\": [\\n    \\\"NewLRU\\\",\\n    \\\"Get\\\",\\n    \\\"Put\\\",\\n    \\\"Len\\\"\\n  ]\\n}\\n```\"}}],\"created\":1787381244,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":71,\"prompt_tokens\":153,\"total_tokens\":224,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-B9RZ2hkNTqHnqwo6SAhtysYkgk86ajJd\",\"timings\":{\"cache_n\":0,\"prompt_n\":153,\"prompt_ms\":379.894,\"prompt_per_token_ms\":2.4829673202614377,\"prompt_per_second\":402.74392330492185,\"predicted_n\":71,\"predicted_ms\":1327.798,\"predicted_per_token_ms\":18.968542857142857,\"predicted_per_second\":52.718862357075395}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```json\n{\n  \"language\": \"go\",\n  \"lines\": 412,\n  \"has_tests\": true,\n  \"entrypoints\": [\n    \"NewLRU\",\n    \"Get\",\n    \"Put\",\n    \"Len\"\n  ]\n}\n```"
+        }
+      }
+    ],
+    "created": 1787381244,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 71,
+      "prompt_tokens": 153,
+      "total_tokens": 224,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-B9RZ2hkNTqHnqwo6SAhtysYkgk86ajJd",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 153,
+      "prompt_ms": 379.894,
+      "prompt_per_token_ms": 2.4829673202614377,
+      "prompt_per_second": 402.74392330492185,
+      "predicted_n": 71,
+      "predicted_ms": 1327.798,
+      "predicted_per_token_ms": 18.968542857142857,
+      "predicted_per_second": 52.718862357075395
+    }
+  }
+}

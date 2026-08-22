@@ -30,6 +30,7 @@ $models = [ordered]@{
     q3kxl = 'C:\IA\models\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-Q3_K_XL.gguf'
     q2kxl = 'C:\IA\models\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-Q2_K_XL.gguf'
 }
+$qwenTensorOverride = 'blk\.(6[0-3])\.ffn_.*=CPU'
 
 # A stale llama-server from an interrupted run would hold 12 GiB of VRAM and
 # make every number below wrong. Refuse to start rather than measure through it.
@@ -51,14 +52,14 @@ foreach ($id in $models.Keys) {
     # and keeps this script a single self-contained unit rather than a set of
     # conditionals that have to be kept in sync with what happened earlier.
     & $t -ModelPath $models[$id] -Label "$id-kvq4-depth" -CacheTypeK q4_0 -CacheTypeV q4_0 `
-        -Repetitions 2 -Tests $depthTests -OutputRoot $root
+        -TensorOverride $qwenTensorOverride -Repetitions 2 -Tests $depthTests -OutputRoot $root
 }
 
 if (-not $SkipRetention) {
     Write-Host "=== D. long-context retention ramp at ctx 262144, KV q4_0/q4_0 ==="
     foreach ($id in $models.Keys) {
         & $q -ModelPath $models[$id] -Label "$id-256k-kvq4-ramp" -ContextTokens 262144 `
-            -CacheTypeK q4_0 -CacheTypeV q4_0 -Suites 'retention' `
+            -CacheTypeK q4_0 -CacheTypeV q4_0 -TensorOverride $qwenTensorOverride -Suites 'retention' `
             -RetentionTokens 32768, 65536, 131072, 196608, 240000 -OutputRoot $root
     }
 }

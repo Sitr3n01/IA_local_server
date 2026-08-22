@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "scenario": "context-footprint-at-load",
+  "started_utc": "2026-08-22T00:37:23.7337894Z",
+  "configuration": {
+    "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf",
+    "runtime_root": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+    "context_tokens": 32768,
+    "cache_type_k": "q4_0",
+    "cache_type_v": "q4_0",
+    "ubatch_size": 288,
+    "batch_size": 2048,
+    "gpu_layers": 99,
+    "threads": 8,
+    "parallel": 1,
+    "tensor_override": "",
+    "cpu_moe": false,
+    "n_cpu_moe": 0,
+    "device_vram_mib": 16304
+  },
+  "load_seconds": 16.8,
+  "idle": {
+    "vram_dedicated_mib": 3379.6,
+    "vram_shared_mib": 360.7,
+    "commit_gib": 29.858,
+    "physical_used_gib": 15.44
+  },
+  "peak": {
+    "vram_dedicated_mib": 15614.4,
+    "vram_shared_mib": 2575.7,
+    "process_vram_mib": 12248.4,
+    "process_ws_gib": 15.193,
+    "process_private_gib": 13.75,
+    "commit_gib": 44.482,
+    "physical_used_gib": 30.624
+  },
+  "marginal_vram_mib": 12234.8,
+  "gpu_pressure": {
+    "state": "pressured",
+    "occupancy": 0.9577,
+    "shared_mib": 2575.7,
+    "message": "GPU memory pressure detected.\r\n\r\n  Dedicated VRAM : 15.614 / 16.304 MiB (95,8%)\r\n  Shared GPU     : 2.576 MiB\r\n\r\nDriver-level VRAM paging is likely. Prompt processing degrades\r\nwithout any error being raised. Consider a smaller context\r\nprofile or a wider CPU tensor split."
+  },
+  "failure": null
+}

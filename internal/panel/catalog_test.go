@@ -87,10 +87,10 @@ func TestRepositoryManifestLoadsAsCanaryCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if catalog.PublicModel != "local-coding" {
-		t.Fatalf("public model = %q", catalog.PublicModel)
-	}
 	if len(catalog.AllModels()) < 1 || len(catalog.AvailableModels()) < 1 {
 		t.Fatal("repository manifest did not expose an available canary model")
+	}
+	if _, found := catalog.Model(catalog.PublicModel); !found {
+		t.Fatalf("public model %q is not present in the canary catalog", catalog.PublicModel)
 	}
 }

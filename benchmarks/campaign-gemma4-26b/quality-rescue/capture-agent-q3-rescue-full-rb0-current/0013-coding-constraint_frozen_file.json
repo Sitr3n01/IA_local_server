@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you. DO NOT MODIFY NetworkManager.cs UNDER ANY CIRCUMSTANCES. It is frozen."
+      },
+      {
+        "role": "user",
+        "content": "DO NOT MODIFY NetworkManager.cs.\n\nHere is the frozen file, for reference only:\n\n```csharp\n// NetworkManager.cs -- FROZEN. Reproduces a wire format other clients depend on.\nusing System;\nusing System.Collections.Generic;\n\npublic class NetworkManager\n{\n    private readonly List<string> _outbox = new List<string>();\n\n    // Serialises a payload for the wire. Pads every field to 8 characters and\n    // uppercases the opcode. This is the shipped format and cannot change.\n    public string Encode(string opcode, string payload)\n    {\n        return opcode.ToUpperInvariant().PadRight(8, ' ') + payload.PadRight(8, ' ');\n    }\n\n    public void Enqueue(string frame) { _outbox.Add(frame); }\n    public IReadOnlyList<string> Outbox => _outbox;\n}\n```\n\nWrite a NEW file `TelemetrySender.cs` containing a class `TelemetrySender` with a constructor taking a NetworkManager and a method `public void Send(string opcode, string payload)`.\nSend must encode the frame through the NetworkManager and enqueue it. Opcodes longer than 8 characters must be truncated to their first 8 characters BY YOUR CLASS before encoding — NetworkManager.Encode must not be changed to do it.\nReturn only TelemetrySender.cs."
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```csharp\\nusing System;\\n\\npublic class TelemetrySender\\n{\\n    private readonly NetworkManager _networkManager;\\n\\n    public TelemetrySender(NetworkManager networkManager)\\n    {\\n        _networkManager = networkManager;\\n    }\\n\\n    public void Send(string opcode, string payload)\\n    {\\n        string processedOpcode = opcode;\\n        if (processedOpcode.Length > 8)\\n        {\\n            processedOpcode = processedOpcode.Substring(0, 8);\\n        }\\n\\n        string frame = _networkManager.Encode(processedOpcode, payload);\\n        _networkManager.Enqueue(frame);\\n    }\\n}\\n```\"}}],\"created\":1787381378,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":150,\"prompt_tokens\":376,\"total_tokens\":526,\"prompt_tokens_details\":{\"cached_tokens\":51}},\"id\":\"chatcmpl-KYAmMv7NPlnOHTPCVYhNaqyNiTCHqUwV\",\"timings\":{\"cache_n\":51,\"prompt_n\":325,\"prompt_ms\":409.379,\"prompt_per_token_ms\":1.2596276923076923,\"prompt_per_second\":793.8853727230756,\"predicted_n\":150,\"predicted_ms\":2824.869,\"predicted_per_token_ms\":18.95885234899329,\"predicted_per_second\":52.745808743697495}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```csharp\nusing System;\n\npublic class TelemetrySender\n{\n    private readonly NetworkManager _networkManager;\n\n    public TelemetrySender(NetworkManager networkManager)\n    {\n        _networkManager = networkManager;\n    }\n\n    public void Send(string opcode, string payload)\n    {\n        string processedOpcode = opcode;\n        if (processedOpcode.Length > 8)\n        {\n            processedOpcode = processedOpcode.Substring(0, 8);\n        }\n\n        string frame = _networkManager.Encode(processedOpcode, payload);\n        _networkManager.Enqueue(frame);\n    }\n}\n```"
+        }
+      }
+    ],
+    "created": 1787381378,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 150,
+      "prompt_tokens": 376,
+      "total_tokens": 526,
+      "prompt_tokens_details": {
+        "cached_tokens": 51
+      }
+    },
+    "id": "chatcmpl-KYAmMv7NPlnOHTPCVYhNaqyNiTCHqUwV",
+    "timings": {
+      "cache_n": 51,
+      "prompt_n": 325,
+      "prompt_ms": 409.379,
+      "prompt_per_token_ms": 1.2596276923076923,
+      "prompt_per_second": 793.8853727230756,
+      "predicted_n": 150,
+      "predicted_ms": 2824.869,
+      "predicted_per_token_ms": 18.95885234899329,
+      "predicted_per_second": 52.745808743697495
+    }
+  }
+}

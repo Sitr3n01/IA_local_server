@@ -32,7 +32,7 @@ param(
     [ValidateRange(1024, 1048576)][int]$ContextTokens = 32768,
     [ValidateSet('f16', 'q8_0', 'q4_0')][string]$CacheTypeK = 'q4_0',
     [ValidateSet('f16', 'q8_0', 'q4_0')][string]$CacheTypeV = 'q4_0',
-    [string]$TensorOverride = 'blk\.(6[0-3])\.ffn_.*=CPU',
+    [string]$TensorOverride = '',
     [int]$UBatchSize = 288,
     [int]$BatchSize = 2048,
     [int]$NGpuLayers = 99,
@@ -43,10 +43,21 @@ param(
     [int]$DeviceVramMib = 16304,
     [ValidateRange(1024, 65535)][int]$Port = 19399,
     [ValidateRange(30, 3600)][int]$StartupTimeoutSeconds = 900,
+    [ValidateRange(1, 262144)][int]$NPredict = 0,
+    [ValidateRange(-1, 262144)][int]$ReasoningBudget = -1,
+    [string]$ReasoningBudgetMessage = '',
 
     [string]$Suites = 'coding,tools,json',
     [int[]]$RetentionTokens = @(),
     [string]$OnlyCodingTasks = '',
+    [string]$OnlyToolTasks = '',
+    [ValidateRange(0, 262144)][int]$MaxTokens = 0,
+    [double]$Temperature = 0.0,
+    [int]$Seed = 20260821,
+    [ValidateSet('current', 'agentic')][string]$SystemPolicy = 'current',
+    [switch]$StrictToolPolicy,
+    [switch]$ToolSchemaPolicy,
+    [switch]$CaptureDiagnostics,
     [ValidateRange(1, 30)][int]$SampleIntervalSeconds = 3
 )
 
@@ -57,6 +68,7 @@ if ($CpuMoe -and $NCpuMoe -ge 0) {
 }
 
 . (Join-Path $PSScriptRoot 'Telemetry.ps1')
+. (Join-Path $PSScriptRoot 'Common.ps1')
 
 $serverExe = Join-Path $RuntimeRoot 'llama-server.exe'
 $qualify = Join-Path $PSScriptRoot 'eval\qualify.py'
@@ -74,31 +86,26 @@ if ($Suites -match 'retention' -and $RetentionTokens.Count -eq 0) {
     throw "Suites includes retention but -RetentionTokens was not given."
 }
 
-$arguments = @(
-    '--model', $ModelPath,
-    '--host', '127.0.0.1',
-    '--port', "$Port",
-    '--alias', 'local',
-    '--device', 'ROCm0',
-    '--split-mode', 'none',
-    '--gpu-layers', "$NGpuLayers",
-    '--flash-attn', 'on',
-    '--ctx-size', "$ContextTokens",
-    '--batch-size', "$BatchSize",
-    '--ubatch-size', "$UBatchSize",
-    '--cache-type-k', $CacheTypeK,
-    '--cache-type-v', $CacheTypeV,
-    '--parallel', "$Parallel",
-    '--cont-batching',
-    '--no-context-shift',
-    '--threads', "$Threads"
-)
-if ($TensorOverride) { $arguments += @('-ot', $TensorOverride) }
-if ($CpuMoe) { $arguments += @('--cpu-moe') }
-elseif ($NCpuMoe -ge 0) { $arguments += @('--n-cpu-moe', "$NCpuMoe") }
-$arguments += @('--jinja', '--warmup', '--metrics', '--no-webui')
+$modelSpec = New-V2BenchmarkModelSpec -ModelPath $ModelPath -Alias 'local' -ContextTokens $ContextTokens `
+    -CacheTypeK $CacheTypeK -CacheTypeV $CacheTypeV -UBatchSize $UBatchSize -BatchSize $BatchSize `
+    -NGpuLayers $NGpuLayers -Threads $Threads -Parallel $Parallel -TensorOverride $TensorOverride `
+    -NCpuMoe $NCpuMoe -CpuMoe:$CpuMoe
+if ($NPredict -gt 0) {
+    $modelSpec | Add-Member -NotePropertyName 'n_predict' -NotePropertyValue $NPredict
+}
+if ($ReasoningBudget -ge 0) {
+    $modelSpec | Add-Member -NotePropertyName 'reasoning_budget' -NotePropertyValue $ReasoningBudget
+}
+if (-not [string]::IsNullOrWhiteSpace($ReasoningBudgetMessage)) {
+    if ($ReasoningBudget -le 0) {
+        throw '-ReasoningBudgetMessage requires a positive -ReasoningBudget.'
+    }
+    $modelSpec | Add-Member -NotePropertyName 'reasoning_budget_message' -NotePropertyValue $ReasoningBudgetMessage
+}
+$arguments = New-V2LlamaServerArguments -Model $modelSpec -Port "$Port" -Alias 'local' `
+    -IncludeJinja -IncludeWarmup -IncludeMetrics -IncludeNoWebui
 
-$commandLine = ($serverExe + ' ' + ($arguments -join ' '))
+$commandLine = ConvertTo-V2CommandLine -Arguments (@($serverExe) + @($arguments))
 $moe = if ($CpuMoe) { 'all' } elseif ($NCpuMoe -ge 0) { [string]$NCpuMoe } else { 'default' }
 Write-Host ("[{0}] ctx={1} kv={2}/{3} ub={4} split='{5}' cpu_moe={6}" -f $Label, $ContextTokens, $CacheTypeK, $CacheTypeV, $UBatchSize, $TensorOverride, $moe)
 
@@ -167,6 +174,15 @@ try {
     )
     foreach ($t in $RetentionTokens) { $pyArgs += @('--retention-tokens', "$t") }
     if ($OnlyCodingTasks) { $pyArgs += @('--only', $OnlyCodingTasks) }
+    if ($OnlyToolTasks) { $pyArgs += @('--only-tools', $OnlyToolTasks) }
+    if ($MaxTokens -gt 0) { $pyArgs += @('--max-tokens', "$MaxTokens") }
+    $pyArgs += @('--temperature', "$Temperature", '--seed', "$Seed", '--system-policy', $SystemPolicy)
+    if ($StrictToolPolicy) { $pyArgs += '--strict-tool-policy' }
+    if ($ToolSchemaPolicy) { $pyArgs += '--tool-schema-policy' }
+    if ($CaptureDiagnostics) {
+        $captureDir = Join-Path $OutputRoot ("capture-" + $Label)
+        $pyArgs += @('--capture-dir', $captureDir)
+    }
 
     & python @pyArgs
     $evalExit = $LASTEXITCODE
@@ -247,9 +263,19 @@ $report = [ordered]@{
         threads         = $Threads
         parallel        = $Parallel
         tensor_override = $TensorOverride
+        n_predict       = $(if ($NPredict -gt 0) { $NPredict } else { $null })
+        reasoning_budget = $(if ($ReasoningBudget -ge 0) { $ReasoningBudget } else { $null })
+        reasoning_budget_message = $(if (-not [string]::IsNullOrWhiteSpace($ReasoningBudgetMessage)) { $ReasoningBudgetMessage } else { $null })
         cpu_moe         = [bool]$CpuMoe
         n_cpu_moe       = $(if ($NCpuMoe -ge 0) { $NCpuMoe } else { $null })
         device_vram_mib = $DeviceVramMib
+        max_tokens      = $(if ($MaxTokens -gt 0) { $MaxTokens } else { $null })
+        temperature     = $Temperature
+        seed            = $Seed
+        system_policy   = $SystemPolicy
+        strict_tool_policy = [bool]$StrictToolPolicy
+        tool_schema_policy = [bool]$ToolSchemaPolicy
+        capture_diagnostics = [bool]$CaptureDiagnostics
         command_line    = $commandLine
     }
     load_seconds   = $loadSeconds

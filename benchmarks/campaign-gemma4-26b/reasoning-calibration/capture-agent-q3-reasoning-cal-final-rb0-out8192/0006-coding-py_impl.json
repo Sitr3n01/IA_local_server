@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "Implement `merge_intervals(intervals)` in Python. It takes a list of [start, end] pairs in any order and returns a new list of non-overlapping [start, end] pairs sorted by start, merging any that overlap or touch (so [1,4] and [4,5] merge into [1,5]). Do not mutate the input. Return only the function."
+      }
+    ],
+    "max_tokens": 8192,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```python\\ndef merge_intervals(intervals):\\n    if not intervals:\\n        return []\\n\\n    # Create a copy to avoid mutating the input and sort by start time\\n    sorted_intervals = sorted(intervals, key=lambda x: x[0])\\n    \\n    merged = []\\n    if not sorted_intervals:\\n        return merged\\n\\n    # Initialize with the first interval\\n    current_start, current_end = sorted_intervals[0]\\n\\n    for i in range(1, len(sorted_intervals)):\\n        next_start, next_end = sorted_intervals[i]\\n\\n        # If the next interval overlaps or touches the current one\\n        if next_start <= current_end:\\n            # Update the end to the maximum of both\\n            current_end = max(current_end, next_end)\\n        else:\\n            # No overlap, push the current interval and move to the next\\n            merged.append([current_start, current_end])\\n            current_start, current_end = next_start, next_end\\n\\n    # Append the last interval\\n    merged.append([current_start, current_end])\\n\\n    return merged\\n```\"}}],\"created\":1787408458,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":261,\"prompt_tokens\":142,\"total_tokens\":403,\"prompt_tokens_details\":{\"cached_tokens\":52}},\"id\":\"chatcmpl-O3SgR8ADIhY2aPkjpXcjE7lxhposGoGW\",\"timings\":{\"cache_n\":52,\"prompt_n\":90,\"prompt_ms\":252.655,\"prompt_per_token_ms\":2.8072777777777778,\"prompt_per_second\":356.21697571787615,\"predicted_n\":261,\"predicted_ms\":4966.925,\"predicted_per_token_ms\":19.103557692307692,\"predicted_per_second\":52.346270579885946}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```python\ndef merge_intervals(intervals):\n    if not intervals:\n        return []\n\n    # Create a copy to avoid mutating the input and sort by start time\n    sorted_intervals = sorted(intervals, key=lambda x: x[0])\n    \n    merged = []\n    if not sorted_intervals:\n        return merged\n\n    # Initialize with the first interval\n    current_start, current_end = sorted_intervals[0]\n\n    for i in range(1, len(sorted_intervals)):\n        next_start, next_end = sorted_intervals[i]\n\n        # If the next interval overlaps or touches the current one\n        if next_start <= current_end:\n            # Update the end to the maximum of both\n            current_end = max(current_end, next_end)\n        else:\n            # No overlap, push the current interval and move to the next\n            merged.append([current_start, current_end])\n            current_start, current_end = next_start, next_end\n\n    # Append the last interval\n    merged.append([current_start, current_end])\n\n    return merged\n```"
+        }
+      }
+    ],
+    "created": 1787408458,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 261,
+      "prompt_tokens": 142,
+      "total_tokens": 403,
+      "prompt_tokens_details": {
+        "cached_tokens": 52
+      }
+    },
+    "id": "chatcmpl-O3SgR8ADIhY2aPkjpXcjE7lxhposGoGW",
+    "timings": {
+      "cache_n": 52,
+      "prompt_n": 90,
+      "prompt_ms": 252.655,
+      "prompt_per_token_ms": 2.8072777777777778,
+      "prompt_per_second": 356.21697571787615,
+      "predicted_n": 261,
+      "predicted_ms": 4966.925,
+      "predicted_per_token_ms": 19.103557692307692,
+      "predicted_per_second": 52.346270579885946
+    }
+  }
+}

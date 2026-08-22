@@ -1,0 +1,226 @@
+﻿[
+    {
+        "model":  "iq4xs",
+        "context":  32768,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  16
+    },
+    {
+        "model":  "iq4xs",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  16
+    },
+    {
+        "model":  "iq4xs",
+        "context":  131072,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  16
+    },
+    {
+        "model":  "iq4xs",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  16
+    },
+    {
+        "model":  "iq4xs",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  20
+    },
+    {
+        "model":  "iq4xs",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  16
+    },
+    {
+        "model":  "iq4xs",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  20
+    },
+    {
+        "model":  "iq4xs",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  24
+    },
+    {
+        "model":  "q2kxl",
+        "context":  32768,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  0
+    },
+    {
+        "model":  "q2kxl",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  0
+    },
+    {
+        "model":  "q2kxl",
+        "context":  131072,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  0
+    },
+    {
+        "model":  "q2kxl",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  0
+    },
+    {
+        "model":  "q2kxl",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  4
+    },
+    {
+        "model":  "q2kxl",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  0
+    },
+    {
+        "model":  "q2kxl",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  4
+    },
+    {
+        "model":  "q2kxl",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  8
+    },
+    {
+        "model":  "q3ks",
+        "context":  32768,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  8
+    },
+    {
+        "model":  "q3ks",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  8
+    },
+    {
+        "model":  "q3ks",
+        "context":  131072,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  8
+    },
+    {
+        "model":  "q3ks",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  8
+    },
+    {
+        "model":  "q3ks",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  12
+    },
+    {
+        "model":  "q3ks",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  8
+    },
+    {
+        "model":  "q3ks",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  12
+    },
+    {
+        "model":  "q3ks",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  16
+    },
+    {
+        "model":  "q3kxl",
+        "context":  32768,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  12
+    },
+    {
+        "model":  "q3kxl",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  12
+    },
+    {
+        "model":  "q3kxl",
+        "context":  131072,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  12
+    },
+    {
+        "model":  "q3kxl",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  12
+    },
+    {
+        "model":  "q3kxl",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  16
+    },
+    {
+        "model":  "q3kxl",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  12
+    },
+    {
+        "model":  "q3kxl",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  16
+    },
+    {
+        "model":  "q3kxl",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  20
+    }
+]

@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "scenario": "throughput-sweep",
+  "label": "deep-qat-q4kxl-kvq8-ncpumoe8",
+  "started_utc": "2026-08-22T04:12:07.5559773Z",
+  "configuration": {
+    "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf",
+    "model_bytes": 14249047104,
+    "runtime_root": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+    "context_tokens": 32768,
+    "cache_type_k": "q8_0",
+    "cache_type_v": "q8_0",
+    "tensor_override": "",
+    "ubatch_size": 288,
+    "batch_size": 2048,
+    "gpu_layers": 99,
+    "threads": 8,
+    "repetitions": 3,
+    "device_vram_mib": 16304,
+    "cpu_moe": false,
+    "n_cpu_moe": 8
+  },
+  "results": [
+    {
+      "tag": "deep-qat-q4kxl-kvq8-ncpumoe8-pp512",
+      "kind": "pp",
+      "n": 512,
+      "depth": 0,
+      "tokens_per_second": 925.29,
+      "stddev": 24.32,
+      "timed_out": false,
+      "wall_s": 9.5,
+      "peak": {
+        "vram_dedicated_mib": 14485.5,
+        "vram_shared_mib": 453.6,
+        "process_ws_gib": 12.448,
+        "physical_used_gib": 27.682
+      },
+      "failure": null
+    },
+    {
+      "tag": "deep-qat-q4kxl-kvq8-ncpumoe8-pp8192",
+      "kind": "pp",
+      "n": 8192,
+      "depth": 0,
+      "tokens_per_second": 965.31,
+      "stddev": 8.62,
+      "timed_out": false,
+      "wall_s": 41.4,
+      "peak": {
+        "vram_dedicated_mib": 14673.2,
+        "vram_shared_mib": 460.0,
+        "process_ws_gib": 13.459,
+        "physical_used_gib": 28.71
+      },
+      "failure": null
+    },
+    {
+      "tag": "deep-qat-q4kxl-kvq8-ncpumoe8-pp32768",
+      "kind": "pp",
+      "n": 32768,
+      "depth": 0,
+      "tokens_per_second": 837.52,
+      "stddev": 4.03,
+      "timed_out": false,
+      "wall_s": 163.7,
+      "peak": {
+        "vram_dedicated_mib": 15072.1,
+        "vram_shared_mib": 473.5,
+        "process_ws_gib": 13.507,
+        "physical_used_gib": 29.168
+      },
+      "failure": null
+    },
+    {
+      "tag": "deep-qat-q4kxl-kvq8-ncpumoe8-tg128",
+      "kind": "tg",
+      "n": 128,
+      "depth": 0,
+      "tokens_per_second": 59.11,
+      "stddev": 2.7,
+      "timed_out": false,
+      "wall_s": 13.2,
+      "peak": {
+        "vram_dedicated_mib": 14334.8,
+        "vram_shared_mib": 437.4,
+        "process_ws_gib": 13.068,
+        "physical_used_gib": 28.789
+      },
+      "failure": null
+    }
+  ]
+}

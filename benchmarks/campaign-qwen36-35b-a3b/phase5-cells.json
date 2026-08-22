@@ -1,0 +1,35 @@
+﻿[
+    {
+        "model":  "iq4xs",
+        "label":  "iq4xs-filled-deep-ctx32768-ncpumoe16",
+        "context":  32768,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  16,
+        "tests":  "tg:128@30000"
+    },
+    {
+        "model":  "q3ks",
+        "label":  "q3ks-filled-agent-ctx131072-ncpumoe12",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  12,
+        "tests":  [
+                      "tg:128@32768",
+                      "tg:128@120000"
+                  ]
+    },
+    {
+        "model":  "iq4xs",
+        "label":  "iq4xs-filled-huge-ctx262144-ncpumoe20",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  20,
+        "tests":  [
+                      "tg:128@131072",
+                      "tg:128@240000"
+                  ]
+    }
+]

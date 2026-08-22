@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Return only JSON. No prose, no fence."
+      },
+      {
+        "role": "user",
+        "content": "Reply with a single JSON object and nothing else, with exactly the keys \"language\", \"lines\", \"has_tests\", \"entrypoints\". For a Go package with 412 lines, a _test.go file, and the exported functions NewLRU, Get, Put and Len, fill it in. \"lines\" must be a number, \"has_tests\" a boolean, \"entrypoints\" an array of strings."
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\\"language\\\": \\\"Go\\\", \\\"lines\\\": 412, \\\"has_tests\\\": true, \\\"entrypoints\\\": [\\\"NewLRU\\\", \\\"Get\\\", \\\"Put\\\", \\\"Len\\\"]}\",\"reasoning_content\":\"*   Input: A description of a Go package.\\n    *   Constraints:\\n        *   Return *only* a single JSON object.\\n        *   No prose, no fences (no ```json ... ```).\\n        *   Keys: \\\"language\\\", \\\"lines\\\", \\\"has_tests\\\", \\\"entrypoints\\\".\\n        *   Values:\\n            *   \\\"language\\\": \\\"Go\\\" (implied).\\n            *   \\\"lines\\\": 412 (number).\\n            *   \\\"has_tests\\\": true (since there's a _test.go file).\\n            *   \\\"entrypoints\\\": [\\\"NewLRU\\\", \\\"Get\\\", \\\"Put\\\", \\\"Len\\\"] (array of strings).\\n\\n    *   `language`: \\\"Go\\\"\\n    *   `lines`: 412\\n    *   `has_tests`: true\\n    *   `entrypoints`: [\\\"NewLRU\\\", \\\"Get\\\", \\\"Put\\\", \\\"Len\\\"]\\n\\n    *   `{\\\"language\\\": \\\"Go\\\", \\\"lines\\\": 412, \\\"has_tests\\\": true, \\\"entrypoints\\\": [\\\"NewLRU\\\", \\\"Get\\\", \\\"Put\\\", \\\"Len\\\"]}`\\n\\n    *   Single JSON object\"}}],\"created\":1787406906,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":299,\"prompt_tokens\":116,\"total_tokens\":415,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-2ha3L3C5wp2Xh3Gi1Nx8EElt2yNECBik\",\"timings\":{\"cache_n\":0,\"prompt_n\":116,\"prompt_ms\":317.046,\"prompt_per_token_ms\":2.733155172413793,\"prompt_per_second\":365.8775067340386,\"predicted_n\":299,\"predicted_ms\":5797.016,\"predicted_per_token_ms\":19.453073825503356,\"predicted_per_second\":51.405757720868806}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\"language\": \"Go\", \"lines\": 412, \"has_tests\": true, \"entrypoints\": [\"NewLRU\", \"Get\", \"Put\", \"Len\"]}",
+          "reasoning_content": "*   Input: A description of a Go package.\n    *   Constraints:\n        *   Return *only* a single JSON object.\n        *   No prose, no fences (no ```json ... ```).\n        *   Keys: \"language\", \"lines\", \"has_tests\", \"entrypoints\".\n        *   Values:\n            *   \"language\": \"Go\" (implied).\n            *   \"lines\": 412 (number).\n            *   \"has_tests\": true (since there's a _test.go file).\n            *   \"entrypoints\": [\"NewLRU\", \"Get\", \"Put\", \"Len\"] (array of strings).\n\n    *   `language`: \"Go\"\n    *   `lines`: 412\n    *   `has_tests`: true\n    *   `entrypoints`: [\"NewLRU\", \"Get\", \"Put\", \"Len\"]\n\n    *   `{\"language\": \"Go\", \"lines\": 412, \"has_tests\": true, \"entrypoints\": [\"NewLRU\", \"Get\", \"Put\", \"Len\"]}`\n\n    *   Single JSON object"
+        }
+      }
+    ],
+    "created": 1787406906,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 299,
+      "prompt_tokens": 116,
+      "total_tokens": 415,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-2ha3L3C5wp2Xh3Gi1Nx8EElt2yNECBik",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 116,
+      "prompt_ms": 317.046,
+      "prompt_per_token_ms": 2.733155172413793,
+      "prompt_per_second": 365.8775067340386,
+      "predicted_n": 299,
+      "predicted_ms": 5797.016,
+      "predicted_per_token_ms": 19.453073825503356,
+      "predicted_per_second": 51.405757720868806
+    }
+  }
+}

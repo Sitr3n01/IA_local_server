@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "scenario": "context-footprint-at-load",
+  "started_utc": "2026-08-22T00:38:46.0677045Z",
+  "configuration": {
+    "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf",
+    "runtime_root": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+    "context_tokens": 32768,
+    "cache_type_k": "q4_0",
+    "cache_type_v": "q4_0",
+    "ubatch_size": 288,
+    "batch_size": 2048,
+    "gpu_layers": 99,
+    "threads": 8,
+    "parallel": 1,
+    "tensor_override": "",
+    "cpu_moe": false,
+    "n_cpu_moe": 8,
+    "device_vram_mib": 16304
+  },
+  "load_seconds": 6.5,
+  "idle": {
+    "vram_dedicated_mib": 3363.6,
+    "vram_shared_mib": 352.8,
+    "commit_gib": 29.889,
+    "physical_used_gib": 14.308
+  },
+  "peak": {
+    "vram_dedicated_mib": 14714.1,
+    "vram_shared_mib": 459.5,
+    "process_vram_mib": 11348.0,
+    "process_ws_gib": 10.877,
+    "process_private_gib": 10.554,
+    "commit_gib": 41.495,
+    "physical_used_gib": 25.296
+  },
+  "marginal_vram_mib": 11350.5,
+  "gpu_pressure": {
+    "state": "ok",
+    "occupancy": 0.9025,
+    "shared_mib": 459.5,
+    "message": "GPU memory is within budget: 14.714 / 16.304 MiB dedicated (90,2%), 460 MiB shared."
+  },
+  "failure": null
+}

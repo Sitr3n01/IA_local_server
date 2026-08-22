@@ -1,0 +1,446 @@
+{
+  "schema_version": 1,
+  "scenario": "profile-qualification",
+  "label": "gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k",
+  "started_utc": "2026-08-22T04:30:02.1691525Z",
+  "configuration": {
+    "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf",
+    "model_bytes": 14249047104,
+    "runtime_root": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+    "context_tokens": 32768,
+    "cache_type_k": "q8_0",
+    "cache_type_v": "q8_0",
+    "ubatch_size": 288,
+    "batch_size": 2048,
+    "gpu_layers": 99,
+    "threads": 8,
+    "parallel": 1,
+    "tensor_override": "",
+    "cpu_moe": false,
+    "n_cpu_moe": 8,
+    "device_vram_mib": 16304,
+    "command_line": "\"C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe\" --model \"C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf\" --host 127.0.0.1 --port 19411 --alias local --device ROCm0 --split-mode none --gpu-layers 99 --flash-attn on --ctx-size 32768 --batch-size 2048 --ubatch-size 288 --cache-type-k q8_0 --cache-type-v q8_0 --parallel 1 --cont-batching --no-context-shift --threads 8 --n-cpu-moe 8 --jinja --warmup --metrics --no-webui"
+  },
+  "load_seconds": 10.7,
+  "idle": {
+    "vram_dedicated_mib": 3384.6,
+    "vram_shared_mib": 352.8,
+    "commit_gib": 29.953,
+    "physical_used_gib": 15.224
+  },
+  "session_peak": {
+    "vram_dedicated_mib": 15088.4,
+    "vram_shared_mib": 471.6,
+    "process_vram_mib": 11701.3,
+    "process_ws_gib": 15.875,
+    "process_private_gib": 12.901,
+    "commit_gib": 44.177,
+    "physical_used_gib": 30.69
+  },
+  "marginal_vram_mib": 11703.8,
+  "memory_samples": 139,
+  "gpu_pressure": {
+    "state": "ok",
+    "occupancy": 0.9254,
+    "shared_mib": 471.6,
+    "message": "GPU memory is within budget: 15.088 / 16.304 MiB dedicated (92,5%), 472 MiB shared."
+  },
+  "eval_exit_code": 0,
+  "failure": null,
+  "eval": {
+    "schema_version": 1,
+    "scenario": "profile-qualification",
+    "label": "gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k",
+    "started_utc": "2026-08-22T04:18:13Z",
+    "server_props": {
+      "default_generation_settings": {
+        "params": {
+          "seed": 4294967295,
+          "temperature": 1.0,
+          "dynatemp_range": 0.0,
+          "dynatemp_exponent": 1.0,
+          "top_k": 64,
+          "top_p": 0.949999988079071,
+          "min_p": 0.05000000074505806,
+          "top_n_sigma": -1.0,
+          "xtc_probability": 0.0,
+          "xtc_threshold": 0.10000000149011612,
+          "typical_p": 1.0,
+          "repeat_last_n": 64,
+          "repeat_penalty": 1.0,
+          "presence_penalty": 0.0,
+          "frequency_penalty": 0.0,
+          "dry_multiplier": 0.0,
+          "dry_base": 1.75,
+          "dry_allowed_length": 2,
+          "dry_penalty_last_n": 64,
+          "mirostat": 0,
+          "mirostat_tau": 5.0,
+          "mirostat_eta": 0.10000000149011612,
+          "adaptive_target": -1.0,
+          "adaptive_decay": 0.8999999761581421,
+          "max_tokens": -1,
+          "n_predict": -1,
+          "n_keep": 0,
+          "n_discard": 0,
+          "ignore_eos": false,
+          "stream": false,
+          "n_probs": 0,
+          "min_keep": 0,
+          "chat_format": "Content-only",
+          "reasoning_format": "none",
+          "reasoning_in_content": false,
+          "generation_prompt": "",
+          "samplers": [
+            "penalties",
+            "dry",
+            "top_n_sigma",
+            "top_k",
+            "typ_p",
+            "top_p",
+            "min_p",
+            "xtc",
+            "temperature"
+          ],
+          "speculative.types": "none",
+          "timings_per_token": false,
+          "post_sampling_probs": false,
+          "backend_sampling": false,
+          "lora": []
+        },
+        "n_ctx": 32768
+      },
+      "total_slots": 1,
+      "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf",
+      "build_info": "b10549-b2e5e9b28"
+    },
+    "suites": {
+      "chat": {
+        "results": [
+          {
+            "id": "system_user_stop",
+            "passed": true,
+            "finish_reason": "stop",
+            "reasoning_chars": 168
+          },
+          {
+            "id": "multi_turn",
+            "passed": true,
+            "finish_reason": "stop",
+            "reasoning_chars": 371
+          },
+          {
+            "id": "streaming",
+            "passed": true,
+            "chunks": 78,
+            "done": true
+          },
+          {
+            "id": "tool_result_continuation",
+            "passed": true,
+            "call_ok": true,
+            "args_ok": true,
+            "continuation_ok": true,
+            "finish_reason": "stop",
+            "reasoning_chars": 0
+          }
+        ],
+        "passed": 4,
+        "total": 4
+      },
+      "coding": {
+        "results": [
+          {
+            "id": "py_bugfix",
+            "family": "bugfix",
+            "lang": "python",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 3281,
+            "finish_reason": "stop",
+            "output_tokens": 1257,
+            "decode_tps": 59.784149708269055,
+            "wall_s": 21.7,
+            "detail": "OK\n",
+            "code": "def find_insert_position(sorted_values, target):\n    \"\"\"Return the index where target should be inserted to keep the list sorted.\n\n    If target is already present, return the index of its FIRST occurrence.\n    \"\"\"\n    low = 0\n    high = len(sorted_values)\n    while low < high:\n        mid = (low + high) // 2\n        if sorted_values[mid] < target:\n            low = mid + 1\n        else:\n            high = mid\n    return low"
+          },
+          {
+            "id": "py_impl",
+            "family": "implement",
+            "lang": "python",
+            "passed": false,
+            "compiled_or_ran": false,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": true,
+            "no_answer": true,
+            "reasoning_chars": 17210,
+            "finish_reason": "length",
+            "output_tokens": 8192,
+            "decode_tps": 58.7958633036591,
+            "wall_s": 139.7,
+            "detail": "no answer: generation stopped at the output cap with 17210 chars still in reasoning_content",
+            "code": ""
+          },
+          {
+            "id": "go_bugfix",
+            "family": "bugfix",
+            "lang": "go",
+            "passed": false,
+            "compiled_or_ran": false,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 20488,
+            "finish_reason": "stop",
+            "output_tokens": 6512,
+            "decode_tps": 58.895634222490074,
+            "wall_s": 111.4,
+            "detail": "build cache is required, but could not be located: GOCACHE is not an absolute path\n",
+            "code": "package pipeline\n\nimport \"sync\"\n\n// FanIn runs fn over every input concurrently and returns the results in the\n// same order as the inputs. It currently deadlocks on any non-empty input.\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\n\tout := make([]int, len(inputs))\n\tjobs := make(chan int)\n\tvar wg sync.WaitGroup\n\n\tfor w := 0; w < workers; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor i := range jobs {\n\t\t\t\tout[i] = fn(inputs[i])\n\t\t\t}\n\t\t}()\n\t}\n\n\tfor i := range inputs {\n\t\tjobs <- i\n\t}\n\tclose(jobs)\n\twg.Wait()\n\treturn out\n}"
+          },
+          {
+            "id": "go_impl",
+            "family": "implement",
+            "lang": "go",
+            "passed": false,
+            "compiled_or_ran": false,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 12360,
+            "finish_reason": "stop",
+            "output_tokens": 4412,
+            "decode_tps": 59.119219327157076,
+            "wall_s": 75.1,
+            "detail": "build cache is required, but could not be located: GOCACHE is not an absolute path\n",
+            "code": "package cache\n\nimport (\n\t\"container/list\"\n)\n\ntype entry struct {\n\tkey   string\n\tvalue int\n}\n\ntype LRU struct {\n\tcapacity  int\n\titems     map[string]*list.Element\n\tevictList *list.List\n}\n\n// NewLRU initializes a new LRU cache with the given capacity.\nfunc NewLRU(capacity int) *LRU {\n\treturn &LRU{\n\t\tcapacity:  capacity,\n\t\titems:     make(map[string]*list.Element),\n\t\tevictList: list.New(),\n\t}\n}\n\n// Get retrieves a value from the cache. If the key exists, it moves the entry to the front.\nfunc (c *LRU) Get(key string) (int, bool) {\n\tif ent, ok := c.items[key]; ok {\n\t\tc.evictList.MoveToFront(ent)\n\t\treturn ent.Value.(*entry).value, true\n\t}\n\treturn 0, false\n}\n\n// Put adds or updates a value in the cache. If the cache is full, it evicts the least recently used entry.\nfunc (c *LRU) Put(key string, value int) {\n\tif c.capacity <= 0 {\n\t\treturn\n\t}\n\n\t// If key exists, update value and move to front\n\tif ent, ok := c.items[key]; ok {\n\t\tc.evictList.MoveToFront(ent)\n\t\tent.Value.(*entry).value = value\n\t\treturn\n\t}\n\n\t// If at capacity, evict the oldest\n\tif c.evictList.Len() >= c.capacity {\n\t\tc.removeOldest()\n\t}\n\n\t// Add new entry to the front\n\tent := &entry{key, value}\n\telement := c.evictList.PushFront(ent)\n\tc.items[key] = element\n}\n\n// Len returns the current number of items in the cache.\nfunc (c *LRU) Len() int {\n\treturn c.evictList.Len()\n}\n\nfunc (c *LRU) removeOldest() {\n\tent := c.evictList.Back()\n\tif ent != nil {\n\t\tc.evictList.Remove(ent)\n\t\tkv := ent.Value.(*entry)\n\t\tdelete(c.items, kv.key)\n\t}\n}"
+          },
+          {
+            "id": "ts_impl",
+            "family": "implement",
+            "lang": "typescript",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 3393,
+            "finish_reason": "stop",
+            "output_tokens": 1524,
+            "decode_tps": 59.557069809371626,
+            "wall_s": 26.0,
+            "detail": "OK\n",
+            "code": "export function groupConsecutive(values: number[]): number[][] {\n  if (values.length === 0) {\n    return [];\n  }\n\n  const result: number[][] = [];\n  let currentRun: number[] = [values[0]];\n\n  for (let i = 1; i < values.length; i++) {\n    if (values[i] === values[i - 1] + 1) {\n      currentRun.push(values[i]);\n    } else {\n      result.push(currentRun);\n      currentRun = [values[i]];\n    }\n  }\n\n  result.push(currentRun);\n  return result;\n}"
+          },
+          {
+            "id": "ts_refactor",
+            "family": "refactor",
+            "lang": "typescript",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 13380,
+            "finish_reason": "stop",
+            "output_tokens": 4317,
+            "decode_tps": 59.071021146207464,
+            "wall_s": 73.7,
+            "detail": "OK\n",
+            "code": "export type Fetcher = (id: string) => Promise<{ id: string; parent: string | null }>;\n\n// Walks from a node to the root and returns the chain, root last.\n// Rewrite this to use async/await and a plain loop. Behaviour must not change,\n// including that a cycle throws Error(\"cycle detected\") and that the chain is\n// capped at 50 entries with Error(\"chain too long\").\nexport async function ancestry(fetch: Fetcher, start: string): Promise<string[]> {\n  const seen = new Set<string>();\n  const chain: string[] = [];\n  let currentId: string | null = start;\n\n  while (currentId !== null) {\n    if (seen.has(currentId)) {\n      throw new Error(\"cycle detected\");\n    }\n    seen.add(currentId);\n    chain.push(currentId);\n\n    if (chain.length > 50) {\n      throw new Error(\"chain too long\");\n    }\n\n    const node = await fetch(currentId);\n    currentId = node.parent;\n  }\n\n  return chain;\n}"
+          },
+          {
+            "id": "cs_bugfix",
+            "family": "bugfix",
+            "lang": "csharp",
+            "passed": false,
+            "compiled_or_ran": false,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 19394,
+            "finish_reason": "stop",
+            "output_tokens": 5651,
+            "decode_tps": 59.029759294193816,
+            "wall_s": 97.0,
+            "detail": "C:\\Program Files\\dotnet\\sdk\\10.0.302\\NuGet.targets(782,5): error : O 'NUGET_PACKAGES' deve conter um caminho absoluto 'benchmarks\\campaign-gemma4-26b\\quality\\work-gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k\\.nuget'. [C:\\IA\\IA_local_server\\benchmarks\\campaign-gemma4-26b\\quality\\work-gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k\\cs_bugfix\\eval.csproj]\n\nOcorreu uma falha no build. Corrija os erros de build e execute novamente.\n",
+            "code": "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic static class Ledger\n{\n    // Returns, for each account, the running balance after every entry, and the\n    // final balance. Entries are (account, delta) in chronological order.\n    public static (Dictionary<string, List<int>> Running, Dictionary<string, int> Final, double AverageDelta)\n        Summarise(IEnumerable<(string Account, int Delta)> entries)\n    {\n        var entryList = entries.ToList();\n        var totals = new Dictionary<string, int>();\n        var running = new Dictionary<string, List<int>>();\n\n        foreach (var e in entryList)\n        {\n            if (!totals.ContainsKey(e.Account))\n            {\n                totals[e.Account] = 0;\n                running[e.Account] = new List<int>();\n            }\n            totals[e.Account] += e.Delta;\n            running[e.Account].Add(totals[e.Account]);\n        }\n\n        var deltas = entryList.Select(e => e.Delta).ToList();\n        var average = deltas.Count == 0 ? 0 : (double)deltas.Sum() / deltas.Count;\n        return (running, totals, average);\n    }\n}"
+          },
+          {
+            "id": "unity_impl",
+            "family": "implement",
+            "lang": "csharp",
+            "passed": false,
+            "compiled_or_ran": false,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 16420,
+            "finish_reason": "stop",
+            "output_tokens": 4716,
+            "decode_tps": 59.31366802402925,
+            "wall_s": 80.4,
+            "detail": "_PACKAGES' deve conter um caminho absoluto 'benchmarks\\campaign-gemma4-26b\\quality\\work-gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k\\.nuget'. [C:\\IA\\IA_local_server\\benchmarks\\campaign-gemma4-26b\\quality\\work-gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k\\unity_impl\\eval.csproj]\n\nFALHA da compilação.\n\nC:\\Program Files\\dotnet\\sdk\\10.0.302\\NuGet.targets(782,5): error : O 'NUGET_PACKAGES' deve conter um caminho absoluto 'benchmarks\\campaign-gemma4-26b\\quality\\work-gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k\\.nuget'. [C:\\IA\\IA_local_server\\benchmarks\\campaign-gemma4-26b\\quality\\work-gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k\\unity_impl\\eval.csproj]\n    0 Aviso(s)\n    1 Erro(s)\n\nTempo Decorrido 00:00:00.33\n",
+            "code": "using UnityEngine;\nusing System.Collections.Generic;\n\npublic class ProjectilePool : MonoBehaviour\n{\n    [SerializeField] private GameObject prefab;\n    [SerializeField] private int prewarmCount;\n\n    private readonly Queue<GameObject> _pool = new Queue<GameObject>();\n    private readonly HashSet<GameObject> _activeObjects = new HashSet<GameObject>();\n\n    private void Awake()\n    {\n        for (int i = 0; i < prewarmCount; i++)\n        {\n            GameObject go = Instantiate(prefab, transform);\n            go.SetActive(false);\n            _pool.Enqueue(go);\n        }\n    }\n\n    public GameObject Rent()\n    {\n        GameObject go;\n        if (_pool.Count > 0)\n        {\n            go = _pool.Dequeue();\n        }\n        else\n        {\n            go = Instantiate(prefab, transform);\n        }\n\n        go.SetActive(true);\n        _activeObjects.Add(go);\n        return go;\n    }\n\n    public void Return(GameObject go)\n    {\n        if (go == null) return;\n\n        if (_activeObjects.Remove(go))\n        {\n            go.SetActive(false);\n            _pool.Enqueue(go);\n        }\n    }\n}"
+          },
+          {
+            "id": "constraint_frozen_file",
+            "family": "constraint",
+            "lang": "csharp",
+            "passed": false,
+            "compiled_or_ran": false,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 8568,
+            "finish_reason": "stop",
+            "output_tokens": 2318,
+            "decode_tps": 59.53545642201157,
+            "wall_s": 40.1,
+            "detail": "C:\\Program Files\\dotnet\\sdk\\10.0.302\\NuGet.targets(782,5): error : O 'NUGET_PACKAGES' deve conter um caminho absoluto 'benchmarks\\campaign-gemma4-26b\\quality\\work-gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k\\.nuget'. [C:\\IA\\IA_local_server\\benchmarks\\campaign-gemma4-26b\\quality\\work-gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k\\constraint_frozen_file\\eval.csproj]\n\nOcorreu uma falha no build. Corrija os erros de build e execute novamente.\n",
+            "code": "using System;\n\npublic class TelemetrySender\n{\n    private readonly NetworkManager _networkManager;\n\n    public TelemetrySender(NetworkManager networkManager)\n    {\n        _networkManager = networkManager;\n    }\n\n    public void Send(string opcode, string payload)\n    {\n        string truncatedOpcode = opcode.Length > 8 ? opcode.Substring(0, 8) : opcode;\n        string frame = _networkManager.Encode(truncatedOpcode, payload);\n        _networkManager.Enqueue(frame);\n    }\n}"
+          },
+          {
+            "id": "no_invented_api",
+            "family": "honesty",
+            "lang": "csharp",
+            "passed": false,
+            "compiled_or_ran": false,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 1766,
+            "finish_reason": "stop",
+            "output_tokens": 600,
+            "decode_tps": 59.79327498348198,
+            "wall_s": 10.9,
+            "detail": " deve conter um caminho absoluto 'benchmarks\\campaign-gemma4-26b\\quality\\work-gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k\\.nuget'. [C:\\IA\\IA_local_server\\benchmarks\\campaign-gemma4-26b\\quality\\work-gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k\\no_invented_api\\eval.csproj]\n\nFALHA da compilação.\n\nC:\\Program Files\\dotnet\\sdk\\10.0.302\\NuGet.targets(782,5): error : O 'NUGET_PACKAGES' deve conter um caminho absoluto 'benchmarks\\campaign-gemma4-26b\\quality\\work-gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k\\.nuget'. [C:\\IA\\IA_local_server\\benchmarks\\campaign-gemma4-26b\\quality\\work-gemma-deep-q4kxl-kvq8-ncpumoe8-quality32k\\no_invented_api\\eval.csproj]\n    0 Aviso(s)\n    1 Erro(s)\n\nTempo Decorrido 00:00:00.34\n",
+            "code": "public static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int count = 0;\n        for (int i = 0; i < buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                count++;\n            }\n        }\n        return count;\n    }\n}"
+          }
+        ],
+        "passed": 3,
+        "total": 10,
+        "compiled": 3,
+        "no_answer": 1,
+        "truncated": 1
+      },
+      "tools": {
+        "results": [
+          {
+            "id": "tool_pick_tests",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "names": [
+              "run_tests"
+            ]
+          },
+          {
+            "id": "tool_pick_build",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "names": [
+              "run_build"
+            ]
+          },
+          {
+            "id": "tool_pick_read_range",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "names": [
+              "read_file_range"
+            ]
+          },
+          {
+            "id": "tool_pick_read_many",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "names": [
+              "read_files"
+            ]
+          },
+          {
+            "id": "tool_pick_search_one",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "names": [
+              "search_file"
+            ]
+          },
+          {
+            "id": "tool_pick_search_many_nested",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": false,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": false,
+            "detail": "filters={'case_sensitive': False, 'exclude': ['vendor/**'], 'include': ['**/*.go']} want {'include': ['*.go'], 'exclude': ['vendor/**'], 'case_sensitive': False}",
+            "names": [
+              "search_files"
+            ]
+          },
+          {
+            "id": "tool_refuse_edit",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "names": [
+              "list_dir"
+            ]
+          }
+        ],
+        "passed": 6,
+        "total": 7
+      },
+      "json": {
+        "id": "structured_json",
+        "parsed": true,
+        "clean_json": true,
+        "passed": true,
+        "mismatches": []
+      }
+    }
+  }
+}

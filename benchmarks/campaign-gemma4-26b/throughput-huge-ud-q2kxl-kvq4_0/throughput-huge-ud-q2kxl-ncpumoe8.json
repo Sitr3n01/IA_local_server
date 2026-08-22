@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "scenario": "throughput-sweep",
+  "label": "huge-ud-q2kxl-ncpumoe8",
+  "started_utc": "2026-08-22T02:03:22.5534727Z",
+  "configuration": {
+    "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q2_K_XL.gguf",
+    "model_bytes": 10546934240,
+    "runtime_root": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+    "cache_type_k": "q4_0",
+    "cache_type_v": "q4_0",
+    "tensor_override": "",
+    "ubatch_size": 288,
+    "batch_size": 2048,
+    "gpu_layers": 99,
+    "threads": 8,
+    "repetitions": 3,
+    "device_vram_mib": 16304,
+    "cpu_moe": false,
+    "n_cpu_moe": 8
+  },
+  "results": [
+    {
+      "tag": "huge-ud-q2kxl-ncpumoe8-pp512",
+      "kind": "pp",
+      "n": 512,
+      "depth": 0,
+      "tokens_per_second": 1051.97,
+      "stddev": 25.36,
+      "timed_out": false,
+      "wall_s": 8.0,
+      "peak": {
+        "vram_dedicated_mib": 11962.3,
+        "vram_shared_mib": 455.7,
+        "process_ws_gib": 9.92,
+        "physical_used_gib": 25.16
+      },
+      "failure": null
+    },
+    {
+      "tag": "huge-ud-q2kxl-ncpumoe8-pp8192",
+      "kind": "pp",
+      "n": 8192,
+      "depth": 0,
+      "tokens_per_second": 1057.74,
+      "stddev": 4.49,
+      "timed_out": false,
+      "wall_s": 36.9,
+      "peak": {
+        "vram_dedicated_mib": 12064.0,
+        "vram_shared_mib": 460.5,
+        "process_ws_gib": 10.068,
+        "physical_used_gib": 25.343
+      },
+      "failure": null
+    },
+    {
+      "tag": "huge-ud-q2kxl-ncpumoe8-pp32768",
+      "kind": "pp",
+      "n": 32768,
+      "depth": 0,
+      "tokens_per_second": 918.42,
+      "stddev": 7.41,
+      "timed_out": false,
+      "wall_s": 150.2,
+      "peak": {
+        "vram_dedicated_mib": 12211.3,
+        "vram_shared_mib": 474.0,
+        "process_ws_gib": 10.104,
+        "physical_used_gib": 25.409
+      },
+      "failure": null
+    },
+    {
+      "tag": "huge-ud-q2kxl-ncpumoe8-tg128",
+      "kind": "tg",
+      "n": 128,
+      "depth": 0,
+      "tokens_per_second": 51.68,
+      "stddev": 1.6,
+      "timed_out": false,
+      "wall_s": 12.7,
+      "peak": {
+        "vram_dedicated_mib": 11701.4,
+        "vram_shared_mib": 437.4,
+        "process_ws_gib": 9.769,
+        "physical_used_gib": 25.027
+      },
+      "failure": null
+    }
+  ]
+}

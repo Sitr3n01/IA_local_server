@@ -1,0 +1,658 @@
+{"name": "output_norm.weight", "shape": [2816], "quant": "F32", "offset": 0, "span_bytes": 11264, "elements": 2816, "layer": null, "category": "output"}
+{"name": "rope_freqs.weight", "shape": [256], "quant": "F32", "offset": 11264, "span_bytes": 1024, "elements": 256, "layer": null, "category": "other"}
+{"name": "token_embd.weight", "shape": [262144, 2816], "quant": "Q4_0", "offset": 12288, "span_bytes": 415236096, "elements": 738197504, "layer": null, "category": "embedding"}
+{"name": "blk.0.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 415248384, "span_bytes": 3244032, "elements": 5767168, "layer": 0, "category": "attention"}
+{"name": "blk.0.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 418492416, "span_bytes": 1024, "elements": 256, "layer": 0, "category": "norm"}
+{"name": "blk.0.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 418493440, "span_bytes": 11264, "elements": 2816, "layer": 0, "category": "norm"}
+{"name": "blk.0.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 418504704, "span_bytes": 6488064, "elements": 11534336, "layer": 0, "category": "attention"}
+{"name": "blk.0.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 424992768, "span_bytes": 6488064, "elements": 11534336, "layer": 0, "category": "attention"}
+{"name": "blk.0.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 431480832, "span_bytes": 1024, "elements": 256, "layer": 0, "category": "norm"}
+{"name": "blk.0.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 431481856, "span_bytes": 3244032, "elements": 5767168, "layer": 0, "category": "attention"}
+{"name": "blk.0.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 434725888, "span_bytes": 3345408, "elements": 5947392, "layer": 0, "category": "shared_ffn"}
+{"name": "blk.0.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 438071296, "span_bytes": 512, "elements": 128, "layer": 0, "category": "expert_ffn"}
+{"name": "blk.0.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 438071808, "span_bytes": 142737408, "elements": 253755392, "layer": 0, "category": "expert_ffn"}
+{"name": "blk.0.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 580809216, "span_bytes": 3345408, "elements": 5947392, "layer": 0, "category": "shared_ffn"}
+{"name": "blk.0.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 584154624, "span_bytes": 11264, "elements": 2816, "layer": 0, "category": "router"}
+{"name": "blk.0.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 584165888, "span_bytes": 1441792, "elements": 360448, "layer": 0, "category": "router"}
+{"name": "blk.0.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 585607680, "span_bytes": 285474816, "elements": 507510784, "layer": 0, "category": "expert_ffn"}
+{"name": "blk.0.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 871082496, "span_bytes": 11264, "elements": 2816, "layer": 0, "category": "norm"}
+{"name": "blk.0.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 871093760, "span_bytes": 3345408, "elements": 5947392, "layer": 0, "category": "shared_ffn"}
+{"name": "blk.0.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 874439168, "span_bytes": 32, "elements": 1, "layer": 0, "category": "other"}
+{"name": "blk.0.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 874439200, "span_bytes": 11264, "elements": 2816, "layer": 0, "category": "norm"}
+{"name": "blk.0.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 874450464, "span_bytes": 11264, "elements": 2816, "layer": 0, "category": "norm"}
+{"name": "blk.0.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 874461728, "span_bytes": 11264, "elements": 2816, "layer": 0, "category": "norm"}
+{"name": "blk.0.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 874472992, "span_bytes": 11264, "elements": 2816, "layer": 0, "category": "norm"}
+{"name": "blk.0.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 874484256, "span_bytes": 11264, "elements": 2816, "layer": 0, "category": "norm"}
+{"name": "blk.1.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 874495520, "span_bytes": 3244032, "elements": 5767168, "layer": 1, "category": "attention"}
+{"name": "blk.1.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 877739552, "span_bytes": 1024, "elements": 256, "layer": 1, "category": "norm"}
+{"name": "blk.1.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 877740576, "span_bytes": 11264, "elements": 2816, "layer": 1, "category": "norm"}
+{"name": "blk.1.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 877751840, "span_bytes": 6488064, "elements": 11534336, "layer": 1, "category": "attention"}
+{"name": "blk.1.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 884239904, "span_bytes": 6488064, "elements": 11534336, "layer": 1, "category": "attention"}
+{"name": "blk.1.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 890727968, "span_bytes": 1024, "elements": 256, "layer": 1, "category": "norm"}
+{"name": "blk.1.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 890728992, "span_bytes": 3244032, "elements": 5767168, "layer": 1, "category": "attention"}
+{"name": "blk.1.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 893973024, "span_bytes": 3345408, "elements": 5947392, "layer": 1, "category": "shared_ffn"}
+{"name": "blk.1.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 897318432, "span_bytes": 512, "elements": 128, "layer": 1, "category": "expert_ffn"}
+{"name": "blk.1.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 897318944, "span_bytes": 142737408, "elements": 253755392, "layer": 1, "category": "expert_ffn"}
+{"name": "blk.1.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 1040056352, "span_bytes": 3345408, "elements": 5947392, "layer": 1, "category": "shared_ffn"}
+{"name": "blk.1.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 1043401760, "span_bytes": 11264, "elements": 2816, "layer": 1, "category": "router"}
+{"name": "blk.1.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 1043413024, "span_bytes": 1441792, "elements": 360448, "layer": 1, "category": "router"}
+{"name": "blk.1.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 1044854816, "span_bytes": 285474816, "elements": 507510784, "layer": 1, "category": "expert_ffn"}
+{"name": "blk.1.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 1330329632, "span_bytes": 11264, "elements": 2816, "layer": 1, "category": "norm"}
+{"name": "blk.1.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 1330340896, "span_bytes": 3345408, "elements": 5947392, "layer": 1, "category": "shared_ffn"}
+{"name": "blk.1.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 1333686304, "span_bytes": 32, "elements": 1, "layer": 1, "category": "other"}
+{"name": "blk.1.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 1333686336, "span_bytes": 11264, "elements": 2816, "layer": 1, "category": "norm"}
+{"name": "blk.1.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 1333697600, "span_bytes": 11264, "elements": 2816, "layer": 1, "category": "norm"}
+{"name": "blk.1.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 1333708864, "span_bytes": 11264, "elements": 2816, "layer": 1, "category": "norm"}
+{"name": "blk.1.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 1333720128, "span_bytes": 11264, "elements": 2816, "layer": 1, "category": "norm"}
+{"name": "blk.1.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 1333731392, "span_bytes": 11264, "elements": 2816, "layer": 1, "category": "norm"}
+{"name": "blk.2.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 1333742656, "span_bytes": 3244032, "elements": 5767168, "layer": 2, "category": "attention"}
+{"name": "blk.2.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 1336986688, "span_bytes": 1024, "elements": 256, "layer": 2, "category": "norm"}
+{"name": "blk.2.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 1336987712, "span_bytes": 11264, "elements": 2816, "layer": 2, "category": "norm"}
+{"name": "blk.2.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 1336998976, "span_bytes": 6488064, "elements": 11534336, "layer": 2, "category": "attention"}
+{"name": "blk.2.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 1343487040, "span_bytes": 6488064, "elements": 11534336, "layer": 2, "category": "attention"}
+{"name": "blk.2.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 1349975104, "span_bytes": 1024, "elements": 256, "layer": 2, "category": "norm"}
+{"name": "blk.2.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 1349976128, "span_bytes": 3244032, "elements": 5767168, "layer": 2, "category": "attention"}
+{"name": "blk.2.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 1353220160, "span_bytes": 3345408, "elements": 5947392, "layer": 2, "category": "shared_ffn"}
+{"name": "blk.2.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 1356565568, "span_bytes": 512, "elements": 128, "layer": 2, "category": "expert_ffn"}
+{"name": "blk.2.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 1356566080, "span_bytes": 142737408, "elements": 253755392, "layer": 2, "category": "expert_ffn"}
+{"name": "blk.2.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 1499303488, "span_bytes": 3345408, "elements": 5947392, "layer": 2, "category": "shared_ffn"}
+{"name": "blk.2.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 1502648896, "span_bytes": 11264, "elements": 2816, "layer": 2, "category": "router"}
+{"name": "blk.2.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 1502660160, "span_bytes": 1441792, "elements": 360448, "layer": 2, "category": "router"}
+{"name": "blk.2.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 1504101952, "span_bytes": 285474816, "elements": 507510784, "layer": 2, "category": "expert_ffn"}
+{"name": "blk.2.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 1789576768, "span_bytes": 11264, "elements": 2816, "layer": 2, "category": "norm"}
+{"name": "blk.2.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 1789588032, "span_bytes": 3345408, "elements": 5947392, "layer": 2, "category": "shared_ffn"}
+{"name": "blk.2.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 1792933440, "span_bytes": 32, "elements": 1, "layer": 2, "category": "other"}
+{"name": "blk.2.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 1792933472, "span_bytes": 11264, "elements": 2816, "layer": 2, "category": "norm"}
+{"name": "blk.2.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 1792944736, "span_bytes": 11264, "elements": 2816, "layer": 2, "category": "norm"}
+{"name": "blk.2.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 1792956000, "span_bytes": 11264, "elements": 2816, "layer": 2, "category": "norm"}
+{"name": "blk.2.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 1792967264, "span_bytes": 11264, "elements": 2816, "layer": 2, "category": "norm"}
+{"name": "blk.2.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 1792978528, "span_bytes": 11264, "elements": 2816, "layer": 2, "category": "norm"}
+{"name": "blk.3.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 1792989792, "span_bytes": 3244032, "elements": 5767168, "layer": 3, "category": "attention"}
+{"name": "blk.3.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 1796233824, "span_bytes": 1024, "elements": 256, "layer": 3, "category": "norm"}
+{"name": "blk.3.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 1796234848, "span_bytes": 11264, "elements": 2816, "layer": 3, "category": "norm"}
+{"name": "blk.3.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 1796246112, "span_bytes": 6488064, "elements": 11534336, "layer": 3, "category": "attention"}
+{"name": "blk.3.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 1802734176, "span_bytes": 6488064, "elements": 11534336, "layer": 3, "category": "attention"}
+{"name": "blk.3.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 1809222240, "span_bytes": 1024, "elements": 256, "layer": 3, "category": "norm"}
+{"name": "blk.3.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 1809223264, "span_bytes": 3244032, "elements": 5767168, "layer": 3, "category": "attention"}
+{"name": "blk.3.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 1812467296, "span_bytes": 3345408, "elements": 5947392, "layer": 3, "category": "shared_ffn"}
+{"name": "blk.3.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 1815812704, "span_bytes": 512, "elements": 128, "layer": 3, "category": "expert_ffn"}
+{"name": "blk.3.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 1815813216, "span_bytes": 142737408, "elements": 253755392, "layer": 3, "category": "expert_ffn"}
+{"name": "blk.3.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 1958550624, "span_bytes": 3345408, "elements": 5947392, "layer": 3, "category": "shared_ffn"}
+{"name": "blk.3.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 1961896032, "span_bytes": 11264, "elements": 2816, "layer": 3, "category": "router"}
+{"name": "blk.3.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 1961907296, "span_bytes": 1441792, "elements": 360448, "layer": 3, "category": "router"}
+{"name": "blk.3.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 1963349088, "span_bytes": 285474816, "elements": 507510784, "layer": 3, "category": "expert_ffn"}
+{"name": "blk.3.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 2248823904, "span_bytes": 11264, "elements": 2816, "layer": 3, "category": "norm"}
+{"name": "blk.3.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 2248835168, "span_bytes": 3345408, "elements": 5947392, "layer": 3, "category": "shared_ffn"}
+{"name": "blk.3.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 2252180576, "span_bytes": 32, "elements": 1, "layer": 3, "category": "other"}
+{"name": "blk.3.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 2252180608, "span_bytes": 11264, "elements": 2816, "layer": 3, "category": "norm"}
+{"name": "blk.3.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 2252191872, "span_bytes": 11264, "elements": 2816, "layer": 3, "category": "norm"}
+{"name": "blk.3.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 2252203136, "span_bytes": 11264, "elements": 2816, "layer": 3, "category": "norm"}
+{"name": "blk.3.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 2252214400, "span_bytes": 11264, "elements": 2816, "layer": 3, "category": "norm"}
+{"name": "blk.3.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 2252225664, "span_bytes": 11264, "elements": 2816, "layer": 3, "category": "norm"}
+{"name": "blk.4.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 2252236928, "span_bytes": 3244032, "elements": 5767168, "layer": 4, "category": "attention"}
+{"name": "blk.4.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 2255480960, "span_bytes": 1024, "elements": 256, "layer": 4, "category": "norm"}
+{"name": "blk.4.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 2255481984, "span_bytes": 11264, "elements": 2816, "layer": 4, "category": "norm"}
+{"name": "blk.4.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 2255493248, "span_bytes": 6488064, "elements": 11534336, "layer": 4, "category": "attention"}
+{"name": "blk.4.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 2261981312, "span_bytes": 6488064, "elements": 11534336, "layer": 4, "category": "attention"}
+{"name": "blk.4.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 2268469376, "span_bytes": 1024, "elements": 256, "layer": 4, "category": "norm"}
+{"name": "blk.4.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 2268470400, "span_bytes": 3244032, "elements": 5767168, "layer": 4, "category": "attention"}
+{"name": "blk.4.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 2271714432, "span_bytes": 3345408, "elements": 5947392, "layer": 4, "category": "shared_ffn"}
+{"name": "blk.4.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 2275059840, "span_bytes": 512, "elements": 128, "layer": 4, "category": "expert_ffn"}
+{"name": "blk.4.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 2275060352, "span_bytes": 142737408, "elements": 253755392, "layer": 4, "category": "expert_ffn"}
+{"name": "blk.4.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 2417797760, "span_bytes": 3345408, "elements": 5947392, "layer": 4, "category": "shared_ffn"}
+{"name": "blk.4.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 2421143168, "span_bytes": 11264, "elements": 2816, "layer": 4, "category": "router"}
+{"name": "blk.4.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 2421154432, "span_bytes": 1441792, "elements": 360448, "layer": 4, "category": "router"}
+{"name": "blk.4.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 2422596224, "span_bytes": 285474816, "elements": 507510784, "layer": 4, "category": "expert_ffn"}
+{"name": "blk.4.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 2708071040, "span_bytes": 11264, "elements": 2816, "layer": 4, "category": "norm"}
+{"name": "blk.4.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 2708082304, "span_bytes": 3345408, "elements": 5947392, "layer": 4, "category": "shared_ffn"}
+{"name": "blk.4.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 2711427712, "span_bytes": 32, "elements": 1, "layer": 4, "category": "other"}
+{"name": "blk.4.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 2711427744, "span_bytes": 11264, "elements": 2816, "layer": 4, "category": "norm"}
+{"name": "blk.4.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 2711439008, "span_bytes": 11264, "elements": 2816, "layer": 4, "category": "norm"}
+{"name": "blk.4.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 2711450272, "span_bytes": 11264, "elements": 2816, "layer": 4, "category": "norm"}
+{"name": "blk.4.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 2711461536, "span_bytes": 11264, "elements": 2816, "layer": 4, "category": "norm"}
+{"name": "blk.4.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 2711472800, "span_bytes": 11264, "elements": 2816, "layer": 4, "category": "norm"}
+{"name": "blk.5.attn_k.weight", "shape": [1024, 2816], "quant": "Q4_0", "offset": 2711484064, "span_bytes": 1622016, "elements": 2883584, "layer": 5, "category": "attention"}
+{"name": "blk.5.attn_k_norm.weight", "shape": [512], "quant": "F32", "offset": 2713106080, "span_bytes": 2048, "elements": 512, "layer": 5, "category": "norm"}
+{"name": "blk.5.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 2713108128, "span_bytes": 11264, "elements": 2816, "layer": 5, "category": "norm"}
+{"name": "blk.5.attn_output.weight", "shape": [2816, 8192], "quant": "Q4_0", "offset": 2713119392, "span_bytes": 12976128, "elements": 23068672, "layer": 5, "category": "attention"}
+{"name": "blk.5.attn_q.weight", "shape": [8192, 2816], "quant": "Q4_0", "offset": 2726095520, "span_bytes": 12976128, "elements": 23068672, "layer": 5, "category": "attention"}
+{"name": "blk.5.attn_q_norm.weight", "shape": [512], "quant": "F32", "offset": 2739071648, "span_bytes": 2048, "elements": 512, "layer": 5, "category": "norm"}
+{"name": "blk.5.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 2739073696, "span_bytes": 3345408, "elements": 5947392, "layer": 5, "category": "shared_ffn"}
+{"name": "blk.5.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 2742419104, "span_bytes": 512, "elements": 128, "layer": 5, "category": "expert_ffn"}
+{"name": "blk.5.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 2742419616, "span_bytes": 142737408, "elements": 253755392, "layer": 5, "category": "expert_ffn"}
+{"name": "blk.5.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 2885157024, "span_bytes": 3345408, "elements": 5947392, "layer": 5, "category": "shared_ffn"}
+{"name": "blk.5.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 2888502432, "span_bytes": 11264, "elements": 2816, "layer": 5, "category": "router"}
+{"name": "blk.5.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 2888513696, "span_bytes": 1441792, "elements": 360448, "layer": 5, "category": "router"}
+{"name": "blk.5.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 2889955488, "span_bytes": 285474816, "elements": 507510784, "layer": 5, "category": "expert_ffn"}
+{"name": "blk.5.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 3175430304, "span_bytes": 11264, "elements": 2816, "layer": 5, "category": "norm"}
+{"name": "blk.5.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 3175441568, "span_bytes": 3345408, "elements": 5947392, "layer": 5, "category": "shared_ffn"}
+{"name": "blk.5.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 3178786976, "span_bytes": 32, "elements": 1, "layer": 5, "category": "other"}
+{"name": "blk.5.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 3178787008, "span_bytes": 11264, "elements": 2816, "layer": 5, "category": "norm"}
+{"name": "blk.5.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 3178798272, "span_bytes": 11264, "elements": 2816, "layer": 5, "category": "norm"}
+{"name": "blk.5.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 3178809536, "span_bytes": 11264, "elements": 2816, "layer": 5, "category": "norm"}
+{"name": "blk.5.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 3178820800, "span_bytes": 11264, "elements": 2816, "layer": 5, "category": "norm"}
+{"name": "blk.5.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 3178832064, "span_bytes": 11264, "elements": 2816, "layer": 5, "category": "norm"}
+{"name": "blk.6.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 3178843328, "span_bytes": 3244032, "elements": 5767168, "layer": 6, "category": "attention"}
+{"name": "blk.6.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 3182087360, "span_bytes": 1024, "elements": 256, "layer": 6, "category": "norm"}
+{"name": "blk.6.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 3182088384, "span_bytes": 11264, "elements": 2816, "layer": 6, "category": "norm"}
+{"name": "blk.6.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 3182099648, "span_bytes": 6488064, "elements": 11534336, "layer": 6, "category": "attention"}
+{"name": "blk.6.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 3188587712, "span_bytes": 6488064, "elements": 11534336, "layer": 6, "category": "attention"}
+{"name": "blk.6.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 3195075776, "span_bytes": 1024, "elements": 256, "layer": 6, "category": "norm"}
+{"name": "blk.6.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 3195076800, "span_bytes": 3244032, "elements": 5767168, "layer": 6, "category": "attention"}
+{"name": "blk.6.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 3198320832, "span_bytes": 3345408, "elements": 5947392, "layer": 6, "category": "shared_ffn"}
+{"name": "blk.6.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 3201666240, "span_bytes": 512, "elements": 128, "layer": 6, "category": "expert_ffn"}
+{"name": "blk.6.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 3201666752, "span_bytes": 142737408, "elements": 253755392, "layer": 6, "category": "expert_ffn"}
+{"name": "blk.6.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 3344404160, "span_bytes": 3345408, "elements": 5947392, "layer": 6, "category": "shared_ffn"}
+{"name": "blk.6.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 3347749568, "span_bytes": 11264, "elements": 2816, "layer": 6, "category": "router"}
+{"name": "blk.6.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 3347760832, "span_bytes": 1441792, "elements": 360448, "layer": 6, "category": "router"}
+{"name": "blk.6.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 3349202624, "span_bytes": 285474816, "elements": 507510784, "layer": 6, "category": "expert_ffn"}
+{"name": "blk.6.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 3634677440, "span_bytes": 11264, "elements": 2816, "layer": 6, "category": "norm"}
+{"name": "blk.6.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 3634688704, "span_bytes": 3345408, "elements": 5947392, "layer": 6, "category": "shared_ffn"}
+{"name": "blk.6.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 3638034112, "span_bytes": 32, "elements": 1, "layer": 6, "category": "other"}
+{"name": "blk.6.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 3638034144, "span_bytes": 11264, "elements": 2816, "layer": 6, "category": "norm"}
+{"name": "blk.6.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 3638045408, "span_bytes": 11264, "elements": 2816, "layer": 6, "category": "norm"}
+{"name": "blk.6.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 3638056672, "span_bytes": 11264, "elements": 2816, "layer": 6, "category": "norm"}
+{"name": "blk.6.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 3638067936, "span_bytes": 11264, "elements": 2816, "layer": 6, "category": "norm"}
+{"name": "blk.6.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 3638079200, "span_bytes": 11264, "elements": 2816, "layer": 6, "category": "norm"}
+{"name": "blk.7.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 3638090464, "span_bytes": 3244032, "elements": 5767168, "layer": 7, "category": "attention"}
+{"name": "blk.7.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 3641334496, "span_bytes": 1024, "elements": 256, "layer": 7, "category": "norm"}
+{"name": "blk.7.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 3641335520, "span_bytes": 11264, "elements": 2816, "layer": 7, "category": "norm"}
+{"name": "blk.7.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 3641346784, "span_bytes": 6488064, "elements": 11534336, "layer": 7, "category": "attention"}
+{"name": "blk.7.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 3647834848, "span_bytes": 6488064, "elements": 11534336, "layer": 7, "category": "attention"}
+{"name": "blk.7.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 3654322912, "span_bytes": 1024, "elements": 256, "layer": 7, "category": "norm"}
+{"name": "blk.7.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 3654323936, "span_bytes": 3244032, "elements": 5767168, "layer": 7, "category": "attention"}
+{"name": "blk.7.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 3657567968, "span_bytes": 3345408, "elements": 5947392, "layer": 7, "category": "shared_ffn"}
+{"name": "blk.7.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 3660913376, "span_bytes": 512, "elements": 128, "layer": 7, "category": "expert_ffn"}
+{"name": "blk.7.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 3660913888, "span_bytes": 142737408, "elements": 253755392, "layer": 7, "category": "expert_ffn"}
+{"name": "blk.7.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 3803651296, "span_bytes": 3345408, "elements": 5947392, "layer": 7, "category": "shared_ffn"}
+{"name": "blk.7.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 3806996704, "span_bytes": 11264, "elements": 2816, "layer": 7, "category": "router"}
+{"name": "blk.7.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 3807007968, "span_bytes": 1441792, "elements": 360448, "layer": 7, "category": "router"}
+{"name": "blk.7.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 3808449760, "span_bytes": 285474816, "elements": 507510784, "layer": 7, "category": "expert_ffn"}
+{"name": "blk.7.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 4093924576, "span_bytes": 11264, "elements": 2816, "layer": 7, "category": "norm"}
+{"name": "blk.7.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 4093935840, "span_bytes": 3345408, "elements": 5947392, "layer": 7, "category": "shared_ffn"}
+{"name": "blk.7.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 4097281248, "span_bytes": 32, "elements": 1, "layer": 7, "category": "other"}
+{"name": "blk.7.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 4097281280, "span_bytes": 11264, "elements": 2816, "layer": 7, "category": "norm"}
+{"name": "blk.7.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 4097292544, "span_bytes": 11264, "elements": 2816, "layer": 7, "category": "norm"}
+{"name": "blk.7.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 4097303808, "span_bytes": 11264, "elements": 2816, "layer": 7, "category": "norm"}
+{"name": "blk.7.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 4097315072, "span_bytes": 11264, "elements": 2816, "layer": 7, "category": "norm"}
+{"name": "blk.7.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 4097326336, "span_bytes": 11264, "elements": 2816, "layer": 7, "category": "norm"}
+{"name": "blk.8.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 4097337600, "span_bytes": 3244032, "elements": 5767168, "layer": 8, "category": "attention"}
+{"name": "blk.8.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 4100581632, "span_bytes": 1024, "elements": 256, "layer": 8, "category": "norm"}
+{"name": "blk.8.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 4100582656, "span_bytes": 11264, "elements": 2816, "layer": 8, "category": "norm"}
+{"name": "blk.8.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 4100593920, "span_bytes": 6488064, "elements": 11534336, "layer": 8, "category": "attention"}
+{"name": "blk.8.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 4107081984, "span_bytes": 6488064, "elements": 11534336, "layer": 8, "category": "attention"}
+{"name": "blk.8.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 4113570048, "span_bytes": 1024, "elements": 256, "layer": 8, "category": "norm"}
+{"name": "blk.8.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 4113571072, "span_bytes": 3244032, "elements": 5767168, "layer": 8, "category": "attention"}
+{"name": "blk.8.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 4116815104, "span_bytes": 3345408, "elements": 5947392, "layer": 8, "category": "shared_ffn"}
+{"name": "blk.8.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 4120160512, "span_bytes": 512, "elements": 128, "layer": 8, "category": "expert_ffn"}
+{"name": "blk.8.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 4120161024, "span_bytes": 142737408, "elements": 253755392, "layer": 8, "category": "expert_ffn"}
+{"name": "blk.8.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 4262898432, "span_bytes": 3345408, "elements": 5947392, "layer": 8, "category": "shared_ffn"}
+{"name": "blk.8.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 4266243840, "span_bytes": 11264, "elements": 2816, "layer": 8, "category": "router"}
+{"name": "blk.8.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 4266255104, "span_bytes": 1441792, "elements": 360448, "layer": 8, "category": "router"}
+{"name": "blk.8.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 4267696896, "span_bytes": 285474816, "elements": 507510784, "layer": 8, "category": "expert_ffn"}
+{"name": "blk.8.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 4553171712, "span_bytes": 11264, "elements": 2816, "layer": 8, "category": "norm"}
+{"name": "blk.8.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 4553182976, "span_bytes": 3345408, "elements": 5947392, "layer": 8, "category": "shared_ffn"}
+{"name": "blk.8.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 4556528384, "span_bytes": 32, "elements": 1, "layer": 8, "category": "other"}
+{"name": "blk.8.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 4556528416, "span_bytes": 11264, "elements": 2816, "layer": 8, "category": "norm"}
+{"name": "blk.8.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 4556539680, "span_bytes": 11264, "elements": 2816, "layer": 8, "category": "norm"}
+{"name": "blk.8.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 4556550944, "span_bytes": 11264, "elements": 2816, "layer": 8, "category": "norm"}
+{"name": "blk.8.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 4556562208, "span_bytes": 11264, "elements": 2816, "layer": 8, "category": "norm"}
+{"name": "blk.8.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 4556573472, "span_bytes": 11264, "elements": 2816, "layer": 8, "category": "norm"}
+{"name": "blk.9.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 4556584736, "span_bytes": 3244032, "elements": 5767168, "layer": 9, "category": "attention"}
+{"name": "blk.9.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 4559828768, "span_bytes": 1024, "elements": 256, "layer": 9, "category": "norm"}
+{"name": "blk.9.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 4559829792, "span_bytes": 11264, "elements": 2816, "layer": 9, "category": "norm"}
+{"name": "blk.9.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 4559841056, "span_bytes": 6488064, "elements": 11534336, "layer": 9, "category": "attention"}
+{"name": "blk.9.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 4566329120, "span_bytes": 6488064, "elements": 11534336, "layer": 9, "category": "attention"}
+{"name": "blk.9.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 4572817184, "span_bytes": 1024, "elements": 256, "layer": 9, "category": "norm"}
+{"name": "blk.9.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 4572818208, "span_bytes": 3244032, "elements": 5767168, "layer": 9, "category": "attention"}
+{"name": "blk.9.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 4576062240, "span_bytes": 3345408, "elements": 5947392, "layer": 9, "category": "shared_ffn"}
+{"name": "blk.9.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 4579407648, "span_bytes": 512, "elements": 128, "layer": 9, "category": "expert_ffn"}
+{"name": "blk.9.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 4579408160, "span_bytes": 142737408, "elements": 253755392, "layer": 9, "category": "expert_ffn"}
+{"name": "blk.9.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 4722145568, "span_bytes": 3345408, "elements": 5947392, "layer": 9, "category": "shared_ffn"}
+{"name": "blk.9.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 4725490976, "span_bytes": 11264, "elements": 2816, "layer": 9, "category": "router"}
+{"name": "blk.9.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 4725502240, "span_bytes": 1441792, "elements": 360448, "layer": 9, "category": "router"}
+{"name": "blk.9.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 4726944032, "span_bytes": 285474816, "elements": 507510784, "layer": 9, "category": "expert_ffn"}
+{"name": "blk.9.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 5012418848, "span_bytes": 11264, "elements": 2816, "layer": 9, "category": "norm"}
+{"name": "blk.9.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 5012430112, "span_bytes": 3345408, "elements": 5947392, "layer": 9, "category": "shared_ffn"}
+{"name": "blk.9.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 5015775520, "span_bytes": 32, "elements": 1, "layer": 9, "category": "other"}
+{"name": "blk.9.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 5015775552, "span_bytes": 11264, "elements": 2816, "layer": 9, "category": "norm"}
+{"name": "blk.9.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 5015786816, "span_bytes": 11264, "elements": 2816, "layer": 9, "category": "norm"}
+{"name": "blk.9.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 5015798080, "span_bytes": 11264, "elements": 2816, "layer": 9, "category": "norm"}
+{"name": "blk.9.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 5015809344, "span_bytes": 11264, "elements": 2816, "layer": 9, "category": "norm"}
+{"name": "blk.9.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 5015820608, "span_bytes": 11264, "elements": 2816, "layer": 9, "category": "norm"}
+{"name": "blk.10.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 5015831872, "span_bytes": 3244032, "elements": 5767168, "layer": 10, "category": "attention"}
+{"name": "blk.10.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 5019075904, "span_bytes": 1024, "elements": 256, "layer": 10, "category": "norm"}
+{"name": "blk.10.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 5019076928, "span_bytes": 11264, "elements": 2816, "layer": 10, "category": "norm"}
+{"name": "blk.10.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 5019088192, "span_bytes": 6488064, "elements": 11534336, "layer": 10, "category": "attention"}
+{"name": "blk.10.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 5025576256, "span_bytes": 6488064, "elements": 11534336, "layer": 10, "category": "attention"}
+{"name": "blk.10.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 5032064320, "span_bytes": 1024, "elements": 256, "layer": 10, "category": "norm"}
+{"name": "blk.10.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 5032065344, "span_bytes": 3244032, "elements": 5767168, "layer": 10, "category": "attention"}
+{"name": "blk.10.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 5035309376, "span_bytes": 3345408, "elements": 5947392, "layer": 10, "category": "shared_ffn"}
+{"name": "blk.10.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 5038654784, "span_bytes": 512, "elements": 128, "layer": 10, "category": "expert_ffn"}
+{"name": "blk.10.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 5038655296, "span_bytes": 142737408, "elements": 253755392, "layer": 10, "category": "expert_ffn"}
+{"name": "blk.10.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 5181392704, "span_bytes": 3345408, "elements": 5947392, "layer": 10, "category": "shared_ffn"}
+{"name": "blk.10.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 5184738112, "span_bytes": 11264, "elements": 2816, "layer": 10, "category": "router"}
+{"name": "blk.10.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 5184749376, "span_bytes": 1441792, "elements": 360448, "layer": 10, "category": "router"}
+{"name": "blk.10.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 5186191168, "span_bytes": 285474816, "elements": 507510784, "layer": 10, "category": "expert_ffn"}
+{"name": "blk.10.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 5471665984, "span_bytes": 11264, "elements": 2816, "layer": 10, "category": "norm"}
+{"name": "blk.10.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 5471677248, "span_bytes": 3345408, "elements": 5947392, "layer": 10, "category": "shared_ffn"}
+{"name": "blk.10.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 5475022656, "span_bytes": 32, "elements": 1, "layer": 10, "category": "other"}
+{"name": "blk.10.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 5475022688, "span_bytes": 11264, "elements": 2816, "layer": 10, "category": "norm"}
+{"name": "blk.10.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 5475033952, "span_bytes": 11264, "elements": 2816, "layer": 10, "category": "norm"}
+{"name": "blk.10.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 5475045216, "span_bytes": 11264, "elements": 2816, "layer": 10, "category": "norm"}
+{"name": "blk.10.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 5475056480, "span_bytes": 11264, "elements": 2816, "layer": 10, "category": "norm"}
+{"name": "blk.10.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 5475067744, "span_bytes": 11264, "elements": 2816, "layer": 10, "category": "norm"}
+{"name": "blk.11.attn_k.weight", "shape": [1024, 2816], "quant": "Q4_0", "offset": 5475079008, "span_bytes": 1622016, "elements": 2883584, "layer": 11, "category": "attention"}
+{"name": "blk.11.attn_k_norm.weight", "shape": [512], "quant": "F32", "offset": 5476701024, "span_bytes": 2048, "elements": 512, "layer": 11, "category": "norm"}
+{"name": "blk.11.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 5476703072, "span_bytes": 11264, "elements": 2816, "layer": 11, "category": "norm"}
+{"name": "blk.11.attn_output.weight", "shape": [2816, 8192], "quant": "Q4_0", "offset": 5476714336, "span_bytes": 12976128, "elements": 23068672, "layer": 11, "category": "attention"}
+{"name": "blk.11.attn_q.weight", "shape": [8192, 2816], "quant": "Q4_0", "offset": 5489690464, "span_bytes": 12976128, "elements": 23068672, "layer": 11, "category": "attention"}
+{"name": "blk.11.attn_q_norm.weight", "shape": [512], "quant": "F32", "offset": 5502666592, "span_bytes": 2048, "elements": 512, "layer": 11, "category": "norm"}
+{"name": "blk.11.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 5502668640, "span_bytes": 3345408, "elements": 5947392, "layer": 11, "category": "shared_ffn"}
+{"name": "blk.11.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 5506014048, "span_bytes": 512, "elements": 128, "layer": 11, "category": "expert_ffn"}
+{"name": "blk.11.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 5506014560, "span_bytes": 142737408, "elements": 253755392, "layer": 11, "category": "expert_ffn"}
+{"name": "blk.11.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 5648751968, "span_bytes": 3345408, "elements": 5947392, "layer": 11, "category": "shared_ffn"}
+{"name": "blk.11.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 5652097376, "span_bytes": 11264, "elements": 2816, "layer": 11, "category": "router"}
+{"name": "blk.11.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 5652108640, "span_bytes": 1441792, "elements": 360448, "layer": 11, "category": "router"}
+{"name": "blk.11.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 5653550432, "span_bytes": 285474816, "elements": 507510784, "layer": 11, "category": "expert_ffn"}
+{"name": "blk.11.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 5939025248, "span_bytes": 11264, "elements": 2816, "layer": 11, "category": "norm"}
+{"name": "blk.11.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 5939036512, "span_bytes": 3345408, "elements": 5947392, "layer": 11, "category": "shared_ffn"}
+{"name": "blk.11.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 5942381920, "span_bytes": 32, "elements": 1, "layer": 11, "category": "other"}
+{"name": "blk.11.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 5942381952, "span_bytes": 11264, "elements": 2816, "layer": 11, "category": "norm"}
+{"name": "blk.11.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 5942393216, "span_bytes": 11264, "elements": 2816, "layer": 11, "category": "norm"}
+{"name": "blk.11.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 5942404480, "span_bytes": 11264, "elements": 2816, "layer": 11, "category": "norm"}
+{"name": "blk.11.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 5942415744, "span_bytes": 11264, "elements": 2816, "layer": 11, "category": "norm"}
+{"name": "blk.11.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 5942427008, "span_bytes": 11264, "elements": 2816, "layer": 11, "category": "norm"}
+{"name": "blk.12.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 5942438272, "span_bytes": 3244032, "elements": 5767168, "layer": 12, "category": "attention"}
+{"name": "blk.12.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 5945682304, "span_bytes": 1024, "elements": 256, "layer": 12, "category": "norm"}
+{"name": "blk.12.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 5945683328, "span_bytes": 11264, "elements": 2816, "layer": 12, "category": "norm"}
+{"name": "blk.12.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 5945694592, "span_bytes": 6488064, "elements": 11534336, "layer": 12, "category": "attention"}
+{"name": "blk.12.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 5952182656, "span_bytes": 6488064, "elements": 11534336, "layer": 12, "category": "attention"}
+{"name": "blk.12.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 5958670720, "span_bytes": 1024, "elements": 256, "layer": 12, "category": "norm"}
+{"name": "blk.12.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 5958671744, "span_bytes": 3244032, "elements": 5767168, "layer": 12, "category": "attention"}
+{"name": "blk.12.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 5961915776, "span_bytes": 3345408, "elements": 5947392, "layer": 12, "category": "shared_ffn"}
+{"name": "blk.12.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 5965261184, "span_bytes": 512, "elements": 128, "layer": 12, "category": "expert_ffn"}
+{"name": "blk.12.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 5965261696, "span_bytes": 142737408, "elements": 253755392, "layer": 12, "category": "expert_ffn"}
+{"name": "blk.12.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 6107999104, "span_bytes": 3345408, "elements": 5947392, "layer": 12, "category": "shared_ffn"}
+{"name": "blk.12.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 6111344512, "span_bytes": 11264, "elements": 2816, "layer": 12, "category": "router"}
+{"name": "blk.12.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 6111355776, "span_bytes": 1441792, "elements": 360448, "layer": 12, "category": "router"}
+{"name": "blk.12.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 6112797568, "span_bytes": 285474816, "elements": 507510784, "layer": 12, "category": "expert_ffn"}
+{"name": "blk.12.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 6398272384, "span_bytes": 11264, "elements": 2816, "layer": 12, "category": "norm"}
+{"name": "blk.12.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 6398283648, "span_bytes": 3345408, "elements": 5947392, "layer": 12, "category": "shared_ffn"}
+{"name": "blk.12.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 6401629056, "span_bytes": 32, "elements": 1, "layer": 12, "category": "other"}
+{"name": "blk.12.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 6401629088, "span_bytes": 11264, "elements": 2816, "layer": 12, "category": "norm"}
+{"name": "blk.12.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 6401640352, "span_bytes": 11264, "elements": 2816, "layer": 12, "category": "norm"}
+{"name": "blk.12.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 6401651616, "span_bytes": 11264, "elements": 2816, "layer": 12, "category": "norm"}
+{"name": "blk.12.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 6401662880, "span_bytes": 11264, "elements": 2816, "layer": 12, "category": "norm"}
+{"name": "blk.12.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 6401674144, "span_bytes": 11264, "elements": 2816, "layer": 12, "category": "norm"}
+{"name": "blk.13.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 6401685408, "span_bytes": 3244032, "elements": 5767168, "layer": 13, "category": "attention"}
+{"name": "blk.13.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 6404929440, "span_bytes": 1024, "elements": 256, "layer": 13, "category": "norm"}
+{"name": "blk.13.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 6404930464, "span_bytes": 11264, "elements": 2816, "layer": 13, "category": "norm"}
+{"name": "blk.13.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 6404941728, "span_bytes": 6488064, "elements": 11534336, "layer": 13, "category": "attention"}
+{"name": "blk.13.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 6411429792, "span_bytes": 6488064, "elements": 11534336, "layer": 13, "category": "attention"}
+{"name": "blk.13.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 6417917856, "span_bytes": 1024, "elements": 256, "layer": 13, "category": "norm"}
+{"name": "blk.13.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 6417918880, "span_bytes": 3244032, "elements": 5767168, "layer": 13, "category": "attention"}
+{"name": "blk.13.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 6421162912, "span_bytes": 3345408, "elements": 5947392, "layer": 13, "category": "shared_ffn"}
+{"name": "blk.13.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 6424508320, "span_bytes": 512, "elements": 128, "layer": 13, "category": "expert_ffn"}
+{"name": "blk.13.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 6424508832, "span_bytes": 142737408, "elements": 253755392, "layer": 13, "category": "expert_ffn"}
+{"name": "blk.13.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 6567246240, "span_bytes": 3345408, "elements": 5947392, "layer": 13, "category": "shared_ffn"}
+{"name": "blk.13.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 6570591648, "span_bytes": 11264, "elements": 2816, "layer": 13, "category": "router"}
+{"name": "blk.13.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 6570602912, "span_bytes": 1441792, "elements": 360448, "layer": 13, "category": "router"}
+{"name": "blk.13.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 6572044704, "span_bytes": 285474816, "elements": 507510784, "layer": 13, "category": "expert_ffn"}
+{"name": "blk.13.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 6857519520, "span_bytes": 11264, "elements": 2816, "layer": 13, "category": "norm"}
+{"name": "blk.13.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 6857530784, "span_bytes": 3345408, "elements": 5947392, "layer": 13, "category": "shared_ffn"}
+{"name": "blk.13.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 6860876192, "span_bytes": 32, "elements": 1, "layer": 13, "category": "other"}
+{"name": "blk.13.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 6860876224, "span_bytes": 11264, "elements": 2816, "layer": 13, "category": "norm"}
+{"name": "blk.13.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 6860887488, "span_bytes": 11264, "elements": 2816, "layer": 13, "category": "norm"}
+{"name": "blk.13.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 6860898752, "span_bytes": 11264, "elements": 2816, "layer": 13, "category": "norm"}
+{"name": "blk.13.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 6860910016, "span_bytes": 11264, "elements": 2816, "layer": 13, "category": "norm"}
+{"name": "blk.13.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 6860921280, "span_bytes": 11264, "elements": 2816, "layer": 13, "category": "norm"}
+{"name": "blk.14.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 6860932544, "span_bytes": 3244032, "elements": 5767168, "layer": 14, "category": "attention"}
+{"name": "blk.14.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 6864176576, "span_bytes": 1024, "elements": 256, "layer": 14, "category": "norm"}
+{"name": "blk.14.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 6864177600, "span_bytes": 11264, "elements": 2816, "layer": 14, "category": "norm"}
+{"name": "blk.14.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 6864188864, "span_bytes": 6488064, "elements": 11534336, "layer": 14, "category": "attention"}
+{"name": "blk.14.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 6870676928, "span_bytes": 6488064, "elements": 11534336, "layer": 14, "category": "attention"}
+{"name": "blk.14.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 6877164992, "span_bytes": 1024, "elements": 256, "layer": 14, "category": "norm"}
+{"name": "blk.14.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 6877166016, "span_bytes": 3244032, "elements": 5767168, "layer": 14, "category": "attention"}
+{"name": "blk.14.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 6880410048, "span_bytes": 3345408, "elements": 5947392, "layer": 14, "category": "shared_ffn"}
+{"name": "blk.14.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 6883755456, "span_bytes": 512, "elements": 128, "layer": 14, "category": "expert_ffn"}
+{"name": "blk.14.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 6883755968, "span_bytes": 142737408, "elements": 253755392, "layer": 14, "category": "expert_ffn"}
+{"name": "blk.14.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 7026493376, "span_bytes": 3345408, "elements": 5947392, "layer": 14, "category": "shared_ffn"}
+{"name": "blk.14.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 7029838784, "span_bytes": 11264, "elements": 2816, "layer": 14, "category": "router"}
+{"name": "blk.14.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 7029850048, "span_bytes": 1441792, "elements": 360448, "layer": 14, "category": "router"}
+{"name": "blk.14.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 7031291840, "span_bytes": 285474816, "elements": 507510784, "layer": 14, "category": "expert_ffn"}
+{"name": "blk.14.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 7316766656, "span_bytes": 11264, "elements": 2816, "layer": 14, "category": "norm"}
+{"name": "blk.14.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 7316777920, "span_bytes": 3345408, "elements": 5947392, "layer": 14, "category": "shared_ffn"}
+{"name": "blk.14.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 7320123328, "span_bytes": 32, "elements": 1, "layer": 14, "category": "other"}
+{"name": "blk.14.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 7320123360, "span_bytes": 11264, "elements": 2816, "layer": 14, "category": "norm"}
+{"name": "blk.14.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 7320134624, "span_bytes": 11264, "elements": 2816, "layer": 14, "category": "norm"}
+{"name": "blk.14.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 7320145888, "span_bytes": 11264, "elements": 2816, "layer": 14, "category": "norm"}
+{"name": "blk.14.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 7320157152, "span_bytes": 11264, "elements": 2816, "layer": 14, "category": "norm"}
+{"name": "blk.14.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 7320168416, "span_bytes": 11264, "elements": 2816, "layer": 14, "category": "norm"}
+{"name": "blk.15.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 7320179680, "span_bytes": 3244032, "elements": 5767168, "layer": 15, "category": "attention"}
+{"name": "blk.15.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 7323423712, "span_bytes": 1024, "elements": 256, "layer": 15, "category": "norm"}
+{"name": "blk.15.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 7323424736, "span_bytes": 11264, "elements": 2816, "layer": 15, "category": "norm"}
+{"name": "blk.15.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 7323436000, "span_bytes": 6488064, "elements": 11534336, "layer": 15, "category": "attention"}
+{"name": "blk.15.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 7329924064, "span_bytes": 6488064, "elements": 11534336, "layer": 15, "category": "attention"}
+{"name": "blk.15.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 7336412128, "span_bytes": 1024, "elements": 256, "layer": 15, "category": "norm"}
+{"name": "blk.15.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 7336413152, "span_bytes": 3244032, "elements": 5767168, "layer": 15, "category": "attention"}
+{"name": "blk.15.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 7339657184, "span_bytes": 3345408, "elements": 5947392, "layer": 15, "category": "shared_ffn"}
+{"name": "blk.15.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 7343002592, "span_bytes": 512, "elements": 128, "layer": 15, "category": "expert_ffn"}
+{"name": "blk.15.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 7343003104, "span_bytes": 142737408, "elements": 253755392, "layer": 15, "category": "expert_ffn"}
+{"name": "blk.15.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 7485740512, "span_bytes": 3345408, "elements": 5947392, "layer": 15, "category": "shared_ffn"}
+{"name": "blk.15.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 7489085920, "span_bytes": 11264, "elements": 2816, "layer": 15, "category": "router"}
+{"name": "blk.15.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 7489097184, "span_bytes": 1441792, "elements": 360448, "layer": 15, "category": "router"}
+{"name": "blk.15.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 7490538976, "span_bytes": 285474816, "elements": 507510784, "layer": 15, "category": "expert_ffn"}
+{"name": "blk.15.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 7776013792, "span_bytes": 11264, "elements": 2816, "layer": 15, "category": "norm"}
+{"name": "blk.15.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 7776025056, "span_bytes": 3345408, "elements": 5947392, "layer": 15, "category": "shared_ffn"}
+{"name": "blk.15.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 7779370464, "span_bytes": 32, "elements": 1, "layer": 15, "category": "other"}
+{"name": "blk.15.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 7779370496, "span_bytes": 11264, "elements": 2816, "layer": 15, "category": "norm"}
+{"name": "blk.15.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 7779381760, "span_bytes": 11264, "elements": 2816, "layer": 15, "category": "norm"}
+{"name": "blk.15.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 7779393024, "span_bytes": 11264, "elements": 2816, "layer": 15, "category": "norm"}
+{"name": "blk.15.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 7779404288, "span_bytes": 11264, "elements": 2816, "layer": 15, "category": "norm"}
+{"name": "blk.15.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 7779415552, "span_bytes": 11264, "elements": 2816, "layer": 15, "category": "norm"}
+{"name": "blk.16.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 7779426816, "span_bytes": 3244032, "elements": 5767168, "layer": 16, "category": "attention"}
+{"name": "blk.16.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 7782670848, "span_bytes": 1024, "elements": 256, "layer": 16, "category": "norm"}
+{"name": "blk.16.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 7782671872, "span_bytes": 11264, "elements": 2816, "layer": 16, "category": "norm"}
+{"name": "blk.16.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 7782683136, "span_bytes": 6488064, "elements": 11534336, "layer": 16, "category": "attention"}
+{"name": "blk.16.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 7789171200, "span_bytes": 6488064, "elements": 11534336, "layer": 16, "category": "attention"}
+{"name": "blk.16.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 7795659264, "span_bytes": 1024, "elements": 256, "layer": 16, "category": "norm"}
+{"name": "blk.16.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 7795660288, "span_bytes": 3244032, "elements": 5767168, "layer": 16, "category": "attention"}
+{"name": "blk.16.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 7798904320, "span_bytes": 3345408, "elements": 5947392, "layer": 16, "category": "shared_ffn"}
+{"name": "blk.16.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 7802249728, "span_bytes": 512, "elements": 128, "layer": 16, "category": "expert_ffn"}
+{"name": "blk.16.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 7802250240, "span_bytes": 142737408, "elements": 253755392, "layer": 16, "category": "expert_ffn"}
+{"name": "blk.16.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 7944987648, "span_bytes": 3345408, "elements": 5947392, "layer": 16, "category": "shared_ffn"}
+{"name": "blk.16.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 7948333056, "span_bytes": 11264, "elements": 2816, "layer": 16, "category": "router"}
+{"name": "blk.16.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 7948344320, "span_bytes": 1441792, "elements": 360448, "layer": 16, "category": "router"}
+{"name": "blk.16.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 7949786112, "span_bytes": 285474816, "elements": 507510784, "layer": 16, "category": "expert_ffn"}
+{"name": "blk.16.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 8235260928, "span_bytes": 11264, "elements": 2816, "layer": 16, "category": "norm"}
+{"name": "blk.16.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 8235272192, "span_bytes": 3345408, "elements": 5947392, "layer": 16, "category": "shared_ffn"}
+{"name": "blk.16.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 8238617600, "span_bytes": 32, "elements": 1, "layer": 16, "category": "other"}
+{"name": "blk.16.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 8238617632, "span_bytes": 11264, "elements": 2816, "layer": 16, "category": "norm"}
+{"name": "blk.16.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 8238628896, "span_bytes": 11264, "elements": 2816, "layer": 16, "category": "norm"}
+{"name": "blk.16.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 8238640160, "span_bytes": 11264, "elements": 2816, "layer": 16, "category": "norm"}
+{"name": "blk.16.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 8238651424, "span_bytes": 11264, "elements": 2816, "layer": 16, "category": "norm"}
+{"name": "blk.16.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 8238662688, "span_bytes": 11264, "elements": 2816, "layer": 16, "category": "norm"}
+{"name": "blk.17.attn_k.weight", "shape": [1024, 2816], "quant": "Q4_0", "offset": 8238673952, "span_bytes": 1622016, "elements": 2883584, "layer": 17, "category": "attention"}
+{"name": "blk.17.attn_k_norm.weight", "shape": [512], "quant": "F32", "offset": 8240295968, "span_bytes": 2048, "elements": 512, "layer": 17, "category": "norm"}
+{"name": "blk.17.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 8240298016, "span_bytes": 11264, "elements": 2816, "layer": 17, "category": "norm"}
+{"name": "blk.17.attn_output.weight", "shape": [2816, 8192], "quant": "Q4_0", "offset": 8240309280, "span_bytes": 12976128, "elements": 23068672, "layer": 17, "category": "attention"}
+{"name": "blk.17.attn_q.weight", "shape": [8192, 2816], "quant": "Q4_0", "offset": 8253285408, "span_bytes": 12976128, "elements": 23068672, "layer": 17, "category": "attention"}
+{"name": "blk.17.attn_q_norm.weight", "shape": [512], "quant": "F32", "offset": 8266261536, "span_bytes": 2048, "elements": 512, "layer": 17, "category": "norm"}
+{"name": "blk.17.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 8266263584, "span_bytes": 3345408, "elements": 5947392, "layer": 17, "category": "shared_ffn"}
+{"name": "blk.17.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 8269608992, "span_bytes": 512, "elements": 128, "layer": 17, "category": "expert_ffn"}
+{"name": "blk.17.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 8269609504, "span_bytes": 142737408, "elements": 253755392, "layer": 17, "category": "expert_ffn"}
+{"name": "blk.17.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 8412346912, "span_bytes": 3345408, "elements": 5947392, "layer": 17, "category": "shared_ffn"}
+{"name": "blk.17.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 8415692320, "span_bytes": 11264, "elements": 2816, "layer": 17, "category": "router"}
+{"name": "blk.17.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 8415703584, "span_bytes": 1441792, "elements": 360448, "layer": 17, "category": "router"}
+{"name": "blk.17.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 8417145376, "span_bytes": 285474816, "elements": 507510784, "layer": 17, "category": "expert_ffn"}
+{"name": "blk.17.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 8702620192, "span_bytes": 11264, "elements": 2816, "layer": 17, "category": "norm"}
+{"name": "blk.17.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 8702631456, "span_bytes": 3345408, "elements": 5947392, "layer": 17, "category": "shared_ffn"}
+{"name": "blk.17.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 8705976864, "span_bytes": 32, "elements": 1, "layer": 17, "category": "other"}
+{"name": "blk.17.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 8705976896, "span_bytes": 11264, "elements": 2816, "layer": 17, "category": "norm"}
+{"name": "blk.17.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 8705988160, "span_bytes": 11264, "elements": 2816, "layer": 17, "category": "norm"}
+{"name": "blk.17.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 8705999424, "span_bytes": 11264, "elements": 2816, "layer": 17, "category": "norm"}
+{"name": "blk.17.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 8706010688, "span_bytes": 11264, "elements": 2816, "layer": 17, "category": "norm"}
+{"name": "blk.17.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 8706021952, "span_bytes": 11264, "elements": 2816, "layer": 17, "category": "norm"}
+{"name": "blk.18.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 8706033216, "span_bytes": 3244032, "elements": 5767168, "layer": 18, "category": "attention"}
+{"name": "blk.18.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 8709277248, "span_bytes": 1024, "elements": 256, "layer": 18, "category": "norm"}
+{"name": "blk.18.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 8709278272, "span_bytes": 11264, "elements": 2816, "layer": 18, "category": "norm"}
+{"name": "blk.18.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 8709289536, "span_bytes": 6488064, "elements": 11534336, "layer": 18, "category": "attention"}
+{"name": "blk.18.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 8715777600, "span_bytes": 6488064, "elements": 11534336, "layer": 18, "category": "attention"}
+{"name": "blk.18.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 8722265664, "span_bytes": 1024, "elements": 256, "layer": 18, "category": "norm"}
+{"name": "blk.18.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 8722266688, "span_bytes": 3244032, "elements": 5767168, "layer": 18, "category": "attention"}
+{"name": "blk.18.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 8725510720, "span_bytes": 3345408, "elements": 5947392, "layer": 18, "category": "shared_ffn"}
+{"name": "blk.18.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 8728856128, "span_bytes": 512, "elements": 128, "layer": 18, "category": "expert_ffn"}
+{"name": "blk.18.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 8728856640, "span_bytes": 142737408, "elements": 253755392, "layer": 18, "category": "expert_ffn"}
+{"name": "blk.18.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 8871594048, "span_bytes": 3345408, "elements": 5947392, "layer": 18, "category": "shared_ffn"}
+{"name": "blk.18.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 8874939456, "span_bytes": 11264, "elements": 2816, "layer": 18, "category": "router"}
+{"name": "blk.18.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 8874950720, "span_bytes": 1441792, "elements": 360448, "layer": 18, "category": "router"}
+{"name": "blk.18.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 8876392512, "span_bytes": 285474816, "elements": 507510784, "layer": 18, "category": "expert_ffn"}
+{"name": "blk.18.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 9161867328, "span_bytes": 11264, "elements": 2816, "layer": 18, "category": "norm"}
+{"name": "blk.18.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 9161878592, "span_bytes": 3345408, "elements": 5947392, "layer": 18, "category": "shared_ffn"}
+{"name": "blk.18.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 9165224000, "span_bytes": 32, "elements": 1, "layer": 18, "category": "other"}
+{"name": "blk.18.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 9165224032, "span_bytes": 11264, "elements": 2816, "layer": 18, "category": "norm"}
+{"name": "blk.18.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 9165235296, "span_bytes": 11264, "elements": 2816, "layer": 18, "category": "norm"}
+{"name": "blk.18.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 9165246560, "span_bytes": 11264, "elements": 2816, "layer": 18, "category": "norm"}
+{"name": "blk.18.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 9165257824, "span_bytes": 11264, "elements": 2816, "layer": 18, "category": "norm"}
+{"name": "blk.18.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 9165269088, "span_bytes": 11264, "elements": 2816, "layer": 18, "category": "norm"}
+{"name": "blk.19.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 9165280352, "span_bytes": 3244032, "elements": 5767168, "layer": 19, "category": "attention"}
+{"name": "blk.19.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 9168524384, "span_bytes": 1024, "elements": 256, "layer": 19, "category": "norm"}
+{"name": "blk.19.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 9168525408, "span_bytes": 11264, "elements": 2816, "layer": 19, "category": "norm"}
+{"name": "blk.19.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 9168536672, "span_bytes": 6488064, "elements": 11534336, "layer": 19, "category": "attention"}
+{"name": "blk.19.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 9175024736, "span_bytes": 6488064, "elements": 11534336, "layer": 19, "category": "attention"}
+{"name": "blk.19.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 9181512800, "span_bytes": 1024, "elements": 256, "layer": 19, "category": "norm"}
+{"name": "blk.19.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 9181513824, "span_bytes": 3244032, "elements": 5767168, "layer": 19, "category": "attention"}
+{"name": "blk.19.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 9184757856, "span_bytes": 3345408, "elements": 5947392, "layer": 19, "category": "shared_ffn"}
+{"name": "blk.19.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 9188103264, "span_bytes": 512, "elements": 128, "layer": 19, "category": "expert_ffn"}
+{"name": "blk.19.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 9188103776, "span_bytes": 142737408, "elements": 253755392, "layer": 19, "category": "expert_ffn"}
+{"name": "blk.19.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 9330841184, "span_bytes": 3345408, "elements": 5947392, "layer": 19, "category": "shared_ffn"}
+{"name": "blk.19.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 9334186592, "span_bytes": 11264, "elements": 2816, "layer": 19, "category": "router"}
+{"name": "blk.19.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 9334197856, "span_bytes": 1441792, "elements": 360448, "layer": 19, "category": "router"}
+{"name": "blk.19.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 9335639648, "span_bytes": 285474816, "elements": 507510784, "layer": 19, "category": "expert_ffn"}
+{"name": "blk.19.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 9621114464, "span_bytes": 11264, "elements": 2816, "layer": 19, "category": "norm"}
+{"name": "blk.19.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 9621125728, "span_bytes": 3345408, "elements": 5947392, "layer": 19, "category": "shared_ffn"}
+{"name": "blk.19.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 9624471136, "span_bytes": 32, "elements": 1, "layer": 19, "category": "other"}
+{"name": "blk.19.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 9624471168, "span_bytes": 11264, "elements": 2816, "layer": 19, "category": "norm"}
+{"name": "blk.19.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 9624482432, "span_bytes": 11264, "elements": 2816, "layer": 19, "category": "norm"}
+{"name": "blk.19.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 9624493696, "span_bytes": 11264, "elements": 2816, "layer": 19, "category": "norm"}
+{"name": "blk.19.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 9624504960, "span_bytes": 11264, "elements": 2816, "layer": 19, "category": "norm"}
+{"name": "blk.19.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 9624516224, "span_bytes": 11264, "elements": 2816, "layer": 19, "category": "norm"}
+{"name": "blk.20.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 9624527488, "span_bytes": 3244032, "elements": 5767168, "layer": 20, "category": "attention"}
+{"name": "blk.20.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 9627771520, "span_bytes": 1024, "elements": 256, "layer": 20, "category": "norm"}
+{"name": "blk.20.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 9627772544, "span_bytes": 11264, "elements": 2816, "layer": 20, "category": "norm"}
+{"name": "blk.20.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 9627783808, "span_bytes": 6488064, "elements": 11534336, "layer": 20, "category": "attention"}
+{"name": "blk.20.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 9634271872, "span_bytes": 6488064, "elements": 11534336, "layer": 20, "category": "attention"}
+{"name": "blk.20.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 9640759936, "span_bytes": 1024, "elements": 256, "layer": 20, "category": "norm"}
+{"name": "blk.20.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 9640760960, "span_bytes": 3244032, "elements": 5767168, "layer": 20, "category": "attention"}
+{"name": "blk.20.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 9644004992, "span_bytes": 3345408, "elements": 5947392, "layer": 20, "category": "shared_ffn"}
+{"name": "blk.20.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 9647350400, "span_bytes": 512, "elements": 128, "layer": 20, "category": "expert_ffn"}
+{"name": "blk.20.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 9647350912, "span_bytes": 142737408, "elements": 253755392, "layer": 20, "category": "expert_ffn"}
+{"name": "blk.20.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 9790088320, "span_bytes": 3345408, "elements": 5947392, "layer": 20, "category": "shared_ffn"}
+{"name": "blk.20.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 9793433728, "span_bytes": 11264, "elements": 2816, "layer": 20, "category": "router"}
+{"name": "blk.20.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 9793444992, "span_bytes": 1441792, "elements": 360448, "layer": 20, "category": "router"}
+{"name": "blk.20.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 9794886784, "span_bytes": 285474816, "elements": 507510784, "layer": 20, "category": "expert_ffn"}
+{"name": "blk.20.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 10080361600, "span_bytes": 11264, "elements": 2816, "layer": 20, "category": "norm"}
+{"name": "blk.20.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 10080372864, "span_bytes": 3345408, "elements": 5947392, "layer": 20, "category": "shared_ffn"}
+{"name": "blk.20.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 10083718272, "span_bytes": 32, "elements": 1, "layer": 20, "category": "other"}
+{"name": "blk.20.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 10083718304, "span_bytes": 11264, "elements": 2816, "layer": 20, "category": "norm"}
+{"name": "blk.20.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 10083729568, "span_bytes": 11264, "elements": 2816, "layer": 20, "category": "norm"}
+{"name": "blk.20.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 10083740832, "span_bytes": 11264, "elements": 2816, "layer": 20, "category": "norm"}
+{"name": "blk.20.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 10083752096, "span_bytes": 11264, "elements": 2816, "layer": 20, "category": "norm"}
+{"name": "blk.20.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 10083763360, "span_bytes": 11264, "elements": 2816, "layer": 20, "category": "norm"}
+{"name": "blk.21.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 10083774624, "span_bytes": 3244032, "elements": 5767168, "layer": 21, "category": "attention"}
+{"name": "blk.21.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 10087018656, "span_bytes": 1024, "elements": 256, "layer": 21, "category": "norm"}
+{"name": "blk.21.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 10087019680, "span_bytes": 11264, "elements": 2816, "layer": 21, "category": "norm"}
+{"name": "blk.21.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 10087030944, "span_bytes": 6488064, "elements": 11534336, "layer": 21, "category": "attention"}
+{"name": "blk.21.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 10093519008, "span_bytes": 6488064, "elements": 11534336, "layer": 21, "category": "attention"}
+{"name": "blk.21.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 10100007072, "span_bytes": 1024, "elements": 256, "layer": 21, "category": "norm"}
+{"name": "blk.21.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 10100008096, "span_bytes": 3244032, "elements": 5767168, "layer": 21, "category": "attention"}
+{"name": "blk.21.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 10103252128, "span_bytes": 3345408, "elements": 5947392, "layer": 21, "category": "shared_ffn"}
+{"name": "blk.21.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 10106597536, "span_bytes": 512, "elements": 128, "layer": 21, "category": "expert_ffn"}
+{"name": "blk.21.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 10106598048, "span_bytes": 142737408, "elements": 253755392, "layer": 21, "category": "expert_ffn"}
+{"name": "blk.21.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 10249335456, "span_bytes": 3345408, "elements": 5947392, "layer": 21, "category": "shared_ffn"}
+{"name": "blk.21.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 10252680864, "span_bytes": 11264, "elements": 2816, "layer": 21, "category": "router"}
+{"name": "blk.21.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 10252692128, "span_bytes": 1441792, "elements": 360448, "layer": 21, "category": "router"}
+{"name": "blk.21.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 10254133920, "span_bytes": 285474816, "elements": 507510784, "layer": 21, "category": "expert_ffn"}
+{"name": "blk.21.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 10539608736, "span_bytes": 11264, "elements": 2816, "layer": 21, "category": "norm"}
+{"name": "blk.21.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 10539620000, "span_bytes": 3345408, "elements": 5947392, "layer": 21, "category": "shared_ffn"}
+{"name": "blk.21.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 10542965408, "span_bytes": 32, "elements": 1, "layer": 21, "category": "other"}
+{"name": "blk.21.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 10542965440, "span_bytes": 11264, "elements": 2816, "layer": 21, "category": "norm"}
+{"name": "blk.21.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 10542976704, "span_bytes": 11264, "elements": 2816, "layer": 21, "category": "norm"}
+{"name": "blk.21.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 10542987968, "span_bytes": 11264, "elements": 2816, "layer": 21, "category": "norm"}
+{"name": "blk.21.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 10542999232, "span_bytes": 11264, "elements": 2816, "layer": 21, "category": "norm"}
+{"name": "blk.21.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 10543010496, "span_bytes": 11264, "elements": 2816, "layer": 21, "category": "norm"}
+{"name": "blk.22.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 10543021760, "span_bytes": 3244032, "elements": 5767168, "layer": 22, "category": "attention"}
+{"name": "blk.22.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 10546265792, "span_bytes": 1024, "elements": 256, "layer": 22, "category": "norm"}
+{"name": "blk.22.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 10546266816, "span_bytes": 11264, "elements": 2816, "layer": 22, "category": "norm"}
+{"name": "blk.22.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 10546278080, "span_bytes": 6488064, "elements": 11534336, "layer": 22, "category": "attention"}
+{"name": "blk.22.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 10552766144, "span_bytes": 6488064, "elements": 11534336, "layer": 22, "category": "attention"}
+{"name": "blk.22.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 10559254208, "span_bytes": 1024, "elements": 256, "layer": 22, "category": "norm"}
+{"name": "blk.22.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 10559255232, "span_bytes": 3244032, "elements": 5767168, "layer": 22, "category": "attention"}
+{"name": "blk.22.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 10562499264, "span_bytes": 3345408, "elements": 5947392, "layer": 22, "category": "shared_ffn"}
+{"name": "blk.22.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 10565844672, "span_bytes": 512, "elements": 128, "layer": 22, "category": "expert_ffn"}
+{"name": "blk.22.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 10565845184, "span_bytes": 142737408, "elements": 253755392, "layer": 22, "category": "expert_ffn"}
+{"name": "blk.22.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 10708582592, "span_bytes": 3345408, "elements": 5947392, "layer": 22, "category": "shared_ffn"}
+{"name": "blk.22.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 10711928000, "span_bytes": 11264, "elements": 2816, "layer": 22, "category": "router"}
+{"name": "blk.22.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 10711939264, "span_bytes": 1441792, "elements": 360448, "layer": 22, "category": "router"}
+{"name": "blk.22.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 10713381056, "span_bytes": 285474816, "elements": 507510784, "layer": 22, "category": "expert_ffn"}
+{"name": "blk.22.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 10998855872, "span_bytes": 11264, "elements": 2816, "layer": 22, "category": "norm"}
+{"name": "blk.22.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 10998867136, "span_bytes": 3345408, "elements": 5947392, "layer": 22, "category": "shared_ffn"}
+{"name": "blk.22.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 11002212544, "span_bytes": 32, "elements": 1, "layer": 22, "category": "other"}
+{"name": "blk.22.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 11002212576, "span_bytes": 11264, "elements": 2816, "layer": 22, "category": "norm"}
+{"name": "blk.22.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 11002223840, "span_bytes": 11264, "elements": 2816, "layer": 22, "category": "norm"}
+{"name": "blk.22.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 11002235104, "span_bytes": 11264, "elements": 2816, "layer": 22, "category": "norm"}
+{"name": "blk.22.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 11002246368, "span_bytes": 11264, "elements": 2816, "layer": 22, "category": "norm"}
+{"name": "blk.22.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 11002257632, "span_bytes": 11264, "elements": 2816, "layer": 22, "category": "norm"}
+{"name": "blk.23.attn_k.weight", "shape": [1024, 2816], "quant": "Q4_0", "offset": 11002268896, "span_bytes": 1622016, "elements": 2883584, "layer": 23, "category": "attention"}
+{"name": "blk.23.attn_k_norm.weight", "shape": [512], "quant": "F32", "offset": 11003890912, "span_bytes": 2048, "elements": 512, "layer": 23, "category": "norm"}
+{"name": "blk.23.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 11003892960, "span_bytes": 11264, "elements": 2816, "layer": 23, "category": "norm"}
+{"name": "blk.23.attn_output.weight", "shape": [2816, 8192], "quant": "Q4_0", "offset": 11003904224, "span_bytes": 12976128, "elements": 23068672, "layer": 23, "category": "attention"}
+{"name": "blk.23.attn_q.weight", "shape": [8192, 2816], "quant": "Q4_0", "offset": 11016880352, "span_bytes": 12976128, "elements": 23068672, "layer": 23, "category": "attention"}
+{"name": "blk.23.attn_q_norm.weight", "shape": [512], "quant": "F32", "offset": 11029856480, "span_bytes": 2048, "elements": 512, "layer": 23, "category": "norm"}
+{"name": "blk.23.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 11029858528, "span_bytes": 3345408, "elements": 5947392, "layer": 23, "category": "shared_ffn"}
+{"name": "blk.23.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 11033203936, "span_bytes": 512, "elements": 128, "layer": 23, "category": "expert_ffn"}
+{"name": "blk.23.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 11033204448, "span_bytes": 142737408, "elements": 253755392, "layer": 23, "category": "expert_ffn"}
+{"name": "blk.23.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 11175941856, "span_bytes": 3345408, "elements": 5947392, "layer": 23, "category": "shared_ffn"}
+{"name": "blk.23.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 11179287264, "span_bytes": 11264, "elements": 2816, "layer": 23, "category": "router"}
+{"name": "blk.23.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 11179298528, "span_bytes": 1441792, "elements": 360448, "layer": 23, "category": "router"}
+{"name": "blk.23.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 11180740320, "span_bytes": 285474816, "elements": 507510784, "layer": 23, "category": "expert_ffn"}
+{"name": "blk.23.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 11466215136, "span_bytes": 11264, "elements": 2816, "layer": 23, "category": "norm"}
+{"name": "blk.23.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 11466226400, "span_bytes": 3345408, "elements": 5947392, "layer": 23, "category": "shared_ffn"}
+{"name": "blk.23.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 11469571808, "span_bytes": 32, "elements": 1, "layer": 23, "category": "other"}
+{"name": "blk.23.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 11469571840, "span_bytes": 11264, "elements": 2816, "layer": 23, "category": "norm"}
+{"name": "blk.23.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 11469583104, "span_bytes": 11264, "elements": 2816, "layer": 23, "category": "norm"}
+{"name": "blk.23.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 11469594368, "span_bytes": 11264, "elements": 2816, "layer": 23, "category": "norm"}
+{"name": "blk.23.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 11469605632, "span_bytes": 11264, "elements": 2816, "layer": 23, "category": "norm"}
+{"name": "blk.23.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 11469616896, "span_bytes": 11264, "elements": 2816, "layer": 23, "category": "norm"}
+{"name": "blk.24.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 11469628160, "span_bytes": 3244032, "elements": 5767168, "layer": 24, "category": "attention"}
+{"name": "blk.24.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 11472872192, "span_bytes": 1024, "elements": 256, "layer": 24, "category": "norm"}
+{"name": "blk.24.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 11472873216, "span_bytes": 11264, "elements": 2816, "layer": 24, "category": "norm"}
+{"name": "blk.24.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 11472884480, "span_bytes": 6488064, "elements": 11534336, "layer": 24, "category": "attention"}
+{"name": "blk.24.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 11479372544, "span_bytes": 6488064, "elements": 11534336, "layer": 24, "category": "attention"}
+{"name": "blk.24.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 11485860608, "span_bytes": 1024, "elements": 256, "layer": 24, "category": "norm"}
+{"name": "blk.24.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 11485861632, "span_bytes": 3244032, "elements": 5767168, "layer": 24, "category": "attention"}
+{"name": "blk.24.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 11489105664, "span_bytes": 3345408, "elements": 5947392, "layer": 24, "category": "shared_ffn"}
+{"name": "blk.24.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 11492451072, "span_bytes": 512, "elements": 128, "layer": 24, "category": "expert_ffn"}
+{"name": "blk.24.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 11492451584, "span_bytes": 142737408, "elements": 253755392, "layer": 24, "category": "expert_ffn"}
+{"name": "blk.24.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 11635188992, "span_bytes": 3345408, "elements": 5947392, "layer": 24, "category": "shared_ffn"}
+{"name": "blk.24.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 11638534400, "span_bytes": 11264, "elements": 2816, "layer": 24, "category": "router"}
+{"name": "blk.24.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 11638545664, "span_bytes": 1441792, "elements": 360448, "layer": 24, "category": "router"}
+{"name": "blk.24.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 11639987456, "span_bytes": 285474816, "elements": 507510784, "layer": 24, "category": "expert_ffn"}
+{"name": "blk.24.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 11925462272, "span_bytes": 11264, "elements": 2816, "layer": 24, "category": "norm"}
+{"name": "blk.24.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 11925473536, "span_bytes": 3345408, "elements": 5947392, "layer": 24, "category": "shared_ffn"}
+{"name": "blk.24.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 11928818944, "span_bytes": 32, "elements": 1, "layer": 24, "category": "other"}
+{"name": "blk.24.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 11928818976, "span_bytes": 11264, "elements": 2816, "layer": 24, "category": "norm"}
+{"name": "blk.24.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 11928830240, "span_bytes": 11264, "elements": 2816, "layer": 24, "category": "norm"}
+{"name": "blk.24.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 11928841504, "span_bytes": 11264, "elements": 2816, "layer": 24, "category": "norm"}
+{"name": "blk.24.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 11928852768, "span_bytes": 11264, "elements": 2816, "layer": 24, "category": "norm"}
+{"name": "blk.24.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 11928864032, "span_bytes": 11264, "elements": 2816, "layer": 24, "category": "norm"}
+{"name": "blk.25.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 11928875296, "span_bytes": 3244032, "elements": 5767168, "layer": 25, "category": "attention"}
+{"name": "blk.25.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 11932119328, "span_bytes": 1024, "elements": 256, "layer": 25, "category": "norm"}
+{"name": "blk.25.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 11932120352, "span_bytes": 11264, "elements": 2816, "layer": 25, "category": "norm"}
+{"name": "blk.25.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 11932131616, "span_bytes": 6488064, "elements": 11534336, "layer": 25, "category": "attention"}
+{"name": "blk.25.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 11938619680, "span_bytes": 6488064, "elements": 11534336, "layer": 25, "category": "attention"}
+{"name": "blk.25.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 11945107744, "span_bytes": 1024, "elements": 256, "layer": 25, "category": "norm"}
+{"name": "blk.25.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 11945108768, "span_bytes": 3244032, "elements": 5767168, "layer": 25, "category": "attention"}
+{"name": "blk.25.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 11948352800, "span_bytes": 3345408, "elements": 5947392, "layer": 25, "category": "shared_ffn"}
+{"name": "blk.25.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 11951698208, "span_bytes": 512, "elements": 128, "layer": 25, "category": "expert_ffn"}
+{"name": "blk.25.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 11951698720, "span_bytes": 142737408, "elements": 253755392, "layer": 25, "category": "expert_ffn"}
+{"name": "blk.25.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 12094436128, "span_bytes": 3345408, "elements": 5947392, "layer": 25, "category": "shared_ffn"}
+{"name": "blk.25.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 12097781536, "span_bytes": 11264, "elements": 2816, "layer": 25, "category": "router"}
+{"name": "blk.25.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 12097792800, "span_bytes": 1441792, "elements": 360448, "layer": 25, "category": "router"}
+{"name": "blk.25.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 12099234592, "span_bytes": 285474816, "elements": 507510784, "layer": 25, "category": "expert_ffn"}
+{"name": "blk.25.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 12384709408, "span_bytes": 11264, "elements": 2816, "layer": 25, "category": "norm"}
+{"name": "blk.25.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 12384720672, "span_bytes": 3345408, "elements": 5947392, "layer": 25, "category": "shared_ffn"}
+{"name": "blk.25.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 12388066080, "span_bytes": 32, "elements": 1, "layer": 25, "category": "other"}
+{"name": "blk.25.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 12388066112, "span_bytes": 11264, "elements": 2816, "layer": 25, "category": "norm"}
+{"name": "blk.25.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 12388077376, "span_bytes": 11264, "elements": 2816, "layer": 25, "category": "norm"}
+{"name": "blk.25.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 12388088640, "span_bytes": 11264, "elements": 2816, "layer": 25, "category": "norm"}
+{"name": "blk.25.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 12388099904, "span_bytes": 11264, "elements": 2816, "layer": 25, "category": "norm"}
+{"name": "blk.25.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 12388111168, "span_bytes": 11264, "elements": 2816, "layer": 25, "category": "norm"}
+{"name": "blk.26.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 12388122432, "span_bytes": 3244032, "elements": 5767168, "layer": 26, "category": "attention"}
+{"name": "blk.26.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 12391366464, "span_bytes": 1024, "elements": 256, "layer": 26, "category": "norm"}
+{"name": "blk.26.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 12391367488, "span_bytes": 11264, "elements": 2816, "layer": 26, "category": "norm"}
+{"name": "blk.26.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 12391378752, "span_bytes": 6488064, "elements": 11534336, "layer": 26, "category": "attention"}
+{"name": "blk.26.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 12397866816, "span_bytes": 6488064, "elements": 11534336, "layer": 26, "category": "attention"}
+{"name": "blk.26.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 12404354880, "span_bytes": 1024, "elements": 256, "layer": 26, "category": "norm"}
+{"name": "blk.26.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 12404355904, "span_bytes": 3244032, "elements": 5767168, "layer": 26, "category": "attention"}
+{"name": "blk.26.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 12407599936, "span_bytes": 3345408, "elements": 5947392, "layer": 26, "category": "shared_ffn"}
+{"name": "blk.26.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 12410945344, "span_bytes": 512, "elements": 128, "layer": 26, "category": "expert_ffn"}
+{"name": "blk.26.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 12410945856, "span_bytes": 142737408, "elements": 253755392, "layer": 26, "category": "expert_ffn"}
+{"name": "blk.26.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 12553683264, "span_bytes": 3345408, "elements": 5947392, "layer": 26, "category": "shared_ffn"}
+{"name": "blk.26.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 12557028672, "span_bytes": 11264, "elements": 2816, "layer": 26, "category": "router"}
+{"name": "blk.26.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 12557039936, "span_bytes": 1441792, "elements": 360448, "layer": 26, "category": "router"}
+{"name": "blk.26.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 12558481728, "span_bytes": 285474816, "elements": 507510784, "layer": 26, "category": "expert_ffn"}
+{"name": "blk.26.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 12843956544, "span_bytes": 11264, "elements": 2816, "layer": 26, "category": "norm"}
+{"name": "blk.26.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 12843967808, "span_bytes": 3345408, "elements": 5947392, "layer": 26, "category": "shared_ffn"}
+{"name": "blk.26.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 12847313216, "span_bytes": 32, "elements": 1, "layer": 26, "category": "other"}
+{"name": "blk.26.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 12847313248, "span_bytes": 11264, "elements": 2816, "layer": 26, "category": "norm"}
+{"name": "blk.26.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 12847324512, "span_bytes": 11264, "elements": 2816, "layer": 26, "category": "norm"}
+{"name": "blk.26.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 12847335776, "span_bytes": 11264, "elements": 2816, "layer": 26, "category": "norm"}
+{"name": "blk.26.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 12847347040, "span_bytes": 11264, "elements": 2816, "layer": 26, "category": "norm"}
+{"name": "blk.26.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 12847358304, "span_bytes": 11264, "elements": 2816, "layer": 26, "category": "norm"}
+{"name": "blk.27.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 12847369568, "span_bytes": 3244032, "elements": 5767168, "layer": 27, "category": "attention"}
+{"name": "blk.27.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 12850613600, "span_bytes": 1024, "elements": 256, "layer": 27, "category": "norm"}
+{"name": "blk.27.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 12850614624, "span_bytes": 11264, "elements": 2816, "layer": 27, "category": "norm"}
+{"name": "blk.27.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 12850625888, "span_bytes": 6488064, "elements": 11534336, "layer": 27, "category": "attention"}
+{"name": "blk.27.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 12857113952, "span_bytes": 6488064, "elements": 11534336, "layer": 27, "category": "attention"}
+{"name": "blk.27.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 12863602016, "span_bytes": 1024, "elements": 256, "layer": 27, "category": "norm"}
+{"name": "blk.27.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 12863603040, "span_bytes": 3244032, "elements": 5767168, "layer": 27, "category": "attention"}
+{"name": "blk.27.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 12866847072, "span_bytes": 3345408, "elements": 5947392, "layer": 27, "category": "shared_ffn"}
+{"name": "blk.27.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 12870192480, "span_bytes": 512, "elements": 128, "layer": 27, "category": "expert_ffn"}
+{"name": "blk.27.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 12870192992, "span_bytes": 142737408, "elements": 253755392, "layer": 27, "category": "expert_ffn"}
+{"name": "blk.27.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 13012930400, "span_bytes": 3345408, "elements": 5947392, "layer": 27, "category": "shared_ffn"}
+{"name": "blk.27.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 13016275808, "span_bytes": 11264, "elements": 2816, "layer": 27, "category": "router"}
+{"name": "blk.27.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 13016287072, "span_bytes": 1441792, "elements": 360448, "layer": 27, "category": "router"}
+{"name": "blk.27.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 13017728864, "span_bytes": 285474816, "elements": 507510784, "layer": 27, "category": "expert_ffn"}
+{"name": "blk.27.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 13303203680, "span_bytes": 11264, "elements": 2816, "layer": 27, "category": "norm"}
+{"name": "blk.27.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 13303214944, "span_bytes": 3345408, "elements": 5947392, "layer": 27, "category": "shared_ffn"}
+{"name": "blk.27.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 13306560352, "span_bytes": 32, "elements": 1, "layer": 27, "category": "other"}
+{"name": "blk.27.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 13306560384, "span_bytes": 11264, "elements": 2816, "layer": 27, "category": "norm"}
+{"name": "blk.27.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 13306571648, "span_bytes": 11264, "elements": 2816, "layer": 27, "category": "norm"}
+{"name": "blk.27.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 13306582912, "span_bytes": 11264, "elements": 2816, "layer": 27, "category": "norm"}
+{"name": "blk.27.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 13306594176, "span_bytes": 11264, "elements": 2816, "layer": 27, "category": "norm"}
+{"name": "blk.27.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 13306605440, "span_bytes": 11264, "elements": 2816, "layer": 27, "category": "norm"}
+{"name": "blk.28.attn_k.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 13306616704, "span_bytes": 3244032, "elements": 5767168, "layer": 28, "category": "attention"}
+{"name": "blk.28.attn_k_norm.weight", "shape": [256], "quant": "F32", "offset": 13309860736, "span_bytes": 1024, "elements": 256, "layer": 28, "category": "norm"}
+{"name": "blk.28.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 13309861760, "span_bytes": 11264, "elements": 2816, "layer": 28, "category": "norm"}
+{"name": "blk.28.attn_output.weight", "shape": [2816, 4096], "quant": "Q4_0", "offset": 13309873024, "span_bytes": 6488064, "elements": 11534336, "layer": 28, "category": "attention"}
+{"name": "blk.28.attn_q.weight", "shape": [4096, 2816], "quant": "Q4_0", "offset": 13316361088, "span_bytes": 6488064, "elements": 11534336, "layer": 28, "category": "attention"}
+{"name": "blk.28.attn_q_norm.weight", "shape": [256], "quant": "F32", "offset": 13322849152, "span_bytes": 1024, "elements": 256, "layer": 28, "category": "norm"}
+{"name": "blk.28.attn_v.weight", "shape": [2048, 2816], "quant": "Q4_0", "offset": 13322850176, "span_bytes": 3244032, "elements": 5767168, "layer": 28, "category": "attention"}
+{"name": "blk.28.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 13326094208, "span_bytes": 3345408, "elements": 5947392, "layer": 28, "category": "shared_ffn"}
+{"name": "blk.28.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 13329439616, "span_bytes": 512, "elements": 128, "layer": 28, "category": "expert_ffn"}
+{"name": "blk.28.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 13329440128, "span_bytes": 142737408, "elements": 253755392, "layer": 28, "category": "expert_ffn"}
+{"name": "blk.28.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 13472177536, "span_bytes": 3345408, "elements": 5947392, "layer": 28, "category": "shared_ffn"}
+{"name": "blk.28.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 13475522944, "span_bytes": 11264, "elements": 2816, "layer": 28, "category": "router"}
+{"name": "blk.28.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 13475534208, "span_bytes": 1441792, "elements": 360448, "layer": 28, "category": "router"}
+{"name": "blk.28.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 13476976000, "span_bytes": 285474816, "elements": 507510784, "layer": 28, "category": "expert_ffn"}
+{"name": "blk.28.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 13762450816, "span_bytes": 11264, "elements": 2816, "layer": 28, "category": "norm"}
+{"name": "blk.28.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 13762462080, "span_bytes": 3345408, "elements": 5947392, "layer": 28, "category": "shared_ffn"}
+{"name": "blk.28.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 13765807488, "span_bytes": 32, "elements": 1, "layer": 28, "category": "other"}
+{"name": "blk.28.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 13765807520, "span_bytes": 11264, "elements": 2816, "layer": 28, "category": "norm"}
+{"name": "blk.28.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 13765818784, "span_bytes": 11264, "elements": 2816, "layer": 28, "category": "norm"}
+{"name": "blk.28.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 13765830048, "span_bytes": 11264, "elements": 2816, "layer": 28, "category": "norm"}
+{"name": "blk.28.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 13765841312, "span_bytes": 11264, "elements": 2816, "layer": 28, "category": "norm"}
+{"name": "blk.28.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 13765852576, "span_bytes": 11264, "elements": 2816, "layer": 28, "category": "norm"}
+{"name": "blk.29.attn_k.weight", "shape": [1024, 2816], "quant": "Q4_0", "offset": 13765863840, "span_bytes": 1622016, "elements": 2883584, "layer": 29, "category": "attention"}
+{"name": "blk.29.attn_k_norm.weight", "shape": [512], "quant": "F32", "offset": 13767485856, "span_bytes": 2048, "elements": 512, "layer": 29, "category": "norm"}
+{"name": "blk.29.attn_norm.weight", "shape": [2816], "quant": "F32", "offset": 13767487904, "span_bytes": 11264, "elements": 2816, "layer": 29, "category": "norm"}
+{"name": "blk.29.attn_output.weight", "shape": [2816, 8192], "quant": "Q4_0", "offset": 13767499168, "span_bytes": 12976128, "elements": 23068672, "layer": 29, "category": "attention"}
+{"name": "blk.29.attn_q.weight", "shape": [8192, 2816], "quant": "Q4_0", "offset": 13780475296, "span_bytes": 12976128, "elements": 23068672, "layer": 29, "category": "attention"}
+{"name": "blk.29.attn_q_norm.weight", "shape": [512], "quant": "F32", "offset": 13793451424, "span_bytes": 2048, "elements": 512, "layer": 29, "category": "norm"}
+{"name": "blk.29.ffn_down.weight", "shape": [2816, 2112], "quant": "Q4_0", "offset": 13793453472, "span_bytes": 3345408, "elements": 5947392, "layer": 29, "category": "shared_ffn"}
+{"name": "blk.29.ffn_down_exps.scale", "shape": [128], "quant": "F32", "offset": 13796798880, "span_bytes": 512, "elements": 128, "layer": 29, "category": "expert_ffn"}
+{"name": "blk.29.ffn_down_exps.weight", "shape": [128, 2816, 704], "quant": "Q4_0", "offset": 13796799392, "span_bytes": 142737408, "elements": 253755392, "layer": 29, "category": "expert_ffn"}
+{"name": "blk.29.ffn_gate.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 13939536800, "span_bytes": 3345408, "elements": 5947392, "layer": 29, "category": "shared_ffn"}
+{"name": "blk.29.ffn_gate_inp.scale", "shape": [2816], "quant": "F32", "offset": 13942882208, "span_bytes": 11264, "elements": 2816, "layer": 29, "category": "router"}
+{"name": "blk.29.ffn_gate_inp.weight", "shape": [128, 2816], "quant": "F32", "offset": 13942893472, "span_bytes": 1441792, "elements": 360448, "layer": 29, "category": "router"}
+{"name": "blk.29.ffn_gate_up_exps.weight", "shape": [128, 1408, 2816], "quant": "Q4_0", "offset": 13944335264, "span_bytes": 285474816, "elements": 507510784, "layer": 29, "category": "expert_ffn"}
+{"name": "blk.29.ffn_norm.weight", "shape": [2816], "quant": "F32", "offset": 14229810080, "span_bytes": 11264, "elements": 2816, "layer": 29, "category": "norm"}
+{"name": "blk.29.ffn_up.weight", "shape": [2112, 2816], "quant": "Q4_0", "offset": 14229821344, "span_bytes": 3345408, "elements": 5947392, "layer": 29, "category": "shared_ffn"}
+{"name": "blk.29.layer_output_scale.weight", "shape": [1], "quant": "F32", "offset": 14233166752, "span_bytes": 32, "elements": 1, "layer": 29, "category": "other"}
+{"name": "blk.29.post_attention_norm.weight", "shape": [2816], "quant": "F32", "offset": 14233166784, "span_bytes": 11264, "elements": 2816, "layer": 29, "category": "norm"}
+{"name": "blk.29.post_ffw_norm.weight", "shape": [2816], "quant": "F32", "offset": 14233178048, "span_bytes": 11264, "elements": 2816, "layer": 29, "category": "norm"}
+{"name": "blk.29.post_ffw_norm_1.weight", "shape": [2816], "quant": "F32", "offset": 14233189312, "span_bytes": 11264, "elements": 2816, "layer": 29, "category": "norm"}
+{"name": "blk.29.post_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 14233200576, "span_bytes": 11264, "elements": 2816, "layer": 29, "category": "norm"}
+{"name": "blk.29.pre_ffw_norm_2.weight", "shape": [2816], "quant": "F32", "offset": 14233211840, "span_bytes": null, "elements": 2816, "layer": 29, "category": "norm"}

@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "scenario": "throughput-sweep",
+  "label": "qat-ud-q4kxl-ncpumoe12",
+  "started_utc": "2026-08-22T00:51:47.1434511Z",
+  "configuration": {
+    "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf",
+    "model_bytes": 14249047104,
+    "runtime_root": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+    "cache_type_k": "q4_0",
+    "cache_type_v": "q4_0",
+    "tensor_override": "",
+    "ubatch_size": 288,
+    "batch_size": 2048,
+    "gpu_layers": 99,
+    "threads": 8,
+    "repetitions": 3,
+    "device_vram_mib": 16304,
+    "cpu_moe": false,
+    "n_cpu_moe": 12
+  },
+  "results": [
+    {
+      "tag": "qat-ud-q4kxl-ncpumoe12-pp512",
+      "kind": "pp",
+      "n": 512,
+      "depth": 0,
+      "tokens_per_second": 671.6,
+      "stddev": 36.26,
+      "timed_out": false,
+      "wall_s": 10.1,
+      "peak": {
+        "vram_dedicated_mib": 12801.2,
+        "vram_shared_mib": 453.6,
+        "process_ws_gib": 12.373,
+        "physical_used_gib": 26.956
+      },
+      "failure": null
+    },
+    {
+      "tag": "qat-ud-q4kxl-ncpumoe12-pp8192",
+      "kind": "pp",
+      "n": 8192,
+      "depth": 0,
+      "tokens_per_second": 732.51,
+      "stddev": 2.5,
+      "timed_out": false,
+      "wall_s": 52.0,
+      "peak": {
+        "vram_dedicated_mib": 12903.6,
+        "vram_shared_mib": 467.9,
+        "process_ws_gib": 13.333,
+        "physical_used_gib": 27.914
+      },
+      "failure": null
+    },
+    {
+      "tag": "qat-ud-q4kxl-ncpumoe12-pp32768",
+      "kind": "pp",
+      "n": 32768,
+      "depth": 0,
+      "tokens_per_second": 655.89,
+      "stddev": 2.32,
+      "timed_out": false,
+      "wall_s": 207.0,
+      "peak": {
+        "vram_dedicated_mib": 13182.6,
+        "vram_shared_mib": 473.5,
+        "process_ws_gib": 13.396,
+        "physical_used_gib": 28.037
+      },
+      "failure": null
+    },
+    {
+      "tag": "qat-ud-q4kxl-ncpumoe12-tg128",
+      "kind": "tg",
+      "n": 128,
+      "depth": 0,
+      "tokens_per_second": 47.63,
+      "stddev": 2.65,
+      "timed_out": false,
+      "wall_s": 14.1,
+      "peak": {
+        "vram_dedicated_mib": 12668.2,
+        "vram_shared_mib": 437.4,
+        "process_ws_gib": 12.569,
+        "physical_used_gib": 27.147
+      },
+      "failure": null
+    }
+  ]
+}

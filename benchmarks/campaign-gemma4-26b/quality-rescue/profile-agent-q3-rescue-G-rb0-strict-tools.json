@@ -1,0 +1,229 @@
+{
+  "schema_version": 1,
+  "scenario": "profile-qualification",
+  "label": "agent-q3-rescue-G-rb0-strict-tools",
+  "started_utc": "2026-08-22T06:47:26.1520433Z",
+  "configuration": {
+    "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q3_K_XL.gguf",
+    "model_bytes": 12907280096,
+    "runtime_root": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+    "context_tokens": 131072,
+    "cache_type_k": "q4_0",
+    "cache_type_v": "q4_0",
+    "ubatch_size": 288,
+    "batch_size": 2048,
+    "gpu_layers": 99,
+    "threads": 8,
+    "parallel": 1,
+    "tensor_override": "",
+    "n_predict": 4096,
+    "reasoning_budget": 0,
+    "reasoning_budget_message": null,
+    "cpu_moe": false,
+    "n_cpu_moe": 6,
+    "device_vram_mib": 16304,
+    "max_tokens": 4096,
+    "temperature": 0.0,
+    "seed": 20260822,
+    "system_policy": "current",
+    "strict_tool_policy": true,
+    "tool_schema_policy": false,
+    "capture_diagnostics": true,
+    "command_line": "\"C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe\" --model \"C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q3_K_XL.gguf\" --host 127.0.0.1 --port 19426 --alias local --device ROCm0 --split-mode none --gpu-layers 99 --flash-attn on --ctx-size 131072 --batch-size 2048 --ubatch-size 288 --cache-type-k q4_0 --cache-type-v q4_0 --parallel 1 --cont-batching --no-context-shift --threads 8 --n-cpu-moe 6 --n-predict 4096 --reasoning-budget 0 --jinja --warmup --metrics --no-webui"
+  },
+  "load_seconds": 6.7,
+  "idle": {
+    "vram_dedicated_mib": 2863.0,
+    "vram_shared_mib": 342.4,
+    "commit_gib": 28.78,
+    "physical_used_gib": 14.539
+  },
+  "session_peak": {
+    "vram_dedicated_mib": 15117.3,
+    "vram_shared_mib": 503.1,
+    "process_vram_mib": 12345.3,
+    "process_ws_gib": 10.837,
+    "process_private_gib": 10.685,
+    "commit_gib": 41.385,
+    "physical_used_gib": 25.553
+  },
+  "marginal_vram_mib": 12254.3,
+  "memory_samples": 2,
+  "gpu_pressure": {
+    "state": "ok",
+    "occupancy": 0.9272,
+    "shared_mib": 503.1,
+    "message": "GPU memory is within budget: 15.117 / 16.304 MiB dedicated (92,7%), 503 MiB shared."
+  },
+  "eval_exit_code": 0,
+  "failure": null,
+  "eval": {
+    "schema_version": 1,
+    "scenario": "profile-qualification",
+    "label": "agent-q3-rescue-G-rb0-strict-tools",
+    "started_utc": "2026-08-22T06:47:20Z",
+    "server_props": {
+      "default_generation_settings": {
+        "params": {
+          "seed": 4294967295,
+          "temperature": 1.0,
+          "dynatemp_range": 0.0,
+          "dynatemp_exponent": 1.0,
+          "top_k": 64,
+          "top_p": 0.949999988079071,
+          "min_p": 0.05000000074505806,
+          "top_n_sigma": -1.0,
+          "xtc_probability": 0.0,
+          "xtc_threshold": 0.10000000149011612,
+          "typical_p": 1.0,
+          "repeat_last_n": 64,
+          "repeat_penalty": 1.0,
+          "presence_penalty": 0.0,
+          "frequency_penalty": 0.0,
+          "dry_multiplier": 0.0,
+          "dry_base": 1.75,
+          "dry_allowed_length": 2,
+          "dry_penalty_last_n": 64,
+          "mirostat": 0,
+          "mirostat_tau": 5.0,
+          "mirostat_eta": 0.10000000149011612,
+          "adaptive_target": -1.0,
+          "adaptive_decay": 0.8999999761581421,
+          "max_tokens": -1,
+          "n_predict": -1,
+          "n_keep": 0,
+          "n_discard": 0,
+          "ignore_eos": false,
+          "stream": false,
+          "n_probs": 0,
+          "min_keep": 0,
+          "chat_format": "Content-only",
+          "reasoning_format": "none",
+          "reasoning_in_content": false,
+          "generation_prompt": "",
+          "samplers": [
+            "penalties",
+            "dry",
+            "top_n_sigma",
+            "top_k",
+            "typ_p",
+            "top_p",
+            "min_p",
+            "xtc",
+            "temperature"
+          ],
+          "speculative.types": "none",
+          "timings_per_token": false,
+          "post_sampling_probs": false,
+          "backend_sampling": false,
+          "lora": []
+        },
+        "n_ctx": 131072
+      },
+      "total_slots": 1,
+      "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q3_K_XL.gguf",
+      "build_info": "b10549-b2e5e9b28"
+    },
+    "diagnostic_config": {
+      "max_tokens_override": 4096,
+      "temperature": 0.0,
+      "seed": 20260822,
+      "system_policy": "current",
+      "strict_tool_policy": true,
+      "tool_schema_policy": false,
+      "capture_dir": "C:\\IA\\IA_local_server\\benchmarks\\campaign-gemma4-26b\\quality-rescue\\capture-agent-q3-rescue-G-rb0-strict-tools",
+      "only_coding": [],
+      "only_tools": [
+        "tool_pick_search_many_nested",
+        "tool_pick_tests"
+      ]
+    },
+    "suites": {
+      "tools": {
+        "results": [
+          {
+            "id": "tool_pick_tests",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "run_tests"
+            ],
+            "raw_arguments_before_parser": "{\"package\":\"internal/edge\",\"verbose\":true}",
+            "arguments_after_parser": {
+              "package": "internal/edge",
+              "verbose": true
+            },
+            "arguments_observed_by_verifier": {
+              "package": "internal/edge",
+              "verbose": true
+            }
+          },
+          {
+            "id": "tool_pick_search_many_nested",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": false,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": false,
+            "detail": "filters={'case_sensitive': False, 'exclude': ['vendor/*'], 'include': ['*.go']} want {'include': ['*.go'], 'exclude': ['vendor/**'], 'case_sensitive': False}",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "search_files"
+            ],
+            "raw_arguments_before_parser": "{\"filters\":{\"case_sensitive\":false,\"exclude\":[\"vendor/*\"],\"include\":[\"*.go\"]},\"query\":\"resource_profile_incomplete\"}",
+            "arguments_after_parser": {
+              "filters": {
+                "case_sensitive": false,
+                "exclude": [
+                  "vendor/*"
+                ],
+                "include": [
+                  "*.go"
+                ]
+              },
+              "query": "resource_profile_incomplete"
+            },
+            "arguments_observed_by_verifier": {
+              "filters": {
+                "case_sensitive": false,
+                "exclude": [
+                  "vendor/*"
+                ],
+                "include": [
+                  "*.go"
+                ]
+              },
+              "query": "resource_profile_incomplete"
+            },
+            "failure_taxonomy": [
+              "WRONG_TOOL_ARGUMENT"
+            ]
+          }
+        ],
+        "passed": 1,
+        "total": 2
+      },
+      "json": {
+        "id": "structured_json",
+        "parsed": true,
+        "clean_json": true,
+        "passed": true,
+        "mismatches": [],
+        "finish_reason": "stop",
+        "reasoning_chars": 0,
+        "reasoning_content": ""
+      }
+    }
+  }
+}

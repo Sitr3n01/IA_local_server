@@ -1,0 +1,257 @@
+{
+  "schema_version": 1,
+  "scenario": "profile-qualification",
+  "label": "gemma-agent-q3kxl-128k-ncpumoe6-smoke",
+  "started_utc": "2026-08-22T04:16:30.1177906Z",
+  "configuration": {
+    "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q3_K_XL.gguf",
+    "model_bytes": 12907280096,
+    "runtime_root": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+    "context_tokens": 131072,
+    "cache_type_k": "q4_0",
+    "cache_type_v": "q4_0",
+    "ubatch_size": 288,
+    "batch_size": 2048,
+    "gpu_layers": 99,
+    "threads": 8,
+    "parallel": 1,
+    "tensor_override": "",
+    "cpu_moe": false,
+    "n_cpu_moe": 6,
+    "device_vram_mib": 16304,
+    "command_line": "\"C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe\" --model \"C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q3_K_XL.gguf\" --host 127.0.0.1 --port 19402 --alias local --device ROCm0 --split-mode none --gpu-layers 99 --flash-attn on --ctx-size 131072 --batch-size 2048 --ubatch-size 288 --cache-type-k q4_0 --cache-type-v q4_0 --parallel 1 --cont-batching --no-context-shift --threads 8 --n-cpu-moe 6 --jinja --warmup --metrics --no-webui"
+  },
+  "load_seconds": 10.7,
+  "idle": {
+    "vram_dedicated_mib": 3384.6,
+    "vram_shared_mib": 352.8,
+    "commit_gib": 30.043,
+    "physical_used_gib": 15.324
+  },
+  "session_peak": {
+    "vram_dedicated_mib": 14985.3,
+    "vram_shared_mib": 1273.3,
+    "process_vram_mib": 11598.2,
+    "process_ws_gib": 12.519,
+    "process_private_gib": 10.958,
+    "commit_gib": 43.01,
+    "physical_used_gib": 28.642
+  },
+  "marginal_vram_mib": 11600.7,
+  "memory_samples": 8,
+  "gpu_pressure": {
+    "state": "ok",
+    "occupancy": 0.9191,
+    "shared_mib": 1273.3,
+    "message": "GPU memory is within budget: 14.985 / 16.304 MiB dedicated (91,9%), 1.273 MiB shared."
+  },
+  "eval_exit_code": 0,
+  "failure": null,
+  "eval": {
+    "schema_version": 1,
+    "scenario": "profile-qualification",
+    "label": "gemma-agent-q3kxl-128k-ncpumoe6-smoke",
+    "started_utc": "2026-08-22T04:15:54Z",
+    "server_props": {
+      "default_generation_settings": {
+        "params": {
+          "seed": 4294967295,
+          "temperature": 1.0,
+          "dynatemp_range": 0.0,
+          "dynatemp_exponent": 1.0,
+          "top_k": 64,
+          "top_p": 0.949999988079071,
+          "min_p": 0.05000000074505806,
+          "top_n_sigma": -1.0,
+          "xtc_probability": 0.0,
+          "xtc_threshold": 0.10000000149011612,
+          "typical_p": 1.0,
+          "repeat_last_n": 64,
+          "repeat_penalty": 1.0,
+          "presence_penalty": 0.0,
+          "frequency_penalty": 0.0,
+          "dry_multiplier": 0.0,
+          "dry_base": 1.75,
+          "dry_allowed_length": 2,
+          "dry_penalty_last_n": 64,
+          "mirostat": 0,
+          "mirostat_tau": 5.0,
+          "mirostat_eta": 0.10000000149011612,
+          "adaptive_target": -1.0,
+          "adaptive_decay": 0.8999999761581421,
+          "max_tokens": -1,
+          "n_predict": -1,
+          "n_keep": 0,
+          "n_discard": 0,
+          "ignore_eos": false,
+          "stream": false,
+          "n_probs": 0,
+          "min_keep": 0,
+          "chat_format": "Content-only",
+          "reasoning_format": "none",
+          "reasoning_in_content": false,
+          "generation_prompt": "",
+          "samplers": [
+            "penalties",
+            "dry",
+            "top_n_sigma",
+            "top_k",
+            "typ_p",
+            "top_p",
+            "min_p",
+            "xtc",
+            "temperature"
+          ],
+          "speculative.types": "none",
+          "timings_per_token": false,
+          "post_sampling_probs": false,
+          "backend_sampling": false,
+          "lora": []
+        },
+        "n_ctx": 131072
+      },
+      "total_slots": 1,
+      "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q3_K_XL.gguf",
+      "build_info": "b10549-b2e5e9b28"
+    },
+    "suites": {
+      "chat": {
+        "results": [
+          {
+            "id": "system_user_stop",
+            "passed": true,
+            "finish_reason": "stop",
+            "reasoning_chars": 331
+          },
+          {
+            "id": "multi_turn",
+            "passed": true,
+            "finish_reason": "stop",
+            "reasoning_chars": 375
+          },
+          {
+            "id": "streaming",
+            "passed": true,
+            "chunks": 79,
+            "done": true
+          },
+          {
+            "id": "tool_result_continuation",
+            "passed": true,
+            "call_ok": true,
+            "args_ok": true,
+            "continuation_ok": true,
+            "finish_reason": "stop",
+            "reasoning_chars": 0
+          }
+        ],
+        "passed": 4,
+        "total": 4
+      },
+      "tools": {
+        "results": [
+          {
+            "id": "tool_pick_tests",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "names": [
+              "run_tests"
+            ]
+          },
+          {
+            "id": "tool_pick_build",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "names": [
+              "run_build"
+            ]
+          },
+          {
+            "id": "tool_pick_read_range",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "names": [
+              "read_file_range"
+            ]
+          },
+          {
+            "id": "tool_pick_read_many",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "names": [
+              "read_files"
+            ]
+          },
+          {
+            "id": "tool_pick_search_one",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "names": [
+              "search_file"
+            ]
+          },
+          {
+            "id": "tool_pick_search_many_nested",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": false,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": false,
+            "detail": "filters={'case_sensitive': False, 'exclude': ['vendor/*'], 'include': ['*.go']} want {'include': ['*.go'], 'exclude': ['vendor/**'], 'case_sensitive': False}",
+            "names": [
+              "search_files"
+            ]
+          },
+          {
+            "id": "tool_refuse_edit",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "names": [
+              "list_dir"
+            ]
+          }
+        ],
+        "passed": 6,
+        "total": 7
+      },
+      "json": {
+        "id": "structured_json",
+        "parsed": true,
+        "clean_json": true,
+        "passed": true,
+        "mismatches": []
+      }
+    }
+  }
+}

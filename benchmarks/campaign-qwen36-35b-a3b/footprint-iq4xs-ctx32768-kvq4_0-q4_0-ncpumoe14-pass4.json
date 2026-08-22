@@ -1,0 +1,45 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "context-footprint-at-load",
+    "started_utc":  "2026-08-22T20:06:02.8280915Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.6-35B-A3B-GGUF\\Qwen3.6-35B-A3B-UD-IQ4_XS.gguf",
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  32768,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "parallel":  1,
+                          "tensor_override":  "",
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  14,
+                          "device_vram_mib":  16304
+                      },
+    "load_seconds":  8.5,
+    "idle":  {
+                 "vram_dedicated_mib":  3657.1,
+                 "vram_shared_mib":  396.3,
+                 "commit_gib":  25.878,
+                 "physical_used_gib":  10.764
+             },
+    "peak":  {
+                 "vram_dedicated_mib":  15887.2,
+                 "vram_shared_mib":  497.8,
+                 "process_vram_mib":  12233.8,
+                 "process_ws_gib":  11.969,
+                 "process_private_gib":  11.961,
+                 "commit_gib":  38.893,
+                 "physical_used_gib":  23.114
+             },
+    "marginal_vram_mib":  12230.1,
+    "gpu_pressure":  {
+                         "state":  "elevated",
+                         "occupancy":  0.9744,
+                         "shared_mib":  497.8,
+                         "message":  "GPU memory is elevated: 15.887 / 16.304 MiB dedicated (97,4%), 498 MiB shared."
+                     },
+    "failure":  null
+}

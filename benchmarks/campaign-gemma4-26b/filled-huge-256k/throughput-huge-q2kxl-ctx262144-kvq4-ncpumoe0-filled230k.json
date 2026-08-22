@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "scenario": "throughput-sweep",
+  "label": "huge-q2kxl-ctx262144-kvq4-ncpumoe0-filled230k",
+  "started_utc": "2026-08-22T05:05:07.9139940Z",
+  "configuration": {
+    "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q2_K_XL.gguf",
+    "model_bytes": 10546934240,
+    "runtime_root": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+    "context_tokens": 262144,
+    "cache_type_k": "q4_0",
+    "cache_type_v": "q4_0",
+    "tensor_override": "",
+    "ubatch_size": 288,
+    "batch_size": 2048,
+    "gpu_layers": 99,
+    "threads": 8,
+    "repetitions": 1,
+    "device_vram_mib": 16304,
+    "cpu_moe": false,
+    "n_cpu_moe": 0
+  },
+  "results": [
+    {
+      "tag": "huge-q2kxl-ctx262144-kvq4-ncpumoe0-filled230k-tg128-d230000",
+      "kind": "tg",
+      "n": 128,
+      "depth": 230000,
+      "tokens_per_second": 2.77,
+      "stddev": 0.0,
+      "timed_out": false,
+      "wall_s": 1108.1,
+      "peak": {
+        "vram_dedicated_mib": 15525.2,
+        "vram_shared_mib": 1674.3,
+        "process_ws_gib": 11.604,
+        "physical_used_gib": 27.575
+      },
+      "failure": null
+    }
+  ]
+}

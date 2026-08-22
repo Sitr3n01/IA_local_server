@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "scenario": "qwen36-allocator-bistability",
+  "generated_utc": "2026-08-22T20:08:16.591001Z",
+  "shared_margin_mib": 400,
+  "finding": "Near the fit boundary the WDDM allocator takes one of two branches - pack dedicated VRAM to the ceiling, or satisfy part of the allocation from shared - and which branch it takes is decided by what is already resident, not by chance. Two runs of q3kxl/262144/n18 nineteen seconds apart, one cold (14.6 s) and one warm (6.5 s), returned byte-identical dedicated, shared and idle figures. The branch is therefore reproducible for a given desktop state and varies only when the desktop varies. This is what makes 'clean at n, spilling at n+2, clean at n+4' possible without any non-monotonic memory demand: the three cells are not three points on one curve, they are two different branches.",
+  "decision_cells": {
+    "q3kxl-262144-q4_0": {
+      "question": "step-of-2 search chose n=20; is n=18 admissible?",
+      "verdict": "yes - n=18 ships. Three of four readings sit near 230 MiB, far under the 400 MiB margin; the single 1033 MiB reading was the outlier.",
+      "n18": [
+        {
+          "file": "footprint-q3kxl-ctx262144-kvq4_0-q4_0-ncpumoe18.json",
+          "started_utc": "2026-08-22T17:40:15.9973084Z",
+          "load_seconds": 6.6,
+          "idle_shared_mib": 394.5,
+          "idle_dedicated_mib": 3768,
+          "peak_shared_mib": 1427.5,
+          "spill_mib": 1033.0,
+          "marginal_vram_mib": 12004.4,
+          "gpu_pressure": "pressured"
+        },
+        {
+          "file": "footprint-q3kxl-ctx262144-kvq4_0-q4_0-ncpumoe18-repeat.json",
+          "started_utc": "2026-08-22T20:02:31.4635797Z",
+          "load_seconds": 8.5,
+          "idle_shared_mib": 380.4,
+          "idle_dedicated_mib": 3507.3,
+          "peak_shared_mib": 615.4,
+          "spill_mib": 235.0,
+          "marginal_vram_mib": 12107,
+          "gpu_pressure": "elevated"
+        },
+        {
+          "file": "footprint-q3kxl-ctx262144-kvq4_0-q4_0-ncpumoe18-pass3.json",
+          "started_utc": "2026-08-22T20:04:52.0284925Z",
+          "load_seconds": 14.6,
+          "idle_shared_mib": 388.2,
+          "idle_dedicated_mib": 3582.6,
+          "peak_shared_mib": 615.3,
+          "spill_mib": 227.1,
+          "marginal_vram_mib": 12050.7,
+          "gpu_pressure": "elevated"
+        },
+        {
+          "file": "footprint-q3kxl-ctx262144-kvq4_0-q4_0-ncpumoe18-pass4.json",
+          "started_utc": "2026-08-22T20:05:11.9656404Z",
+          "load_seconds": 6.5,
+          "idle_shared_mib": 388.2,
+          "idle_dedicated_mib": 3582.6,
+          "peak_shared_mib": 615.3,
+          "spill_mib": 227.1,
+          "marginal_vram_mib": 12050.7,
+          "gpu_pressure": "elevated"
+        }
+      ],
+      "n17": [
+        {
+          "file": "footprint-q3kxl-ctx262144-kvq4_0-q4_0-ncpumoe17.json",
+          "started_utc": "2026-08-22T17:39:56.0021123Z",
+          "load_seconds": 12.6,
+          "idle_shared_mib": 393.9,
+          "idle_dedicated_mib": 3660.6,
+          "peak_shared_mib": 2061,
+          "spill_mib": 1667.1,
+          "marginal_vram_mib": 10967.6,
+          "gpu_pressure": "ok"
+        },
+        {
+          "file": "footprint-q3kxl-ctx262144-kvq4_0-q4_0-ncpumoe17-pass1.json",
+          "started_utc": "2026-08-22T20:07:25.6295511Z",
+          "load_seconds": 12.7,
+          "idle_shared_mib": 405.6,
+          "idle_dedicated_mib": 3672.6,
+          "peak_shared_mib": 1414,
+          "spill_mib": 1008.4,
+          "marginal_vram_mib": 11563.9,
+          "gpu_pressure": "ok"
+        },
+        {
+          "file": "footprint-q3kxl-ctx262144-kvq4_0-q4_0-ncpumoe17-pass2.json",
+          "started_utc": "2026-08-22T20:07:45.6816296Z",
+          "load_seconds": 6.6,
+          "idle_shared_mib": 380.8,
+          "idle_dedicated_mib": 3659.4,
+          "peak_shared_mib": 1430.8,
+          "spill_mib": 1050.0,
+          "marginal_vram_mib": 11577.2,
+          "gpu_pressure": "ok"
+        }
+      ],
+      "n17_note": "n=17 was never measured by the step-of-2 sweep. It spills reproducibly (1008 and 1050 MiB), so n=18 is the first clean placement at single-layer resolution, not just at step-of-2."
+    },
+    "iq4xs-32768-q4_0": {
+      "question": "search rejected n=14 on a 401 MiB spill against a 400 MiB margin; was that 1 MiB call right?",
+      "verdict": "yes - n=16 stays. Readings 401, 410, 417, 102: three of four above the margin. A cell that lands on the margin in most runs is exactly what the margin is for.",
+      "n14": [
+        {
+          "file": "footprint-iq4xs-ctx32768-kvq4_0-q4_0-ncpumoe14.json",
+          "started_utc": "2026-08-22T17:47:10.4666402Z",
+          "load_seconds": 8.6,
+          "idle_shared_mib": 394.1,
+          "idle_dedicated_mib": 3635.9,
+          "peak_shared_mib": 795.1,
+          "spill_mib": 401.0,
+          "marginal_vram_mib": 11915.9,
+          "gpu_pressure": "elevated"
+        },
+        {
+          "file": "footprint-iq4xs-ctx32768-kvq4_0-q4_0-ncpumoe14-repeat.json",
+          "started_utc": "2026-08-22T20:02:57.6502936Z",
+          "load_seconds": 12.6,
+          "idle_shared_mib": 388.3,
+          "idle_dedicated_mib": 3563.6,
+          "peak_shared_mib": 798.1,
+          "spill_mib": 409.8,
+          "marginal_vram_mib": 11992.4,
+          "gpu_pressure": "elevated"
+        },
+        {
+          "file": "footprint-iq4xs-ctx32768-kvq4_0-q4_0-ncpumoe14-pass3.json",
+          "started_utc": "2026-08-22T20:05:40.5801880Z",
+          "load_seconds": 14.8,
+          "idle_shared_mib": 380.3,
+          "idle_dedicated_mib": 3582.6,
+          "peak_shared_mib": 797,
+          "spill_mib": 416.7,
+          "marginal_vram_mib": 12047.6,
+          "gpu_pressure": "elevated"
+        },
+        {
+          "file": "footprint-iq4xs-ctx32768-kvq4_0-q4_0-ncpumoe14-pass4.json",
+          "started_utc": "2026-08-22T20:06:02.8280915Z",
+          "load_seconds": 8.5,
+          "idle_shared_mib": 396.3,
+          "idle_dedicated_mib": 3657.1,
+          "peak_shared_mib": 497.8,
+          "spill_mib": 101.5,
+          "marginal_vram_mib": 12230.1,
+          "gpu_pressure": "elevated"
+        }
+      ]
+    }
+  },
+  "profile_change": {
+    "budget": "dedicated",
+    "model": "q3kxl",
+    "context": 262144,
+    "cache": "q4_0",
+    "from_ncpumoe": 20,
+    "to_ncpumoe": 18,
+    "why": "two expert layers returned to the device; section 8.3 measures decode falling with each layer handed to the host"
+  }
+}

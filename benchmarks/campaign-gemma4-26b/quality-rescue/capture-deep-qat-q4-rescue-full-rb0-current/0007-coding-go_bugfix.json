@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "This Go package deadlocks. Fix it so the tests pass, keeping the exported signature and the ordering guarantee. Return the whole file.\n\n```go\npackage pipeline\n\nimport \"sync\"\n\n// FanIn runs fn over every input concurrently and returns the results in the\n// same order as the inputs. It currently deadlocks on any non-empty input.\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\n\tout := make([]int, len(inputs))\n\tjobs := make(chan int)\n\tvar wg sync.WaitGroup\n\n\tfor w := 0; w < workers; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor i := range jobs {\n\t\t\t\tout[i] = fn(inputs[i])\n\t\t\t}\n\t\t}()\n\t}\n\n\tfor i := range inputs {\n\t\tjobs <- i\n\t}\n\twg.Wait()\n\tclose(jobs)\n\treturn out\n}\n```"
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```go\\npackage pipeline\\n\\nimport \\\"sync\\\"\\n\\n// FanIn runs fn over every input concurrently and returns the results in the\\n// same order as the inputs. It currently deadlocks on any non-empty input.\\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\\n\\tout := make([]int, len(inputs))\\n\\tjobs := make(chan int)\\n\\tvar wg sync.WaitGroup\\n\\n\\tfor w := 0; w < workers; w++ {\\n\\t\\twg.Add(1)\\n\\t\\tgo func() {\\n\\t\\t\\tdefer wg.Done()\\n\\t\\t\\tfor i := range jobs {\\n\\t\\t\\t\\tout[i] = fn(inputs[i])\\n\\t\\t\\t}\\n\\t\\t}()\\n\\t}\\n\\n\\tfor i := range inputs {\\n\\t\\tjobs <- i\\n\\t}\\n\\tclose(jobs)\\n\\twg.Wait()\\n\\treturn out\\n}\\n```\"}}],\"created\":1787381435,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":201,\"prompt_tokens\":286,\"total_tokens\":487,\"prompt_tokens_details\":{\"cached_tokens\":52}},\"id\":\"chatcmpl-3J9GYIHfSC2cqwSVyEPzB9avig8ehxHg\",\"timings\":{\"cache_n\":52,\"prompt_n\":234,\"prompt_ms\":362.555,\"prompt_per_token_ms\":1.549380341880342,\"prompt_per_second\":645.4193156900333,\"predicted_n\":201,\"predicted_ms\":3323.448,\"predicted_per_token_ms\":16.61724,\"predicted_per_second\":60.17846525656487}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```go\npackage pipeline\n\nimport \"sync\"\n\n// FanIn runs fn over every input concurrently and returns the results in the\n// same order as the inputs. It currently deadlocks on any non-empty input.\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\n\tout := make([]int, len(inputs))\n\tjobs := make(chan int)\n\tvar wg sync.WaitGroup\n\n\tfor w := 0; w < workers; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor i := range jobs {\n\t\t\t\tout[i] = fn(inputs[i])\n\t\t\t}\n\t\t}()\n\t}\n\n\tfor i := range inputs {\n\t\tjobs <- i\n\t}\n\tclose(jobs)\n\twg.Wait()\n\treturn out\n}\n```"
+        }
+      }
+    ],
+    "created": 1787381435,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 201,
+      "prompt_tokens": 286,
+      "total_tokens": 487,
+      "prompt_tokens_details": {
+        "cached_tokens": 52
+      }
+    },
+    "id": "chatcmpl-3J9GYIHfSC2cqwSVyEPzB9avig8ehxHg",
+    "timings": {
+      "cache_n": 52,
+      "prompt_n": 234,
+      "prompt_ms": 362.555,
+      "prompt_per_token_ms": 1.549380341880342,
+      "prompt_per_second": 645.4193156900333,
+      "predicted_n": 201,
+      "predicted_ms": 3323.448,
+      "predicted_per_token_ms": 16.61724,
+      "predicted_per_second": 60.17846525656487
+    }
+  }
+}

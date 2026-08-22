@@ -171,6 +171,12 @@ function Assert-V2ManifestSemantics {
         $cacheRamMib = Get-V2ModelSetting -Model $model -Name 'cache_ram_mib'
         $peakVramGib = Get-V2ModelSetting -Model $model.resources -Name 'peak_vram_gib'
         $peakCommitGib = Get-V2ModelSetting -Model $model.resources -Name 'peak_commit_gib'
+        $peakRamGib = Get-V2ModelSetting -Model $model.resources -Name 'peak_ram_gib'
+        $maxOutputTokens = Get-V2ModelSetting -Model $model -Name 'max_output_tokens'
+        $nPredict = Get-V2ModelSetting -Model $model -Name 'n_predict'
+        $reasoningBudget = Get-V2ModelSetting -Model $model -Name 'reasoning_budget'
+        $reasoningBudgetMessage = Get-V2ModelSetting -Model $model -Name 'reasoning_budget_message'
+        $compactThresholdTokens = Get-V2ModelSetting -Model $model -Name 'compact_threshold_tokens'
 
         if ($null -ne $specDecoding -and $contextShift) {
             # llama.cpp asserts in the sampler when a speculative draft is
@@ -191,14 +197,27 @@ function Assert-V2ManifestSemantics {
             if ($hasCpuLayers -and [int]$moeOffload.cpu_layers -lt 0) {
                 throw "Model '$($model.id)' declares a negative moe_offload.cpu_layers."
             }
-            if ($null -eq $peakVramGib -and $model.gpu_layers -ge 99) {
-                throw "Model '$($model.id)' declares moe_offload without resources.peak_vram_gib; measure the MoE placement before offloading."
+            $realMoeOffload = ($hasCpuAll -and [bool]$moeOffload.cpu_all) -or ($hasCpuLayers -and [int]$moeOffload.cpu_layers -gt 0)
+            if ($realMoeOffload) {
+                foreach ($field in @(
+                        @{ Name = 'peak_vram_gib'; Value = $peakVramGib },
+                        @{ Name = 'peak_commit_gib'; Value = $peakCommitGib },
+                        @{ Name = 'peak_ram_gib'; Value = $peakRamGib })) {
+                    if ($null -eq $field.Value) {
+                        throw "Model '$($model.id)' declares real moe_offload without resources.$($field.Name); measure the MoE placement before offloading."
+                    }
+                }
             }
         }
 
         if ($tensorOverrides.Count -gt 0) {
-            if ($null -eq $peakVramGib -and $model.gpu_layers -ge 99) {
-                throw "Model '$($model.id)' declares tensor_overrides without resources.peak_vram_gib; measure the split before offloading."
+            foreach ($field in @(
+                    @{ Name = 'peak_vram_gib'; Value = $peakVramGib },
+                    @{ Name = 'peak_commit_gib'; Value = $peakCommitGib },
+                    @{ Name = 'peak_ram_gib'; Value = $peakRamGib })) {
+                if ($null -eq $field.Value) {
+                    throw "Model '$($model.id)' declares tensor_overrides without resources.$($field.Name); measure the split before offloading."
+                }
             }
             foreach ($override in $tensorOverrides) {
                 if ([string]$override.pattern -match '\s') {
@@ -229,6 +248,31 @@ function Assert-V2ManifestSemantics {
             # --cache-ram is charged against the Windows commit limit. Without a
             # measured peak the edge admission gate cannot see it at all.
             throw "Model '$($model.id)' declares cache_ram_mib without resources.peak_commit_gib; admission control cannot account for the prompt cache."
+        }
+
+        if ($null -ne $nPredict -and $null -ne $maxOutputTokens -and [int]$nPredict -lt [int]$maxOutputTokens) {
+            throw "Model '$($model.id)' declares n_predict lower than max_output_tokens."
+        }
+        if ($null -ne $reasoningBudget -and $null -ne $nPredict -and [int]$reasoningBudget -gt 0 -and [int]$reasoningBudget -gt [int]$nPredict) {
+            throw "Model '$($model.id)' declares reasoning_budget greater than n_predict."
+        }
+        if ($null -ne $reasoningBudgetMessage -and ($null -eq $reasoningBudget -or [int]$reasoningBudget -le 0)) {
+            throw "Model '$($model.id)' declares reasoning_budget_message without a positive reasoning_budget."
+        }
+        if ($null -ne $reasoningBudget -and $null -ne $nPredict -and [int]$reasoningBudget -gt 0) {
+            $answerReserve = [int]$nPredict - [int]$reasoningBudget
+            $minimumAnswerReserve = [Math]::Min(8192, [int]$nPredict)
+            if ($answerReserve -lt $minimumAnswerReserve) {
+                throw "Model '$($model.id)' leaves only $answerReserve tokens after reasoning_budget; profiles with reasoning must reserve at least $minimumAnswerReserve answer tokens."
+            }
+        }
+        if ($null -ne $compactThresholdTokens -and $null -ne $maxOutputTokens) {
+            if ([int]$compactThresholdTokens -ge [int]$model.context_tokens) {
+                throw "Model '$($model.id)' declares compact_threshold_tokens greater than or equal to context_tokens."
+            }
+            if ([int]$compactThresholdTokens + [int]$maxOutputTokens -ge [int]$model.context_tokens) {
+                throw "Model '$($model.id)' lets compact_threshold_tokens invade the max_output_tokens reserve."
+            }
         }
 
         $deployments = @($model.deployments)
@@ -372,47 +416,112 @@ function Get-V2RuntimeHelpText {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         throw "Runtime executable is missing and its capabilities cannot be verified: $Path"
     }
+
+    # Redirect to files rather than merging with 2>&1.
+    #
+    # Windows PowerShell 5.1 wraps every stderr line of a native command in an
+    # ErrorRecord, and under ErrorActionPreference 'Stop' that record terminates
+    # the caller. `llama-bench --help` initialises the GPU backend before it
+    # prints anything and writes "ggml_cuda_init: found 2 ROCm devices" to
+    # stderr, so on this host the old form could not query llama-bench at all:
+    # Invoke-V2ThroughputSweep.ps1 failed on its first statement, before any
+    # benchmark ran. `llama-server --help` prints nothing to stderr, which is
+    # why the defect stayed hidden. Same locale-and-shell class of failure as
+    # the one ADR 0011 records for Test-V2AgenticHarness.ps1, and CI did not see
+    # it because CI runs pwsh 7.
+    #
+    # Both streams are kept: a tool that prints its option list to stderr is
+    # unusual but not wrong, and discarding it would turn that into "no options".
+    $stdoutPath = [IO.Path]::GetTempFileName()
+    $stderrPath = [IO.Path]::GetTempFileName()
     try {
-        $output = & $Path --help 2>&1 | ForEach-Object { $_.ToString() }
+        $process = Start-Process -FilePath $Path -ArgumentList '--help' -NoNewWindow -Wait -PassThru `
+            -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+        $captured = @()
+        foreach ($stream in @($stdoutPath, $stderrPath)) {
+            $content = Get-Content -Raw -LiteralPath $stream -ErrorAction SilentlyContinue
+            if (-not [string]::IsNullOrEmpty($content)) { $captured += $content.TrimEnd() }
+        }
+        $text = ($captured -join [Environment]::NewLine)
     }
     catch {
         throw "Runtime '$Path' could not be queried with --help: $($_.Exception.Message)"
     }
-    $text = ($output -join [Environment]::NewLine)
+    finally {
+        Remove-Item -LiteralPath $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
+    }
+
     if ([string]::IsNullOrWhiteSpace($text)) {
         throw "Runtime '$Path' returned no option list for --help; its capabilities cannot be verified."
     }
     return $text
 }
 
-# Builds the llama-server command line for one model. Kept here, apart from the
-# publication transaction in New-V2Config.ps1, so the emitted flags can be
-# asserted directly by Test-V2ConfigGeneration.ps1.
+# Formats generated argument tokens as a reproducible command string. The
+# Start-Process callers use raw tokens; only persisted configuration needs the
+# quote characters.
+function ConvertTo-V2CommandLine {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments
+    )
+
+    $quotedValueFlags = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($flag in @('--model', '--api-key-file', '-ot', '--reasoning-budget-message')) {
+        [void]$quotedValueFlags.Add($flag)
+    }
+
+    $formatted = @()
+    for ($index = 0; $index -lt $Arguments.Count; $index++) {
+        $argument = [string]$Arguments[$index]
+        $previous = if ($index -gt 0) { [string]$Arguments[$index - 1] } else { '' }
+        if ($index -eq 0 -or $quotedValueFlags.Contains($previous) -or $argument -match '\s') {
+            $formatted += ('"{0}"' -f $argument)
+        }
+        else {
+            $formatted += $argument
+        }
+    }
+    return ($formatted -join ' ')
+}
+
+# Builds the llama-server argument vector for one model. Kept here, apart from
+# the publication transaction in New-V2Config.ps1, so production and benchmark
+# runners cannot maintain separate copies of the tuning surface.
 #
 # Ordering is load-bearing: every optional flag is emitted between
 # --context-shift and --jinja, so a model that declares none of the optional
 # tuning fields produces the exact byte sequence this generator emitted before
 # those fields existed. Regenerating a qualified deployment must never rewrite
 # its configuration just because the schema grew.
-function New-V2LlamaServerCommand {
+function New-V2LlamaServerArguments {
     param(
-        [Parameter(Mandatory = $true)]
-        [object]$Runtime,
-
         [Parameter(Mandatory = $true)]
         [object]$Model,
 
-        [Parameter(Mandatory = $true)]
-        [string]$RouterAPIKeyPath
+        [string]$Port = '${PORT}',
+        [string]$Alias = $null,
+        [string]$ModelPath = $null,
+        [switch]$IncludeJinja,
+        [switch]$IncludeWarmup,
+        [switch]$IncludeMetrics,
+        [switch]$IncludeNoWebui,
+        [string]$RouterAPIKeyPath = '',
+        [switch]$DisableLog
     )
 
     $arguments = [System.Collections.Generic.List[string]]::new()
+    if ([string]::IsNullOrWhiteSpace($ModelPath)) {
+        $ModelPath = [string]$Model.artifact.path
+    }
+    if ([string]::IsNullOrWhiteSpace($Alias)) {
+        $Alias = [string]$Model.id
+    }
     foreach ($argument in @(
-            ('"{0}"' -f $Runtime.artifact.path),
-            '--model', ('"{0}"' -f $Model.artifact.path),
+            '--model', $ModelPath,
             '--host', '127.0.0.1',
-            '--port', '${PORT}',
-            '--alias', $Model.id,
+            '--port', $Port,
+            '--alias', $Alias,
             '--device', 'ROCm0',
             '--split-mode', 'none',
             '--gpu-layers', [string]$Model.gpu_layers,
@@ -482,7 +591,7 @@ function New-V2LlamaServerCommand {
     }
     $reasoningBudgetMessage = Get-V2ModelSetting -Model $Model -Name 'reasoning_budget_message'
     if ($null -ne $reasoningBudgetMessage) {
-        $arguments.AddRange([string[]]@('--reasoning-budget-message', ('"{0}"' -f $reasoningBudgetMessage)))
+        $arguments.AddRange([string[]]@('--reasoning-budget-message', [string]$reasoningBudgetMessage))
     }
     $ctxCheckpoints = Get-V2ModelSetting -Model $Model -Name 'ctx_checkpoints'
     if ($null -ne $ctxCheckpoints) {
@@ -518,19 +627,143 @@ function New-V2LlamaServerCommand {
                 '--spec-draft-n-max', [string][int]$specDecoding.draft_n_max))
     }
     foreach ($override in @(Get-V2ModelSetting -Model $Model -Name 'tensor_overrides' -Default @())) {
-        $arguments.AddRange([string[]]@('-ot', ('"{0}={1}"' -f $override.pattern, $override.buffer)))
+        $arguments.AddRange([string[]]@('-ot', ('{0}={1}' -f $override.pattern, $override.buffer)))
     }
 
+    if ($IncludeJinja) { $arguments.Add('--jinja') }
+    if ($IncludeWarmup) { $arguments.Add('--warmup') }
+    if ($IncludeMetrics) { $arguments.Add('--metrics') }
+    if ($IncludeNoWebui) { $arguments.Add('--no-webui') }
+    if (-not [string]::IsNullOrWhiteSpace($RouterAPIKeyPath)) {
+        $arguments.AddRange([string[]]@('--api-key-file', $RouterAPIKeyPath))
+    }
+    if ($DisableLog) { $arguments.Add('--log-disable') }
+
+    return [string[]]$arguments
+}
+
+function New-V2LlamaServerCommand {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Runtime,
+
+        [Parameter(Mandatory = $true)]
+        [object]$Model,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RouterAPIKeyPath
+    )
+
+    $arguments = @([string]$Runtime.artifact.path) + @(New-V2LlamaServerArguments -Model $Model `
+            -RouterAPIKeyPath $RouterAPIKeyPath -IncludeJinja -IncludeWarmup -IncludeMetrics -IncludeNoWebui -DisableLog)
+    return ConvertTo-V2CommandLine -Arguments $arguments
+}
+
+function New-V2BenchmarkModelSpec {
+    param(
+        [Parameter(Mandatory = $true)][string]$ModelPath,
+        [Parameter(Mandatory = $true)][string]$Alias,
+        [Parameter(Mandatory = $true)][int]$ContextTokens,
+        [Parameter(Mandatory = $true)][string]$CacheTypeK,
+        [Parameter(Mandatory = $true)][string]$CacheTypeV,
+        [Parameter(Mandatory = $true)][int]$UBatchSize,
+        [Parameter(Mandatory = $true)][int]$BatchSize,
+        [Parameter(Mandatory = $true)][int]$NGpuLayers,
+        [Parameter(Mandatory = $true)][int]$Threads,
+        [Parameter(Mandatory = $true)][int]$Parallel,
+        [string]$TensorOverride = '',
+        [ValidateRange(-1, 1024)][int]$NCpuMoe = -1,
+        [switch]$CpuMoe
+    )
+
+    if ($CpuMoe -and $NCpuMoe -ge 0) {
+        throw 'CpuMoe and NCpuMoe are mutually exclusive.'
+    }
+    $model = [pscustomobject]@{
+        id             = $Alias
+        artifact       = [pscustomobject]@{ path = $ModelPath }
+        gpu_layers     = $NGpuLayers
+        context_tokens = $ContextTokens
+        batch_size     = $BatchSize
+        ubatch_size    = $UBatchSize
+        cache_type_k   = $CacheTypeK
+        cache_type_v   = $CacheTypeV
+        parallel       = $Parallel
+        context_shift  = $false
+        threads        = $Threads
+    }
+    if ($CpuMoe) {
+        $model | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_all = $true })
+    }
+    elseif ($NCpuMoe -ge 0) {
+        $model | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_layers = $NCpuMoe })
+    }
+    if (-not [string]::IsNullOrWhiteSpace($TensorOverride)) {
+        $equals = $TensorOverride.LastIndexOf('=')
+        if ($equals -le 0 -or $equals -eq $TensorOverride.Length - 1) {
+            throw "TensorOverride must use the form '<regex>=<buffer>', got '$TensorOverride'."
+        }
+        $model | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @(
+            [pscustomobject]@{
+                pattern = $TensorOverride.Substring(0, $equals)
+                buffer  = $TensorOverride.Substring($equals + 1)
+            })
+    }
+    return $model
+}
+
+function New-V2LlamaBenchArguments {
+    param(
+        [Parameter(Mandatory = $true)][object]$Model,
+        [Parameter(Mandatory = $true)][string]$TestKind,
+        [Parameter(Mandatory = $true)][int]$Tokens,
+        [int]$Depth = 0,
+        [int]$Repetitions = 3,
+        [object]$SupportedFlags = $null
+    )
+
+    $arguments = [System.Collections.Generic.List[string]]::new()
     foreach ($argument in @(
-            '--jinja',
-            '--warmup',
-            '--metrics',
-            '--no-webui',
-            '--api-key-file', ('"{0}"' -f $RouterAPIKeyPath),
-            '--log-disable'
+            '-m', [string]$Model.artifact.path,
+            '-dev', 'ROCm0',
+            '--split-mode', 'none',
+            '-ngl', [string]$Model.gpu_layers,
+            '-fa', 'on',
+            '-b', [string]$Model.batch_size,
+            '-ub', [string]$Model.ubatch_size,
+            '-ctk', [string]$Model.cache_type_k,
+            '-ctv', [string]$Model.cache_type_v,
+            '-t', [string](Get-V2ModelSetting -Model $Model -Name 'threads' -Default 8),
+            '-r', [string]$Repetitions,
+            '-o', 'json'
         )) { $arguments.Add($argument) }
 
-    return ($arguments -join ' ')
+    foreach ($override in @(Get-V2ModelSetting -Model $Model -Name 'tensor_overrides' -Default @())) {
+        $arguments.AddRange([string[]]@('-ot', ('{0}={1}' -f $override.pattern, $override.buffer)))
+    }
+    $moeOffload = Get-V2ModelSetting -Model $Model -Name 'moe_offload'
+    if ($null -ne $moeOffload) {
+        if (Test-V2ModelSettingDeclared -Model $moeOffload -Name 'cpu_all') {
+            if ($null -ne $SupportedFlags -and $SupportedFlags.Contains('--cpu-moe')) {
+                $arguments.Add('--cpu-moe')
+            }
+            elseif ($null -ne $SupportedFlags) {
+                throw 'llama-bench does not support --cpu-moe in this runtime; pass -NCpuMoe with a GGUF-validated all-MoE layer count, or mark this cell NOT TESTED.'
+            }
+            else {
+                $arguments.Add('--cpu-moe')
+            }
+        }
+        elseif (Test-V2ModelSettingDeclared -Model $moeOffload -Name 'cpu_layers') {
+            $arguments.AddRange([string[]]@('--n-cpu-moe', [string][int]$moeOffload.cpu_layers))
+        }
+    }
+
+    if ($TestKind -eq 'pp') { $arguments.AddRange([string[]]@('-p', [string]$Tokens, '-n', '0')) }
+    elseif ($TestKind -eq 'tg') { $arguments.AddRange([string[]]@('-p', '0', '-n', [string]$Tokens)) }
+    else { throw "Unknown llama-bench test kind '$TestKind'." }
+    if ($Depth -gt 0) { $arguments.AddRange([string[]]@('-d', [string]$Depth)) }
+    return [string[]]$arguments
 }
 
 function Assert-V2ManifestSchema {
@@ -763,4 +996,70 @@ function Assert-V2DeploymentMarker {
     }
 
     return $marker
+}
+
+function Enter-V2RocmEnvironment {
+    <#
+    .SYNOPSIS
+    Sets the process environment a ROCm llama.cpp build needs, and returns a
+    token for restoring it.
+
+    .DESCRIPTION
+    `New-V2LlamaServerArguments` emits `--device ROCm0`, but which physical
+    card `ROCm0` names is decided by the environment, not by that argument.
+    This host enumerates two ROCm devices - the Raphael iGPU (gfx1036) first,
+    the discrete RX 9070 XT (gfx1201) second - so without
+    `HIP_VISIBLE_DEVICES=1` the flag selects the integrated GPU. The failure is
+    not a clean refusal: the server loads, reports "model loaded", answers
+    `/v1/models` with 200, and then aborts on the first completion with
+    `rocBLAS error: Cannot read .../TensileLibrary.dat ... for GPU arch :
+    gfx1036`, resetting the connection. Anything probing it reads that as the
+    model failing.
+
+    PATH matters for a second reason: `System32\downlevel` carries the UCRT API
+    sets the ROCm build imports and $RuntimeRoot carries the rocBLAS closure.
+    Without both, `ggml-hip.dll` does not load and the server runs on the CPU
+    without saying so.
+
+    Eight scripts under scripts/v2 and benchmarks/ set these two variables
+    inline with their own save/restore boilerplate. This function exists so the
+    ninth does not have to, and so the requirement lives next to the argument
+    builder that creates it. The existing eight are deliberately left alone:
+    they work, and rewriting them mid-campaign risks a regression for no
+    measurement gain.
+
+    .EXAMPLE
+    $rocm = Enter-V2RocmEnvironment -RuntimeRoot $RuntimeRoot
+    try { ... } finally { Exit-V2RocmEnvironment -State $rocm }
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RuntimeRoot,
+
+        # The discrete card's index in HIP enumeration. A parameter rather than
+        # a constant because it is a fact about this host, not about ROCm.
+        [string]$VisibleDevices = '1'
+    )
+
+    $state = [pscustomobject]@{
+        Path        = $env:PATH
+        HadHip      = $null -ne $env:HIP_VISIBLE_DEVICES
+        Hip         = $env:HIP_VISIBLE_DEVICES
+    }
+    $env:PATH = "$RuntimeRoot;C:\Windows\System32\downlevel;$env:PATH"
+    $env:HIP_VISIBLE_DEVICES = $VisibleDevices
+    return $state
+}
+
+function Exit-V2RocmEnvironment {
+    <#
+    .SYNOPSIS
+    Restores what Enter-V2RocmEnvironment changed. Safe to call with $null.
+    #>
+    param([object]$State)
+
+    if ($null -eq $State) { return }
+    $env:PATH = $State.Path
+    if ($State.HadHip) { $env:HIP_VISIBLE_DEVICES = $State.Hip }
+    else { Remove-Item Env:\HIP_VISIBLE_DEVICES -ErrorAction SilentlyContinue }
 }

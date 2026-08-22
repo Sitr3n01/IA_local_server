@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "This Go package deadlocks. Fix it so the tests pass, keeping the exported signature and the ordering guarantee. Return the whole file.\n\n```go\npackage pipeline\n\nimport \"sync\"\n\n// FanIn runs fn over every input concurrently and returns the results in the\n// same order as the inputs. It currently deadlocks on any non-empty input.\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\n\tout := make([]int, len(inputs))\n\tjobs := make(chan int)\n\tvar wg sync.WaitGroup\n\n\tfor w := 0; w < workers; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor i := range jobs {\n\t\t\t\tout[i] = fn(inputs[i])\n\t\t\t}\n\t\t}()\n\t}\n\n\tfor i := range inputs {\n\t\tjobs <- i\n\t}\n\twg.Wait()\n\tclose(jobs)\n\treturn out\n}\n```"
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```go\\npackage pipeline\\n\\nimport \\\"sync\\\"\\n\\n// FanIn runs fn over every input concurrently and returns the results in the\\n// same order as the inputs. It currently deadlocks on any non-empty input.\\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\\n\\tout := make([]int, len(inputs))\\n\\tjobs := make(chan int)\\n\\tvar wg sync.WaitGroup\\n\\n\\t// Start workers\\n\\tfor w := 0; w < workers; w++ {\\n\\t\\twg.Add(1)\\n\\t\\tgo func() {\\n\\t\\t\\tdefer wg.Done()\\n\\t\\t\\tfor i := range jobs {\\n\\t\\t\\t\\tout[i] = fn(inputs[i])\\n\\t\\t\\t}\\n\\t\\t}()\\n\\t}\\n\\n\\t// Feed jobs in a separate goroutine to prevent deadlock\\n\\t// when the jobs channel buffer is full (or unbuffered)\\n\\tgo func() {\\n\\t\\tfor i := range inputs {\\n\\t\\t\\tjobs <- i\\n\\t\\t}\\n\\t\\tclose(jobs)\\n\\t}()\\n\\n\\twg.Wait()\\n\\treturn out\\n}\\n```\"}}],\"created\":1787381521,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":243,\"prompt_tokens\":286,\"total_tokens\":529,\"prompt_tokens_details\":{\"cached_tokens\":52}},\"id\":\"chatcmpl-NHcwUfTqdEOrn2YH4QVjpOKEsgcZDvPC\",\"timings\":{\"cache_n\":52,\"prompt_n\":234,\"prompt_ms\":227.421,\"prompt_per_token_ms\":0.9718846153846153,\"prompt_per_second\":1028.9287268985713,\"predicted_n\":243,\"predicted_ms\":3553.103,\"predicted_per_token_ms\":14.682243801652893,\"predicted_per_second\":68.10948064269456}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```go\npackage pipeline\n\nimport \"sync\"\n\n// FanIn runs fn over every input concurrently and returns the results in the\n// same order as the inputs. It currently deadlocks on any non-empty input.\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\n\tout := make([]int, len(inputs))\n\tjobs := make(chan int)\n\tvar wg sync.WaitGroup\n\n\t// Start workers\n\tfor w := 0; w < workers; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor i := range jobs {\n\t\t\t\tout[i] = fn(inputs[i])\n\t\t\t}\n\t\t}()\n\t}\n\n\t// Feed jobs in a separate goroutine to prevent deadlock\n\t// when the jobs channel buffer is full (or unbuffered)\n\tgo func() {\n\t\tfor i := range inputs {\n\t\t\tjobs <- i\n\t\t}\n\t\tclose(jobs)\n\t}()\n\n\twg.Wait()\n\treturn out\n}\n```"
+        }
+      }
+    ],
+    "created": 1787381521,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 243,
+      "prompt_tokens": 286,
+      "total_tokens": 529,
+      "prompt_tokens_details": {
+        "cached_tokens": 52
+      }
+    },
+    "id": "chatcmpl-NHcwUfTqdEOrn2YH4QVjpOKEsgcZDvPC",
+    "timings": {
+      "cache_n": 52,
+      "prompt_n": 234,
+      "prompt_ms": 227.421,
+      "prompt_per_token_ms": 0.9718846153846153,
+      "prompt_per_second": 1028.9287268985713,
+      "predicted_n": 243,
+      "predicted_ms": 3553.103,
+      "predicted_per_token_ms": 14.682243801652893,
+      "predicted_per_second": 68.10948064269456
+    }
+  }
+}

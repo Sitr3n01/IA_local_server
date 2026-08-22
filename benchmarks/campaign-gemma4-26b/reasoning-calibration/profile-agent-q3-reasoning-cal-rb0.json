@@ -1,0 +1,521 @@
+{
+  "schema_version": 1,
+  "scenario": "profile-qualification",
+  "label": "agent-q3-reasoning-cal-rb0",
+  "started_utc": "2026-08-22T13:42:45.0513374Z",
+  "configuration": {
+    "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q3_K_XL.gguf",
+    "model_bytes": 12907280096,
+    "runtime_root": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+    "context_tokens": 131072,
+    "cache_type_k": "q4_0",
+    "cache_type_v": "q4_0",
+    "ubatch_size": 288,
+    "batch_size": 2048,
+    "gpu_layers": 99,
+    "threads": 8,
+    "parallel": 1,
+    "tensor_override": "",
+    "n_predict": 16384,
+    "reasoning_budget": 0,
+    "reasoning_budget_message": null,
+    "cpu_moe": false,
+    "n_cpu_moe": 6,
+    "device_vram_mib": 16304,
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "seed": 20260822,
+    "system_policy": "current",
+    "strict_tool_policy": false,
+    "tool_schema_policy": false,
+    "capture_diagnostics": true,
+    "command_line": "\"C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe\" --model \"C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q3_K_XL.gguf\" --host 127.0.0.1 --port 19500 --alias local --device ROCm0 --split-mode none --gpu-layers 99 --flash-attn on --ctx-size 131072 --batch-size 2048 --ubatch-size 288 --cache-type-k q4_0 --cache-type-v q4_0 --parallel 1 --cont-batching --no-context-shift --threads 8 --n-cpu-moe 6 --n-predict 16384 --reasoning-budget 0 --jinja --warmup --metrics --no-webui"
+  },
+  "load_seconds": 11.3,
+  "idle": {
+    "vram_dedicated_mib": 2558.1,
+    "vram_shared_mib": 319.7,
+    "commit_gib": 20.732,
+    "physical_used_gib": 14.427
+  },
+  "session_peak": {
+    "vram_dedicated_mib": 14918.6,
+    "vram_shared_mib": 493.9,
+    "process_vram_mib": 12383.2,
+    "process_ws_gib": 12.849,
+    "process_private_gib": 11.269,
+    "commit_gib": 34.355,
+    "physical_used_gib": 27.588
+  },
+  "marginal_vram_mib": 12360.5,
+  "memory_samples": 15,
+  "gpu_pressure": {
+    "state": "ok",
+    "occupancy": 0.915,
+    "shared_mib": 493.9,
+    "message": "GPU memory is within budget: 14.919 / 16.304 MiB dedicated (91,5%), 494 MiB shared."
+  },
+  "eval_exit_code": 0,
+  "failure": null,
+  "eval": {
+    "schema_version": 1,
+    "scenario": "profile-qualification",
+    "label": "agent-q3-reasoning-cal-rb0",
+    "started_utc": "2026-08-22T13:41:34Z",
+    "server_props": {
+      "default_generation_settings": {
+        "params": {
+          "seed": 4294967295,
+          "temperature": 1.0,
+          "dynatemp_range": 0.0,
+          "dynatemp_exponent": 1.0,
+          "top_k": 64,
+          "top_p": 0.949999988079071,
+          "min_p": 0.05000000074505806,
+          "top_n_sigma": -1.0,
+          "xtc_probability": 0.0,
+          "xtc_threshold": 0.10000000149011612,
+          "typical_p": 1.0,
+          "repeat_last_n": 64,
+          "repeat_penalty": 1.0,
+          "presence_penalty": 0.0,
+          "frequency_penalty": 0.0,
+          "dry_multiplier": 0.0,
+          "dry_base": 1.75,
+          "dry_allowed_length": 2,
+          "dry_penalty_last_n": 64,
+          "mirostat": 0,
+          "mirostat_tau": 5.0,
+          "mirostat_eta": 0.10000000149011612,
+          "adaptive_target": -1.0,
+          "adaptive_decay": 0.8999999761581421,
+          "max_tokens": -1,
+          "n_predict": -1,
+          "n_keep": 0,
+          "n_discard": 0,
+          "ignore_eos": false,
+          "stream": false,
+          "n_probs": 0,
+          "min_keep": 0,
+          "chat_format": "Content-only",
+          "reasoning_format": "none",
+          "reasoning_in_content": false,
+          "generation_prompt": "",
+          "samplers": [
+            "penalties",
+            "dry",
+            "top_n_sigma",
+            "top_k",
+            "typ_p",
+            "top_p",
+            "min_p",
+            "xtc",
+            "temperature"
+          ],
+          "speculative.types": "none",
+          "timings_per_token": false,
+          "post_sampling_probs": false,
+          "backend_sampling": false,
+          "lora": []
+        },
+        "n_ctx": 131072
+      },
+      "total_slots": 1,
+      "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q3_K_XL.gguf",
+      "build_info": "b10549-b2e5e9b28"
+    },
+    "diagnostic_config": {
+      "max_tokens_override": 16384,
+      "temperature": 0.0,
+      "seed": 20260822,
+      "system_policy": "current",
+      "strict_tool_policy": false,
+      "tool_schema_policy": false,
+      "capture_dir": "C:\\IA\\IA_local_server\\benchmarks\\campaign-gemma4-26b\\reasoning-calibration\\capture-agent-q3-reasoning-cal-rb0",
+      "only_coding": [],
+      "only_tools": [
+        "tool_pick_search_many_nested"
+      ]
+    },
+    "suites": {
+      "hard": {
+        "results": [
+          {
+            "id": "hard_go_router_multifile",
+            "family": "hard_bugfix",
+            "lang": "go",
+            "passed": false,
+            "compiled_or_ran": false,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 187,
+            "reasoning_content": "",
+            "decode_tps": 51.7959551257667,
+            "wall_s": 17.9,
+            "detail": "--- FAIL: TestResolveIgnoresDisabledAndBoundaries (0.00s)\n    router_test.go:26: /app must not match /apple\nFAIL\nFAIL\teval/router\t0.264s\nFAIL\n",
+            "code": "package router\n\ntype Route struct {\n\tPrefix  string\n\tHandler string\n\tEnabled bool\n}\n\n// Resolve returns the handler for the most specific enabled prefix.\nfunc Resolve(routes []Route, path string) (string, bool) {\n\tvar bestHandler string\n\tvar bestPrefixLen int\n\tfound := false\n\n\tfor _, route := range routes {\n\t\tif !route.Enabled {\n\t\t\tcontinue\n\t\t}\n\n\t\tif len(path) >= len(route.Prefix) && path[:len(route.Prefix)] == route.Prefix {\n\t\t\tif len(route.Prefix) > bestPrefixLen {\n\t\t\t\tbestPrefixLen = len(route.Prefix)\n\t\t\t\tbestHandler = route.Handler\n\t\t\t\tfound = true\n\t\t\t}\n\t\t}\n\t}\n\n\treturn bestHandler, found\n}",
+            "failure_taxonomy": [
+              "TEST_FAILURE"
+            ]
+          },
+          {
+            "id": "hard_go_retry_multifile",
+            "family": "hard_bugfix",
+            "lang": "go",
+            "passed": false,
+            "compiled_or_ran": false,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 268,
+            "reasoning_content": "",
+            "decode_tps": 51.91515391676504,
+            "wall_s": 5.7,
+            "detail": "FAIL\teval/retry [build failed]\nFAIL\n# eval/retry [eval/retry.test]\n.\\retry.go:24:14: undefined: putErr\n",
+            "code": "package retry\n\nimport \"errors\"\n\ntype Store interface {\n\tGet(key string) (string, error)\n\tPut(key, value string) error\n}\n\nvar ErrTemporary = errors.New(\"temporary\")\nvar ErrMissing = errors.New(\"missing\")\n\n// Ensure reads key and writes fallback only when the key is missing.\nfunc Ensure(store Store, key, fallback string) (string, error) {\n\tvalue, err := store.Get(key)\n\tif err == nil {\n\t\treturn value, nil\n\t}\n\n\tif errors.Is(err, ErrMissing) {\n\t\tif putErr := store.Put(key, fallback); putErr == nil {\n\t\t\treturn fallback, nil\n\t\t}\n\t\treturn \"\", putErr\n\t}\n\n\tif errors.Is(err, ErrTemporary) {\n\t\tfor i := 0; i < 3; i++ {\n\t\t\tvalue, err = store.Get(key)\n\t\t\tif err == nil {\n\t\t\t\treturn value, nil\n\t\t\t}\n\t\t\tif !errors.Is(err, ErrTemporary) {\n\t\t\t\tbreak\n\t\t\t}\n\t\t}\n\t}\n\n\treturn \"\", err\n}",
+            "failure_taxonomy": [
+              "INVENTED_API",
+              "COMPILE_ERROR"
+            ]
+          },
+          {
+            "id": "go_impl",
+            "family": "implement",
+            "lang": "go",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 640,
+            "reasoning_content": "",
+            "decode_tps": 51.56060392233375,
+            "wall_s": 13.5,
+            "detail": "ok  \teval/cache\t0.246s\n",
+            "code": "package cache\n\nimport (\n\t\"container/list\"\n\t\"sync\"\n)\n\n// entry holds the key and value stored in the list nodes.\ntype entry struct {\n\tkey   string\n\tvalue int\n}\n\n// LRU implements a fixed-capacity least recently used cache.\ntype LRU struct {\n\tcapacity int\n\tmu       sync.Mutex\n\tll       *list.List\n\tcache    map[string]*list.Element\n}\n\n// NewLRU initializes a new LRU cache with the given capacity.\nfunc NewLRU(capacity int) *LRU {\n\treturn &LRU{\n\t\tcapacity: capacity,\n\t\tll:       list.New(),\n\t\tcache:    make(map[string]*list.Element),\n\t}\n}\n\n// Get returns the value associated with the key and true if found,\n// otherwise returns 0 and false. It moves the accessed element to the front.\nfunc (c *LRU) Get(key string) (int, bool) {\n\tc.mu.Lock()\n\tdefer c.mu.Unlock()\n\n\tif ele, ok := c.cache[key]; ok {\n\t\tc.ll.MoveToFront(ele)\n\t\treturn ele.Value.(*entry).value, true\n\t}\n\treturn 0, false\n}\n\n// Put adds a value to the cache. If the key exists, it updates the value.\n// If the cache is at capacity and a new key is added, it evicts the least recently used entry.\nfunc (c *LRU) Put(key string, value int) {\n\tc.mu.Lock()\n\tdefer c.mu.Unlock()\n\n\t// If key exists, update value and move to front\n\tif ele, ok := c.cache[key]; ok {\n\t\tc.ll.MoveToFront(ele)\n\t\tele.Value.(*entry).value = value\n\t\treturn\n\t}\n\n\t// If at capacity, evict the oldest\n\tif c.ll.Len() >= c.capacity && c.capacity > 0 {\n\t\toldest := c.ll.Back()\n\t\tif oldest != nil {\n\t\t\tc.ll.Remove(oldest)\n\t\t\tkv := oldest.Value.(*entry)\n\t\t\tdelete(c.cache, kv.key)\n\t\t}\n\t}\n\n\t// If capacity is 0, do nothing\n\tif c.capacity <= 0 {\n\t\treturn\n\t}\n\n\t// Add new entry\n\tele := c.ll.PushFront(&entry{key, value})\n\tc.cache[key] = ele\n}\n\n// Len returns the current number of items in the cache.\nfunc (c *LRU) Len() int {\n\tc.mu.Lock()\n\tdefer c.mu.Unlock()\n\treturn c.ll.Len()\n}",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "cs_bugfix",
+            "family": "bugfix",
+            "lang": "csharp",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 344,
+            "reasoning_content": "",
+            "decode_tps": 52.28786067952877,
+            "wall_s": 9.9,
+            "detail": "OK\n",
+            "code": "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic static class Ledger\n{\n    // Returns, for each account, the running balance after every entry, and the\n    // final balance. Entries are (account, delta) in chronological order.\n    // BUG: callers report that the running balances are all identical to the\n    // final balance, and that AverageDelta is truncated to a whole number.\n    public static (Dictionary<string, List<int>> Running, Dictionary<string, int> Final, double AverageDelta)\n        Summarise(IEnumerable<(string Account, int Delta)> entries)\n    {\n        var totals = new Dictionary<string, int>();\n        var running = new Dictionary<string, List<int>>();\n\n        foreach (var e in entries)\n        {\n            if (!totals.ContainsKey(e.Account))\n            {\n                totals[e.Account] = 0;\n                running[e.Account] = new List<int>();\n            }\n            totals[e.Account] += e.Delta;\n            running[e.Account].Add(totals[e.Account]);\n        }\n\n        var deltas = entries.Select(e => e.Delta).ToList();\n        double average = 0;\n        if (deltas.Count > 0)\n        {\n            average = deltas.Sum(d => (double)d) / deltas.Count;\n        }\n        \n        return (running, totals, average);\n    }\n}",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "ts_refactor",
+            "family": "refactor",
+            "lang": "typescript",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 259,
+            "reasoning_content": "",
+            "decode_tps": 52.10371790320099,
+            "wall_s": 5.5,
+            "detail": "OK\n",
+            "code": "export type Fetcher = (id: string) => Promise<{ id: string; parent: string | null }>;\n\n// Walks from a node to the root and returns the chain, root last.\n// Rewrite this to use async/await and a plain loop. Behaviour must not change,\n// including that a cycle throws Error(\"cycle detected\") and that the chain is\n// capped at 50 entries with Error(\"chain too long\").\nexport async function ancestry(fetch: Fetcher, start: string): Promise<string[]> {\n  const seen = new Set<string>();\n  const chain: string[] = [];\n  let currentId: string | null = start;\n\n  while (currentId !== null) {\n    if (seen.has(currentId)) {\n      throw new Error(\"cycle detected\");\n    }\n    seen.add(currentId);\n    chain.push(currentId);\n\n    if (chain.length > 50) {\n      throw new Error(\"chain too long\");\n    }\n\n    const node = await fetch(currentId);\n    currentId = node.parent;\n  }\n\n  return chain;\n}",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "no_invented_api",
+            "family": "honesty",
+            "lang": "csharp",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 99,
+            "reasoning_content": "",
+            "decode_tps": 52.17306123839681,
+            "wall_s": 3.3,
+            "detail": "\nCompilação com êxito.\n    0 Aviso(s)\n    0 Erro(s)\n\nTempo Decorrido 00:00:00.95\n",
+            "code": "public static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int count = 0;\n        for (int i = 0; i < buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                count++;\n            }\n        }\n        return count;\n    }\n}",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "constraint_frozen_file",
+            "family": "constraint",
+            "lang": "csharp",
+            "passed": true,
+            "compiled_or_ran": true,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 150,
+            "reasoning_content": "",
+            "decode_tps": 51.06030667711176,
+            "wall_s": 4.9,
+            "detail": "OK\n",
+            "code": "using System;\n\npublic class TelemetrySender\n{\n    private readonly NetworkManager _networkManager;\n\n    public TelemetrySender(NetworkManager networkManager)\n    {\n        _networkManager = networkManager;\n    }\n\n    public void Send(string opcode, string payload)\n    {\n        string processedOpcode = opcode;\n        if (processedOpcode.Length > 8)\n        {\n            processedOpcode = processedOpcode.Substring(0, 8);\n        }\n\n        string frame = _networkManager.Encode(processedOpcode, payload);\n        _networkManager.Enqueue(frame);\n    }\n}",
+            "failure_taxonomy": []
+          },
+          {
+            "id": "hard_missing_info",
+            "family": "honesty",
+            "lang": "text",
+            "passed": false,
+            "compiled_or_ran": false,
+            "constraint_respected": true,
+            "violated_markers": [],
+            "truncated": false,
+            "no_answer": false,
+            "reasoning_chars": 0,
+            "finish_reason": "stop",
+            "output_tokens": 38,
+            "reasoning_content": "",
+            "decode_tps": 50.1169621535665,
+            "wall_s": 1.1,
+            "detail": "i cannot answer this question because the supplied context does not contain the contents of `archive.json`. please provide the file `archive.json` to retrieve the checksum.",
+            "code": "I cannot answer this question because the supplied context does not contain the contents of `archive.json`. Please provide the file `archive.json` to retrieve the checksum.",
+            "failure_taxonomy": [
+              "TEST_FAILURE"
+            ]
+          }
+        ],
+        "passed": 5,
+        "total": 8,
+        "compiled": 5,
+        "no_answer": 0,
+        "truncated": 0
+      },
+      "tools": {
+        "results": [
+          {
+            "id": "tool_pick_search_many_nested",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": false,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": false,
+            "detail": "filters={'case_sensitive': False, 'exclude': ['vendor/*'], 'include': ['*.go']} want {'include': ['*.go'], 'exclude': ['vendor/**'], 'case_sensitive': False}",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "search_files"
+            ],
+            "raw_arguments_before_parser": "{\"filters\":{\"case_sensitive\":false,\"exclude\":[\"vendor/*\"],\"include\":[\"*.go\"]},\"query\":\"resource_profile_incomplete\"}",
+            "arguments_after_parser": {
+              "filters": {
+                "case_sensitive": false,
+                "exclude": [
+                  "vendor/*"
+                ],
+                "include": [
+                  "*.go"
+                ]
+              },
+              "query": "resource_profile_incomplete"
+            },
+            "arguments_observed_by_verifier": {
+              "filters": {
+                "case_sensitive": false,
+                "exclude": [
+                  "vendor/*"
+                ],
+                "include": [
+                  "*.go"
+                ]
+              },
+              "query": "resource_profile_incomplete"
+            },
+            "failure_taxonomy": [
+              "WRONG_TOOL_ARGUMENT"
+            ]
+          }
+        ],
+        "passed": 0,
+        "total": 1
+      },
+      "literal_tools": {
+        "results": [
+          {
+            "id": "literal_path_spaces",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "read_file"
+            ],
+            "raw_arguments_before_parser": "{\"path\":\"docs/reports/Release Notes.md\"}",
+            "arguments_after_parser": {
+              "path": "docs/reports/Release Notes.md"
+            },
+            "arguments_observed_by_verifier": {
+              "path": "docs/reports/Release Notes.md"
+            }
+          },
+          {
+            "id": "literal_cs_glob",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": false,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": false,
+            "detail": "filters={'case_sensitive': False, 'exclude': ['Library/**'], 'include': ['Assets/Scripts/**/*.cs']} want {'include': ['Assets/Scripts/**/*.cs'], 'exclude': ['Library/**'], 'case_sensitive': True}",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "search_files"
+            ],
+            "raw_arguments_before_parser": "{\"filters\":{\"case_sensitive\":false,\"exclude\":[\"Library/**\"],\"include\":[\"Assets/Scripts/**/*.cs\"]},\"query\":\"ApplyDamage\"}",
+            "arguments_after_parser": {
+              "filters": {
+                "case_sensitive": false,
+                "exclude": [
+                  "Library/**"
+                ],
+                "include": [
+                  "Assets/Scripts/**/*.cs"
+                ]
+              },
+              "query": "ApplyDamage"
+            },
+            "arguments_observed_by_verifier": {
+              "filters": {
+                "case_sensitive": false,
+                "exclude": [
+                  "Library/**"
+                ],
+                "include": [
+                  "Assets/Scripts/**/*.cs"
+                ]
+              },
+              "query": "ApplyDamage"
+            },
+            "failure_taxonomy": [
+              "WRONG_TOOL_ARGUMENT"
+            ]
+          },
+          {
+            "id": "literal_regex",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": false,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": false,
+            "detail": "filters={'case_sensitive': True, 'exclude': ['vendor'], 'include': ['*.go']} want {'include': ['*.go'], 'exclude': ['vendor/**'], 'case_sensitive': True}",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "search_files"
+            ],
+            "raw_arguments_before_parser": "{\"filters\":{\"case_sensitive\":true,\"exclude\":[\"vendor\"],\"include\":[\"*.go\"]},\"query\":\"foo[0-9]+\"}",
+            "arguments_after_parser": {
+              "filters": {
+                "case_sensitive": true,
+                "exclude": [
+                  "vendor"
+                ],
+                "include": [
+                  "*.go"
+                ]
+              },
+              "query": "foo[0-9]+"
+            },
+            "arguments_observed_by_verifier": {
+              "filters": {
+                "case_sensitive": true,
+                "exclude": [
+                  "vendor"
+                ],
+                "include": [
+                  "*.go"
+                ]
+              },
+              "query": "foo[0-9]+"
+            },
+            "failure_taxonomy": [
+              "WRONG_TOOL_ARGUMENT"
+            ]
+          },
+          {
+            "id": "literal_identifier",
+            "call_count": 1,
+            "name_ok": true,
+            "args_ok": true,
+            "json_ok": true,
+            "forbidden_called": false,
+            "passed": true,
+            "detail": "",
+            "finish_reason": "tool_calls",
+            "reasoning_chars": 0,
+            "reasoning_content": "",
+            "names": [
+              "search_file"
+            ],
+            "raw_arguments_before_parser": "{\"path\":\"src/Api.cs\",\"query\":\"CaseSensitiveIdentifier\"}",
+            "arguments_after_parser": {
+              "path": "src/Api.cs",
+              "query": "CaseSensitiveIdentifier"
+            },
+            "arguments_observed_by_verifier": {
+              "path": "src/Api.cs",
+              "query": "CaseSensitiveIdentifier"
+            }
+          }
+        ],
+        "passed": 2,
+        "total": 4
+      },
+      "json": {
+        "id": "structured_json",
+        "parsed": true,
+        "clean_json": true,
+        "passed": true,
+        "mismatches": [],
+        "finish_reason": "stop",
+        "reasoning_chars": 0,
+        "reasoning_content": ""
+      }
+    }
+  }
+}

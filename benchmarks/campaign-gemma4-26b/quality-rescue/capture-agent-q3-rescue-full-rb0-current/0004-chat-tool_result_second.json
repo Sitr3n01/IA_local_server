@@ -1,0 +1,78 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Use tools when needed, then answer from tool results."
+      },
+      {
+        "role": "user",
+        "content": "Read status.json, then tell me the status and ticket."
+      },
+      {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          {
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"path\":\"status.json\"}"
+            },
+            "id": "SgRs5WUxXyL5TlONzu90KU0rSw7Y2uZA"
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "tool_call_id": "SgRs5WUxXyL5TlONzu90KU0rSw7Y2uZA",
+        "content": "{\"status\":\"GREEN\",\"ticket\":\"G-42\"}"
+      }
+    ],
+    "max_tokens": 512,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"The status is **GREEN** and the ticket is **G-42**.\"}}],\"created\":1787381317,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":18,\"prompt_tokens\":84,\"total_tokens\":102,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-itru1Pj0rgqkWQ1uyKkY5Sh6vIPIh5aw\",\"timings\":{\"cache_n\":0,\"prompt_n\":84,\"prompt_ms\":278.548,\"prompt_per_token_ms\":3.316047619047619,\"prompt_per_second\":301.56382382928615,\"predicted_n\":18,\"predicted_ms\":319.8,\"predicted_per_token_ms\":18.811764705882354,\"predicted_per_second\":53.15822388993121}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "The status is **GREEN** and the ticket is **G-42**."
+        }
+      }
+    ],
+    "created": 1787381317,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 18,
+      "prompt_tokens": 84,
+      "total_tokens": 102,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-itru1Pj0rgqkWQ1uyKkY5Sh6vIPIh5aw",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 84,
+      "prompt_ms": 278.548,
+      "prompt_per_token_ms": 3.316047619047619,
+      "prompt_per_second": 301.56382382928615,
+      "predicted_n": 18,
+      "predicted_ms": 319.8,
+      "predicted_per_token_ms": 18.811764705882354,
+      "predicted_per_second": 53.15822388993121
+    }
+  }
+}

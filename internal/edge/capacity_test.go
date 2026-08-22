@@ -344,6 +344,122 @@ func TestHostMemoryModelRequiresCompleteResourceProfile(t *testing.T) {
 	}
 }
 
+func TestMoEOffloadAdmissionMatchesWeightOffloadPolicy(t *testing.T) {
+	backend, inferenceCalls := runningBackend(t, `{"running":[]}`)
+	commit, vram, ram, device := 10.0, 12.0, 8.0, 15.92
+
+	for _, testCase := range []struct {
+		name      string
+		apply     func(*Model)
+		wantCode  int
+		want      []string
+		wantCalls bool
+	}{
+		{
+			name: "cpu layers absent",
+			apply: func(m *Model) {
+				m.PeakCommitGiB = &commit
+			},
+			wantCode:  http.StatusOK,
+			want:      []string{`"measured":true`, `"available":true`, `"reason":"commit_headroom_available"`},
+			wantCalls: true,
+		},
+		{
+			name: "cpu layers zero",
+			apply: func(m *Model) {
+				zero := 0
+				m.Profile.MoEOffload = &MoEOffloadSummary{CPULayers: &zero}
+				m.PeakCommitGiB = &commit
+			},
+			wantCode:  http.StatusOK,
+			want:      []string{`"moe_offload":{"cpu_layers":0}`, `"measured":true`, `"available":true`, `"reason":"commit_headroom_available"`},
+			wantCalls: true,
+		},
+		{
+			name: "cpu layers one complete",
+			apply: func(m *Model) {
+				one := 1
+				m.OffloadsTensors = true
+				m.Profile.MoEOffload = &MoEOffloadSummary{CPULayers: &one}
+				m.PeakCommitGiB, m.PeakVRAMGiB, m.PeakRAMGiB, m.DeviceVRAMGiB = &commit, &vram, &ram, &device
+			},
+			wantCode:  http.StatusOK,
+			want:      []string{`"moe_offload":{"cpu_layers":1}`, `"measured":true`, `"available":true`},
+			wantCalls: true,
+		},
+		{
+			name: "cpu layers four missing ram",
+			apply: func(m *Model) {
+				four := 4
+				m.OffloadsTensors = true
+				m.Profile.MoEOffload = &MoEOffloadSummary{CPULayers: &four}
+				m.PeakCommitGiB, m.PeakVRAMGiB, m.DeviceVRAMGiB = &commit, &vram, &device
+			},
+			wantCode: http.StatusServiceUnavailable,
+			want:     []string{`"moe_offload":{"cpu_layers":4}`, `"reason":"resource_profile_incomplete"`, `resources.peak_ram_gib`, `"measured":false`, `"available":false`},
+		},
+		{
+			name: "cpu all missing vram",
+			apply: func(m *Model) {
+				all := true
+				m.OffloadsTensors = true
+				m.Profile.MoEOffload = &MoEOffloadSummary{CPUAll: &all}
+				m.PeakCommitGiB, m.PeakRAMGiB, m.DeviceVRAMGiB = &commit, &ram, &device
+			},
+			wantCode: http.StatusServiceUnavailable,
+			want:     []string{`"moe_offload":{"cpu_all":true}`, `"reason":"resource_profile_incomplete"`, `resources.peak_vram_gib`, `"measured":false`, `"available":false`},
+		},
+		{
+			name: "tensor override only missing ram",
+			apply: func(m *Model) {
+				m.OffloadsTensors = true
+				m.PeakCommitGiB, m.PeakVRAMGiB, m.DeviceVRAMGiB = &commit, &vram, &device
+			},
+			wantCode: http.StatusServiceUnavailable,
+			want:     []string{`"reason":"resource_profile_incomplete"`, `resources.peak_ram_gib`, `"measured":false`, `"available":false`},
+		},
+		{
+			name: "tensor override plus cpu layers complete",
+			apply: func(m *Model) {
+				four := 4
+				m.OffloadsTensors = true
+				m.Profile.MoEOffload = &MoEOffloadSummary{CPULayers: &four}
+				m.PeakCommitGiB, m.PeakVRAMGiB, m.PeakRAMGiB, m.DeviceVRAMGiB = &commit, &vram, &ram, &device
+			},
+			wantCode:  http.StatusOK,
+			want:      []string{`"moe_offload":{"cpu_layers":4}`, `"measured":true`, `"available":true`},
+			wantCalls: true,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			cfg := testConfig(backend.URL)
+			testCase.apply(&cfg.Models[0])
+			server, err := New(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			server.memoryStatus = fixedMemory(60, 40)
+
+			before := inferenceCalls.Load()
+			recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
+			if recorder.Code != testCase.wantCode {
+				t.Fatalf("status=%d body=%s, want %d", recorder.Code, recorder.Body.String(), testCase.wantCode)
+			}
+			if reached := inferenceCalls.Load() > before; reached != testCase.wantCalls {
+				t.Fatalf("inference reached upstream = %v, want %v", reached, testCase.wantCalls)
+			}
+
+			status := controlRequest(t, server.ControlHandler(), http.MethodGet, "/api/v1/status", nil)
+			body := status.Body.String()
+			for _, expected := range testCase.want {
+				if !strings.Contains(body, expected) {
+					t.Errorf("status missing %s: %s", expected, body)
+				}
+			}
+		})
+	}
+}
+
 func TestCompleteHostMemoryProfileIsEvaluatedNormally(t *testing.T) {
 	backend, _ := runningBackend(t, `{"running":[]}`)
 	commit, vram, ram, device := 10.0, 12.0, 8.0, 15.92

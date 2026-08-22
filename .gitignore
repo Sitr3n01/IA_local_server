@@ -29,3 +29,15 @@ benchmarks/**/*.dll
 benchmarks/**/*.pdb
 benchmarks/**/*.log
 benchmarks/**/*.err
+
+# Quality-suite scratch. A coding cell writes the model's answer into a compiler
+# or test-runner workspace and grades it there; the workspace is scaffolding, not
+# evidence. What a report cites lives outside it - qualify-*.json for the grades
+# and capture-*/ for the raw request and wire response, which contains the
+# generated source verbatim.
+#
+# Tracking these would also break CI: `gofmt -l .` runs over the working tree,
+# and model-written Go is frequently unformatted or, on a truncated generation,
+# not parseable Go at all.
+benchmarks/**/work-*/
+benchmarks/**/node_modules/

@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "This function hangs on some inputs and returns the wrong index on others. Fix it. Keep the name and signature.\n\n```python\ndef find_insert_position(sorted_values, target):\n    \"\"\"Return the index where target should be inserted to keep the list sorted.\n\n    If target is already present, return the index of its FIRST occurrence.\n    \"\"\"\n    low = 0\n    high = len(sorted_values)\n    while low < high:\n        mid = (low + high) // 2\n        if sorted_values[mid] < target:\n            low = mid\n        else:\n            high = mid\n    return low\n```"
+      }
+    ],
+    "max_tokens": 8192,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```python\\ndef find_insert_position(sorted_values, target):\\n    \\\"\\\"\\\"Return the index where target should be inserted to keep the list sorted.\\n\\n    If target is already present, return the index of its FIRST occurrence.\\n    \\\"\\\"\\\"\\n    low = 0\\n    high = len(sorted_values)\\n    while low < high:\\n        mid = (low + high) // 2\\n        if sorted_values[mid] < target:\\n            low = mid + 1\\n        else:\\n            high = mid\\n    return low\\n```\"}}],\"created\":1787408453,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":126,\"prompt_tokens\":204,\"total_tokens\":330,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-WLOqpiVmk9jPOIBGAAceiSDOBIo4NQdd\",\"timings\":{\"cache_n\":0,\"prompt_n\":204,\"prompt_ms\":416.468,\"prompt_per_token_ms\":2.041509803921569,\"prompt_per_second\":489.83355263789775,\"predicted_n\":126,\"predicted_ms\":2419.357,\"predicted_per_token_ms\":19.354855999999998,\"predicted_per_second\":51.666620511152345}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```python\ndef find_insert_position(sorted_values, target):\n    \"\"\"Return the index where target should be inserted to keep the list sorted.\n\n    If target is already present, return the index of its FIRST occurrence.\n    \"\"\"\n    low = 0\n    high = len(sorted_values)\n    while low < high:\n        mid = (low + high) // 2\n        if sorted_values[mid] < target:\n            low = mid + 1\n        else:\n            high = mid\n    return low\n```"
+        }
+      }
+    ],
+    "created": 1787408453,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 126,
+      "prompt_tokens": 204,
+      "total_tokens": 330,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-WLOqpiVmk9jPOIBGAAceiSDOBIo4NQdd",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 204,
+      "prompt_ms": 416.468,
+      "prompt_per_token_ms": 2.041509803921569,
+      "prompt_per_second": 489.83355263789775,
+      "predicted_n": 126,
+      "predicted_ms": 2419.357,
+      "predicted_per_token_ms": 19.354855999999998,
+      "predicted_per_second": 51.666620511152345
+    }
+  }
+}

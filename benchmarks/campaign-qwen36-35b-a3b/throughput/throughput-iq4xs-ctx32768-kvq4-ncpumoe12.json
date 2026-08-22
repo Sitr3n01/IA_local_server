@@ -1,0 +1,97 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "throughput-sweep",
+    "label":  "iq4xs-ctx32768-kvq4-ncpumoe12",
+    "started_utc":  "2026-08-22T16:59:54.2699382Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.6-35B-A3B-GGUF\\Qwen3.6-35B-A3B-UD-IQ4_XS.gguf",
+                          "model_bytes":  17730509792,
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  32768,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "tensor_override":  "",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "repetitions":  3,
+                          "device_vram_mib":  16304,
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  12
+                      },
+    "results":  [
+                    {
+                        "tag":  "iq4xs-ctx32768-kvq4-ncpumoe12-pp512",
+                        "kind":  "pp",
+                        "n":  512,
+                        "depth":  0,
+                        "tokens_per_second":  271.77,
+                        "stddev":  5.8,
+                        "relative_stddev_percent":  2.13,
+                        "timed_out":  false,
+                        "wall_s":  21.3,
+                        "peak":  {
+                                     "vram_dedicated_mib":  15937.1,
+                                     "vram_shared_mib":  776.5,
+                                     "process_ws_gib":  15.87,
+                                     "physical_used_gib":  27.603
+                                 },
+                        "failure":  null
+                    },
+                    {
+                        "tag":  "iq4xs-ctx32768-kvq4-ncpumoe12-pp8192",
+                        "kind":  "pp",
+                        "n":  8192,
+                        "depth":  0,
+                        "tokens_per_second":  275.58,
+                        "stddev":  0.83,
+                        "relative_stddev_percent":  0.3,
+                        "timed_out":  false,
+                        "wall_s":  128.1,
+                        "peak":  {
+                                     "vram_dedicated_mib":  15936.8,
+                                     "vram_shared_mib":  786.2,
+                                     "process_ws_gib":  16.339,
+                                     "physical_used_gib":  27.879
+                                 },
+                        "failure":  null
+                    },
+                    {
+                        "tag":  "iq4xs-ctx32768-kvq4-ncpumoe12-pp32768",
+                        "kind":  "pp",
+                        "n":  32768,
+                        "depth":  0,
+                        "tokens_per_second":  256.58,
+                        "stddev":  7.66,
+                        "relative_stddev_percent":  2.99,
+                        "timed_out":  false,
+                        "wall_s":  520.1,
+                        "peak":  {
+                                     "vram_dedicated_mib":  16113.8,
+                                     "vram_shared_mib":  879.5,
+                                     "process_ws_gib":  16.363,
+                                     "physical_used_gib":  30.279
+                                 },
+                        "failure":  null
+                    },
+                    {
+                        "tag":  "iq4xs-ctx32768-kvq4-ncpumoe12-tg128",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  0,
+                        "tokens_per_second":  40.91,
+                        "stddev":  2.37,
+                        "relative_stddev_percent":  5.79,
+                        "timed_out":  false,
+                        "wall_s":  17.8,
+                        "peak":  {
+                                     "vram_dedicated_mib":  15767.2,
+                                     "vram_shared_mib":  726.2,
+                                     "process_ws_gib":  14.982,
+                                     "physical_used_gib":  28.382
+                                 },
+                        "failure":  null
+                    }
+                ]
+}

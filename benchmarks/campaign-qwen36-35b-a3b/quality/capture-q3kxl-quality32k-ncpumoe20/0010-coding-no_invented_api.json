@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "Here is the complete surface of a class you must use. It has no other members.\n\n```csharp\npublic sealed class FrameBuffer\n{\n    public int Count { get; }\n    public byte Get(int index);\n    public void Append(byte value);\n}\n```\n\nWrite `public static class FrameUtil` with `public static int CountZeroes(FrameBuffer buffer)` returning how many bytes equal zero. Use only the members shown above — FrameBuffer has no Clear, no ToArray, no indexer, no enumerator, and no Length. Return only FrameUtil."
+      }
+    ],
+    "max_tokens": 8192,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260821,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```csharp\\npublic static class FrameUtil\\n{\\n    public static int CountZeroes(FrameBuffer buffer)\\n    {\\n        int count = 0;\\n        for (int i = 0; i < buffer.Count; i++)\\n        {\\n            if (buffer.Get(i) == 0)\\n            {\\n                count++;\\n            }\\n        }\\n        return count;\\n    }\\n}\\n```\",\"reasoning_content\":\"The user wants a static class `FrameUtil` with a method `CountZeroes` that takes a `FrameBuffer` and returns the number of zero bytes in it.\\nThe `FrameBuffer` class has:\\n- `Count` property (int)\\n- `Get(int index)` method (returns byte)\\n- `Append(byte value)` method\\n\\nI need to iterate from 0 to `Count - 1`, call `Get(i)`, check if it's 0, and count.\\n\\nConstraints:\\n- Use only the members shown.\\n- Return only the `FrameUtil` class.\\n- No extra commentary.\\n\\nImplementation:\\n```csharp\\npublic static class FrameUtil\\n{\\n    public static int CountZeroes(FrameBuffer buffer)\\n    {\\n        int count = 0;\\n        for (int i = 0; i < buffer.Count; i++)\\n        {\\n            if (buffer.Get(i) == 0)\\n            {\\n                count++;\\n            }\\n        }\\n        return count;\\n    }\\n}\\n```\\n\\nCheck constraints:\\n- `public static class FrameUtil`\\n- `public static int CountZeroes(FrameBuffer buffer)`\\n- Uses `buffer.Count` and `buffer.Get(i)`\\n- Returns `int`\\n- No other members or APIs used.\\n- Returns only the code block.\\n\\nLooks good. I will output exactly this.\\nOne minor point: `buffer` could be null? The prompt doesn't specify, but typically we assume valid input or can add a null check if needed. I'll stick to the simplest correct implementation.\\nThe prompt says \\\"Return only FrameUtil.\\\" so I will just output the class.\\nAll good.\\nProceed. \\nOutput matches the request.\\nCode block format: ```csharp ... ```\\nDone. \\nLet's generate. \\nWait, should I include `using System;`? Not needed.\\nThe class is exactly as requested.\\nDone. \\nOutput matches. \\nProceeds. \\n[Self-Correction/Verification during thought]\\n- `FrameBuffer` has `Count` property.\\n- `Get(int index)` returns `byte`.\\n- Loop `for (int i = 0; i < buffer.Count; i++)` is correct.\\n- `if (buffer.Get(i) == 0)` is correct.\\n- `count++` is correct.\\n- Returns `count`.\\n- Class and method signatures match exactly.\\n- No extra code.\\nAll constraints satisfied.\\nOutput generation. \\n```csharp\\npublic static class FrameUtil\\n{\\n    public static int CountZeroes(FrameBuffer buffer)\\n    {\\n        int count = 0;\\n        for (int i = 0; i < buffer.Count; i++)\\n        {\\n            if (buffer.Get(i) == 0)\\n            {\\n                count++;\\n            }\\n        }\\n        return count;\\n    }\\n}\\n```\\nMatches request. Done. \\nProceeds. \\n[Output Generation] -> *Self-Correction/Refinement during generation prep*: The prompt says \\\"Return only FrameUtil.\\\" I will provide exactly that. No extra text.\\nDone. \\nOutput matches. \\nProceeds. \\n[Final Check]\\nClass name: `FrameUtil`\\nMethod: `public static int CountZeroes(FrameBuffer buffer)`\\nLogic: iterates 0 to Count-1, checks Get(i) == 0, counts.\\nConstraints: uses only shown members.\\nFormat: single fenced code block.\\nReady. \\nOutput matches response. \\nProceeds. \\n[Output Generation] (simulated)\\n```csharp\\npublic static class FrameUtil\\n{\\n    public static int CountZeroes(FrameBuffer buffer)\\n    {\\n        int count = 0;\\n        for (int i = 0; i < buffer.Count; i++)\\n        {\\n            if (buffer.Get(i) == 0)\\n            {\\n                count++;\\n            }\\n        }\\n        return count;\\n    }\\n}\\n```\\nAll good.✅\\n\"}}],\"created\":1787423546,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":964,\"prompt_tokens\":179,\"total_tokens\":1143,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-dv2E0n1AQ4MLX6d6uBfPOy9vE3Swy5OV\",\"timings\":{\"cache_n\":0,\"prompt_n\":179,\"prompt_ms\":1550.138,\"prompt_per_token_ms\":8.659988826815642,\"prompt_per_second\":115.47359009326911,\"predicted_n\":964,\"predicted_ms\":24407.008,\"predicted_per_token_ms\":25.34476427829699,\"predicted_per_second\":39.45588086831454}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```csharp\npublic static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int count = 0;\n        for (int i = 0; i < buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                count++;\n            }\n        }\n        return count;\n    }\n}\n```",
+          "reasoning_content": "The user wants a static class `FrameUtil` with a method `CountZeroes` that takes a `FrameBuffer` and returns the number of zero bytes in it.\nThe `FrameBuffer` class has:\n- `Count` property (int)\n- `Get(int index)` method (returns byte)\n- `Append(byte value)` method\n\nI need to iterate from 0 to `Count - 1`, call `Get(i)`, check if it's 0, and count.\n\nConstraints:\n- Use only the members shown.\n- Return only the `FrameUtil` class.\n- No extra commentary.\n\nImplementation:\n```csharp\npublic static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int count = 0;\n        for (int i = 0; i < buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                count++;\n            }\n        }\n        return count;\n    }\n}\n```\n\nCheck constraints:\n- `public static class FrameUtil`\n- `public static int CountZeroes(FrameBuffer buffer)`\n- Uses `buffer.Count` and `buffer.Get(i)`\n- Returns `int`\n- No other members or APIs used.\n- Returns only the code block.\n\nLooks good. I will output exactly this.\nOne minor point: `buffer` could be null? The prompt doesn't specify, but typically we assume valid input or can add a null check if needed. I'll stick to the simplest correct implementation.\nThe prompt says \"Return only FrameUtil.\" so I will just output the class.\nAll good.\nProceed. \nOutput matches the request.\nCode block format: ```csharp ... ```\nDone. \nLet's generate. \nWait, should I include `using System;`? Not needed.\nThe class is exactly as requested.\nDone. \nOutput matches. \nProceeds. \n[Self-Correction/Verification during thought]\n- `FrameBuffer` has `Count` property.\n- `Get(int index)` returns `byte`.\n- Loop `for (int i = 0; i < buffer.Count; i++)` is correct.\n- `if (buffer.Get(i) == 0)` is correct.\n- `count++` is correct.\n- Returns `count`.\n- Class and method signatures match exactly.\n- No extra code.\nAll constraints satisfied.\nOutput generation. \n```csharp\npublic static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int count = 0;\n        for (int i = 0; i < buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                count++;\n            }\n        }\n        return count;\n    }\n}\n```\nMatches request. Done. \nProceeds. \n[Output Generation] -> *Self-Correction/Refinement during generation prep*: The prompt says \"Return only FrameUtil.\" I will provide exactly that. No extra text.\nDone. \nOutput matches. \nProceeds. \n[Final Check]\nClass name: `FrameUtil`\nMethod: `public static int CountZeroes(FrameBuffer buffer)`\nLogic: iterates 0 to Count-1, checks Get(i) == 0, counts.\nConstraints: uses only shown members.\nFormat: single fenced code block.\nReady. \nOutput matches response. \nProceeds. \n[Output Generation] (simulated)\n```csharp\npublic static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int count = 0;\n        for (int i = 0; i < buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                count++;\n            }\n        }\n        return count;\n    }\n}\n```\nAll good.✅\n"
+        }
+      }
+    ],
+    "created": 1787423546,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 964,
+      "prompt_tokens": 179,
+      "total_tokens": 1143,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-dv2E0n1AQ4MLX6d6uBfPOy9vE3Swy5OV",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 179,
+      "prompt_ms": 1550.138,
+      "prompt_per_token_ms": 8.659988826815642,
+      "prompt_per_second": 115.47359009326911,
+      "predicted_n": 964,
+      "predicted_ms": 24407.008,
+      "predicted_per_token_ms": 25.34476427829699,
+      "predicted_per_second": 39.45588086831454
+    }
+  }
+}

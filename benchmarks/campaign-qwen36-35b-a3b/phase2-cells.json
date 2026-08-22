@@ -1,0 +1,146 @@
+﻿[
+    {
+        "model":  "iq4xs",
+        "label":  "iq4xs-ctx32768-kvq4-ncpumoe16",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  16,
+        "contrast":  false
+    },
+    {
+        "model":  "iq4xs",
+        "label":  "iq4xs-ctx32768-kvq4-ncpumoe20",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  20,
+        "contrast":  false
+    },
+    {
+        "model":  "q2kxl",
+        "label":  "q2kxl-ctx32768-kvq4-ncpumoe0",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  0,
+        "contrast":  false
+    },
+    {
+        "model":  "q2kxl",
+        "label":  "q2kxl-ctx32768-kvq4-ncpumoe6",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  6,
+        "contrast":  false
+    },
+    {
+        "model":  "q2kxl",
+        "label":  "q2kxl-ctx32768-kvq4-ncpumoe16",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  16,
+        "contrast":  false
+    },
+    {
+        "model":  "q2kxl",
+        "label":  "q2kxl-ctx32768-kvq4-ncpumoe20",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  20,
+        "contrast":  false
+    },
+    {
+        "model":  "q3ks",
+        "label":  "q3ks-ctx32768-kvq4-ncpumoe8",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  8,
+        "contrast":  false
+    },
+    {
+        "model":  "q3ks",
+        "label":  "q3ks-ctx32768-kvq4-ncpumoe12",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  12,
+        "contrast":  false
+    },
+    {
+        "model":  "q3ks",
+        "label":  "q3ks-ctx32768-kvq4-ncpumoe16",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  16,
+        "contrast":  false
+    },
+    {
+        "model":  "q3ks",
+        "label":  "q3ks-ctx32768-kvq4-ncpumoe20",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  20,
+        "contrast":  false
+    },
+    {
+        "model":  "q3kxl",
+        "label":  "q3kxl-ctx32768-kvq4-ncpumoe12",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  12,
+        "contrast":  false
+    },
+    {
+        "model":  "q3kxl",
+        "label":  "q3kxl-ctx32768-kvq4-ncpumoe16",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  16,
+        "contrast":  false
+    },
+    {
+        "model":  "q3kxl",
+        "label":  "q3kxl-ctx32768-kvq4-ncpumoe20",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  20,
+        "contrast":  false
+    },
+    {
+        "model":  "iq4xs",
+        "label":  "iq4xs-ctx32768-kvq4-ncpumoe12",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  12,
+        "contrast":  true
+    },
+    {
+        "model":  "q3ks",
+        "label":  "q3ks-ctx32768-kvq4-ncpumoe6",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  6,
+        "contrast":  true
+    },
+    {
+        "model":  "q3kxl",
+        "label":  "q3kxl-ctx32768-kvq4-ncpumoe8",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  8,
+        "contrast":  true
+    }
+]

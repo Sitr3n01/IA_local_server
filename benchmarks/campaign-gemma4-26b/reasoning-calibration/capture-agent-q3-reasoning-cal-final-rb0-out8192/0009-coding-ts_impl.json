@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "Write a TypeScript module exporting:\n\n  export function groupConsecutive(values: number[]): number[][]\n\nIt splits the array into runs where each element is exactly one greater than the previous one. A repeated value starts a new run. An empty input returns an empty array. Use only erasable type syntax (no enums, no namespaces, no parameter properties). Return the whole module."
+      }
+    ],
+    "max_tokens": 8192,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```typescript\\nexport function groupConsecutive(values: number[]): number[][] {\\n  if (values.length === 0) {\\n    return [];\\n  }\\n\\n  const result: number[][] = [];\\n  let currentRun: number[] = [values[0]];\\n\\n  for (let i = 1; i < values.length; i++) {\\n    const current = values[i];\\n    const previous = values[i - 1];\\n\\n    if (current === previous + 1) {\\n      currentRun.push(current);\\n    } else {\\n      result.push(currentRun);\\n      currentRun = [current];\\n    }\\n  }\\n\\n  result.push(currentRun);\\n  return result;\\n}\\n```\"}}],\"created\":1787408485,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":170,\"prompt_tokens\":140,\"total_tokens\":310,\"prompt_tokens_details\":{\"cached_tokens\":52}},\"id\":\"chatcmpl-JkOMx3mycpnTnV5OnlLSvgvIowCbu5qQ\",\"timings\":{\"cache_n\":52,\"prompt_n\":88,\"prompt_ms\":262.972,\"prompt_per_token_ms\":2.9883181818181814,\"prompt_per_second\":334.63638714387844,\"predicted_n\":170,\"predicted_ms\":3295.438,\"predicted_per_token_ms\":19.499633136094676,\"predicted_per_second\":51.28301609679806}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```typescript\nexport function groupConsecutive(values: number[]): number[][] {\n  if (values.length === 0) {\n    return [];\n  }\n\n  const result: number[][] = [];\n  let currentRun: number[] = [values[0]];\n\n  for (let i = 1; i < values.length; i++) {\n    const current = values[i];\n    const previous = values[i - 1];\n\n    if (current === previous + 1) {\n      currentRun.push(current);\n    } else {\n      result.push(currentRun);\n      currentRun = [current];\n    }\n  }\n\n  result.push(currentRun);\n  return result;\n}\n```"
+        }
+      }
+    ],
+    "created": 1787408485,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 170,
+      "prompt_tokens": 140,
+      "total_tokens": 310,
+      "prompt_tokens_details": {
+        "cached_tokens": 52
+      }
+    },
+    "id": "chatcmpl-JkOMx3mycpnTnV5OnlLSvgvIowCbu5qQ",
+    "timings": {
+      "cache_n": 52,
+      "prompt_n": 88,
+      "prompt_ms": 262.972,
+      "prompt_per_token_ms": 2.9883181818181814,
+      "prompt_per_second": 334.63638714387844,
+      "predicted_n": 170,
+      "predicted_ms": 3295.438,
+      "predicted_per_token_ms": 19.499633136094676,
+      "predicted_per_second": 51.28301609679806
+    }
+  }
+}

@@ -1,0 +1,45 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "context-footprint-at-load",
+    "started_utc":  "2026-08-22T19:47:40.9723223Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.6-35B-A3B-GGUF\\Qwen3.6-35B-A3B-UD-IQ4_XS.gguf",
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  262144,
+                          "cache_type_k":  "q8_0",
+                          "cache_type_v":  "q8_0",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "parallel":  1,
+                          "tensor_override":  "",
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  2,
+                          "device_vram_mib":  16304
+                      },
+    "load_seconds":  12.6,
+    "idle":  {
+                 "vram_dedicated_mib":  3430.2,
+                 "vram_shared_mib":  381.5,
+                 "commit_gib":  25.342,
+                 "physical_used_gib":  8.657
+             },
+    "peak":  {
+                 "vram_dedicated_mib":  15735.6,
+                 "vram_shared_mib":  7848.2,
+                 "process_vram_mib":  12328.9,
+                 "process_ws_gib":  18.461,
+                 "process_private_gib":  16.275,
+                 "commit_gib":  45.554,
+                 "physical_used_gib":  30.596
+             },
+    "marginal_vram_mib":  12305.4,
+    "gpu_pressure":  {
+                         "state":  "pressured",
+                         "occupancy":  0.9651,
+                         "shared_mib":  7848.2,
+                         "message":  "GPU memory pressure detected.\r\n\r\n  Dedicated VRAM : 15.736 / 16.304 MiB (96,5%)\r\n  Shared GPU     : 7.848 MiB\r\n\r\nDriver-level VRAM paging is likely. Prompt processing degrades\r\nwithout any error being raised. Consider a smaller context\r\nprofile or a wider CPU tensor split."
+                     },
+    "failure":  null
+}

@@ -31,9 +31,10 @@ param(
     [Parameter(Mandatory = $true)][string]$OutputRoot,
 
     [string]$RuntimeRoot = 'C:\IA\runtimes\llama.cpp\b10549-rocm-7.14',
+    [ValidateRange(1024, 1048576)][int]$ContextTokens = 32768,
     [ValidateSet('f16', 'q8_0', 'q4_0')][string]$CacheTypeK = 'q4_0',
     [ValidateSet('f16', 'q8_0', 'q4_0')][string]$CacheTypeV = 'q4_0',
-    [string]$TensorOverride = 'blk\.(6[0-3])\.ffn_.*=CPU',
+    [string]$TensorOverride = '',
     [int]$UBatchSize = 288,
     [int]$BatchSize = 2048,
     [int]$NGpuLayers = 99,
@@ -52,6 +53,12 @@ param(
 
     [ValidateRange(1, 30)][int]$SampleIntervalSeconds = 2,
 
+    # Relative standard deviation at which a row is flagged for inspection.
+    # 8% sits above the 1.2-5.1% band that healthy decode cells produced across
+    # the Qwen3.6 campaign and below the 14.3% of the one cell measured beside a
+    # stray process. It warns; it never fails a run.
+    [ValidateRange(1, 100)][double]$SpreadWarnPercent = 8.0,
+
     # A depth sweep at 262144 prefills a quarter of a million tokens per
     # repetition, so it is legitimately slow and must not be mistaken for a
     # hang. It must also not be able to stall an unattended campaign forever,
@@ -66,11 +73,13 @@ if ($CpuMoe -and $NCpuMoe -ge 0) {
 }
 
 . (Join-Path $PSScriptRoot 'Telemetry.ps1')
+. (Join-Path $PSScriptRoot 'Common.ps1')
 
 $benchExe = Join-Path $RuntimeRoot 'llama-bench.exe'
 foreach ($required in @($benchExe, $ModelPath)) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Missing: $required" }
 }
+$benchSupportedFlags = Get-V2SupportedFlags -HelpText (Get-V2RuntimeHelpText -Path $benchExe)
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 
 $previousPath = $env:PATH
@@ -89,27 +98,12 @@ try {
         $kind = $parts[0]
         $n = [int]$parts[1]
 
-        $args = @(
-            '-m', $ModelPath,
-            '-dev', 'ROCm0',
-            '--split-mode', 'none',
-            '-ngl', "$NGpuLayers",
-            '-fa', 'on',
-            '-b', "$BatchSize",
-            '-ub', "$UBatchSize",
-            '-ctk', $CacheTypeK,
-            '-ctv', $CacheTypeV,
-            '-t', "$Threads",
-            '-r', "$Repetitions",
-            '-o', 'json'
-        )
-        if ($TensorOverride) { $args += @('-ot', $TensorOverride) }
-        if ($CpuMoe) { $args += @('--cpu-moe') }
-        elseif ($NCpuMoe -ge 0) { $args += @('--n-cpu-moe', "$NCpuMoe") }
-        if ($kind -eq 'pp') { $args += @('-p', "$n", '-n', '0') }
-        elseif ($kind -eq 'tg') { $args += @('-p', '0', '-n', "$n") }
-        else { throw "Unknown test kind '$kind'" }
-        if ($depth -gt 0) { $args += @('-d', "$depth") }
+        $modelSpec = New-V2BenchmarkModelSpec -ModelPath $ModelPath -Alias 'local' -ContextTokens $ContextTokens `
+            -CacheTypeK $CacheTypeK -CacheTypeV $CacheTypeV -UBatchSize $UBatchSize -BatchSize $BatchSize `
+            -NGpuLayers $NGpuLayers -Threads $Threads -Parallel 1 -TensorOverride $TensorOverride `
+            -NCpuMoe $NCpuMoe -CpuMoe:$CpuMoe
+        $args = New-V2LlamaBenchArguments -Model $modelSpec -TestKind $kind -Tokens $n -Depth $depth `
+            -Repetitions $Repetitions -SupportedFlags $benchSupportedFlags
 
         $tag = "{0}-{1}{2}{3}" -f $Label, $kind, $n, $(if ($depth) { "-d$depth" } else { '' })
         Write-Host ("RUN   {0}" -f $tag)
@@ -193,17 +187,42 @@ try {
             }
         }
 
+        # Spread, as a fraction of the rate rather than in absolute t/s.
+        #
+        # docs/BENCHMARKS.md section 8.1 already treats run-to-run spread as
+        # evidence in its own right - it is what identified IQ4_XS oscillating
+        # across a paging boundary on Qwen3.8 - but nothing computed it, so
+        # noticing required someone to compare a row against its neighbours by
+        # eye. That failed twice during the Qwen3.6 campaign: a cell measured
+        # beside a stray llama-server returned 40.01 +/- 5.70 t/s, which reads as
+        # unremarkable until it is put next to the 1.2-5.1% every other decode
+        # cell produced.
+        #
+        # This only reports. A wide spread has several causes - another process
+        # on the adapter, genuine paging, a short measurement - and which one it
+        # is belongs to the reader, not to a threshold.
+        $relativeStddev = $null
+        if ($null -ne $value -and $null -ne $stddev -and $value -gt 0) {
+            $relativeStddev = [Math]::Round(100.0 * $stddev / $value, 2)
+        }
+
         $rows += [ordered]@{
             tag = $tag; kind = $kind; n = $n; depth = $depth
-            tokens_per_second = $value; stddev = $stddev; timed_out = $timedOut
+            tokens_per_second = $value; stddev = $stddev
+            relative_stddev_percent = $relativeStddev
+            timed_out = $timedOut
             wall_s = [Math]::Round($started.Elapsed.TotalSeconds, 1)
             peak = $peak; failure = $failure
         }
         if ($failure) { Write-Warning ("  {0}" -f $failure) }
         else {
-            Write-Host ("  {0,10:N2} +/- {1,-6:N2} t/s | dedicated {2,6:N0} | shared {3,6:N0} MiB | {4:N0}s" -f `
-                    $value, $stddev, $(if ($peak) { $peak.vram_dedicated_mib } else { 0 }), `
+            Write-Host ("  {0,10:N2} +/- {1,-6:N2} t/s ({2,5:N1}%) | dedicated {3,6:N0} | shared {4,6:N0} MiB | {5:N0}s" -f `
+                    $value, $stddev, $relativeStddev, $(if ($peak) { $peak.vram_dedicated_mib } else { 0 }), `
                     $(if ($peak) { $peak.vram_shared_mib } else { 0 }), $started.Elapsed.TotalSeconds)
+            if ($null -ne $relativeStddev -and $relativeStddev -ge $SpreadWarnPercent) {
+                Write-Warning ("  {0}: spread is {1:N1}% of the rate. Check the adapter samples in {2} for a second process or for paging before quoting this figure." -f `
+                        $tag, $relativeStddev, (Split-Path -Leaf $samplePath))
+            }
         }
         Start-Sleep -Seconds 5
     }
@@ -224,6 +243,7 @@ $summaryPath = Join-Path $OutputRoot ("throughput-$Label.json")
         model_path = $ModelPath
         model_bytes = (Get-Item -LiteralPath $ModelPath).Length
         runtime_root = $RuntimeRoot
+        context_tokens = $ContextTokens
         cache_type_k = $CacheTypeK
         cache_type_v = $CacheTypeV
         tensor_override = $TensorOverride

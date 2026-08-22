@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a coding agent. If the user asks for a value that is not present in the supplied context, do not guess. State the specific file or source that must be read."
+      },
+      {
+        "role": "user",
+        "content": "The current release notes mention ticket REL-42 and say the migration result is recorded elsewhere. What checksum was written to archive.json? Answer only if the supplied context contains the checksum."
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"The supplied context does not contain the checksum. Please provide the `archive.json` file.\",\"reasoning_content\":\"*   Question: What checksum was written to `archive.json`?\\n    *   Context: Mention of ticket `REL-42` and migration results being recorded elsewhere.\\n    *   Constraint: Answer *only* if the supplied context contains the checksum. If not, state the specific file or source that must be read.\\n\\n    *   The user has *not* provided any context (files, text, etc.) in the prompt.\\n\\n    *   Since no context was provided, I cannot find the checksum.\\n    *   I must state that the context is missing and specify what needs to be read.\\n    *   The user mentioned `archive.json` in the question, so that is the file that must be read.\\n\\n    *   \\\"The supplied context does not contain the checksum. Please provide the `archive.json` file.\\\"\"}}],\"created\":1787407342,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":203,\"prompt_tokens\":91,\"total_tokens\":294,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-tSeA2itnrZFuvCSu35NX2hQaGYtt3QZM\",\"timings\":{\"cache_n\":0,\"prompt_n\":91,\"prompt_ms\":349.76,\"prompt_per_token_ms\":3.8435164835164835,\"prompt_per_second\":260.1784080512351,\"predicted_n\":203,\"predicted_ms\":3940.296,\"predicted_per_token_ms\":19.506415841584158,\"predicted_per_second\":51.265184138450515}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "The supplied context does not contain the checksum. Please provide the `archive.json` file.",
+          "reasoning_content": "*   Question: What checksum was written to `archive.json`?\n    *   Context: Mention of ticket `REL-42` and migration results being recorded elsewhere.\n    *   Constraint: Answer *only* if the supplied context contains the checksum. If not, state the specific file or source that must be read.\n\n    *   The user has *not* provided any context (files, text, etc.) in the prompt.\n\n    *   Since no context was provided, I cannot find the checksum.\n    *   I must state that the context is missing and specify what needs to be read.\n    *   The user mentioned `archive.json` in the question, so that is the file that must be read.\n\n    *   \"The supplied context does not contain the checksum. Please provide the `archive.json` file.\""
+        }
+      }
+    ],
+    "created": 1787407342,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 203,
+      "prompt_tokens": 91,
+      "total_tokens": 294,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-tSeA2itnrZFuvCSu35NX2hQaGYtt3QZM",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 91,
+      "prompt_ms": 349.76,
+      "prompt_per_token_ms": 3.8435164835164835,
+      "prompt_per_second": 260.1784080512351,
+      "predicted_n": 203,
+      "predicted_ms": 3940.296,
+      "predicted_per_token_ms": 19.506415841584158,
+      "predicted_per_second": 51.265184138450515
+    }
+  }
+}

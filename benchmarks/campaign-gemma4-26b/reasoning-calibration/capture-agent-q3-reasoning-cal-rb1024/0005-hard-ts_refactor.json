@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "Refactor this module to use async/await and an iterative loop instead of the recursive `.then()` chain. Every observable behaviour must be preserved exactly, including both error messages and the 50-entry cap. Keep the exported names. Return the whole module.\n\n```typescript\nexport type Fetcher = (id: string) => Promise<{ id: string; parent: string | null }>;\n\n// Walks from a node to the root and returns the chain, root last.\n// Rewrite this to use async/await and a plain loop. Behaviour must not change,\n// including that a cycle throws Error(\"cycle detected\") and that the chain is\n// capped at 50 entries with Error(\"chain too long\").\nexport function ancestry(fetch: Fetcher, start: string): Promise<string[]> {\n  const seen = new Set<string>();\n  const chain: string[] = [];\n  function step(id: string): Promise<string[]> {\n    if (seen.has(id)) return Promise.reject(new Error(\"cycle detected\"));\n    seen.add(id);\n    chain.push(id);\n    if (chain.length > 50) return Promise.reject(new Error(\"chain too long\"));\n    return fetch(id).then((node) => {\n      if (node.parent === null) return chain;\n      return step(node.parent);\n    });\n  }\n  return step(start);\n}\n```"
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```typescript\\nexport type Fetcher = (id: string) => Promise<{ id: string; parent: string | null }>;\\n\\n// Walks from a node to the root and returns the chain, root last.\\n// Rewrite this to use async/await and a plain loop. Behaviour must not change,\\n// including that a cycle throws Error(\\\"cycle detected\\\") and that the chain is\\n// capped at 50 entries with Error(\\\"chain too long\\\").\\nexport async function ancestry(fetch: Fetcher, start: string): Promise<string[]> {\\n  const seen = new Set<string>();\\n  const chain: string[] = [];\\n  let currentId: string | null = start;\\n\\n  while (currentId !== null) {\\n    if (seen.has(currentId)) {\\n      throw new Error(\\\"cycle detected\\\");\\n    }\\n\\n    seen.add(currentId);\\n    chain.push(currentId);\\n\\n    if (chain.length > 50) {\\n      throw new Error(\\\"chain too long\\\");\\n    }\\n\\n    const node = await fetch(currentId);\\n    currentId = node.parent;\\n  }\\n\\n  return chain;\\n}\\n```\",\"reasoning_content\":\"*   Input: `fetch` (a function returning a promise with `{ id, parent }`), `start` (a string ID).\\n    *   Output: `Promise<string[]>` (the chain of IDs from start to root).\\n    *   Constraints/Behavior:\\n        1.  Iterative loop + `async/await`.\\n        2.  Detect cycles: Throw `Error(\\\"cycle detected\\\")`.\\n        3.  Cap length: If length > 50, throw `Error(\\\"chain too long\\\")`.\\n        4.  Order: Start node first, root node last.\\n        5.  Preserve exported names.\\n        6.  Preserve error messages exactly.\\n\\n    *   `seen` set to track visited IDs.\\n    *   `chain` array to store IDs.\\n    *   Loop:\\n        *   Check if `id` is in `seen` -> throw `Error(\\\"cycle detected\\\")`.\\n        *   Add `id` to `seen`.\\n        *   Add `id` to `chain`.\\n        *   Check if `chain.length > 50` -> throw `Error(\\\"chain too long\\\")`.\\n        *   Call `fetch(id)`.\\n        *   If `node.parent` is `null`, return `chain`.\\n        *   Else, set `id = node.parent` and continue.\\n\\n    *   The original code:\\n        ```typescript\\n        seen.add(id);\\n        chain.push(id);\\n        if (chain.length > 50) return Promise.reject(new Error(\\\"chain too long\\\"));\\n        ```\\n    *   Wait, let's look at the order of operations in the original:\\n        1. `seen.has(id)` check.\\n        2. `seen.add(id)`.\\n        3. `chain.push(id)`.\\n        4. `chain.length > 50` check.\\n        5. `fetch(id)`.\\n        6. If `node.parent === null`, return `chain`.\\n        7. Else, `step(node.parent)`.\\n\\n    *   Example trace:\\n        If `chain` reaches 50 elements, it's fine.\\n        If the *next* element being added makes it 51, it throws \\\"chain too long\\\".\\n        Actually, the check `if (chain.length > 50)` happens *after* the push.\\n        So if `chain` has 50 elements, and we push the 51st, it throws.\\n\\n    *   Let's re-verify the logic:\\n        `chain.push(id)`\\n        `if (chain.length > 50) throw Error(\\\"chain too long\\\")`\\n        This means the maximum allowed length of the array returned is 50. If the 51st element is added, it fails.\\n\\n    *   `currentId = start`\\n    *   `while (true)`\\n    *   `if (seen.has(currentId)) throw Error(\\\"cycle detected\\\")`\\n    *   `seen.add(currentId)`\\n    *   `chain.push(currentId)`\\n    *   `if (chain.length > 50) throw Error(\\\"chain too long\\\")`\\n    *   `const node = await fetch(currentId)`\\n    *   `if (node.parent === null) return chain`\\n    *   `currentId = node.parent`\\n\\n    *   `fetch` is `(id: string) => Promise<{ id: string; parent: string | null }>`.\\n    *   `ancestry` is `(fetch: Fetcher, start: string) => Promise<string[]>`.\\n\\n    *   `seen` set? Yes.\\n    *   `chain` array? Yes.\\n    *   `async/await`? Yes.\\n    *   Iterative loop? Yes.\\n    *   Cycle detection error? `Error(\\\"cycle detected\\\")`.\\n    *   Length cap error? `Error(\\\"chain too long\\\")`.\\n    *   Cap at 50? Yes.\\n    *   Return type? `Promise<string[]>`.\\n\\n    Wait, let's double check the `chain.length > 50` logic.\\n    Original:\\n    `chain.push(id);`\\n    `if (chain.length > 50) return Promise.reject(new Error(\\\"chain too long\\\"));`\\n    If `chain` was 50, `push` makes it 51. `51 > 50` is true. Error thrown.\\n    So the array can have at most 50 elements\"}}],\"created\":1787407514,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":1283,\"prompt_tokens\":374,\"total_tokens\":1657,\"prompt_tokens_details\":{\"cached_tokens\":52}},\"id\":\"chatcmpl-rPuSUTFlceZzy38zL3YXGCg4iR2KZqfw\",\"timings\":{\"cache_n\":52,\"prompt_n\":322,\"prompt_ms\":417.44,\"prompt_per_token_ms\":1.2963975155279504,\"prompt_per_second\":771.3683403602913,\"predicted_n\":1283,\"predicted_ms\":24496.765,\"predicted_per_token_ms\":19.108241029641185,\"predicted_per_second\":52.33344076248435}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```typescript\nexport type Fetcher = (id: string) => Promise<{ id: string; parent: string | null }>;\n\n// Walks from a node to the root and returns the chain, root last.\n// Rewrite this to use async/await and a plain loop. Behaviour must not change,\n// including that a cycle throws Error(\"cycle detected\") and that the chain is\n// capped at 50 entries with Error(\"chain too long\").\nexport async function ancestry(fetch: Fetcher, start: string): Promise<string[]> {\n  const seen = new Set<string>();\n  const chain: string[] = [];\n  let currentId: string | null = start;\n\n  while (currentId !== null) {\n    if (seen.has(currentId)) {\n      throw new Error(\"cycle detected\");\n    }\n\n    seen.add(currentId);\n    chain.push(currentId);\n\n    if (chain.length > 50) {\n      throw new Error(\"chain too long\");\n    }\n\n    const node = await fetch(currentId);\n    currentId = node.parent;\n  }\n\n  return chain;\n}\n```",
+          "reasoning_content": "*   Input: `fetch` (a function returning a promise with `{ id, parent }`), `start` (a string ID).\n    *   Output: `Promise<string[]>` (the chain of IDs from start to root).\n    *   Constraints/Behavior:\n        1.  Iterative loop + `async/await`.\n        2.  Detect cycles: Throw `Error(\"cycle detected\")`.\n        3.  Cap length: If length > 50, throw `Error(\"chain too long\")`.\n        4.  Order: Start node first, root node last.\n        5.  Preserve exported names.\n        6.  Preserve error messages exactly.\n\n    *   `seen` set to track visited IDs.\n    *   `chain` array to store IDs.\n    *   Loop:\n        *   Check if `id` is in `seen` -> throw `Error(\"cycle detected\")`.\n        *   Add `id` to `seen`.\n        *   Add `id` to `chain`.\n        *   Check if `chain.length > 50` -> throw `Error(\"chain too long\")`.\n        *   Call `fetch(id)`.\n        *   If `node.parent` is `null`, return `chain`.\n        *   Else, set `id = node.parent` and continue.\n\n    *   The original code:\n        ```typescript\n        seen.add(id);\n        chain.push(id);\n        if (chain.length > 50) return Promise.reject(new Error(\"chain too long\"));\n        ```\n    *   Wait, let's look at the order of operations in the original:\n        1. `seen.has(id)` check.\n        2. `seen.add(id)`.\n        3. `chain.push(id)`.\n        4. `chain.length > 50` check.\n        5. `fetch(id)`.\n        6. If `node.parent === null`, return `chain`.\n        7. Else, `step(node.parent)`.\n\n    *   Example trace:\n        If `chain` reaches 50 elements, it's fine.\n        If the *next* element being added makes it 51, it throws \"chain too long\".\n        Actually, the check `if (chain.length > 50)` happens *after* the push.\n        So if `chain` has 50 elements, and we push the 51st, it throws.\n\n    *   Let's re-verify the logic:\n        `chain.push(id)`\n        `if (chain.length > 50) throw Error(\"chain too long\")`\n        This means the maximum allowed length of the array returned is 50. If the 51st element is added, it fails.\n\n    *   `currentId = start`\n    *   `while (true)`\n    *   `if (seen.has(currentId)) throw Error(\"cycle detected\")`\n    *   `seen.add(currentId)`\n    *   `chain.push(currentId)`\n    *   `if (chain.length > 50) throw Error(\"chain too long\")`\n    *   `const node = await fetch(currentId)`\n    *   `if (node.parent === null) return chain`\n    *   `currentId = node.parent`\n\n    *   `fetch` is `(id: string) => Promise<{ id: string; parent: string | null }>`.\n    *   `ancestry` is `(fetch: Fetcher, start: string) => Promise<string[]>`.\n\n    *   `seen` set? Yes.\n    *   `chain` array? Yes.\n    *   `async/await`? Yes.\n    *   Iterative loop? Yes.\n    *   Cycle detection error? `Error(\"cycle detected\")`.\n    *   Length cap error? `Error(\"chain too long\")`.\n    *   Cap at 50? Yes.\n    *   Return type? `Promise<string[]>`.\n\n    Wait, let's double check the `chain.length > 50` logic.\n    Original:\n    `chain.push(id);`\n    `if (chain.length > 50) return Promise.reject(new Error(\"chain too long\"));`\n    If `chain` was 50, `push` makes it 51. `51 > 50` is true. Error thrown.\n    So the array can have at most 50 elements"
+        }
+      }
+    ],
+    "created": 1787407514,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1283,
+      "prompt_tokens": 374,
+      "total_tokens": 1657,
+      "prompt_tokens_details": {
+        "cached_tokens": 52
+      }
+    },
+    "id": "chatcmpl-rPuSUTFlceZzy38zL3YXGCg4iR2KZqfw",
+    "timings": {
+      "cache_n": 52,
+      "prompt_n": 322,
+      "prompt_ms": 417.44,
+      "prompt_per_token_ms": 1.2963975155279504,
+      "prompt_per_second": 771.3683403602913,
+      "predicted_n": 1283,
+      "predicted_ms": 24496.765,
+      "predicted_per_token_ms": 19.108241029641185,
+      "predicted_per_second": 52.33344076248435
+    }
+  }
+}

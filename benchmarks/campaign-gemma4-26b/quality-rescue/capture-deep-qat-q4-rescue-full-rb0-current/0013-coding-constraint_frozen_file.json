@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you. DO NOT MODIFY NetworkManager.cs UNDER ANY CIRCUMSTANCES. It is frozen."
+      },
+      {
+        "role": "user",
+        "content": "DO NOT MODIFY NetworkManager.cs.\n\nHere is the frozen file, for reference only:\n\n```csharp\n// NetworkManager.cs -- FROZEN. Reproduces a wire format other clients depend on.\nusing System;\nusing System.Collections.Generic;\n\npublic class NetworkManager\n{\n    private readonly List<string> _outbox = new List<string>();\n\n    // Serialises a payload for the wire. Pads every field to 8 characters and\n    // uppercases the opcode. This is the shipped format and cannot change.\n    public string Encode(string opcode, string payload)\n    {\n        return opcode.ToUpperInvariant().PadRight(8, ' ') + payload.PadRight(8, ' ');\n    }\n\n    public void Enqueue(string frame) { _outbox.Add(frame); }\n    public IReadOnlyList<string> Outbox => _outbox;\n}\n```\n\nWrite a NEW file `TelemetrySender.cs` containing a class `TelemetrySender` with a constructor taking a NetworkManager and a method `public void Send(string opcode, string payload)`.\nSend must encode the frame through the NetworkManager and enqueue it. Opcodes longer than 8 characters must be truncated to their first 8 characters BY YOUR CLASS before encoding — NetworkManager.Encode must not be changed to do it.\nReturn only TelemetrySender.cs."
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```csharp\\n// TelemetrySender.cs\\nusing System;\\n\\npublic class TelemetrySender\\n{\\n    private readonly NetworkManager _networkManager;\\n\\n    public TelemetrySender(NetworkManager networkManager)\\n    {\\n        _networkManager = networkManager ?? throw new ArgumentNullException(nameof(networkManager));\\n    }\\n\\n    public void Send(string opcode, string payload)\\n    {\\n        if (opcode == null) throw new ArgumentNullException(nameof(opcode));\\n        if (payload == null) throw new ArgumentNullException(nameof(payload));\\n\\n        // Opcodes longer than 8 characters must be truncated to their first 8 characters\\n        string processedOpcode = opcode.Length > 8 ? opcode.Substring(0, 8) : opcode;\\n\\n        string frame = _networkManager.Encode(processedOpcode, payload);\\n        _networkManager.Enqueue(frame);\\n    }\\n}\\n```\"}}],\"created\":1787381476,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":202,\"prompt_tokens\":376,\"total_tokens\":578,\"prompt_tokens_details\":{\"cached_tokens\":51}},\"id\":\"chatcmpl-QEyFFQED6QpUalphBdLDcdZZHqoVbMGQ\",\"timings\":{\"cache_n\":51,\"prompt_n\":325,\"prompt_ms\":470.945,\"prompt_per_token_ms\":1.4490615384615384,\"prompt_per_second\":690.1018165603202,\"predicted_n\":202,\"predicted_ms\":3327.029,\"predicted_per_token_ms\":16.552383084577116,\"predicted_per_second\":60.414261492761256}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```csharp\n// TelemetrySender.cs\nusing System;\n\npublic class TelemetrySender\n{\n    private readonly NetworkManager _networkManager;\n\n    public TelemetrySender(NetworkManager networkManager)\n    {\n        _networkManager = networkManager ?? throw new ArgumentNullException(nameof(networkManager));\n    }\n\n    public void Send(string opcode, string payload)\n    {\n        if (opcode == null) throw new ArgumentNullException(nameof(opcode));\n        if (payload == null) throw new ArgumentNullException(nameof(payload));\n\n        // Opcodes longer than 8 characters must be truncated to their first 8 characters\n        string processedOpcode = opcode.Length > 8 ? opcode.Substring(0, 8) : opcode;\n\n        string frame = _networkManager.Encode(processedOpcode, payload);\n        _networkManager.Enqueue(frame);\n    }\n}\n```"
+        }
+      }
+    ],
+    "created": 1787381476,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 202,
+      "prompt_tokens": 376,
+      "total_tokens": 578,
+      "prompt_tokens_details": {
+        "cached_tokens": 51
+      }
+    },
+    "id": "chatcmpl-QEyFFQED6QpUalphBdLDcdZZHqoVbMGQ",
+    "timings": {
+      "cache_n": 51,
+      "prompt_n": 325,
+      "prompt_ms": 470.945,
+      "prompt_per_token_ms": 1.4490615384615384,
+      "prompt_per_second": 690.1018165603202,
+      "predicted_n": 202,
+      "predicted_ms": 3327.029,
+      "predicted_per_token_ms": 16.552383084577116,
+      "predicted_per_second": 60.414261492761256
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "You are fixing a multi-file Go package. Return only the corrected `retry.go` file. Preserve the Store interface and exported errors.\n\n`retry.go`:\n```go\npackage retry\n\nimport \"errors\"\n\ntype Store interface {\n\tGet(key string) (string, error)\n\tPut(key, value string) error\n}\n\nvar ErrTemporary = errors.New(\"temporary\")\nvar ErrMissing = errors.New(\"missing\")\n\n// Ensure reads key and writes fallback only when the key is missing.\n// BUG: it writes fallback after any read error and retries permanent errors.\nfunc Ensure(store Store, key, fallback string) (string, error) {\n\tvalue, err := store.Get(key)\n\tif err == nil {\n\t\treturn value, nil\n\t}\n\tfor i := 0; i < 3; i++ {\n\t\tif putErr := store.Put(key, fallback); putErr == nil {\n\t\t\treturn fallback, nil\n\t\t}\n\t}\n\treturn \"\", err\n}\n```\n\nThe hidden tests distinguish missing keys from temporary read failures."
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```go\\npackage retry\\n\\nimport \\\"errors\\\"\\n\\ntype Store interface {\\n\\tGet(key string) (string, error)\\n\\tPut(key, value string) error\\n}\\n\\nvar ErrTemporary = errors.New(\\\"temporary\\\")\\nvar ErrMissing = errors.New(\\\"missing\\\")\\n\\n// Ensure reads key and writes fallback only when the key is missing.\\nfunc Ensure(store Store, key, fallback string) (string, error) {\\n\\tvalue, err := store.Get(key)\\n\\tif err == nil {\\n\\t\\treturn value, nil\\n\\t}\\n\\n\\tif errors.Is(err, ErrMissing) {\\n\\t\\tif putErr := store.Put(key, fallback); putErr != nil {\\n\\t\\t\\treturn \\\"\\\", putErr\\n\\t\\t}\\n\\t\\treturn fallback, nil\\n\\t}\\n\\n\\treturn \\\"\\\", err\\n}\\n```\",\"reasoning_content\":\"*   `Store` interface: `Get(key string) (string, error)`, `Put(key, value string) error`.\\n    *   Errors: `ErrTemporary`, `ErrMissing`.\\n    *   Function `Ensure(store Store, key, fallback string) (string, error)`:\\n        *   Goal: Read `key`. If it exists, return it. If it's missing, write `fallback` and return it.\\n        *   Current Bug:\\n            1.  It writes fallback after *any* read error (including `ErrTemporary`).\\n            2.  It retries `Put` 3 times if `Put` fails, but it doesn't handle the logic of whether the error was `ErrMissing` or `ErrTemporary` correctly in the loop.\\n            3.  The requirement says: \\\"Ensure reads key and writes fallback only when the key is missing.\\\"\\n            4.  The requirement says: \\\"BUG: it writes fallback after any read error and retries permanent errors.\\\"\\n\\n    *   If `store.Get(key)` returns `nil` error: return value.\\n    *   If `store.Get(key)` returns `ErrMissing`:\\n        *   This is the trigger to write the fallback.\\n        *   Call `store.Put(key, fallback)`.\\n        *   If `Put` succeeds, return `fallback, nil`.\\n        *   If `Put` fails, return `\\\"\\\", err`.\\n    *   If `store.Get(key)` returns `ErrTemporary`:\\n        *   The current implementation retries `Put` 3 times, which is wrong. It should probably retry the `Get` or handle the error.\\n        *   Wait, the prompt says: \\\"Ensure reads key and writes fallback only when the key is missing.\\\"\\n        *   And \\\"BUG: it writes fallback after any read error and retries permanent errors.\\\"\\n        *   Let's look at the logic:\\n            1.  Try `Get`.\\n            2.  If `err == nil`, return value.\\n            3.  If `err == ErrMissing`:\\n                *   Try `Put(key, fallback)`.\\n                *   If `Put` succeeds, return `fallback, nil`.\\n                *   If `Put` fails, return `\\\"\\\", err`.\\n            4.  If `err == ErrTemporary\"}}],\"created\":1787406948,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":697,\"prompt_tokens\":304,\"total_tokens\":1001,\"prompt_tokens_details\":{\"cached_tokens\":52}},\"id\":\"chatcmpl-5kF5tzHzdbrOR6eileI8Vk9kDfzgpWby\",\"timings\":{\"cache_n\":52,\"prompt_n\":252,\"prompt_ms\":309.497,\"prompt_per_token_ms\":1.2281626984126985,\"prompt_per_second\":814.2243705108611,\"predicted_n\":697,\"predicted_ms\":13416.424,\"predicted_per_token_ms\":19.276471264367817,\"predicted_per_second\":51.876714689398604}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```go\npackage retry\n\nimport \"errors\"\n\ntype Store interface {\n\tGet(key string) (string, error)\n\tPut(key, value string) error\n}\n\nvar ErrTemporary = errors.New(\"temporary\")\nvar ErrMissing = errors.New(\"missing\")\n\n// Ensure reads key and writes fallback only when the key is missing.\nfunc Ensure(store Store, key, fallback string) (string, error) {\n\tvalue, err := store.Get(key)\n\tif err == nil {\n\t\treturn value, nil\n\t}\n\n\tif errors.Is(err, ErrMissing) {\n\t\tif putErr := store.Put(key, fallback); putErr != nil {\n\t\t\treturn \"\", putErr\n\t\t}\n\t\treturn fallback, nil\n\t}\n\n\treturn \"\", err\n}\n```",
+          "reasoning_content": "*   `Store` interface: `Get(key string) (string, error)`, `Put(key, value string) error`.\n    *   Errors: `ErrTemporary`, `ErrMissing`.\n    *   Function `Ensure(store Store, key, fallback string) (string, error)`:\n        *   Goal: Read `key`. If it exists, return it. If it's missing, write `fallback` and return it.\n        *   Current Bug:\n            1.  It writes fallback after *any* read error (including `ErrTemporary`).\n            2.  It retries `Put` 3 times if `Put` fails, but it doesn't handle the logic of whether the error was `ErrMissing` or `ErrTemporary` correctly in the loop.\n            3.  The requirement says: \"Ensure reads key and writes fallback only when the key is missing.\"\n            4.  The requirement says: \"BUG: it writes fallback after any read error and retries permanent errors.\"\n\n    *   If `store.Get(key)` returns `nil` error: return value.\n    *   If `store.Get(key)` returns `ErrMissing`:\n        *   This is the trigger to write the fallback.\n        *   Call `store.Put(key, fallback)`.\n        *   If `Put` succeeds, return `fallback, nil`.\n        *   If `Put` fails, return `\"\", err`.\n    *   If `store.Get(key)` returns `ErrTemporary`:\n        *   The current implementation retries `Put` 3 times, which is wrong. It should probably retry the `Get` or handle the error.\n        *   Wait, the prompt says: \"Ensure reads key and writes fallback only when the key is missing.\"\n        *   And \"BUG: it writes fallback after any read error and retries permanent errors.\"\n        *   Let's look at the logic:\n            1.  Try `Get`.\n            2.  If `err == nil`, return value.\n            3.  If `err == ErrMissing`:\n                *   Try `Put(key, fallback)`.\n                *   If `Put` succeeds, return `fallback, nil`.\n                *   If `Put` fails, return `\"\", err`.\n            4.  If `err == ErrTemporary"
+        }
+      }
+    ],
+    "created": 1787406948,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 697,
+      "prompt_tokens": 304,
+      "total_tokens": 1001,
+      "prompt_tokens_details": {
+        "cached_tokens": 52
+      }
+    },
+    "id": "chatcmpl-5kF5tzHzdbrOR6eileI8Vk9kDfzgpWby",
+    "timings": {
+      "cache_n": 52,
+      "prompt_n": 252,
+      "prompt_ms": 309.497,
+      "prompt_per_token_ms": 1.2281626984126985,
+      "prompt_per_second": 814.2243705108611,
+      "predicted_n": 697,
+      "predicted_ms": 13416.424,
+      "predicted_per_token_ms": 19.276471264367817,
+      "predicted_per_second": 51.876714689398604
+    }
+  }
+}

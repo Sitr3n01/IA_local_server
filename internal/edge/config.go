@@ -76,6 +76,25 @@ type Model struct {
 	Checkpoints   CheckpointSummary `json:"-"`
 }
 
+// MoEOffloadSummary is the typed MoE expert placement a profile declares.
+// cpu_layers=0 is a meaningful full-GPU control cell, so real offload must be
+// derived from the value rather than the presence of this object.
+type MoEOffloadSummary struct {
+	CPULayers *int  `json:"cpu_layers,omitempty"`
+	CPUAll    *bool `json:"cpu_all,omitempty"`
+}
+
+func (m MoEOffloadSummary) Offloads() bool {
+	if m.CPUAll != nil && *m.CPUAll {
+		return true
+	}
+	return m.CPULayers != nil && *m.CPULayers > 0
+}
+
+func (m MoEOffloadSummary) Configured() bool {
+	return m.CPULayers != nil || m.CPUAll != nil
+}
+
 // ProfileSummary is what an operator needs to see to know which of the three
 // Qwen3.8 classes is actually serving. Context alone does not distinguish them:
 // Deep and Agent differ by weights and cache precision, Agent and Huge by
@@ -83,13 +102,14 @@ type Model struct {
 // consulted on the request path, and excluded from /v1/models so the public
 // model list is byte-identical to what it was.
 type ProfileSummary struct {
-	Weights          string `json:"weights,omitempty"`
-	CacheTypeK       string `json:"cache_type_k,omitempty"`
-	CacheTypeV       string `json:"cache_type_v,omitempty"`
-	MaxOutputTokens  *int   `json:"max_output_tokens,omitempty"`
-	NPredict         *int   `json:"n_predict,omitempty"`
-	ReasoningBudget  *int   `json:"reasoning_budget,omitempty"`
-	CompactThreshold *int   `json:"compact_threshold_tokens,omitempty"`
+	Weights          string             `json:"weights,omitempty"`
+	CacheTypeK       string             `json:"cache_type_k,omitempty"`
+	CacheTypeV       string             `json:"cache_type_v,omitempty"`
+	MaxOutputTokens  *int               `json:"max_output_tokens,omitempty"`
+	NPredict         *int               `json:"n_predict,omitempty"`
+	ReasoningBudget  *int               `json:"reasoning_budget,omitempty"`
+	CompactThreshold *int               `json:"compact_threshold_tokens,omitempty"`
+	MoEOffload       *MoEOffloadSummary `json:"moe_offload,omitempty"`
 }
 
 // RuntimeSummary identifies a runtime by what it is rather than by where it was

@@ -1,0 +1,93 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "load-mode-ab",
+    "started_utc":  "2026-08-22T17:53:40.8688302Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.6-35B-A3B-GGUF\\Qwen3.6-35B-A3B-UD-Q3_K_XL.gguf",
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "n_cpu_moe":  12,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "threads":  8,
+                          "repetitions":  3,
+                          "device_vram_mib":  16304
+                      },
+    "results":  [
+                    {
+                        "mode":  "auto",
+                        "measurement":  "pp512",
+                        "tokens_per_second":  267.95,
+                        "stddev":  6.39,
+                        "wall_s":  21
+                    },
+                    {
+                        "mode":  "auto",
+                        "measurement":  "tg128",
+                        "tokens_per_second":  41.53,
+                        "stddev":  1.89,
+                        "wall_s":  16.9
+                    },
+                    {
+                        "mode":  "auto",
+                        "measurement":  "pp8192",
+                        "tokens_per_second":  319.41,
+                        "stddev":  23.42,
+                        "wall_s":  116.1
+                    },
+                    {
+                        "mode":  "auto",
+                        "measurement":  "server-load",
+                        "load_seconds":  6.5,
+                        "ready":  true,
+                        "idle_vram_mib":  3464.1,
+                        "peak":  {
+                                     "vram_dedicated_mib":  15440.8,
+                                     "vram_shared_mib":  794.5,
+                                     "process_private_gib":  11.998,
+                                     "process_ws_gib":  11.906
+                                 },
+                        "model_buffers":  [
+
+                                          ]
+                    },
+                    {
+                        "mode":  "none",
+                        "measurement":  "pp512",
+                        "tokens_per_second":  1283.63,
+                        "stddev":  13.04,
+                        "wall_s":  7.7
+                    },
+                    {
+                        "mode":  "none",
+                        "measurement":  "tg128",
+                        "tokens_per_second":  53.3,
+                        "stddev":  0.7,
+                        "wall_s":  16.3
+                    },
+                    {
+                        "mode":  "none",
+                        "measurement":  "pp8192",
+                        "tokens_per_second":  483.27,
+                        "stddev":  4.74,
+                        "wall_s":  76.9
+                    },
+                    {
+                        "mode":  "none",
+                        "measurement":  "server-load",
+                        "load_seconds":  10.6,
+                        "ready":  true,
+                        "idle_vram_mib":  3481.4,
+                        "peak":  {
+                                     "vram_dedicated_mib":  15644.7,
+                                     "vram_shared_mib":  5410.9,
+                                     "process_private_gib":  16.484,
+                                     "process_ws_gib":  4.805
+                                 },
+                        "model_buffers":  [
+
+                                          ]
+                    }
+                ]
+}

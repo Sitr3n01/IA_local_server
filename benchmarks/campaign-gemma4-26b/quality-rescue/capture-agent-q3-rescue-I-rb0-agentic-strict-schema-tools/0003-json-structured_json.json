@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Return only JSON. No prose, no fence.\n\nYou are a coding agent working in an existing repository.\n- Obey explicit constraints exactly, including frozen files and literal values.\n- Inspect source before relying on APIs, file contents, or project behavior.\n- Never invent APIs, methods, files, flags, or test results.\n- Preserve tool arguments exactly when they are supplied as paths, globs, patterns, identifiers, or literal values.\n- If required information is missing, say what must be read instead of guessing.\n- Produce the requested implementation or tool call rather than endless analysis.\n\nTool arguments are API contracts. Preserve user-provided paths, globs, regular expressions, exclude patterns, identifiers and literal values exactly unless the user explicitly asks you to transform them."
+      },
+      {
+        "role": "user",
+        "content": "Reply with a single JSON object and nothing else, with exactly the keys \"language\", \"lines\", \"has_tests\", \"entrypoints\". For a Go package with 412 lines, a _test.go file, and the exported functions NewLRU, Get, Put and Len, fill it in. \"lines\" must be a number, \"has_tests\" a boolean, \"entrypoints\" an array of strings."
+      }
+    ],
+    "max_tokens": 4096,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```json\\n{\\n  \\\"language\\\": \\\"go\\\",\\n  \\\"lines\\\": 412,\\n  \\\"has_tests\\\": true,\\n  \\\"entrypoints\\\": [\\n    \\\"NewLRU\\\",\\n    \\\"Get\\\",\\n    \\\"Put\\\",\\n    \\\"Len\\\"\\n  ]\\n}\\n```\"}}],\"created\":1787381292,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":71,\"prompt_tokens\":267,\"total_tokens\":338,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-o0jaQly76M9q9EJD5lfi2sDpLBej1Ic7\",\"timings\":{\"cache_n\":0,\"prompt_n\":267,\"prompt_ms\":400.654,\"prompt_per_token_ms\":1.5005767790262172,\"prompt_per_second\":666.4104189649922,\"predicted_n\":71,\"predicted_ms\":1315.873,\"predicted_per_token_ms\":18.798185714285715,\"predicted_per_second\":53.19662307836698}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```json\n{\n  \"language\": \"go\",\n  \"lines\": 412,\n  \"has_tests\": true,\n  \"entrypoints\": [\n    \"NewLRU\",\n    \"Get\",\n    \"Put\",\n    \"Len\"\n  ]\n}\n```"
+        }
+      }
+    ],
+    "created": 1787381292,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 71,
+      "prompt_tokens": 267,
+      "total_tokens": 338,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-o0jaQly76M9q9EJD5lfi2sDpLBej1Ic7",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 267,
+      "prompt_ms": 400.654,
+      "prompt_per_token_ms": 1.5005767790262172,
+      "prompt_per_second": 666.4104189649922,
+      "predicted_n": 71,
+      "predicted_ms": 1315.873,
+      "predicted_per_token_ms": 18.798185714285715,
+      "predicted_per_second": 53.19662307836698
+    }
+  }
+}

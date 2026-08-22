@@ -159,6 +159,14 @@ def probe(url, local=None):
 
 
 def tensor_category(name):
+    # Vision first: a projector's tensors carry ordinary ".attn_"/".ffn_" names,
+    # so any check that reads those substrings would claim them before a later
+    # multimodal test could. Text-only GGUFs contain none of these prefixes, so
+    # moving the test to the front leaves their classification unchanged.
+    if name.startswith("v.") or name.startswith("mm.") or "mmproj" in name or "vision" in name:
+        return "multimodal"
+    if "nextn" in name:
+        return "mtp"
     if name.startswith("token_embd"):
         return "embedding"
     if name.startswith("output"):
@@ -173,8 +181,11 @@ def tensor_category(name):
         return "expert_ffn"
     if ".ffn_" in name:
         return "shared_ffn"
-    if "mmproj" in name or "vision" in name:
-        return "multimodal"
+    # Gated DeltaNet / Mamba-style state, which llama.cpp names ssm_*. Kept
+    # after the norm test so ssm_norm stays with every other norm rather than
+    # splitting one cross-cutting category in two.
+    if ".ssm_" in name:
+        return "recurrent"
     return "other"
 
 
@@ -198,6 +209,30 @@ def tensor_census(info):
             "layer": None if not layer_match else int(layer_match.group(1)),
             "category": tensor_category(tensor["name"]),
         })
+    return _refine_hybrid_layers(rows)
+
+
+def _refine_hybrid_layers(rows):
+    """Reassign the input projections of a recurrent block to `recurrent`.
+
+    A hybrid interleaves recurrent layers with full-attention ones and gives
+    both the same ".attn_*" tensor names, so a name alone cannot say which
+    operator consumes a projection. The layer can: a block that owns any ssm_*
+    tensor is a recurrent block, and its projections feed the recurrent operator
+    rather than an attention one. Counting them as attention would put the
+    largest tensors of 30 of Qwen3.6's 40 layers under a heading that implies a
+    KV cache they do not have.
+
+    Structural, not name-matched, so it is a no-op on any model without
+    recurrent tensors - Gemma 4 included.
+    """
+    recurrent_layers = {row["layer"] for row in rows
+                        if row["category"] == "recurrent" and row["layer"] is not None}
+    if not recurrent_layers:
+        return rows
+    for row in rows:
+        if row["layer"] in recurrent_layers and row["category"] == "attention":
+            row["category"] = "recurrent"
     return rows
 
 

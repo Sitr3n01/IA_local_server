@@ -1,0 +1,41 @@
+{
+  "arch": "qwen35moe",
+  "block_count": 40,
+  "n_ctx_train": 262144,
+  "n_tensors": 733,
+  "mtp_tensor_count": 0,
+  "nextn_tensor_count": 0,
+  "mtp_tensors": [],
+  "mtp_worst_quant": null,
+  "mtp_verdict": "NO_MTP_HEAD",
+  "quant_mix": {
+    "F32": 361,
+    "Q8_0": 252,
+    "MXFP4": 78,
+    "Q5_K": 38,
+    "Q6_K": 4
+  },
+  "category_tensors": {
+    "attention": 100,
+    "embedding": 1,
+    "expert_ffn": 120,
+    "norm": 130,
+    "other": 180,
+    "output": 2,
+    "router": 80,
+    "shared_ffn": 120
+  },
+  "category_span_bytes": {
+    "attention": 1091829760,
+    "embedding": 540344320,
+    "expert_ffn": 19016974336,
+    "norm": 683008,
+    "other": 287055360,
+    "output": 540352512,
+    "router": 84213760,
+    "shared_ffn": 133693440
+  },
+  "bytes_fetched": 12582912,
+  "range_requests": 3,
+  "source": "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/resolve/a483e9e6cbd595906af30beda3187c2663a1118c/Qwen3.6-35B-A3B-MXFP4_MOE.gguf"
+}

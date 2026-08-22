@@ -28,7 +28,7 @@ serve the next request.
 #>
 [CmdletBinding()]
 param(
-    [string]$ManifestPath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'config\models.yaml'),
+    [string]$ManifestPath,
     [Parameter(Mandatory = $true)][string]$ModelId,
     [ValidateRange(1024, 65535)][int]$Port = 19399,
     [ValidateRange(60, 3600)][int]$StartupTimeoutSeconds = 900,
@@ -43,6 +43,9 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'Common.ps1')
+if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
+    $ManifestPath = Join-Path (Get-V2RepoRoot) 'config\models.yaml'
+}
 
 $script:Checks = 0
 $script:Failures = [System.Collections.Generic.List[string]]::new()

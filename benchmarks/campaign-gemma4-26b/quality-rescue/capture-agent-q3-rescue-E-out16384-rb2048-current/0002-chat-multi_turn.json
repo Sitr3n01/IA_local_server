@@ -1,0 +1,68 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Remember facts from prior assistant turns."
+      },
+      {
+        "role": "user",
+        "content": "Remember this project code: VX-417. Reply OK."
+      },
+      {
+        "role": "assistant",
+        "content": "OK"
+      },
+      {
+        "role": "user",
+        "content": "What project code did I give you? Reply with only the code."
+      }
+    ],
+    "max_tokens": 256,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"VX-417\",\"reasoning_content\":\"The user is asking for the project code they previously provided.\\nThe previous turn contained the instruction: \\\"Remember this project code: VX-417. Reply OK.\\\"\\nThe user's current request is: \\\"What project code did I give you? Reply with only the code.\\\"\\n\\nPlan:\\n1. Identify the code from the previous turn: VX-417.\\n2. Format the response to contain *only* the code as requested.\"}}],\"created\":1787380888,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":105,\"prompt_tokens\":62,\"total_tokens\":167,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-bRMUUlVwTUXC2YJ5UMdit7FbDMsT40tz\",\"timings\":{\"cache_n\":0,\"prompt_n\":62,\"prompt_ms\":700.387,\"prompt_per_token_ms\":11.296564516129031,\"prompt_per_second\":88.52248828147867,\"predicted_n\":105,\"predicted_ms\":2080.137,\"predicted_per_token_ms\":20.00131730769231,\"predicted_per_second\":49.996706947667384}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "VX-417",
+          "reasoning_content": "The user is asking for the project code they previously provided.\nThe previous turn contained the instruction: \"Remember this project code: VX-417. Reply OK.\"\nThe user's current request is: \"What project code did I give you? Reply with only the code.\"\n\nPlan:\n1. Identify the code from the previous turn: VX-417.\n2. Format the response to contain *only* the code as requested."
+        }
+      }
+    ],
+    "created": 1787380888,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 105,
+      "prompt_tokens": 62,
+      "total_tokens": 167,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-bRMUUlVwTUXC2YJ5UMdit7FbDMsT40tz",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 62,
+      "prompt_ms": 700.387,
+      "prompt_per_token_ms": 11.296564516129031,
+      "prompt_per_second": 88.52248828147867,
+      "predicted_n": 105,
+      "predicted_ms": 2080.137,
+      "predicted_per_token_ms": 20.00131730769231,
+      "predicted_per_second": 49.996706947667384
+    }
+  }
+}

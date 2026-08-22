@@ -1,11 +1,14 @@
 [CmdletBinding()]
 param(
-    [string]$ManifestPath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'config\models.yaml'),
+    [string]$ManifestPath,
     [switch]$Quiet
 )
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Common.ps1')
+if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
+    $ManifestPath = Join-Path (Get-V2RepoRoot) 'config\models.yaml'
+}
 
 $routerAPIKeyPath = 'C:\IA\local-ai-v2\state\router-api-key.txt'
 
@@ -146,7 +149,43 @@ $moeAllCommand = New-V2LlamaServerCommand -Runtime $runtimesById[$moeAll.runtime
 Assert-Contains -Haystack $moeAllCommand -Needle '--cpu-moe' -Label 'moe_offload.cpu_all=true did not emit --cpu-moe.'
 Assert-NotContains -Haystack $moeAllCommand -Needle '--n-cpu-moe' -Label 'moe_offload.cpu_all=true emitted partial MoE placement.'
 
-# 6. Runtime capability gate. The parsing and comparison halves are pure, so they
+# 6. Production and qualification use the same llama-server argument builder.
+#    This pins the Gemma shape that matters next: gpu_layers=99, cpu_layers=4,
+#    KV q4/q4, 128k context, no Qwen tensor split.
+$gemmaProduction = ($template | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
+$gemmaProduction.id = 'local'
+$gemmaProduction.artifact.path = 'C:\IA\models\Gemma-4-26B-A4B-QAT-UD-Q4_K_XL.gguf'
+$gemmaProduction.context_tokens = 131072
+$gemmaProduction.cache_type_k = 'q4_0'
+$gemmaProduction.cache_type_v = 'q4_0'
+$gemmaProduction.gpu_layers = 99
+$gemmaProduction.batch_size = 2048
+$gemmaProduction.ubatch_size = 288
+$gemmaProduction.parallel = 1
+$gemmaProduction | Add-Member -NotePropertyName 'context_shift' -NotePropertyValue $false
+$gemmaProduction | Add-Member -NotePropertyName 'threads' -NotePropertyValue 8
+$gemmaProduction | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_layers = 4 })
+
+$gemmaQualification = New-V2BenchmarkModelSpec -ModelPath $gemmaProduction.artifact.path -Alias 'local' `
+    -ContextTokens 131072 -CacheTypeK q4_0 -CacheTypeV q4_0 -UBatchSize 288 -BatchSize 2048 `
+    -NGpuLayers 99 -Threads 8 -Parallel 1 -NCpuMoe 4
+$productionArgs = New-V2LlamaServerArguments -Model $gemmaProduction -Port '19399' -Alias 'local' -IncludeJinja -IncludeWarmup -IncludeMetrics -IncludeNoWebui
+$qualificationArgs = New-V2LlamaServerArguments -Model $gemmaQualification -Port '19399' -Alias 'local' -IncludeJinja -IncludeWarmup -IncludeMetrics -IncludeNoWebui
+Assert-CommandEquals -Expected ($productionArgs -join ' ') -Actual ($qualificationArgs -join ' ') `
+    -Label 'Gemma production and qualification arguments drifted.'
+Assert-Contains -Haystack ($qualificationArgs -join ' ') -Needle '--n-cpu-moe 4' `
+    -Label 'Gemma qualification arguments lost the MoE placement.'
+Assert-NotContains -Haystack ($qualificationArgs -join ' ') -Needle 'blk\.(6[0-3])\.ffn_.*=CPU' `
+    -Label 'Generic Gemma qualification inherited the Qwen tensor split.'
+
+$genericBenchmark = New-V2BenchmarkModelSpec -ModelPath $gemmaProduction.artifact.path -Alias 'local' `
+    -ContextTokens 32768 -CacheTypeK q4_0 -CacheTypeV q4_0 -UBatchSize 288 -BatchSize 2048 `
+    -NGpuLayers 99 -Threads 8 -Parallel 1
+$genericArgs = New-V2LlamaServerArguments -Model $genericBenchmark -Port '19399' -Alias 'local' -IncludeNoWebui
+Assert-NotContains -Haystack ($genericArgs -join ' ') -Needle '-ot' `
+    -Label 'Generic benchmark model emitted a tensor override by default.'
+
+# 7. Runtime capability gate. The parsing and comparison halves are pure, so they
 #    are asserted here without invoking a Windows binary; only Get-V2RuntimeHelpText
 #    needs the real executable and it is exercised during -Apply generation.
 $helpFixture = @'
@@ -215,7 +254,30 @@ if (-not $moeRejected) {
     throw 'A runtime whose help omits --n-cpu-moe accepted a MoE partial-offload profile.'
 }
 
-# 7. The first buun-llama-cpp qualification profile. Every setting whose fork
+$benchHelpWithoutCpuAll = Get-V2SupportedFlags -HelpText @'
+usage: llama-bench [options]
+  -m FNAME
+  -ncmoe, --n-cpu-moe N
+'@
+$benchPartial = New-V2LlamaBenchArguments -Model $gemmaQualification -TestKind pp -Tokens 512 -Repetitions 1 -SupportedFlags $benchHelpWithoutCpuAll
+if ($benchPartial -notcontains '--n-cpu-moe' -or $benchPartial -notcontains '4') {
+    throw 'llama-bench partial MoE placement did not emit --n-cpu-moe 4.'
+}
+$gemmaAllBench = New-V2BenchmarkModelSpec -ModelPath $gemmaProduction.artifact.path -Alias 'local' `
+    -ContextTokens 32768 -CacheTypeK q4_0 -CacheTypeV q4_0 -UBatchSize 288 -BatchSize 2048 `
+    -NGpuLayers 99 -Threads 8 -Parallel 1 -CpuMoe
+$benchCpuAllRejected = $false
+try {
+    [void](New-V2LlamaBenchArguments -Model $gemmaAllBench -TestKind pp -Tokens 512 -Repetitions 1 -SupportedFlags $benchHelpWithoutCpuAll)
+}
+catch {
+    $benchCpuAllRejected = $_.Exception.Message -match 'does not support --cpu-moe'
+}
+if (-not $benchCpuAllRejected) {
+    throw 'llama-bench --cpu-moe was emitted or accepted when its help did not advertise it.'
+}
+
+# 8. The first buun-llama-cpp qualification profile. Every setting whose fork
 #    default differs from the upstream baseline has to appear on the command
 #    line, because on this runtime silence is not neutrality: omitting
 #    --cache-ram leaves an 8 GiB host prompt cache enabled, and omitting
@@ -244,14 +306,14 @@ Assert-Contains -Haystack $forkCommand -Needle '--ctx-size 262144' -Label 'The b
 Assert-NotContains -Haystack $forkCommand -Needle ' --context-shift ' -Label 'The buun profile enables context shift on a recurrent model.'
 Assert-NotContains -Haystack $forkCommand -Needle '--cache-idle-slots --' -Label 'The buun profile emitted the positive idle-slot flag.'
 
-# 8. The prompt cache stays off, and off is stated rather than assumed. A run
+# 9. The prompt cache stays off, and off is stated rather than assumed. A run
 #    that silently allocated 8 GiB of host cache would also be charged for it by
 #    admission only if the manifest declared it, so the two have to agree.
 if ($forkCommand -notmatch '--cache-ram\s+0(\s|$)') {
     throw "The buun profile does not disable the host prompt cache explicitly: $forkCommand"
 }
 
-# 9. cache_idle_slots is three-valued. Absent must emit nothing, so a model
+# 10. cache_idle_slots is three-valued. Absent must emit nothing, so a model
 #    generated before the field existed keeps its historical command line; only
 #    a declared value produces a flag, and a declared false produces the negative
 #    form rather than silence.
@@ -265,7 +327,7 @@ $idleEnabledCommand = New-V2LlamaServerCommand -Runtime $runtimesById[$idleEnabl
 Assert-Contains -Haystack $idleEnabledCommand -Needle '--cache-idle-slots' -Label 'A declared cache_idle_slots=true emitted no flag.'
 Assert-NotContains -Haystack $idleEnabledCommand -Needle '--no-cache-idle-slots' -Label 'A declared cache_idle_slots=true emitted the negative flag.'
 
-# 10. The capability gate has to cover the negative flag too. A runtime whose
+# 11. The capability gate has to cover the negative flag too. A runtime whose
 #    help does not list --no-cache-idle-slots cannot be told to leave the cache
 #    alone, and generation must fail rather than produce a command that silently
 #    keeps the fork default.
@@ -299,7 +361,7 @@ if (-not $Quiet) {
     [pscustomobject]@{
         manifest              = (Resolve-Path -LiteralPath $ManifestPath).Path
         byte_stable_models    = $untunedCount
-        generation_tests      = 12
+        generation_tests      = 17
         valid                 = $true
     } | ConvertTo-Json -Depth 3
 }

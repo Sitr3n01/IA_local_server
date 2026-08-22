@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Return only JSON. No prose, no fence."
+      },
+      {
+        "role": "user",
+        "content": "Reply with a single JSON object and nothing else, with exactly the keys \"language\", \"lines\", \"has_tests\", \"entrypoints\". For a Go package with 412 lines, a _test.go file, and the exported functions NewLRU, Get, Put and Len, fill it in. \"lines\" must be a number, \"has_tests\" a boolean, \"entrypoints\" an array of strings."
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"language\\\": \\\"Go\\\",\\n  \\\"lines\\\": 412,\\n  \\\"has_tests\\\": true,\\n  \\\"entrypoints\\\": [\\n    \\\"NewLRU\\\",\\n    \\\"Get\\\",\\n    \\\"Put\\\",\\n    \\\"Len\\\"\\n  ]\\n}\"}}],\"created\":1787408613,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":66,\"prompt_tokens\":116,\"total_tokens\":182,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-w6qFMEfY0ZUfSI38aid9HvrQyGmJLBXJ\",\"timings\":{\"cache_n\":0,\"prompt_n\":116,\"prompt_ms\":389.999,\"prompt_per_token_ms\":3.3620603448275865,\"prompt_per_second\":297.4366600940002,\"predicted_n\":66,\"predicted_ms\":1136.655,\"predicted_per_token_ms\":17.487,\"predicted_per_second\":57.18533767941899}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"language\": \"Go\",\n  \"lines\": 412,\n  \"has_tests\": true,\n  \"entrypoints\": [\n    \"NewLRU\",\n    \"Get\",\n    \"Put\",\n    \"Len\"\n  ]\n}"
+        }
+      }
+    ],
+    "created": 1787408613,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 66,
+      "prompt_tokens": 116,
+      "total_tokens": 182,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-w6qFMEfY0ZUfSI38aid9HvrQyGmJLBXJ",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 116,
+      "prompt_ms": 389.999,
+      "prompt_per_token_ms": 3.3620603448275865,
+      "prompt_per_second": 297.4366600940002,
+      "predicted_n": 66,
+      "predicted_ms": 1136.655,
+      "predicted_per_token_ms": 17.487,
+      "predicted_per_second": 57.18533767941899
+    }
+  }
+}

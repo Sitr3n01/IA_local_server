@@ -1,0 +1,91 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Use tools when needed, then answer from tool results."
+      },
+      {
+        "role": "user",
+        "content": "Read status.json, then tell me the status and ticket."
+      }
+    ],
+    "max_tokens": 512,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false,
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "read_file",
+          "description": "Read a file from the repository.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      }
+    ],
+    "tool_choice": "required"
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"tool_calls\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"\",\"reasoning_content\":\"The user wants to know the \\\"status\\\" and \\\"ticket\\\" from a file named `status.json`.\\nI need to:\\n1.  Read the `status.json` file.\\n2.  Parse the JSON content.\\n3.  Extract the `status` and `ticket` fields.\\n4.  Present the information to the user.\\n\\nFirst, I'll use `read_file` to get the content of `status.json`.\",\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"read_file\",\"arguments\":\"{\\\"path\\\":\\\"status.json\\\"}\"},\"id\":\"nvvRhccWCkyecaL1DORAiCciLpuj2ZKv\"}]}}],\"created\":1787379855,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":118,\"prompt_tokens\":84,\"total_tokens\":202,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-n1fTjOO7sDMnZ1ItJ7ADESRfXu3REeKU\",\"timings\":{\"cache_n\":0,\"prompt_n\":84,\"prompt_ms\":275.405,\"prompt_per_token_ms\":3.278630952380952,\"prompt_per_second\":305.0053557488063,\"predicted_n\":118,\"predicted_ms\":2196.99,\"predicted_per_token_ms\":18.777692307692305,\"predicted_per_second\":53.25468026709271}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "tool_calls",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "The user wants to know the \"status\" and \"ticket\" from a file named `status.json`.\nI need to:\n1.  Read the `status.json` file.\n2.  Parse the JSON content.\n3.  Extract the `status` and `ticket` fields.\n4.  Present the information to the user.\n\nFirst, I'll use `read_file` to get the content of `status.json`.",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "read_file",
+                "arguments": "{\"path\":\"status.json\"}"
+              },
+              "id": "nvvRhccWCkyecaL1DORAiCciLpuj2ZKv"
+            }
+          ]
+        }
+      }
+    ],
+    "created": 1787379855,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 118,
+      "prompt_tokens": 84,
+      "total_tokens": 202,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-n1fTjOO7sDMnZ1ItJ7ADESRfXu3REeKU",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 84,
+      "prompt_ms": 275.405,
+      "prompt_per_token_ms": 3.278630952380952,
+      "prompt_per_second": 305.0053557488063,
+      "predicted_n": 118,
+      "predicted_ms": 2196.99,
+      "predicted_per_token_ms": 18.777692307692305,
+      "predicted_per_second": 53.25468026709271
+    }
+  }
+}

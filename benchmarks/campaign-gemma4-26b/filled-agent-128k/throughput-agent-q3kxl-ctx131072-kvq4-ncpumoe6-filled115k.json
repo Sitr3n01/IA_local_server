@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "scenario": "throughput-sweep",
+  "label": "agent-q3kxl-ctx131072-kvq4-ncpumoe6-filled115k",
+  "started_utc": "2026-08-22T04:46:17.0139898Z",
+  "configuration": {
+    "model_path": "C:\\IA\\models\\Gemma-4-26B-A4B-it-GGUF\\gemma-4-26B-A4B-it-UD-Q3_K_XL.gguf",
+    "model_bytes": 12907280096,
+    "runtime_root": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+    "context_tokens": 131072,
+    "cache_type_k": "q4_0",
+    "cache_type_v": "q4_0",
+    "tensor_override": "",
+    "ubatch_size": 288,
+    "batch_size": 2048,
+    "gpu_layers": 99,
+    "threads": 8,
+    "repetitions": 2,
+    "device_vram_mib": 16304,
+    "cpu_moe": false,
+    "n_cpu_moe": 6
+  },
+  "results": [
+    {
+      "tag": "agent-q3kxl-ctx131072-kvq4-ncpumoe6-filled115k-tg128-d115000",
+      "kind": "tg",
+      "n": 128,
+      "depth": 115000,
+      "tokens_per_second": 34.39,
+      "stddev": 0.48,
+      "timed_out": false,
+      "wall_s": 201.4,
+      "peak": {
+        "vram_dedicated_mib": 15731.6,
+        "vram_shared_mib": 549.7,
+        "process_ws_gib": 13.025,
+        "physical_used_gib": 28.052
+      },
+      "failure": null
+    }
+  ]
+}

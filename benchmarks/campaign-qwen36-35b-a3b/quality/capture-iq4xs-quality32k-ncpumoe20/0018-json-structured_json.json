@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "Return only JSON. No prose, no fence."
+      },
+      {
+        "role": "user",
+        "content": "Reply with a single JSON object and nothing else, with exactly the keys \"language\", \"lines\", \"has_tests\", \"entrypoints\". For a Go package with 412 lines, a _test.go file, and the exported functions NewLRU, Get, Put and Len, fill it in. \"lines\" must be a number, \"has_tests\" a boolean, \"entrypoints\" an array of strings."
+      }
+    ],
+    "max_tokens": 4096,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260821,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\\"language\\\":\\\"go\\\",\\\"lines\\\":412,\\\"has_tests\\\":true,\\\"entrypoints\\\":[\\\"NewLRU\\\",\\\"Get\\\",\\\"Put\\\",\\\"Len\\\"]}\",\"reasoning_content\":\"Here's a thinking process:\\n\\n1.  **Analyze User Input:**\\n   - **Output Format:** Single JSON object, nothing else. No prose, no markdown fences.\\n   - **Required Keys:** \\\"language\\\", \\\"lines\\\", \\\"has_tests\\\", \\\"entrypoints\\\"\\n   - **Input Context:** Go package, 412 lines, has a `_test.go` file, exported functions: `NewLRU`, `Get`, `Put`, `Len`\\n   - **Constraints on Values:**\\n     - \\\"language\\\": string (should be \\\"go\\\" or \\\"Go\\\")\\n     - \\\"lines\\\": number (must be 412)\\n     - \\\"has_tests\\\": boolean (must be true, since there's a `_test.go` file)\\n     - \\\"entrypoints\\\": array of strings (must contain the exported functions: \\\"NewLRU\\\", \\\"Get\\\", \\\"Put\\\", \\\"Len\\\")\\n\\n2.  **Map to JSON Structure:**\\n   ```json\\n   {\\n     \\\"language\\\": \\\"go\\\",\\n     \\\"lines\\\": 412,\\n     \\\"has_tests\\\": true,\\n     \\\"entrypoints\\\": [\\\"NewLRU\\\", \\\"Get\\\", \\\"Put\\\", \\\"Len\\\"]\\n   }\\n   ```\\n\\n3.  **Check Constraints:**\\n   - Single JSON object? Yes.\\n   - Nothing else? Yes.\\n   - Exactly the keys \\\"language\\\", \\\"lines\\\", \\\"has_tests\\\", \\\"entrypoints\\\"? Yes.\\n   - \\\"lines\\\" is a number? Yes (412).\\n   - \\\"has_tests\\\" is a boolean? Yes (true).\\n   - \\\"entrypoints\\\" is an array of strings? Yes.\\n   - Matches context? Yes.\\n\\n4.  **Final Output Generation:** (Ensure strict JSON format, no markdown, no extra text)\\n   `{\\\"language\\\":\\\"go\\\",\\\"lines\\\":412,\\\"has_tests\\\":true,\\\"entrypoints\\\":[\\\"NewLRU\\\",\\\"Get\\\",\\\"Put\\\",\\\"Len\\\"]}`\\n   I will format it compactly or with standard spacing, but the prompt says \\\"Return only JSON. No prose, no fence.\\\" I'll output raw JSON.\\n\\n   Double-checking: The prompt says \\\"Reply with a single JSON object and nothing else, with exactly the keys...\\\". I will produce exactly that.\\n   All constraints met. Proceed. \\n   Output matches the required JSON.✅\\n   Note: I'll make sure there's absolutely no markdown formatting like ```json ... ``` as per \\\"no fence\\\".\\n   Ready. \\n   Output: `{\\\"language\\\": \\\"go\\\", \\\"lines\\\": 412, \\\"has_tests\\\": true, \\\"entrypoints\\\": [\\\"NewLRU\\\", \\\"Get\\\", \\\"Put\\\", \\\"Len\\\"]}` (or compact, doesn't matter, but I'll stick to standard JSON)\\n   I will output exactly the JSON string.✅\\n   Proceeds. \\n   [Self-Correction/Verification during thought]\\n   - Check key names: \\\"language\\\", \\\"lines\\\", \\\"has_tests\\\", \\\"entrypoints\\\" -> exact match.\\n   - Check types: string, number, boolean, array of strings -> exact match.\\n   - Check values: \\\"go\\\", 412, true, [\\\"NewLRU\\\", \\\"Get\\\", \\\"Put\\\", \\\"Len\\\"] -> exact match.\\n   - Format: raw JSON, no fences.\\n   All good.✅\\n   Output matches response. \\n   Generating. \\n   `[Output Generation]` -> `{\\\"language\\\": \\\"go\\\", \\\"lines\\\": 412, \\\"has_tests\\\": true, \\\"entrypoints\\\": [\\\"NewLRU\\\", \\\"Get\\\", \\\"Put\\\", \\\"Len\\\"]}` (or similar valid JSON)\\n   I will produce it now. \\n   [Done] \\n   *Self-Correction/Refinement during thought*: The prompt says \\\"no fence\\\", so I must not use ```json. I will just output the raw JSON text.\\n   Final string: `{\\\"language\\\":\\\"go\\\",\\\"lines\\\":412,\\\"has_tests\\\":true,\\\"entrypoints\\\":[\\\"NewLRU\\\",\\\"Get\\\",\\\"Put\\\",\\\"Len\\\"]}`\\n   Matches all constraints.✅\\n   Proceeds. \\n   [Output Generation] (matches the final string)\\n   *(Done.)*\\n\"}}],\"created\":1787424316,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":926,\"prompt_tokens\":112,\"total_tokens\":1038,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-3ZkDLMDmhZD489J7Wu8o28H4s0Z226NI\",\"timings\":{\"cache_n\":0,\"prompt_n\":112,\"prompt_ms\":939.713,\"prompt_per_token_ms\":8.390294642857143,\"prompt_per_second\":119.18532573243108,\"predicted_n\":926,\"predicted_ms\":24769.099,\"predicted_per_token_ms\":26.777404324324323,\"predicted_per_second\":37.34491916722526}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\"language\":\"go\",\"lines\":412,\"has_tests\":true,\"entrypoints\":[\"NewLRU\",\"Get\",\"Put\",\"Len\"]}",
+          "reasoning_content": "Here's a thinking process:\n\n1.  **Analyze User Input:**\n   - **Output Format:** Single JSON object, nothing else. No prose, no markdown fences.\n   - **Required Keys:** \"language\", \"lines\", \"has_tests\", \"entrypoints\"\n   - **Input Context:** Go package, 412 lines, has a `_test.go` file, exported functions: `NewLRU`, `Get`, `Put`, `Len`\n   - **Constraints on Values:**\n     - \"language\": string (should be \"go\" or \"Go\")\n     - \"lines\": number (must be 412)\n     - \"has_tests\": boolean (must be true, since there's a `_test.go` file)\n     - \"entrypoints\": array of strings (must contain the exported functions: \"NewLRU\", \"Get\", \"Put\", \"Len\")\n\n2.  **Map to JSON Structure:**\n   ```json\n   {\n     \"language\": \"go\",\n     \"lines\": 412,\n     \"has_tests\": true,\n     \"entrypoints\": [\"NewLRU\", \"Get\", \"Put\", \"Len\"]\n   }\n   ```\n\n3.  **Check Constraints:**\n   - Single JSON object? Yes.\n   - Nothing else? Yes.\n   - Exactly the keys \"language\", \"lines\", \"has_tests\", \"entrypoints\"? Yes.\n   - \"lines\" is a number? Yes (412).\n   - \"has_tests\" is a boolean? Yes (true).\n   - \"entrypoints\" is an array of strings? Yes.\n   - Matches context? Yes.\n\n4.  **Final Output Generation:** (Ensure strict JSON format, no markdown, no extra text)\n   `{\"language\":\"go\",\"lines\":412,\"has_tests\":true,\"entrypoints\":[\"NewLRU\",\"Get\",\"Put\",\"Len\"]}`\n   I will format it compactly or with standard spacing, but the prompt says \"Return only JSON. No prose, no fence.\" I'll output raw JSON.\n\n   Double-checking: The prompt says \"Reply with a single JSON object and nothing else, with exactly the keys...\". I will produce exactly that.\n   All constraints met. Proceed. \n   Output matches the required JSON.✅\n   Note: I'll make sure there's absolutely no markdown formatting like ```json ... ``` as per \"no fence\".\n   Ready. \n   Output: `{\"language\": \"go\", \"lines\": 412, \"has_tests\": true, \"entrypoints\": [\"NewLRU\", \"Get\", \"Put\", \"Len\"]}` (or compact, doesn't matter, but I'll stick to standard JSON)\n   I will output exactly the JSON string.✅\n   Proceeds. \n   [Self-Correction/Verification during thought]\n   - Check key names: \"language\", \"lines\", \"has_tests\", \"entrypoints\" -> exact match.\n   - Check types: string, number, boolean, array of strings -> exact match.\n   - Check values: \"go\", 412, true, [\"NewLRU\", \"Get\", \"Put\", \"Len\"] -> exact match.\n   - Format: raw JSON, no fences.\n   All good.✅\n   Output matches response. \n   Generating. \n   `[Output Generation]` -> `{\"language\": \"go\", \"lines\": 412, \"has_tests\": true, \"entrypoints\": [\"NewLRU\", \"Get\", \"Put\", \"Len\"]}` (or similar valid JSON)\n   I will produce it now. \n   [Done] \n   *Self-Correction/Refinement during thought*: The prompt says \"no fence\", so I must not use ```json. I will just output the raw JSON text.\n   Final string: `{\"language\":\"go\",\"lines\":412,\"has_tests\":true,\"entrypoints\":[\"NewLRU\",\"Get\",\"Put\",\"Len\"]}`\n   Matches all constraints.✅\n   Proceeds. \n   [Output Generation] (matches the final string)\n   *(Done.)*\n"
+        }
+      }
+    ],
+    "created": 1787424316,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 926,
+      "prompt_tokens": 112,
+      "total_tokens": 1038,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-3ZkDLMDmhZD489J7Wu8o28H4s0Z226NI",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 112,
+      "prompt_ms": 939.713,
+      "prompt_per_token_ms": 8.390294642857143,
+      "prompt_per_second": 119.18532573243108,
+      "predicted_n": 926,
+      "predicted_ms": 24769.099,
+      "predicted_per_token_ms": 26.777404324324323,
+      "predicted_per_second": 37.34491916722526
+    }
+  }
+}

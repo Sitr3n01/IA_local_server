@@ -1,8 +1,10 @@
 package edge
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -45,14 +47,10 @@ func TestRepositoryManifestExposesCanaryModels(t *testing.T) {
 	// Extending it is a deliberate act, which is why adding the workstation
 	// profiles required editing this line.
 	//
-	// The five qwen38-27b-ws-* profiles were retired in favour of three named
-	// classes - Deep, Agent, Huge - and retired models carry no deployments, so
-	// they drop out of this list while remaining in the manifest as evidence.
+	// Retired or manually removed models must not leak into this list. Historical
+	// benchmark references can remain elsewhere, but the runtime allowlist is the
+	// current inventory only.
 	want := []string{
-		"local-coding",
-		"local-fast",
-		"qwen35-9b-q4km",
-		"qwen35-9b-ud-q4xl",
 		"gemma4-12b-qat-q4_0",
 		"gemma4-12b-qat-ud-q4xl",
 		"qwen38-27b-deep-32k",
@@ -134,6 +132,105 @@ models:
 	}
 	if fast.OffloadsTensors || fast.CacheRAMMiB != nil {
 		t.Errorf("unexpected host-memory flags on %+v", fast)
+	}
+}
+
+func TestLoadModelsDerivesOffloadFromTypedMoEPlacement(t *testing.T) {
+	for _, testCase := range []struct {
+		name       string
+		placement  string
+		offloads   bool
+		wantStatus string
+	}{
+		{
+			name:       "absent",
+			placement:  "",
+			offloads:   false,
+			wantStatus: "",
+		},
+		{
+			name: "cpu layers zero",
+			placement: `    moe_offload:
+      cpu_layers: 0
+`,
+			offloads:   false,
+			wantStatus: `"moe_offload":{"cpu_layers":0}`,
+		},
+		{
+			name: "cpu layers one",
+			placement: `    moe_offload:
+      cpu_layers: 1
+`,
+			offloads:   true,
+			wantStatus: `"moe_offload":{"cpu_layers":1}`,
+		},
+		{
+			name: "cpu layers four",
+			placement: `    moe_offload:
+      cpu_layers: 4
+`,
+			offloads:   true,
+			wantStatus: `"moe_offload":{"cpu_layers":4}`,
+		},
+		{
+			name: "cpu all",
+			placement: `    moe_offload:
+      cpu_all: true
+`,
+			offloads:   true,
+			wantStatus: `"moe_offload":{"cpu_all":true}`,
+		},
+		{
+			name: "tensor override only",
+			placement: `    tensor_overrides:
+      - pattern: "blk\\.(6[0-3])\\.ffn_.*"
+        buffer: CPU
+`,
+			offloads:   true,
+			wantStatus: "",
+		},
+		{
+			name: "tensor override plus cpu layers",
+			placement: `    moe_offload:
+      cpu_layers: 4
+    tensor_overrides:
+      - pattern: "blk\\.(6[0-3])\\.ffn_.*"
+        buffer: CPU
+`,
+			offloads:   true,
+			wantStatus: `"moe_offload":{"cpu_layers":4}`,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			directory := t.TempDir()
+			path := filepath.Join(directory, "models.yaml")
+			data := []byte(`provider:
+  public_model: local-coding
+models:
+  - id: local-coding
+    state: candidate
+    deployments: [canary]
+` + testCase.placement)
+			if err := os.WriteFile(path, data, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			models, _, err := LoadModels(path, "canary")
+			if err != nil {
+				t.Fatalf("LoadModels: %v", err)
+			}
+			if got := models[0].OffloadsTensors; got != testCase.offloads {
+				t.Fatalf("OffloadsTensors = %v, want %v", got, testCase.offloads)
+			}
+			if testCase.wantStatus != "" {
+				encoded, err := json.Marshal(models[0].Profile)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !strings.Contains(string(encoded), testCase.wantStatus) {
+					t.Fatalf("profile summary %s does not contain %s", encoded, testCase.wantStatus)
+				}
+			}
+		})
 	}
 }
 

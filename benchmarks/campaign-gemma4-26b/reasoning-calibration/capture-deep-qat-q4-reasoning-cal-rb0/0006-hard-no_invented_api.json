@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "Here is the complete surface of a class you must use. It has no other members.\n\n```csharp\npublic sealed class FrameBuffer\n{\n    public int Count { get; }\n    public byte Get(int index);\n    public void Append(byte value);\n}\n```\n\nWrite `public static class FrameUtil` with `public static int CountZeroes(FrameBuffer buffer)` returning how many bytes equal zero. Use only the members shown above — FrameBuffer has no Clear, no ToArray, no indexer, no enumerator, and no Length. Return only FrameUtil."
+      }
+    ],
+    "max_tokens": 16384,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```csharp\\npublic static class FrameUtil\\n{\\n    public static int CountZeroes(FrameBuffer buffer)\\n    {\\n        int count = 0;\\n        for (int i = 0; i < buffer.Count; i++)\\n        {\\n            if (buffer.Get(i) == 0)\\n            {\\n                count++;\\n            }\\n        }\\n        return count;\\n    }\\n}\\n```\"}}],\"created\":1787408599,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":99,\"prompt_tokens\":185,\"total_tokens\":284,\"prompt_tokens_details\":{\"cached_tokens\":52}},\"id\":\"chatcmpl-eRo1c4XMDUJcfQepOvZGzmOxEDufsn24\",\"timings\":{\"cache_n\":52,\"prompt_n\":133,\"prompt_ms\":356.525,\"prompt_per_token_ms\":2.680639097744361,\"prompt_per_second\":373.04536848748336,\"predicted_n\":99,\"predicted_ms\":1695.711,\"predicted_per_token_ms\":17.303173469387755,\"predicted_per_second\":57.79286682695341}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```csharp\npublic static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int count = 0;\n        for (int i = 0; i < buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                count++;\n            }\n        }\n        return count;\n    }\n}\n```"
+        }
+      }
+    ],
+    "created": 1787408599,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 99,
+      "prompt_tokens": 185,
+      "total_tokens": 284,
+      "prompt_tokens_details": {
+        "cached_tokens": 52
+      }
+    },
+    "id": "chatcmpl-eRo1c4XMDUJcfQepOvZGzmOxEDufsn24",
+    "timings": {
+      "cache_n": 52,
+      "prompt_n": 133,
+      "prompt_ms": 356.525,
+      "prompt_per_token_ms": 2.680639097744361,
+      "prompt_per_second": 373.04536848748336,
+      "predicted_n": 99,
+      "predicted_ms": 1695.711,
+      "predicted_per_token_ms": 17.303173469387755,
+      "predicted_per_second": 57.79286682695341
+    }
+  }
+}

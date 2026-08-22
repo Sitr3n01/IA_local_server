@@ -1,10 +1,13 @@
 [CmdletBinding()]
 param(
-    [string]$RepoRoot = (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+    [string]$RepoRoot
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
+    $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+}
 
 function Assert-True {
     param(
@@ -66,6 +69,11 @@ $blockedCodexValuePrefixes = @(
 	'--remote=', '--remote-auth-token-env=', '--search=', '--enable='
 )
 
+$manifestPath = Join-Path $RepoRoot 'config\models.yaml'
+$manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$publicModel = [string]$manifest.provider.public_model
+Assert-True (-not [string]::IsNullOrWhiteSpace($publicModel)) 'provider.public_model is required.'
+
 $profiles = @(
     [pscustomobject]@{
         Provider = 'cia-local'
@@ -99,7 +107,7 @@ foreach ($profile in $profiles) {
     $mcpHeaders = @([regex]::Matches($codex, '(?m)^\[mcp_servers\.([^\.\]]+)\]\r?$'))
     Assert-True ($providerHeaders.Count -eq 1 -and $providerHeaders[0].Groups[1].Value -eq $profile.Provider) "Codex profile has an unexpected provider table: $($profile.Codex)"
     Assert-True ($mcpHeaders.Count -eq 1 -and $mcpHeaders[0].Groups[1].Value -eq $profile.Provider) "Codex profile has an unexpected MCP table: $($profile.Codex)"
-    Assert-True ($codex -match '(?m)^model\s*=\s*"local-coding"\s*$') "Codex model is not pinned: $($profile.Codex)"
+    Assert-True ($codex -match "(?m)^model\s*=\s*`"$([regex]::Escape($publicModel))`"\s*$") "Codex model is not pinned to provider.public_model '$publicModel': $($profile.Codex)"
     Assert-True ($codex -match "(?m)^model_provider\s*=\s*`"$([regex]::Escape($profile.Provider))`"\s*$") "Codex provider is not pinned: $($profile.Codex)"
     Assert-True ($codex -match "base_url\s*=\s*`"http://127\.0\.0\.1:$($profile.DataPort)/v1`"") "Codex data URL mismatch: $($profile.Codex)"
     Assert-True ($codex -match '(?m)^wire_api\s*=\s*"responses"\s*$') "Codex wire API mismatch: $($profile.Codex)"
@@ -116,7 +124,7 @@ foreach ($profile in $profiles) {
     $openCode = Get-Content -LiteralPath $profile.OpenCode -Raw -Encoding UTF8 | ConvertFrom-Json
     $providerNames = @($openCode.provider.psobject.Properties.Name)
     $mcpNames = @($openCode.mcp.psobject.Properties.Name)
-    Assert-True ($openCode.model -eq "$($profile.Provider)/local-coding") "OpenCode model mismatch: $($profile.OpenCode)"
+    Assert-True ($openCode.model -eq "$($profile.Provider)/$publicModel") "OpenCode model mismatch: $($profile.OpenCode)"
     Assert-True (@($openCode.enabled_providers).Count -eq 1 -and $openCode.enabled_providers[0] -eq $profile.Provider) "OpenCode provider allowlist mismatch: $($profile.OpenCode)"
     Assert-True ($openCode.share -eq 'disabled') "OpenCode sharing must be disabled in the local launcher config: $($profile.OpenCode)"
     Assert-True ($providerNames.Count -eq 1 -and $providerNames[0] -eq $profile.Provider) "OpenCode has an unexpected provider: $($profile.OpenCode)"
@@ -182,8 +190,8 @@ foreach ($profile in $profiles) {
 
 $catalogPath = Join-Path $RepoRoot 'integrations\codex\codex-model-catalog.json'
 $catalog = Get-Content -LiteralPath $catalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
-$manifest = Get-Content -LiteralPath (Join-Path $RepoRoot 'config\models.yaml') -Raw -Encoding UTF8 | ConvertFrom-Json
 $expectedModelIds = @($manifest.models | Where-Object { $_.state -ne 'retired' -and @($_.deployments) -contains 'canary' } | ForEach-Object { [string]$_.id })
+Assert-True ($expectedModelIds -contains $publicModel) "provider.public_model '$publicModel' is not deployed to canary."
 $catalogModelIds = @($catalog.models | ForEach-Object { [string]$_.slug })
 Assert-True ($catalogModelIds.Count -eq $expectedModelIds.Count) 'Codex model catalog count must match the canary manifest.'
 foreach ($modelId in $expectedModelIds) {
@@ -210,6 +218,6 @@ foreach ($openCodePath in @(
 [pscustomobject]@{
     status = 'ok'
     profiles = @($profiles.Provider)
-    public_model = 'local-coding'
+    public_model = $publicModel
     mcp_tools = $readOnlyTools
 } | ConvertTo-Json -Depth 4

@@ -1,0 +1,45 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "context-footprint-at-load",
+    "started_utc":  "2026-08-22T18:55:22.9413084Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.6-35B-A3B-GGUF\\Qwen3.6-35B-A3B-UD-Q3_K_XL.gguf",
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  32768,
+                          "cache_type_k":  "q8_0",
+                          "cache_type_v":  "q8_0",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "parallel":  1,
+                          "tensor_override":  "",
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  6,
+                          "device_vram_mib":  16304
+                      },
+    "load_seconds":  10.6,
+    "idle":  {
+                 "vram_dedicated_mib":  3041.7,
+                 "vram_shared_mib":  374,
+                 "commit_gib":  24.247,
+                 "physical_used_gib":  10.319
+             },
+    "peak":  {
+                 "vram_dedicated_mib":  15573,
+                 "vram_shared_mib":  2386.1,
+                 "process_vram_mib":  12518.8,
+                 "process_ws_gib":  14.88,
+                 "process_private_gib":  13.947,
+                 "commit_gib":  39.387,
+                 "physical_used_gib":  26.267
+             },
+    "marginal_vram_mib":  12531.3,
+    "gpu_pressure":  {
+                         "state":  "pressured",
+                         "occupancy":  0.9552,
+                         "shared_mib":  2386.1,
+                         "message":  "GPU memory pressure detected.\r\n\r\n  Dedicated VRAM : 15.573 / 16.304 MiB (95,5%)\r\n  Shared GPU     : 2.386 MiB\r\n\r\nDriver-level VRAM paging is likely. Prompt processing degrades\r\nwithout any error being raised. Consider a smaller context\r\nprofile or a wider CPU tensor split."
+                     },
+    "failure":  null
+}

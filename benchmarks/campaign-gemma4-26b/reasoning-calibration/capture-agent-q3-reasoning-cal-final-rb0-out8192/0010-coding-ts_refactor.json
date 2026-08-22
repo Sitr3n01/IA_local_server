@@ -1,0 +1,59 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "Refactor this module to use async/await and an iterative loop instead of the recursive `.then()` chain. Every observable behaviour must be preserved exactly, including both error messages and the 50-entry cap. Keep the exported names. Return the whole module.\n\n```typescript\nexport type Fetcher = (id: string) => Promise<{ id: string; parent: string | null }>;\n\n// Walks from a node to the root and returns the chain, root last.\n// Rewrite this to use async/await and a plain loop. Behaviour must not change,\n// including that a cycle throws Error(\"cycle detected\") and that the chain is\n// capped at 50 entries with Error(\"chain too long\").\nexport function ancestry(fetch: Fetcher, start: string): Promise<string[]> {\n  const seen = new Set<string>();\n  const chain: string[] = [];\n  function step(id: string): Promise<string[]> {\n    if (seen.has(id)) return Promise.reject(new Error(\"cycle detected\"));\n    seen.add(id);\n    chain.push(id);\n    if (chain.length > 50) return Promise.reject(new Error(\"chain too long\"));\n    return fetch(id).then((node) => {\n      if (node.parent === null) return chain;\n      return step(node.parent);\n    });\n  }\n  return step(start);\n}\n```"
+      }
+    ],
+    "max_tokens": 8192,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260822,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```typescript\\nexport type Fetcher = (id: string) => Promise<{ id: string; parent: string | null }>;\\n\\n// Walks from a node to the root and returns the chain, root last.\\n// Rewrite this to use async/await and a plain loop. Behaviour must not change,\\n// including that a cycle throws Error(\\\"cycle detected\\\") and that the chain is\\n// capped at 50 entries with Error(\\\"chain too long\\\").\\nexport async function ancestry(fetch: Fetcher, start: string): Promise<string[]> {\\n  const seen = new Set<string>();\\n  const chain: string[] = [];\\n  let currentId: string | null = start;\\n\\n  while (currentId !== null) {\\n    if (seen.has(currentId)) {\\n      throw new Error(\\\"cycle detected\\\");\\n    }\\n    seen.add(currentId);\\n    chain.push(currentId);\\n\\n    if (chain.length > 50) {\\n      throw new Error(\\\"chain too long\\\");\\n    }\\n\\n    const node = await fetch(currentId);\\n    currentId = node.parent;\\n  }\\n\\n  return chain;\\n}\\n```\"}}],\"created\":1787408491,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":259,\"prompt_tokens\":374,\"total_tokens\":633,\"prompt_tokens_details\":{\"cached_tokens\":52}},\"id\":\"chatcmpl-1kyRYEPQE4SYojthwe6ms8A06hhbhwSA\",\"timings\":{\"cache_n\":52,\"prompt_n\":322,\"prompt_ms\":411.899,\"prompt_per_token_ms\":1.2791894409937887,\"prompt_per_second\":781.74503943928,\"predicted_n\":259,\"predicted_ms\":5087.555,\"predicted_per_token_ms\":19.71920542635659,\"predicted_per_second\":50.71198247488233}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```typescript\nexport type Fetcher = (id: string) => Promise<{ id: string; parent: string | null }>;\n\n// Walks from a node to the root and returns the chain, root last.\n// Rewrite this to use async/await and a plain loop. Behaviour must not change,\n// including that a cycle throws Error(\"cycle detected\") and that the chain is\n// capped at 50 entries with Error(\"chain too long\").\nexport async function ancestry(fetch: Fetcher, start: string): Promise<string[]> {\n  const seen = new Set<string>();\n  const chain: string[] = [];\n  let currentId: string | null = start;\n\n  while (currentId !== null) {\n    if (seen.has(currentId)) {\n      throw new Error(\"cycle detected\");\n    }\n    seen.add(currentId);\n    chain.push(currentId);\n\n    if (chain.length > 50) {\n      throw new Error(\"chain too long\");\n    }\n\n    const node = await fetch(currentId);\n    currentId = node.parent;\n  }\n\n  return chain;\n}\n```"
+        }
+      }
+    ],
+    "created": 1787408491,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 259,
+      "prompt_tokens": 374,
+      "total_tokens": 633,
+      "prompt_tokens_details": {
+        "cached_tokens": 52
+      }
+    },
+    "id": "chatcmpl-1kyRYEPQE4SYojthwe6ms8A06hhbhwSA",
+    "timings": {
+      "cache_n": 52,
+      "prompt_n": 322,
+      "prompt_ms": 411.899,
+      "prompt_per_token_ms": 1.2791894409937887,
+      "prompt_per_second": 781.74503943928,
+      "predicted_n": 259,
+      "predicted_ms": 5087.555,
+      "predicted_per_token_ms": 19.71920542635659,
+      "predicted_per_second": 50.71198247488233
+    }
+  }
+}
