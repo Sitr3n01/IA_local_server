@@ -186,15 +186,19 @@ jobs:
           # The GitHub CLI is used instead of a third-party action so the release
           # step adds no unpinned dependency to the supply chain.
           $version = '${{ steps.label.outputs.value }}'
-          $notes = @"
-Local-only provider binaries for Windows/amd64.
-
-Verify every file against ``SHA256SUMS`` before installing. Installation is a
-manual, reviewed operation: stage the binaries, record each SHA-256, and run
-``scripts/v2/Complete-V2Deployment.ps1``. Nothing here downloads or updates
-itself, and no model weights are distributed.
-
-Code signing is not performed; no certificate exists for this project.
-"@
-          gh release create $version --title $version --notes $notes --verify-tag
-          gh release upload $version (Get-ChildItem dist -Recurse -File | ForEach-Object { $_.FullName })
+          # Built as an array, not a PowerShell here-string. A here-string must
+          # close at column 0, and a line at column 0 ends this YAML block scalar
+          # in the middle of the step - which is a workflow that never starts.
+          $notes = @(
+            'Local-only provider binaries for Windows/amd64.',
+            '',
+            'Verify every file against SHA256SUMS before installing. Installation is a',
+            'manual, reviewed operation: stage the binaries, record each SHA-256, and run',
+            'scripts/v2/Complete-V2Deployment.ps1. Nothing here downloads or updates',
+            'itself, and no model weights are distributed.',
+            '',
+            'Code signing is not performed; no certificate exists for this project.'
+          ) -join "`n"
+          Set-Content -LiteralPath release-notes.md -Value $notes -Encoding utf8
+          gh release create $version --title $version --notes-file release-notes.md --verify-tag
+          gh release upload $version @(Get-ChildItem dist -Recurse -File | ForEach-Object { $_.FullName })
