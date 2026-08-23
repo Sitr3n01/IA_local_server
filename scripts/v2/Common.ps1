@@ -160,10 +160,78 @@ function Test-V2AnswerReserve {
     }
 }
 
+# The widest per-suite request default in scripts/v2/eval/qualify.py: the coding
+# and hard suites ask for 8192, while tools, literal_tools, json and retention
+# ask for 4096. A profile that declares no n_predict is benchmarked through those
+# per-suite defaults, so a uniform explicit ceiling is classified against the
+# widest of them -- the only one it can match without changing a suite's contract.
+$script:V2WidestFixtureCeiling = 8192
+
+function Get-V2EffectiveGenerationCeiling {
+    <#
+    .SYNOPSIS
+    Tokens a run can actually generate, given what it requests and what the server serves.
+
+    .DESCRIPTION
+    llama-server stops at `n_predict` whatever `max_tokens` asks for, so a request
+    ceiling above `n_predict` buys nothing. The number every budget rule has to be
+    evaluated against is therefore the smaller of the two:
+
+        effective_generation_ceiling = min(request_max_tokens, n_predict)
+
+    0 on either side means "not stated": a request of 0 leaves the suites their
+    own fixture defaults, and an `n_predict` of 0 means the profile declares none
+    and the runtime's own unbounded default applies.
+    #>
+    param(
+        [int]$RequestMaxTokens = 0,
+        [int]$NPredict = 0
+    )
+
+    if ($NPredict -le 0) { return [Math]::Max($RequestMaxTokens, 0) }
+    if ($RequestMaxTokens -le 0) { return $NPredict }
+    return [Math]::Min($RequestMaxTokens, $NPredict)
+}
+
+function Get-V2BudgetProfile {
+    <#
+    .SYNOPSIS
+    Names how a run's request ceiling relates to the contract the profile is served under.
+
+    .DESCRIPTION
+    A benchmark score is only a baseline when the run asked for what the
+    deployment actually serves. Three states, and only the first is a baseline:
+
+      deployment   the request is the served contract -- no override at all, a
+                   ceiling derived from n_predict, or an explicit ceiling that
+                   restates it exactly
+      constrained  an explicit ceiling below the contract; a NO_ANSWER here may
+                   be the benchmark cap rather than the model
+      expanded     an explicit ceiling above the contract; the server still stops
+                   at n_predict, so the surplus is not headroom, and a pass here
+                   is not evidence about the deployed profile
+
+    Classified on the ceiling that was *requested*, not on the effective one: an
+    explicit 32768 against an n_predict of 8192 generates exactly what the
+    deployment generates and is still not the deployment's own contract.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][ValidateSet('explicit', 'profile', 'fixture')][string]$Source,
+        [int]$RequestMaxTokens = 0,
+        [int]$NPredict = 0
+    )
+
+    if ($Source -ne 'explicit') { return 'deployment' }
+    $contract = if ($NPredict -gt 0) { $NPredict } else { $script:V2WidestFixtureCeiling }
+    if ($RequestMaxTokens -eq $contract) { return 'deployment' }
+    if ($RequestMaxTokens -lt $contract) { return 'constrained' }
+    return 'expanded'
+}
+
 function Resolve-V2QualificationRequestBudget {
     <#
     .SYNOPSIS
-    Resolves the effective HTTP `max_tokens` one qualification run will request.
+    Resolves the HTTP `max_tokens` one qualification run requests, and what it can actually generate.
 
     .DESCRIPTION
     The defect this exists to prevent: a profile can tell llama-server to spend
@@ -172,7 +240,7 @@ function Resolve-V2QualificationRequestBudget {
     server then never gets the chance to honour the contract being measured, and
     the run reports NO_ANSWER for a budget the deployment would never impose.
 
-    Precedence, highest first:
+    Precedence for the requested ceiling, highest first:
 
       explicit   an operator passed -MaxTokens; the operator wins, always
       profile    the profile declares a positive n_predict, which IS the
@@ -180,8 +248,21 @@ function Resolve-V2QualificationRequestBudget {
       fixture    neither; each suite keeps the per-fixture default it has
                  always used, and this function returns 0 to say so
 
-    `Diagnostic` names the one legitimate reason to run an explicit cap below
-    the profile's own answer reserve -- deliberately measuring a constrained
+    The requested ceiling is not the ceiling that applies. The server stops at
+    `n_predict` regardless, so every budget rule is evaluated against
+
+        effective_generation_ceiling = min(request_max_tokens, n_predict)
+
+    and an explicit -MaxTokens above the profile's n_predict is arithmetic rather
+    than headroom: -NPredict 8192 -MaxTokens 32768 -ReasoningBudget 24576 leaves
+    the answer -16384 tokens and is refused, exactly as -MaxTokens 8192 would be.
+
+    `budget_profile` states, separately from the arithmetic, whether the run
+    represents the profile as served (`deployment`) or measures something else
+    (`constrained` / `expanded`). Only `deployment` is a baseline.
+
+    `Diagnostic` names the one legitimate reason to run a ceiling that cannot
+    hold the profile's own answer reserve -- deliberately measuring a constrained
     request -- and it must be asked for by name. Without it an impossible
     combination is refused here, before a model is loaded.
     #>
@@ -193,28 +274,35 @@ function Resolve-V2QualificationRequestBudget {
     )
 
     if ($ExplicitMaxTokens -gt 0) {
-        $effective = $ExplicitMaxTokens
+        $requested = $ExplicitMaxTokens
         $source = 'explicit'
     }
     elseif ($NPredict -gt 0) {
-        $effective = $NPredict
+        $requested = $NPredict
         $source = 'profile'
     }
     else {
-        $effective = 0
+        $requested = 0
         $source = 'fixture'
     }
 
+    $effective = Get-V2EffectiveGenerationCeiling -RequestMaxTokens $requested -NPredict $NPredict
+    $budgetProfile = Get-V2BudgetProfile -Source $source -RequestMaxTokens $requested -NPredict $NPredict
+
     # A fixture default is per-suite and not known here, so the invariant cannot
     # be evaluated against it. It is still worth refusing the one shape that is
-    # wrong regardless of which fixture default applies: a reasoning budget at or
-    # above every default this harness uses leaves nothing for any of them.
+    # wrong regardless of which fixture default applies: a reasoning budget that
+    # leaves less than the minimum answer reserve the contract requires.
     $ceilingForCheck = if ($effective -gt 0) { $effective } else { $script:V2MinimumAnswerReserve }
     $verdict = Test-V2AnswerReserve -RequestCeiling $ceilingForCheck -ReasoningBudget $ReasoningBudget
 
     if (-not $verdict.ok -and -not $Diagnostic) {
         $where = if ($source -eq 'fixture') {
             "the fixture default ceiling of $ceilingForCheck tokens"
+        }
+        elseif ($effective -lt $requested) {
+            "an effective generation ceiling of $effective tokens (the request asks for $requested, " +
+            "but the profile's n_predict of $NPredict is all the server will emit)"
         }
         else {
             "the $source request ceiling of $effective tokens"
@@ -225,13 +313,17 @@ function Resolve-V2QualificationRequestBudget {
     }
 
     return [pscustomobject]@{
-        max_tokens             = $effective
-        source                 = $source
-        reasoning_budget       = $(if ($ReasoningBudget -gt 0) { $ReasoningBudget } else { $null })
-        answer_reserve         = $verdict.answer_reserve
-        minimum_answer_reserve = $verdict.minimum_reserve
-        reserve_ok             = [bool]$verdict.ok
-        diagnostic             = [bool]$Diagnostic
+        max_tokens                   = $requested
+        request_max_tokens           = $(if ($requested -gt 0) { $requested } else { $null })
+        n_predict                    = $(if ($NPredict -gt 0) { $NPredict } else { $null })
+        effective_generation_ceiling = $(if ($effective -gt 0) { $effective } else { $null })
+        budget_profile               = $budgetProfile
+        source                       = $source
+        reasoning_budget             = $(if ($ReasoningBudget -gt 0) { $ReasoningBudget } else { $null })
+        answer_reserve               = $verdict.answer_reserve
+        minimum_answer_reserve       = $verdict.minimum_reserve
+        reserve_ok                   = [bool]$verdict.ok
+        diagnostic                   = [bool]$Diagnostic
     }
 }
 

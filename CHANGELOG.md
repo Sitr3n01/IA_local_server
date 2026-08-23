@@ -103,6 +103,26 @@ All notable changes are documented here. This project follows Keep a Changelog c
   a staged and explicitly unqualified Gemma reasoning-budget candidate, the
   preserved Qwen3.6-35B-A3B status, and the exact commands for the physical
   re-run. Nothing in it has been run.
+- `Get-V2EffectiveGenerationCeiling` / `effective_generation_ceiling`: the
+  tokens a run can actually generate, `min(request_max_tokens, n_predict)`.
+  llama-server stops at `n_predict` whatever `max_tokens` asks for, so a request
+  above it is arithmetic and not headroom, and every budget rule now reads this
+  number instead of the request.
+- `Get-V2BudgetProfile` / `budget_profile`: `deployment`, `constrained` or
+  `expanded`, recorded in every plan and every qualification report. Only
+  `deployment` -- the profile measured exactly as it is served -- is a baseline.
+- `INSUFFICIENT_CONTEXT_RESERVE`, a canonical failure name for a retention probe
+  whose prefill leaves no room for even a floor-sized answer.
+- `qualify.py --n-predict`, so the verifier is told the profile's own generation
+  contract rather than inferring it from a request the server is about to
+  truncate. `Invoke-V2ProfileQualification.ps1` forwards it whenever `-NPredict`
+  is set.
+- Deterministic regressions for all of the above, in the existing fast gate:
+  `CEILING_TABLE`, `BUDGET_PROFILE_TABLE`,
+  `test_impossible_expanded_budget_is_refused`, `test_policy_profile` and
+  `test_retention_insufficient_context_reserve` in
+  `scripts/v2/eval/test_qualify_budget.py`, mirrored by `Assert-EffectiveCeiling`
+  and `Assert-BudgetProfile` in `Test-V2ConfigGeneration.ps1`.
 
 ### Changed
 
@@ -133,6 +153,38 @@ All notable changes are documented here. This project follows Keep a Changelog c
 - The retention suite receives the resolved profile ceiling, clamped to the room
   left in the context window and never below its 4096-token floor, and reports
   which of `fixture` / `profile` / `context-clamped` applied.
+- An explicit `-MaxTokens` above the profile's `n_predict` no longer resolves as
+  though those tokens existed. `-NPredict 8192 -MaxTokens 32768
+  -ReasoningBudget 24576` used to compute a reserve of `32768 - 24576 = 8192`
+  and pass; the server would have stopped at 8192 with 24576 already spent
+  thinking, a reserve of **-16384**. The effective ceiling is now `min()` of the
+  two and the combination is refused before the model loads, exactly as
+  `-MaxTokens 8192` already was. The operator's request is still recorded
+  verbatim beside it -- both numbers are kept.
+- `policy_profile` reads `baseline` only when the generation budget was the
+  served one too. An explicit ceiling unlike the profile's contract, or
+  `--allow-constrained-request-budget`, now makes the cell `diagnostic` the same
+  way a non-default system or tool policy always did. The runner warns at plan
+  time rather than leaving it to be noticed in the report.
+- `resolve_retention_reserve` returns `(0, INSUFFICIENT_CONTEXT_RESERVE)` when
+  the prefill leaves less than the 4096-token floor, and `run_retention` sends no
+  request at all: the row records the window arithmetic and its taxonomy. It
+  previously returned 4096 regardless -- including on the path that never
+  consulted the window -- and sent a request the server had to reject for
+  exceeding `n_ctx`, which reads like a model failure. The corpus is never
+  silently shrunk; a probe at 240k that quietly becomes one at 220k is a
+  different measurement wearing the same label.
+- `docs/reports/HARDENING-post-qualification-20260823.md` step 5 splits the Gemma
+  cell in two. It previously A/B-tested the candidate at 16384/8192 in step 4 and
+  then ran the full qualification against the profile *as served today*, which
+  qualifies nothing. `gemma4-12b-control-full` stays as the control and
+  `gemma4-12b-candidate-full` carries `-NPredict 16384 -ReasoningBudget 8192` in
+  every suite; only the latter can qualify the candidate.
+- Two wrong claims in the same document are corrected: 8192 is the minimum
+  **answer reserve** the output contract chose, not "the smallest default any
+  suite uses" (`tools`, `literal_tools`, `json` and `retention` all default to
+  4096); and step 3 does not issue 4096-token requests, because a profile's
+  `n_predict` raises the request ceiling to 8192 or 32768.
 - `capabilities.function_calling` is documented in the schema and in
   `MODEL_PROMOTION.md` as a per-artifact deployment guarantee proven through
   `internal/edge/namespace.go`, not a description of what a chat template can do.

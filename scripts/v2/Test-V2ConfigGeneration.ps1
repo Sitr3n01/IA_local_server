@@ -473,6 +473,65 @@ Assert-Budget -Budget (Resolve-V2QualificationRequestBudget -ExplicitMaxTokens 1
     -ExpectedMaxTokens 16384 -ExpectedSource 'explicit' `
     -Label 'An explicit -MaxTokens was not honoured without a profile ceiling.'
 
+# 13b. The effective generation ceiling. The server stops at n_predict whatever
+#    max_tokens asks for, so min() of the two is the only number a budget rule
+#    may use. Mirrored by CEILING_TABLE in scripts/v2/eval/test_qualify_budget.py.
+function Assert-EffectiveCeiling {
+    param(
+        [int]$RequestMaxTokens,
+        [int]$NPredict,
+        [Parameter(Mandatory = $true)][int]$Expected
+    )
+    $got = Get-V2EffectiveGenerationCeiling -RequestMaxTokens $RequestMaxTokens -NPredict $NPredict
+    if ([int]$got -ne $Expected) {
+        throw ("min(request=$RequestMaxTokens, n_predict=$NPredict) resolved to $got; expected $Expected.")
+    }
+}
+
+Assert-EffectiveCeiling -RequestMaxTokens 0 -NPredict 0 -Expected 0
+Assert-EffectiveCeiling -RequestMaxTokens 8192 -NPredict 0 -Expected 8192
+Assert-EffectiveCeiling -RequestMaxTokens 0 -NPredict 32768 -Expected 32768
+Assert-EffectiveCeiling -RequestMaxTokens 8192 -NPredict 8192 -Expected 8192
+Assert-EffectiveCeiling -RequestMaxTokens 32768 -NPredict 32768 -Expected 32768
+# The regression: an explicit request above the profile contract is truncated by
+# the server, so the ceiling that applies is the profile's.
+Assert-EffectiveCeiling -RequestMaxTokens 32768 -NPredict 8192 -Expected 8192
+Assert-EffectiveCeiling -RequestMaxTokens 16384 -NPredict 8192 -Expected 8192
+# A request below the contract is honoured as asked; the server never raises one.
+Assert-EffectiveCeiling -RequestMaxTokens 4096 -NPredict 32768 -Expected 4096
+
+# 13c. budget_profile. Only `deployment` is a baseline. Mirrored by
+#    BUDGET_PROFILE_TABLE in scripts/v2/eval/test_qualify_budget.py.
+function Assert-BudgetProfile {
+    param(
+        [Parameter(Mandatory = $true)][string]$Source,
+        [int]$RequestMaxTokens,
+        [int]$NPredict,
+        [Parameter(Mandatory = $true)][string]$Expected
+    )
+    $got = Get-V2BudgetProfile -Source $Source -RequestMaxTokens $RequestMaxTokens -NPredict $NPredict
+    if ([string]$got -cne $Expected) {
+        throw ("budget_profile(source=$Source, request=$RequestMaxTokens, n_predict=$NPredict) " +
+            "was '$got'; expected '$Expected'.")
+    }
+}
+
+Assert-BudgetProfile -Source 'fixture' -RequestMaxTokens 0 -NPredict 0 -Expected 'deployment'
+Assert-BudgetProfile -Source 'profile' -RequestMaxTokens 8192 -NPredict 8192 -Expected 'deployment'
+Assert-BudgetProfile -Source 'profile' -RequestMaxTokens 32768 -NPredict 32768 -Expected 'deployment'
+# An explicit ceiling that restates the contract exactly is still the contract.
+Assert-BudgetProfile -Source 'explicit' -RequestMaxTokens 8192 -NPredict 8192 -Expected 'deployment'
+Assert-BudgetProfile -Source 'explicit' -RequestMaxTokens 32768 -NPredict 32768 -Expected 'deployment'
+Assert-BudgetProfile -Source 'explicit' -RequestMaxTokens 4096 -NPredict 8192 -Expected 'constrained'
+Assert-BudgetProfile -Source 'explicit' -RequestMaxTokens 8192 -NPredict 32768 -Expected 'constrained'
+Assert-BudgetProfile -Source 'explicit' -RequestMaxTokens 32768 -NPredict 8192 -Expected 'expanded'
+Assert-BudgetProfile -Source 'explicit' -RequestMaxTokens 16384 -NPredict 8192 -Expected 'expanded'
+# With no declared n_predict the per-suite fixture defaults are the contract, and
+# a uniform explicit ceiling is compared against the widest of them.
+Assert-BudgetProfile -Source 'explicit' -RequestMaxTokens 8192 -NPredict 0 -Expected 'deployment'
+Assert-BudgetProfile -Source 'explicit' -RequestMaxTokens 4096 -NPredict 0 -Expected 'constrained'
+Assert-BudgetProfile -Source 'explicit' -RequestMaxTokens 16384 -NPredict 0 -Expected 'expanded'
+
 $hugeBudget = Resolve-V2QualificationRequestBudget -NPredict 32768 -ReasoningBudget 24576
 if ([int]$hugeBudget.answer_reserve -ne 8192) {
     throw "Huge 256k reported an answer reserve of $($hugeBudget.answer_reserve); 32768 - 24576 = 8192."
@@ -496,6 +555,51 @@ catch {
 }
 if (-not $impossibleRefused) {
     throw 'max_tokens=8192 with reasoning_budget=24576 was accepted for a normal qualification.'
+}
+
+# The shape this hardening pass added: an explicit ceiling ABOVE the profile's
+# n_predict. The old resolver let the operator's 32768 outrank the profile and
+# computed 32768 - 24576 = 8192, a legal-looking reserve for a run the server
+# would have cut off at 8192 with 24576 already spent thinking. The effective
+# ceiling is 8192, the real reserve is -16384, and it must be refused as a
+# baseline exactly as -MaxTokens 8192 is.
+$expandedRefused = ''
+try {
+    Resolve-V2QualificationRequestBudget -NPredict 8192 -ExplicitMaxTokens 32768 `
+        -ReasoningBudget 24576 | Out-Null
+}
+catch {
+    $expandedRefused = $_.Exception.Message
+}
+if ($expandedRefused -notmatch 'reasoning_budget') {
+    throw 'n_predict=8192 with max_tokens=32768 and reasoning_budget=24576 was accepted as a baseline.'
+}
+if ($expandedRefused -notmatch 'effective generation ceiling of 8192') {
+    throw "The refusal did not name the effective generation ceiling: $expandedRefused"
+}
+if ($expandedRefused -notmatch '-16384') {
+    throw "The refusal did not report the real (negative) answer reserve: $expandedRefused"
+}
+# Named as a diagnostic it is still measurable, and still not a baseline.
+$expandedDiagnostic = Resolve-V2QualificationRequestBudget -NPredict 8192 `
+    -ExplicitMaxTokens 32768 -ReasoningBudget 24576 -Diagnostic
+if ([int]$expandedDiagnostic.effective_generation_ceiling -ne 8192) {
+    throw 'The expanded diagnostic did not report an 8192-token effective ceiling.'
+}
+if ([int]$expandedDiagnostic.answer_reserve -ne -16384 -or $expandedDiagnostic.reserve_ok) {
+    throw 'The expanded diagnostic reported a satisfiable answer reserve.'
+}
+if ([string]$expandedDiagnostic.budget_profile -cne 'expanded') {
+    throw "The expanded diagnostic was labelled '$($expandedDiagnostic.budget_profile)'."
+}
+# Every shipped profile still resolves as the deployment contract it is.
+foreach ($shipped in @(
+        (Resolve-V2QualificationRequestBudget -NPredict 8192),
+        (Resolve-V2QualificationRequestBudget -NPredict 32768 -ReasoningBudget 24576),
+        (Resolve-V2QualificationRequestBudget))) {
+    if ([string]$shipped.budget_profile -cne 'deployment') {
+        throw "A shipped profile was classified as '$($shipped.budget_profile)' rather than deployment."
+    }
 }
 
 # The same shape reached by silence rather than by an explicit cap: a profile
@@ -653,6 +757,65 @@ if ($null -ne $gemmaPlan.request_budget.effective_max_tokens) {
     throw 'A fixture-default plan reported a numeric effective ceiling.'
 }
 
+# The profile's n_predict reaches qualify.py separately from the request, so the
+# verifier can compute min(max_tokens, n_predict) instead of trusting a request
+# the server is about to truncate.
+if ((Get-ArgumentValue -Arguments $hugePlan.qualify_arguments -Name '--n-predict') -cne '32768') {
+    throw 'Huge 256k did not forward its n_predict to qualify.py.'
+}
+if ([string]$hugePlan.request_budget.budget_profile -cne 'deployment') {
+    throw "A profile qualified at its own n_predict was labelled '$($hugePlan.request_budget.budget_profile)'."
+}
+if ([int]$hugePlan.request_budget.effective_generation_ceiling -ne 32768) {
+    throw 'The Huge 256k plan did not report a 32768-token effective generation ceiling.'
+}
+if ($gemmaPlan.qualify_arguments -ccontains '--n-predict') {
+    throw 'A profile without n_predict forwarded one anyway.'
+}
+if ([string]$gemmaPlan.request_budget.budget_profile -cne 'deployment') {
+    throw 'A fixture-default plan was not labelled as the deployment contract.'
+}
+
+# An explicit ceiling that is not the profile's contract is a diagnostic cell,
+# whichever side of the contract it falls on, and the plan has to say so before
+# the night it costs hours -- not afterwards in a report someone re-reads.
+$constrainedPlan = Get-QualificationPlan -Splat @{
+    Label = 'below'; NPredict = 32768; MaxTokens = 8192
+}
+if ([string]$constrainedPlan.request_budget.budget_profile -cne 'constrained') {
+    throw "An 8192-token cap on a 32768-token profile was labelled '$($constrainedPlan.request_budget.budget_profile)'."
+}
+$expandedPlan = Get-QualificationPlan -Splat @{
+    Label = 'above'; NPredict = 8192; MaxTokens = 32768
+}
+if ([string]$expandedPlan.request_budget.budget_profile -cne 'expanded') {
+    throw "A 32768-token cap on an 8192-token profile was labelled '$($expandedPlan.request_budget.budget_profile)'."
+}
+if ([int]$expandedPlan.request_budget.effective_generation_ceiling -ne 8192) {
+    throw 'An expanded plan reported more effective generation headroom than n_predict allows.'
+}
+# The request itself is still recorded verbatim: the operator asked for 32768 and
+# the report must not quietly rewrite that to 8192.
+if ((Get-ArgumentValue -Arguments $expandedPlan.qualify_arguments -Name '--max-tokens') -cne '32768') {
+    throw 'An expanded plan rewrote the operator request instead of recording it.'
+}
+if ([int]$expandedPlan.request_budget.request_max_tokens -ne 32768) {
+    throw 'An expanded plan did not record the request the operator actually made.'
+}
+# The runner refuses the physically impossible expansion before loading anything.
+$expandedRunnerRefused = ''
+try {
+    Get-QualificationPlan -Splat @{
+        Label = 'expanded-impossible'; NPredict = 8192; MaxTokens = 32768; ReasoningBudget = 24576
+    } | Out-Null
+}
+catch {
+    $expandedRunnerRefused = $_.Exception.Message
+}
+if ($expandedRunnerRefused -notmatch 'effective generation ceiling of 8192') {
+    throw "The runner accepted -NPredict 8192 -MaxTokens 32768 -ReasoningBudget 24576: $expandedRunnerRefused"
+}
+
 # An operator override still wins, and is labelled as an override.
 $overridePlan = Get-QualificationPlan -Splat @{
     Label = 'override'; NPredict = 32768; MaxTokens = 4096
@@ -713,8 +876,8 @@ if (-not $Quiet) {
         byte_stable_models    = $untunedCount
         generation_tests      = 17
         argv_quoting_tests    = 5
-        request_budget_tests  = 12
-        runner_wiring_tests   = 16
+        request_budget_tests  = 36
+        runner_wiring_tests   = 27
         valid                 = $true
     } | ConvertTo-Json -Depth 3
 }

@@ -41,7 +41,11 @@ jobs:
       # Pure-Python, no server, no toolchain, sub-second. They guard the
       # qualification generation budget and the tool-argument contract -- the
       # two things the 2026-08-23 campaign got wrong -- so they belong in the
-      # gate rather than in a runbook step someone remembers to run.
+      # gate rather than in a runbook step someone remembers to run. The budget
+      # test also pins the effective generation ceiling min(max_tokens,
+      # n_predict), the deployment/constrained/expanded classification, and the
+      # invariant that a retention probe never requests more than the context
+      # window has left.
       - name: Qualification budget and tool-grading self-tests
         shell: pwsh
         run: |
