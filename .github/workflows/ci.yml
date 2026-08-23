@@ -38,6 +38,14 @@ jobs:
           ./scripts/v2/Test-V2HarnessConfig.ps1
           ./scripts/v2/Test-V2ConfigGeneration.ps1
 
+      - name: Production artifact store self-test
+        shell: pwsh
+        run: ./scripts/v2/Test-V2ArtifactStore.ps1
+
+      - name: Release transaction and rollback self-test
+        shell: pwsh
+        run: ./scripts/v2/Test-V2ReleaseTransaction.ps1
+
       - name: Memory telemetry self-test
         shell: pwsh
         run: ./scripts/v2/Test-V2Telemetry.ps1

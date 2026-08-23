@@ -1,0 +1,200 @@
+name: release
+
+# Release packaging is deliberately separate from CI. CI proves a change is
+# sound; this workflow produces the exact artifacts an operator later approves
+# by SHA-256 and installs with Complete-V2Deployment.ps1.
+#
+# It never deploys anything. There is no runner with access to the workstation,
+# no automatic update channel, and no downloader: the operator moves the files
+# and reviews every hash by hand, which is the approval boundary the deployment
+# transaction depends on.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release label for a manual build, for example v2-final-20260822.1'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package Windows release artifacts
+    runs-on: windows-latest
+    timeout-minutes: 40
+    permissions:
+      # Needed only by the tagged path, to attach the artifacts to the release.
+      contents: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Resolve the release label
+        id: label
+        shell: pwsh
+        run: |
+          $label = if ('${{ github.event_name }}' -eq 'push') {
+            '${{ github.ref_name }}'
+          }
+          else {
+            '${{ inputs.version }}'
+          }
+          if ($label -notmatch '^[A-Za-z0-9._-]{1,64}$') {
+            throw "Release label '$label' must match the identifier the release manifest accepts."
+          }
+          "value=$label" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Release label: $label"
+
+      # A release must not be cut from a tree that does not pass its own gates.
+      - name: Verify formatting
+        shell: pwsh
+        run: |
+          $unformatted = @(gofmt -l .)
+          if ($unformatted.Count -gt 0) {
+            $unformatted | Write-Error
+            throw 'Run gofmt on the listed files.'
+          }
+
+      - name: Unit and contract tests
+        run: go test ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build release binaries
+        shell: pwsh
+        env:
+          # -trimpath plus the toolchain pinned by go.mod and the module set
+          # pinned by go.sum is what makes these builds reproducible. CGO is
+          # disabled explicitly so a runner image that happens to ship a C
+          # compiler cannot change the output.
+          CGO_ENABLED: '0'
+          GOOS: windows
+          GOARCH: amd64
+        run: |
+          $version = '${{ steps.label.outputs.value }}'
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          $components = @(
+            @{ Package = './cmd/cia-edge'; Binary = 'cia-edge.exe'; Gui = $false },
+            @{ Package = './cmd/cia-supervisor'; Binary = 'cia-supervisor.exe'; Gui = $true },
+            @{ Package = './cmd/cia-mcp'; Binary = 'cia-mcp.exe'; Gui = $false },
+            @{ Package = './cmd/cia-mcp-admin'; Binary = 'cia-mcp-admin.exe'; Gui = $false },
+            @{ Package = './cmd/cia-mcp-inference'; Binary = 'cia-mcp-inference.exe'; Gui = $false },
+            @{ Package = './cmd/cia-tray'; Binary = 'cia-tray.exe'; Gui = $true },
+            @{ Package = './cmd/cia-manifest'; Binary = 'cia-manifest.exe'; Gui = $false },
+            @{ Package = './cmd/cia-credential'; Binary = 'cia-credential.exe'; Gui = $false }
+          )
+          foreach ($component in $components) {
+            $flags = "-s -w -X main.version=$version"
+            if ($component.Gui) { $flags = "-H=windowsgui $flags" }
+            go build -trimpath -ldflags $flags -o "dist/$($component.Binary)" $component.Package
+            if ($LASTEXITCODE -ne 0) { throw "go build failed for $($component.Package)" }
+          }
+
+      - name: Stage schemas and configuration templates
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist/config -Force | Out-Null
+          Copy-Item config/models.schema.json dist/config/
+          Copy-Item config/llama-swap.template.yaml dist/config/
+          Copy-Item config/edge.sample.yaml dist/config/
+
+      - name: Generate CycloneDX SBOM
+        shell: pwsh
+        run: |
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.10.0
+          cyclonedx-gomod mod -json -output dist/sbom.cdx.json
+
+      - name: Reject weights, archives, and local state
+        shell: pwsh
+        run: |
+          # A release carries executables, schemas, and metadata. Model weights,
+          # private configuration, local state, and logs must never leave the
+          # workstation through this channel.
+          $forbidden = @(Get-ChildItem dist -Recurse -File | Where-Object {
+            $_.Extension -in @('.gguf', '.safetensors', '.pt', '.pth', '.zip', '.7z', '.gz', '.log', '.jsonl') -or
+            $_.Name -match '(?i)(secret|credential|token|api[_-]?key|router-api-key|panel\.|deployment\.|release\.)'
+          })
+          if ($forbidden.Count -gt 0) {
+            $forbidden.FullName | Write-Error
+            throw 'The release payload contains files that must not be distributed.'
+          }
+
+      - name: Generate SHA256SUMS and release metadata
+        shell: pwsh
+        run: |
+          $version = '${{ steps.label.outputs.value }}'
+          $files = @(Get-ChildItem dist -Recurse -File | Sort-Object FullName)
+          $distRoot = (Resolve-Path dist).Path
+          $lines = @($files | ForEach-Object {
+            $relative = $_.FullName.Substring($distRoot.Length + 1).Replace('\', '/')
+            '{0}  {1}' -f (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $relative
+          })
+          Set-Content -LiteralPath dist/SHA256SUMS -Value ($lines -join "`n") -Encoding ascii
+
+          # Release metadata mirrors the fields the installed release manifest
+          # records, so an operator can bind what they downloaded to what the
+          # deployment transaction later reports through /api/v1/status.
+          $metadata = [ordered]@{
+            schema_version = 1
+            version        = $version
+            commit         = '${{ github.sha }}'
+            repository     = '${{ github.repository }}'
+            workflow_run   = '${{ github.run_id }}'
+            built_utc      = [DateTime]::UtcNow.ToString('o')
+            go_version     = (go version)
+            goos           = 'windows'
+            goarch         = 'amd64'
+            reproducible   = 'trimpath build against the toolchain pinned by go.mod and the modules pinned by go.sum'
+            code_signing   = 'not performed: no code-signing certificate exists for this project. Verify SHA256SUMS instead.'
+            components     = @($files | Where-Object { $_.Extension -eq '.exe' } | ForEach-Object {
+              [ordered]@{
+                name   = $_.Name
+                bytes  = [long]$_.Length
+                sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
+              }
+            })
+          }
+          Set-Content -LiteralPath dist/release-metadata.json -Value ($metadata | ConvertTo-Json -Depth 6) -Encoding utf8
+          Get-Content dist/SHA256SUMS
+
+      - name: Upload release payload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: cia-local-ai-${{ steps.label.outputs.value }}
+          path: dist
+          if-no-files-found: error
+
+      - name: Attach the payload to the tagged release
+        if: github.event_name == 'push'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The GitHub CLI is used instead of a third-party action so the release
+          # step adds no unpinned dependency to the supply chain.
+          $version = '${{ steps.label.outputs.value }}'
+          $notes = @"
+Local-only provider binaries for Windows/amd64.
+
+Verify every file against ``SHA256SUMS`` before installing. Installation is a
+manual, reviewed operation: stage the binaries, record each SHA-256, and run
+``scripts/v2/Complete-V2Deployment.ps1``. Nothing here downloads or updates
+itself, and no model weights are distributed.
+
+Code signing is not performed; no certificate exists for this project.
+"@
+          gh release create $version --title $version --notes $notes --verify-tag
+          gh release upload $version (Get-ChildItem dist -Recurse -File | ForEach-Object { $_.FullName })
