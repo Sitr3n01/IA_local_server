@@ -109,6 +109,14 @@ func safeRoute(path string) string {
 			}
 		}
 	}
+	if strings.HasPrefix(path, maintenancePrefix) {
+		for _, operation := range []string{"drain", "resume"} {
+			if path == maintenancePrefix+operation {
+				return path
+			}
+		}
+		return "unknown"
+	}
 	switch path {
 	case "/v1/models", "/v1/responses", "/v1/chat/completions", "/livez", "/readyz", "/metrics", "/api/v1/status":
 		return path

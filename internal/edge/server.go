@@ -13,18 +13,10 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync/atomic"
 	"time"
 )
 
 const maxHeaderBytes = 64 << 10
-
-type metrics struct {
-	requests         atomic.Uint64
-	authFailures     atomic.Uint64
-	invalidRequests  atomic.Uint64
-	upstreamFailures atomic.Uint64
-}
 
 // Server is a loopback-only, stateless OpenAI-compatible edge. It owns no
 // model lifecycle state; llama-swap remains the single lifecycle authority.
@@ -35,7 +27,8 @@ type Server struct {
 	allowed      map[string]struct{}
 	gate         *gate
 	events       *eventStore
-	metrics      metrics
+	metrics      *metrics
+	startedAt    time.Time
 	memoryStatus func() (memorySnapshot, error)
 	// gpuMemory is observability only; nothing in the request path consults it.
 	// It is a field rather than a direct call so tests can supply a snapshot
@@ -82,6 +75,8 @@ func New(cfg Config) (*Server, error) {
 		allowed:      allowed,
 		gate:         newGate(cfg.MaxActive, cfg.MaxQueue, cfg.QueueWait),
 		events:       newEventStore(cfg.LogOutput),
+		metrics:      newMetrics(),
+		startedAt:    time.Now(),
 		memoryStatus: systemMemoryStatus,
 		gpuMemory:    gpuMemoryStatus,
 	}, nil
@@ -233,7 +228,11 @@ func (s *Server) handleInference(w http.ResponseWriter, r *http.Request) {
 		s.writeGateError(w, err)
 		return
 	}
-	defer release()
+	admitted := time.Now()
+	defer func() {
+		s.metrics.inferenceDuration.observe(time.Since(admitted))
+		release()
+	}()
 
 	body, err := decodeRequestBody(r, s.cfg.MaxWireBytes, s.cfg.MaxDecodedBytes, s.cfg.MaxRatio)
 	if err != nil {
@@ -394,6 +393,17 @@ func (s *Server) serveControl(w http.ResponseWriter, r *http.Request) {
 		s.handleModelControl(w, r, modelID, operation)
 		return
 	}
+	if operation, matched, err := parseMaintenancePath(r.URL.EscapedPath()); matched {
+		if !requireMethod(w, r, http.MethodPost) || !s.requireAdmin(w, r) {
+			return
+		}
+		if err != nil {
+			s.writeError(w, http.StatusNotFound, "unknown_path", "route not found", "")
+			return
+		}
+		s.handleMaintenance(w, r, operation)
+		return
+	}
 
 	switch r.URL.Path {
 	case "/livez":
@@ -407,14 +417,26 @@ func (s *Server) serveControl(w http.ResponseWriter, r *http.Request) {
 		}
 		capacity, _ := s.capacityFor(r.Context(), s.publicModel())
 		upstreamReachable := s.upstreamReachable(r.Context())
-		ready := upstreamReachable && capacity.Available
+		// A drained provider is deliberately not ready: readiness is the signal
+		// anything gating traffic consults, and during maintenance it must say
+		// so. /livez stays up, which is what the cutover transaction watches.
+		maintenance := s.gate.maintenance(time.Now())
+		ready := upstreamReachable && capacity.Available && !maintenance.Draining
 		status := http.StatusOK
 		state := "ready"
 		if !ready {
 			status = http.StatusServiceUnavailable
 			state = "not_ready"
 		}
-		s.writeJSON(w, status, map[string]any{"status": state, "service": "cia-edge", "upstream_reachable": upstreamReachable})
+		if maintenance.Draining {
+			w.Header().Set("Retry-After", maintenanceRetryAfterS)
+		}
+		s.writeJSON(w, status, map[string]any{
+			"status":             state,
+			"service":            "cia-edge",
+			"upstream_reachable": upstreamReachable,
+			"maintenance":        maintenance,
+		})
 	case "/metrics":
 		if !requireMethod(w, r, http.MethodGet) || !s.requireAdmin(w, r) {
 			return
@@ -467,14 +489,16 @@ func (s *Server) writeStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	upstreamReachable := s.upstreamReachable(r.Context())
 	activeModel := s.activeModel(running)
-	ready := upstreamReachable && capacity.Available
-	s.writeJSON(w, http.StatusOK, map[string]any{
-		"service":  "cia-edge",
-		"version":  s.cfg.Version,
-		"ready":    ready,
-		"upstream": map[string]any{"url": s.cfg.UpstreamURL, "reachable": upstreamReachable},
-		"models":   append([]Model(nil), s.cfg.Models...),
-		"runtimes": runtimes,
+	maintenance := s.gate.maintenance(time.Now())
+	ready := upstreamReachable && capacity.Available && !maintenance.Draining
+	payload := map[string]any{
+		"service":        "cia-edge",
+		"version":        s.cfg.Version,
+		"ready":          ready,
+		"uptime_seconds": int64(time.Since(s.startedAt) / time.Second),
+		"upstream":       map[string]any{"url": s.cfg.UpstreamURL, "reachable": upstreamReachable},
+		"models":         append([]Model(nil), s.cfg.Models...),
+		"runtimes":       runtimes,
 
 		"active_model": activeModel,
 		"gate":         s.gate.snapshot(),
@@ -484,23 +508,43 @@ func (s *Server) writeStatus(w http.ResponseWriter, r *http.Request) {
 		// reading that gates nothing. Merging them would make a noisy sample
 		// look like grounds for a 503.
 		"gpu_memory":     s.gpuPressure(activeModel),
+		"maintenance":    maintenance,
 		"model_statuses": modelStatuses,
 		"recent_events":  s.events.recent(),
-	})
+	}
+	s.writeJSON(w, http.StatusOK, payload)
 }
 
 func (s *Server) writeMetrics(w http.ResponseWriter) {
 	gate := s.gate.snapshot()
+	maintenance := s.gate.maintenance(time.Now())
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	_, _ = fmt.Fprintf(w, "# TYPE cia_edge_requests_total counter\ncia_edge_requests_total %d\n", s.metrics.requests.Load())
-	_, _ = fmt.Fprintf(w, "# TYPE cia_edge_auth_failures_total counter\ncia_edge_auth_failures_total %d\n", s.metrics.authFailures.Load())
-	_, _ = fmt.Fprintf(w, "# TYPE cia_edge_invalid_requests_total counter\ncia_edge_invalid_requests_total %d\n", s.metrics.invalidRequests.Load())
-	_, _ = fmt.Fprintf(w, "# TYPE cia_edge_upstream_failures_total counter\ncia_edge_upstream_failures_total %d\n", s.metrics.upstreamFailures.Load())
-	_, _ = fmt.Fprintf(w, "# TYPE cia_edge_active_requests gauge\ncia_edge_active_requests %d\n", gate.Active)
-	_, _ = fmt.Fprintf(w, "# TYPE cia_edge_queued_requests gauge\ncia_edge_queued_requests %d\n", gate.Queued)
-	_, _ = fmt.Fprintf(w, "# TYPE cia_edge_queue_rejections_total counter\ncia_edge_queue_rejections_total %d\n", gate.Rejected)
-	_, _ = fmt.Fprintf(w, "# TYPE cia_edge_queue_timeouts_total counter\ncia_edge_queue_timeouts_total %d\n", gate.TimedOut)
+
+	writeCounter(w, "cia_edge_requests_total", "HTTP requests observed on either plane.", s.metrics.requests.Load())
+	writeCounter(w, "cia_edge_auth_failures_total", "Requests refused for an invalid inference or administrative credential.", s.metrics.authFailures.Load())
+	writeCounter(w, "cia_edge_invalid_requests_total", "Requests refused by body decoding or payload validation.", s.metrics.invalidRequests.Load())
+	writeCounter(w, "cia_edge_upstream_failures_total", "Upstream router calls that failed.", s.metrics.upstreamFailures.Load())
+	writeGauge(w, "cia_edge_active_requests", "Inference requests holding an admission slot.", gate.Active)
+	writeGauge(w, "cia_edge_queued_requests", "Inference requests waiting for an admission slot.", gate.Queued)
+	writeCounter(w, "cia_edge_queue_rejections_total", "Requests refused because the bounded queue was full.", gate.Rejected)
+	writeCounter(w, "cia_edge_queue_timeouts_total", "Requests refused after waiting for the queue timeout.", gate.TimedOut)
+	writeGauge(w, "cia_edge_uptime_seconds", "Seconds since this edge process started serving.", int64(time.Since(s.startedAt)/time.Second))
+
+	// Maintenance lifecycle: 0 running, 1 draining with work in flight,
+	// 2 drained and safe to stop. The cutover transaction polls this.
+	writeGauge(w, "cia_edge_maintenance_state", "Drain lifecycle: 0 running, 1 draining, 2 drained.", int64(maintenanceLevel(maintenance.State)))
+	writeCounter(w, "cia_edge_maintenance_rejections_total", "Inference requests refused because the provider was draining.", maintenance.Rejected)
+
+	writeCounter(w, "cia_edge_model_loads_total", "Administrative model load operations attempted.", s.metrics.modelLoads.Load())
+	writeCounter(w, "cia_edge_model_unloads_total", "Administrative model unload operations attempted.", s.metrics.modelUnloads.Load())
+	writeCounter(w, "cia_edge_model_switches_total", "Administrative model switch operations attempted.", s.metrics.modelSwitches.Load())
+	writeCounter(w, "cia_edge_model_load_failures_total", "Administrative load or switch operations that failed upstream.", s.metrics.modelLoadFailures.Load())
+	writeCounter(w, "cia_edge_admin_http_mutations_total", "Administrative mutations accepted over the deprecated HTTP control plane.", s.metrics.httpAdminMutations.Load())
+
+	s.gate.queueWait.write(w, "cia_edge_queue_wait_seconds", "Time an admitted request spent waiting for a slot. Requests admitted immediately are not observed.")
+	s.metrics.inferenceDuration.write(w, "cia_edge_inference_duration_seconds", "Wall time an admitted inference request held its slot.")
+	s.metrics.modelLoadDuration.write(w, "cia_edge_model_load_duration_seconds", "Wall time of an administrative load or switch operation.")
 
 	// Adapter memory, so the degradation that raises no error is alertable. The
 	// budget is the public model's declared device VRAM rather than the active
@@ -511,13 +555,14 @@ func (s *Server) writeMetrics(w http.ResponseWriter) {
 	// records 0 MiB dedicated would look like an idle GPU.
 	pressure := s.gpuPressure(s.cfg.PublicModelID)
 	if pressure.DedicatedMiB != nil {
-		_, _ = fmt.Fprintf(w, "# TYPE cia_edge_gpu_dedicated_mib gauge\ncia_edge_gpu_dedicated_mib %.0f\n", *pressure.DedicatedMiB)
-		_, _ = fmt.Fprintf(w, "# TYPE cia_edge_gpu_shared_mib gauge\ncia_edge_gpu_shared_mib %.0f\n", *pressure.SharedMiB)
+		writeFloatGauge(w, "cia_edge_gpu_dedicated_mib", "Dedicated adapter memory currently in use.", "%.0f", *pressure.DedicatedMiB)
+		writeFloatGauge(w, "cia_edge_gpu_shared_mib", "Shared system memory currently used by the adapter.", "%.0f", *pressure.SharedMiB)
 	}
 	if pressure.Occupancy != nil {
-		_, _ = fmt.Fprintf(w, "# TYPE cia_edge_gpu_occupancy_ratio gauge\ncia_edge_gpu_occupancy_ratio %.4f\n", *pressure.Occupancy)
+		writeFloatGauge(w, "cia_edge_gpu_occupancy_ratio", "Dedicated adapter memory in use over the declared device budget.", "%.4f", *pressure.Occupancy)
 	}
-	_, _ = fmt.Fprintf(w, "# TYPE cia_edge_gpu_memory_pressure gauge\ncia_edge_gpu_memory_pressure %d\n", gpuPressureLevel(pressure.State))
+	writeGauge(w, "cia_edge_gpu_memory_pressure", "Adapter memory verdict: 0 unknown, rising with pressure.", int64(gpuPressureLevel(pressure.State)))
+
 }
 
 func (s *Server) upstreamReachable(ctx context.Context) bool {
@@ -638,6 +683,9 @@ func (s *Server) writeGateError(w http.ResponseWriter, err error) {
 		s.writeError(w, 499, "client_closed_request", "request was canceled while queued", "")
 	case errors.Is(err, errControlBusy):
 		s.writeError(w, http.StatusServiceUnavailable, "model_control_in_progress", "model control operation is in progress", "")
+	case errors.Is(err, errDraining):
+		w.Header().Set("Retry-After", maintenanceRetryAfterS)
+		s.writeError(w, http.StatusServiceUnavailable, "maintenance_draining", "local inference is draining for maintenance", "")
 	default:
 		s.writeError(w, http.StatusServiceUnavailable, "admission_unavailable", "local inference admission is unavailable", "")
 	}
