@@ -512,6 +512,22 @@ func (s *Server) writeStatus(w http.ResponseWriter, r *http.Request) {
 		"model_statuses": modelStatuses,
 		"recent_events":  s.events.recent(),
 	}
+	// Release identity is reported only when the deployment transaction
+	// installed a manifest for it. It is a sanitized subset by construction:
+	// no path, hash inventory, or credential can reach this response.
+	if s.cfg.Release != nil {
+		payload["deployment"] = map[string]any{
+			"environment":      s.cfg.Release.Environment,
+			"release":          s.cfg.Release.Release,
+			"version":          s.cfg.Release.Version,
+			"commit":           s.cfg.Release.Commit,
+			"source_dirty":     s.cfg.Release.SourceDirty,
+			"previous_release": s.cfg.Release.PreviousRelease,
+			"status":           s.cfg.Release.Status,
+			"created_utc":      s.cfg.Release.CreatedUTC,
+			"healthy":          ready,
+		}
+	}
 	s.writeJSON(w, http.StatusOK, payload)
 }
 
@@ -563,6 +579,10 @@ func (s *Server) writeMetrics(w http.ResponseWriter) {
 	}
 	writeGauge(w, "cia_edge_gpu_memory_pressure", "Adapter memory verdict: 0 unknown, rising with pressure.", int64(gpuPressureLevel(pressure.State)))
 
+	// One constant series identifying the installed release. Every label value
+	// is manifest-bounded and validated at load, so cardinality is exactly one
+	// for the lifetime of the process.
+	writeReleaseInfo(w, s.cfg.Release)
 }
 
 func (s *Server) upstreamReachable(ctx context.Context) bool {

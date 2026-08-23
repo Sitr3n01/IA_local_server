@@ -148,17 +148,26 @@ func (c Config) buildSpec() (commandSpec, error) {
 		environment = setEnvironment(environment, "CIA_ADMIN_TOKEN", adminToken)
 		environment = setEnvironment(environment, "CIA_ROUTER_TOKEN", routerToken)
 		environment = setEnvironment(environment, "CIA_EDGE_LOG_PATH", filepath.Join(root, "logs", "cia-edge.jsonl"))
+		args := []string{
+			"--environment", c.Environment,
+			"--data-addr", c.DataAddr,
+			"--control-addr", c.ControlAddr,
+			"--upstream", c.UpstreamURL,
+			"--models-config", c.ModelsConfig,
+			"--models-schema", filepath.Join(root, "config", "models.schema.json"),
+		}
+		// The release manifest is passed only when the deployment transaction
+		// installed one. An installation that predates it keeps serving; a
+		// manifest that exists but does not parse fails the edge at startup,
+		// which is the correct signal that the installed bytes are not the ones
+		// the transaction certified.
+		if releaseManifest := filepath.Join(root, "config", "release."+c.Environment+".json"); fileExists(releaseManifest) {
+			args = append(args, "--release-manifest", releaseManifest)
+		}
 		return commandSpec{
 			Path: filepath.Join(root, "bin", "cia-edge.exe"),
-			Args: []string{
-				"--environment", c.Environment,
-				"--data-addr", c.DataAddr,
-				"--control-addr", c.ControlAddr,
-				"--upstream", c.UpstreamURL,
-				"--models-config", c.ModelsConfig,
-				"--models-schema", filepath.Join(root, "config", "models.schema.json"),
-			},
-			Env: environment,
+			Args: args,
+			Env:  environment,
 		}, nil
 	}
 	return commandSpec{}, errors.New("unsupported component")
@@ -178,9 +187,16 @@ func Run(ctx context.Context, cfg Config, stdout, stderr io.Writer) error {
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
+	root, _ := filepath.Abs(cfg.InstallRoot)
+	// The restart record is what makes a crash loop diagnosable without adding a
+	// listener to the supervisor. It is written on every transition, so an
+	// operator reading it always sees the current backoff rather than a stale one.
+	state := newStateWriter(root, cfg, time.Now())
 	restartDelay := initialRestartDelay
+	var restarts, unstable uint64
 	for {
 		started := time.Now()
+		state.write(State{State: "running", RestartCount: restarts, UnstableExits: unstable, BackoffSeconds: int(restartDelay / time.Second)})
 		spec, specErr := cfg.buildSpec()
 		var runErr error
 		if specErr != nil {
@@ -189,12 +205,17 @@ func Run(ctx context.Context, cfg Config, stdout, stderr io.Writer) error {
 			runErr = runContained(ctx, spec, stdout, stderr)
 		}
 		if ctx.Err() != nil {
+			state.write(State{State: "stopped", RestartCount: restarts, UnstableExits: unstable, BackoffSeconds: int(restartDelay / time.Second), LastRunSeconds: int64(time.Since(started) / time.Second)})
 			return ctx.Err()
 		}
 
 		runDuration := time.Since(started)
+		restarts++
 		if runDuration >= stableRunThreshold {
 			restartDelay = initialRestartDelay
+			unstable = 0
+		} else {
+			unstable++
 		}
 		errorText := "child process exited"
 		if runErr != nil {
@@ -207,6 +228,15 @@ func Run(ctx context.Context, cfg Config, stdout, stderr io.Writer) error {
 			"event":                 "child_exited",
 			"error":                 errorText,
 			"restart_delay_seconds": int(restartDelay / time.Second),
+		})
+		state.write(State{
+			State:          "backoff",
+			RestartCount:   restarts,
+			UnstableExits:  unstable,
+			BackoffSeconds: int(restartDelay / time.Second),
+			LastExit:       errorText,
+			LastExitUTC:    time.Now().UTC().Format(time.RFC3339),
+			LastRunSeconds: int64(runDuration / time.Second),
 		})
 
 		timer := time.NewTimer(restartDelay)
@@ -237,6 +267,11 @@ func validateLoopbackAddr(label, address string) error {
 		return fmt.Errorf("%s must use a literal loopback IP address", label)
 	}
 	return nil
+}
+
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.Mode().IsRegular()
 }
 
 func requireFile(path, label string) error {

@@ -113,6 +113,26 @@ func writeFloatGauge(w io.Writer, name, help, format string, value float64) {
 	_, _ = fmt.Fprintf(w, "# HELP %s %s\n# TYPE %s gauge\n%s "+format+"\n", name, help, name, name, value)
 }
 
+// writeReleaseInfo emits one constant series naming the installed release. The
+// value is always 1; the identity lives in the labels, all of which are
+// validated at load and reduced by metricLabel, so the series count is exactly
+// one for the lifetime of the process.
+func writeReleaseInfo(w io.Writer, release *ReleaseInfo) {
+	if release == nil {
+		return
+	}
+	const name = "cia_edge_release_info"
+	_, _ = fmt.Fprintf(w, "# HELP %s Installed release identity. Always 1; the identity is in the labels.\n# TYPE %s gauge\n", name, name)
+	_, _ = fmt.Fprintf(w, "%s{environment=%q,release=%q,version=%q,commit=%q,status=%q} 1\n",
+		name,
+		metricLabel(release.Environment),
+		metricLabel(release.Release),
+		metricLabel(release.Version),
+		metricLabel(release.Commit),
+		metricLabel(release.Status),
+	)
+}
+
 // metricLabel keeps a label value inside a conservative, escape-free character
 // set. Release identifiers and versions already satisfy it; anything that does
 // not is reduced rather than emitted raw, so a malformed value can never break

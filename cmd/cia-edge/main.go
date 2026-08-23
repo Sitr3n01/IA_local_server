@@ -55,6 +55,7 @@ func run() error {
 	modelsConfig := flags.String("models-config", "", "path to the generated models YAML manifest (required)")
 	modelsSchema := flags.String("models-schema", "", "path to the versioned model-manifest JSON Schema (required)")
 	environment := flags.String("environment", "canary", "deployment environment: canary or final")
+	releaseManifest := flags.String("release-manifest", "", "path to the installed release.json written by the deployment transaction")
 	if err := flags.Parse(os.Args[1:]); err != nil {
 		return err
 	}
@@ -73,6 +74,20 @@ func run() error {
 	}
 	cfg.Models = models
 	cfg.PublicModelID = publicModel
+	cfg.Environment = *environment
+
+	// Release metadata is optional, because an installation that predates the
+	// deployment transaction must keep serving. A manifest that is present but
+	// unreadable is not optional: it means the installed bytes are not the ones
+	// the transaction certified, and that fails closed at startup.
+	if path := strings.TrimSpace(*releaseManifest); path != "" {
+		release, err := edge.LoadRelease(path, *environment)
+		if err != nil {
+			return fmt.Errorf("load release manifest: %w", err)
+		}
+		cfg.Release = release
+	}
+
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
@@ -89,9 +104,19 @@ func run() error {
 		"control_addr": cfg.ControlAddr,
 		"upstream":     cfg.UpstreamURL,
 		"model_count":  len(cfg.Models),
+		"release":      releaseLabel(cfg.Release),
 	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	return server.Run(ctx)
+}
+
+// releaseLabel keeps the startup line metadata-only. It reports the release
+// identifier and nothing else from the manifest.
+func releaseLabel(release *edge.ReleaseInfo) string {
+	if release == nil {
+		return ""
+	}
+	return release.Release
 }

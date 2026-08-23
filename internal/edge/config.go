@@ -158,6 +158,13 @@ type Config struct {
 	// an entry in Models must never carry meaning.
 	PublicModelID string
 	Version       string
+	// Release is the installed release identity, when the deployment
+	// transaction wrote one. Nil means "not deployed through the transaction",
+	// which stays serviceable: release metadata is observability, not a gate.
+	Release *ReleaseInfo
+	// Environment is the deployment this process serves. It binds the release
+	// manifest to exactly one deployment.
+	Environment string
 
 	MaxWireBytes    int64
 	MaxDecodedBytes int64
@@ -277,6 +284,9 @@ func (c Config) Validate() error {
 	}
 	if c.RouterToken != "" && (c.RouterToken == c.InferenceToken || c.RouterToken == c.AdminToken) {
 		return errors.New("router token must be different from inference and admin tokens")
+	}
+	if c.Environment != "" && c.Environment != "canary" && c.Environment != "final" {
+		return errors.New("environment must be canary or final")
 	}
 	if len(c.Models) == 0 {
 		return errors.New("at least one allowed model is required")
