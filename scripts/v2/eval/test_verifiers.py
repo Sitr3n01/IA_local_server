@@ -7,7 +7,14 @@ accepts everything would report a 2-bit quantization as equal to a 4-bit one,
 and the whole campaign would be built on it, so it is checked before any model
 is asked a question.
 
-Run: python test_verifiers.py <workdir>
+REGRESSIONS adds named cases on top of that pair, each pinning a verdict that
+was argued about once. They exist so a claim like "unity_impl is a broken
+fixture" can be settled by running something rather than by re-reading a report:
+a known-good ProjectilePool compiles against UNITY_SHIM, and the answer
+qwen38-27b-deep-32k produced on 2026-08-23 does not, for a reason the C#
+compiler names.
+
+Run: python test_verifiers.py <workdir> [task-id ...]
 """
 import os
 import sys
@@ -413,12 +420,144 @@ public static class FrameUtil
 '''
 
 
+# --------------------------------------------------------------------------
+# Named regressions
+# --------------------------------------------------------------------------
+# Extra cases beyond one GOOD and one BAD per task, each pinning a verdict that
+# was argued about once and must never be re-argued from memory. A regression
+# may assert on a substring of the toolchain's own output, so a fixture that
+# starts failing for a different reason is not silently accepted as still
+# working.
+
+# Reproduced verbatim from benchmarks/campaign-20260823-full, the
+# qwen38-27b-deep-32k coding suite, task unity_impl. `instance` is declared
+# inside the `if (pool.Count > 0)` block and again at method scope, which C#
+# rejects with CS0136 regardless of the order the compiler sees them in.
+#
+# It is here to keep the 2026-08-23 verdict falsifiable rather than remembered:
+# the fixture is a real compile gate, this answer really does not compile, and
+# the failure belongs to the model. If anyone ever "fixes" unity_impl by
+# loosening the gate, this case starts passing and the self-test fails.
+DEEP_20260823_CS0136 = '''
+using System.Collections.Generic;
+using UnityEngine;
+
+public class ProjectilePool : MonoBehaviour
+{
+    [SerializeField] private GameObject prefab;
+    [SerializeField] private int prewarmCount;
+
+    private readonly List<GameObject> pool = new List<GameObject>();
+
+    private void Awake()
+    {
+        if (prefab == null)
+        {
+            return;
+        }
+
+        if (prewarmCount < 0)
+        {
+            prewarmCount = 0;
+        }
+
+        for (int i = 0; i < prewarmCount; i++)
+        {
+            GameObject instance = Instantiate(prefab);
+            instance.SetActive(false);
+            pool.Add(instance);
+        }
+    }
+
+    public GameObject Rent()
+    {
+        if (pool.Count > 0)
+        {
+            int lastIndex = pool.Count - 1;
+            GameObject instance = pool[lastIndex];
+            pool.RemoveAt(lastIndex);
+            instance.SetActive(true);
+            return instance;
+        }
+
+        if (prefab == null)
+        {
+            return null;
+        }
+
+        GameObject instance = Instantiate(prefab);
+        instance.SetActive(true);
+        return instance;
+    }
+
+    public void Return(GameObject go)
+    {
+        if (go == null)
+        {
+            return;
+        }
+
+        go.SetActive(false);
+
+        if (!pool.Contains(go))
+        {
+            pool.Add(go);
+        }
+    }
+}
+'''
+
+# The same answer with the second declaration scoped correctly, and nothing else
+# changed. Proves the gate rejected the scoping defect and not the approach:
+# a List-backed pool written this way compiles against UNITY_SHIM.
+DEEP_20260823_CS0136_REPAIRED = DEEP_20260823_CS0136.replace(
+    """        GameObject instance = Instantiate(prefab);
+        instance.SetActive(true);
+        return instance;""",
+    """        GameObject spawned = Instantiate(prefab);
+        spawned.SetActive(true);
+        return spawned;""")
+
+REGRESSIONS = [
+    # (task id, label, source, expect_pass, substring the detail must contain)
+    ("unity_impl", "known-good ProjectilePool compiles against UNITY_SHIM",
+     GOOD["unity_impl"], True, None),
+    ("unity_impl", "Deep 2026-08-23 answer really does not compile (CS0136)",
+     DEEP_20260823_CS0136, False, "CS0136"),
+    ("unity_impl", "the same answer with the scope repaired does compile",
+     DEEP_20260823_CS0136_REPAIRED, True, None),
+]
+
+
+def run_regressions(workdir, only=None):
+    failures = []
+    tasks = {task["id"]: task for task in CT.TASKS}
+    for tid, label, code, expect_pass, expect_detail in REGRESSIONS:
+        if only and tid not in only:
+            continue
+        task = tasks[tid]
+        ok, detail = task["verify"](code, workdir)
+        text = str(detail)
+        problems = []
+        if bool(ok) != expect_pass:
+            problems.append("expected pass=%s, got %s" % (expect_pass, bool(ok)))
+        if expect_detail and expect_detail not in text:
+            problems.append("expected %r in the toolchain output" % expect_detail)
+        status = "OK  " if not problems else "MISGRADED"
+        print("  %-24s regr -> %-5s  %s  (%s)"
+              % (tid, bool(ok), status, label), flush=True)
+        if problems:
+            failures.append("%s regression '%s': %s :: %s"
+                            % (tid, label, "; ".join(problems), text[-400:]))
+    return failures
+
+
 def main():
     workdir = sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix="verif")
     os.makedirs(workdir, exist_ok=True)
     only = set(sys.argv[2:]) if len(sys.argv) > 2 else None
 
-    failures = []
+    failures = run_regressions(workdir, only)
     for task in CT.TASKS:
         tid = task["id"]
         if only and tid not in only:

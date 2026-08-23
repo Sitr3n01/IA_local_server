@@ -265,3 +265,219 @@ What each column above is actually asking the model to do, from `scripts/v2/eval
 
 The 72-hour soak described in `docs/BENCHMARKS.md`, and the five `retired` `qwen38-27b-ws-*`
 profiles, which no longer have a deployment.
+
+---
+
+# Errata and post-run audit — added 2026-08-23, after re-reading the raw evidence
+
+Everything above this line is the campaign as it was written on the night. Nothing in it has been
+edited, and no measured number anywhere in `benchmarks/campaign-20260823-full/` has been touched.
+This section records what a second pass over the raw JSON says about the *interpretation* — three
+findings that change what the results mean, and two transcription errors.
+
+**None of it requalifies anything.** Where a conclusion depends on a re-measurement, that is said
+plainly and the measurement is scheduled, not assumed.
+
+## E1. The campaign measured a generation contract no profile actually deploys
+
+The largest finding, and it is a harness defect rather than a model result.
+
+`Invoke-V2ProfileQualification.ps1` forwarded `--max-tokens` to `qualify.py` **only when an
+operator passed `-MaxTokens` explicitly**. All four cells ran without it —
+`diagnostic_config.max_tokens_override` is `null` in every one of the four `qualify-*.json` files
+— so every suite fell back to its own fixture default: 8192 for coding and hard, 4096 for tools,
+json and retention.
+
+For `qwen38-27b-huge-256k` that is not a tuning detail, it is a contradiction:
+
+| | Value | Where from |
+|---|--:|---|
+| `max_output_tokens` | 32,768 | manifest |
+| `n_predict` (`--n-predict`) | 32,768 | manifest → llama-server |
+| `reasoning_budget` (`--reasoning-budget`) | 24,576 | manifest → llama-server |
+| Answer reserve the profile intends | 8,192 | 32768 − 24576 |
+| **HTTP `max_tokens` the benchmark actually sent** | **8,192** | coding-fixture default |
+
+The server was told it could think for up to 24,576 tokens and then answer inside a 32,768-token
+ceiling. The benchmark's own request cut generation off at 8,192 — below the thinking budget
+alone. Huge's reasoning budget never had a chance to hand over to an answer, because the request
+ended 16,384 tokens before the budget was even reachable.
+
+The three Huge `NO_ANSWER` rows in `coding` and the four in `hard` all stopped at exactly
+`output_tokens: 8192` with `finish_reason: length`. They are evidence about an 8,192-token
+request, and they say nothing about how Huge behaves under the 32,768-token contract it is
+actually served with. The report's line above — *"The reasoning-budget/max-tokens risk flagged
+mid-run … did not end up costing this run anything"* — was written about the retention suite and
+is correct for retention; it does not hold for coding and hard, where the same mismatch produced
+seven no-answers.
+
+Gemma is unaffected by the *mismatch* (it declares no `n_predict`, so 8,192 was both the fixture
+default and a fair reading of its contract) but is affected by the *ceiling*; see E4.
+
+**Fixed.** The request ceiling is now derived rather than defaulted, by one function
+(`Resolve-V2QualificationRequestBudget`) that the manifest validator and the qualification runner
+share: an explicit `-MaxTokens` wins, otherwise a positive `n_predict` becomes the ceiling,
+otherwise the fixtures keep their defaults. A ceiling that cannot hold the profile's answer
+reserve is refused **before the model loads**; measuring one on purpose now requires
+`-ConstrainedRequestBudgetDiagnostic`, and stamps the report as a diagnostic cell. Every
+qualification report now carries `request_budget` — the effective ceiling, where it came from, the
+reasoning budget, and the resulting answer reserve — so this can never again be a thing a reader
+has to reconstruct.
+
+Coding fixtures were **not** raised from 8192 to 32768. The request limit is a profile contract,
+not a property of the coding problem; raising the fixture would have changed what every other
+profile is measured against in order to fix one.
+
+## E2. "4/4 failed `unity_impl`" is four different failures, not one fixture defect
+
+The summary above groups the four Unity failures as one reproducing signal. The raw rows do not
+support that reading — they have four distinct causes, and only one is a statement about Unity
+code quality:
+
+| Profile | `finish_reason` | out tok | Raw verdict | What it actually was |
+|---|---|--:|---|---|
+| `qwen38-27b-deep-32k` | `stop` | 1,766 | `COMPILE_ERROR` | **A real model defect.** See below. |
+| `gemma4-12b-qat-ud-q4xl` | `length` | 8,192 | `NO_ANSWER` | Budget exhausted at 25,159 reasoning chars |
+| `qwen38-27b-huge-256k` | `length` | 8,192 | `NO_ANSWER` | Budget exhausted — and under the E1 cap |
+| `qwen38-27b-agent-128k` | *(none)* | *(none)* | `request failed: timed out` | **A 900-second HTTP timeout**, not a model reply |
+
+The report describes Agent's result as *"empty response, no output/reasoning tokens at all"*. The
+raw row is `{"error": "request failed: timed out"}` — the request never returned. It carried no
+`failure_taxonomy` at all, which is how a transport failure came to be written up as a model
+behaviour. (The same thing happened to Deep's `hard_go_retry_multifile`.)
+
+So one model produced a wrong answer, two ran out of budget, and one never answered. That is not
+four models agreeing about a fixture.
+
+### Deep's failure is genuine, and stays genuine
+
+`qwen38-27b-deep-32k` declared `GameObject instance` inside the `if (pool.Count > 0)` block of
+`Rent()` and again at method scope. C# rejects that with **CS0136** regardless of order, and
+`dotnet build` said so. The fixture was not relaxed, not rewritten around the answer, and given no
+model-specific exception.
+
+What was added is a way to settle the question by running something rather than by re-reading a
+report. `scripts/v2/eval/test_verifiers.py` now carries three named `unity_impl` regressions:
+
+1. a known-good `ProjectilePool` **compiles** against `UNITY_SHIM` — the fixture is passable;
+2. Deep's 2026-08-23 answer, verbatim, **does not compile**, and the toolchain output must contain
+   `CS0136` — the failure is real and it is the model's;
+3. the same answer with only the second declaration renamed **compiles** — the gate rejected the
+   scoping defect, not the approach.
+
+Gemma's, Huge's and Agent's Unity quality remains **unmeasured**. Two hit a budget ceiling that E1
+has now corrected and one never completed a request; all three need re-measurement before anything
+is said about them.
+
+## E3. The nested-tool failures are partly the fixture's fault, and the score stands anyway
+
+`tool_pick_search_many_nested` asked for *"all Go files … excluding vendor"* and graded against
+`include: ["*.go"]`, `exclude: ["vendor/**"]`. The synthetic user never said either glob. What the
+four models emitted:
+
+| Profile | `include` | `exclude` |
+|---|---|---|
+| `gemma4-12b-qat-ud-q4xl` | `["**/*.go"]` | `["vendor/**"]` ✓ |
+| `qwen38-27b-deep-32k` | `["*.go"]` ✓ | `["vendor/"]` |
+| `qwen38-27b-agent-128k` | `["*.go"]` ✓ | *(omitted)* |
+| `qwen38-27b-huge-256k` | `["*.go"]` ✓ | *(omitted)* |
+
+Every one selected `search_files` correctly and built the nested `filters` object correctly. Two
+of them were then failed on a literal the prompt never supplied. `literal_regex` had the identical
+defect (*"excluding vendor"* → wants `vendor/**`), and `literal_cs_glob` demanded
+`case_sensitive: true` — a *required* field in the tool schema — from a prompt that never
+mentioned case sensitivity at all.
+
+This is worth separating from a model weakness because the same task also failed on all four
+Qwen3.6-35B-A3B quantizations in the 2026-08-22 campaign
+(`benchmarks/REPORT-qwen36-35b-a3b-gfx1201-20260822.md` §11.1), where it was read as *"a property
+of the model rather than of the bits"*. Eight model configurations across two campaigns have now
+failed a task that asks a model to guess a literal and then grades it for guessing wrong.
+
+**Corrected for the future, not for the past.** The three prompts now state every literal the
+grader demands, byte-for-byte. **No expected value changed**, no verifier was loosened, and
+`vendor`, `vendor/`, `vendor/*` and `vendor/**` remain four different arguments — detecting
+argument mutation is the entire point of the strict contract. The 2026-08-23 pass/fail counts are
+unchanged and remain the record of what was measured on the night.
+
+A new `scripts/v2/eval/test_tool_grading.py` asserts, deterministically and without a model, that
+every literal a fixture grades byte-exactly is supplied byte-exactly in its prompt — so this class
+of defect cannot come back quietly.
+
+While writing those tests the comparator itself turned out to be looser than the contract it
+advertises: tool-argument strings were compared through `norm()`, which folds case and strips
+whitespace, so `Vendor/**` matched `vendor/**` and `FOO[0-9]+` matched `foo[0-9]+`.
+`literal_identifier` asks a model to preserve case exactly and the grader could not see case.
+Tool-argument strings are now compared byte-for-byte. Re-graded against all 44 tool rows in the
+raw 2026-08-23 arguments this changes **no historical verdict** — the hole was latent, not
+load-bearing — so the scores above stand as measured under either comparator.
+
+## E4. Gemma's no-answers are a budget behaviour, and a candidate fix is staged but unproven
+
+Seven of Gemma's failures across `coding` and `hard` are the same event: `finish_reason: length`
+at exactly 8,192 output tokens, with 25,159–29,818 characters still in `reasoning_content`. None
+of them is a correctness result.
+
+The separation is clean in the raw data:
+
+| | reasoning chars | output tokens |
+|---|---|---|
+| 10 passing rows | 1,386 – 17,202 | 503 – 6,125 |
+| 7 no-answer rows | 25,159 – 29,818 | 8,192 (all seven) |
+
+No passing run came close to the ceiling; every failing run sat exactly on it.
+
+`benchmarks/REPORT-gemma4-26b-a4b-gfx1201-20260821.md` §14 already measured the shape of the fix
+on Gemma 4 26B A4B: raising the output cap alone does **not** help (8192 → no answer at 17,147
+reasoning chars; 16384 → no answer again at 33,795), while pairing a raised ceiling with a bounded
+reasoning budget does (16384/8192, 16384/4096, 16384/2048 and 16384/0 all reached 6/6 diagnostic
+coding). That report also warns explicitly against copying Qwen Huge's `reasoning_budget: 24576`
+into Gemma.
+
+A candidate configuration is therefore **staged and left unqualified** in
+`docs/reports/HARDENING-post-qualification-20260823.md`. `config/models.yaml` is unchanged:
+`gemma4-12b-qat-ud-q4xl` is `provider.public_model`, the always-on default, and changing what it
+serves on the strength of static analysis would alter real user behaviour with no physical
+evidence behind it. The evidence for the candidate comes from a different Gemma size, and that
+gap is exactly what the next physical run is for.
+
+## E5. Two transcription errors in the summary tables above
+
+Both are in the hand-written per-model tables; the raw JSON is correct and unchanged.
+
+| Model | Report says | `qualify-*.json` says |
+|---|---|---|
+| `qwen38-27b-deep-32k` | Hard **7/7** | `passed: 7, total: 8` — `hard_go_retry_multifile` was a 900s request timeout |
+| `qwen38-27b-agent-128k` | Hard **8/8** | `passed: 7, total: 8` — `hard_go_retry_multifile` failed on test output |
+
+Neither model ran a 7-task or a 9-task hard suite; both ran 8. Deep's missing row is a transport
+failure (`REQUEST_TIMEOUT`) and Agent's is a real test failure, so the two 7/8s do not mean the
+same thing either.
+
+The counts in the tables above are left as written, because this section is an erratum and not a
+rewrite. `summarize_campaign.py` does not summarise the `hard` suite, which is why nothing caught
+this at the time.
+
+## What changed in the harness because of this
+
+Deterministic, fast, and all covered by tests that run without a GPU:
+
+| Change | Answers |
+|---|---|
+| `Resolve-V2QualificationRequestBudget` derives the request ceiling from the profile | The harness was measuring a different configuration from deployment |
+| An impossible reasoning/ceiling pair is refused before the model loads | A deterministic configuration defect |
+| `request_budget` recorded in every report | Reporting could not distinguish a deployment budget from a benchmark cap |
+| `REQUEST_TIMEOUT` / `REQUEST_ERROR` / `MODEL_OUTPUT_FAILURE` and friends | Reporting was misclassifying a transport failure as a model result |
+| Locale-aware `COMPILE_ERROR` matching | A pt-BR `dotnet` failure graded as a bare `TEST_FAILURE` |
+| Three fixture prompts now state their literals | The fixtures were invalid: they graded literals they never supplied |
+| Byte-exact tool-argument strings | The benchmark contract was internally inconsistent |
+| `unity_impl` regressions, tool-grading self-test, argv-quoting regression | Nothing; these lock in verdicts that were argued about once |
+
+Nothing here was changed because it made a model pass. The two changes that *could* raise a future
+score — the fixture prompts — raise it only by asking the question the grader was already marking,
+and the historical counts are untouched.
+
+The changes themselves, the staged Gemma candidate, the Qwen3.6-35B-A3B status, and the exact
+commands for the physical re-run are in
+[`HARDENING-post-qualification-20260823.md`](HARDENING-post-qualification-20260823.md). **No model
+was requalified by that work** — the re-run has not happened.

@@ -11,11 +11,25 @@ server log and production wants neither. If the two drift, a result measured her
 stops describing what the manifest would actually serve, so the mirroring is
 deliberate rather than incidental.
 
+The HTTP request ceiling is derived, not defaulted. `-MaxTokens` wins when an
+operator supplies one; otherwise a positive `-NPredict` -- the profile's own
+generation contract -- becomes the ceiling; otherwise each suite keeps its
+fixture default. Leaving that to the fixtures is what made the 2026-08-23
+qwen38-27b-huge-256k run measure a 32768-token profile through an 8192-token
+coding-fixture cap while the server had been told to spend up to 24576 tokens
+thinking. A ceiling that cannot hold the profile's answer reserve is refused
+before the model loads unless -ConstrainedRequestBudgetDiagnostic names the
+constrained measurement as the point of the run.
+
 Memory is sampled on a timer in a background job for the whole life of the
 server, not just at load. The distinction matters on this workstation: dedicated
 VRAM is set at load and barely moves, while shared GPU memory — the paging signal
 — climbs as a long context is actually filled, and a load-time sample cannot see
 it.
+
+`-DryRun` resolves the budget, builds both command lines, prints them and stops
+without loading anything, so the plan for a multi-hour cell can be reviewed --
+and asserted on by a fast test -- before the night it costs hours.
 
 .EXAMPLE
 ./Invoke-V2ProfileQualification.ps1 -ModelPath C:\IA\models\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-Q3_K_XL.gguf `
@@ -57,6 +71,16 @@ param(
     [ValidateSet('current', 'agentic')][string]$SystemPolicy = 'current',
     [switch]$StrictToolPolicy,
     [switch]$ToolSchemaPolicy,
+    # Measuring a request cap that cannot hold the profile's own answer reserve
+    # is a legitimate experiment and an illegitimate baseline. Naming it keeps
+    # the two apart: without this switch the combination is refused before the
+    # model loads, and with it the report is stamped as a diagnostic cell.
+    [switch]$ConstrainedRequestBudgetDiagnostic,
+    # Resolve and print everything this cell would run, then stop. Nothing is
+    # loaded, no port is bound, no GPU is touched. It exists so the argument
+    # vector and the generation budget of a multi-hour run can be reviewed --
+    # and asserted on by a fast test -- before the night it costs hours.
+    [switch]$DryRun,
     [switch]$CaptureDiagnostics,
     [ValidateRange(1, 30)][int]$SampleIntervalSeconds = 3
 )
@@ -73,10 +97,18 @@ if ($CpuMoe -and $NCpuMoe -ge 0) {
 $serverExe = Join-Path $RuntimeRoot 'llama-server.exe'
 $qualify = Join-Path $PSScriptRoot 'eval\qualify.py'
 foreach ($required in @($serverExe, $ModelPath, $qualify)) {
-    if (-not (Test-Path -LiteralPath $required)) { throw "Required file is missing: $required" }
+    if (Test-Path -LiteralPath $required) { continue }
+    # A dry run is a review of what would happen, and it has to be reviewable on
+    # a machine that holds neither the weights nor the runtime -- CI, for one.
+    # The missing path is still reported, as a warning rather than a stop.
+    if ($DryRun -and $required -ne $qualify) {
+        Write-Warning ("Not present on this machine (dry run): {0}" -f $required)
+        continue
+    }
+    throw "Required file is missing: $required"
 }
 
-New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
+if (-not $DryRun) { New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null }
 $workdir = Join-Path $OutputRoot ("work-" + $Label)
 $serverLog = Join-Path $OutputRoot ("server-" + $Label + ".log")
 $evalOut = Join-Path $OutputRoot ("qualify-" + $Label + ".json")
@@ -105,9 +137,76 @@ if (-not [string]::IsNullOrWhiteSpace($ReasoningBudgetMessage)) {
 $arguments = New-V2LlamaServerArguments -Model $modelSpec -Port "$Port" -Alias 'local' `
     -IncludeJinja -IncludeWarmup -IncludeMetrics -IncludeNoWebui
 
+# Resolved before the model is loaded, because the one failure this prevents --
+# a request ceiling too small to hold the profile's own answer reserve -- costs
+# hours of GPU time to discover and produces a report that measures the harness
+# rather than the model.
+$budget = Resolve-V2QualificationRequestBudget -ExplicitMaxTokens $MaxTokens -NPredict $NPredict `
+    -ReasoningBudget $ReasoningBudget -Diagnostic:$ConstrainedRequestBudgetDiagnostic
+
 $commandLine = ConvertTo-V2CommandLine -Arguments (@($serverExe) + @($arguments))
 $moe = if ($CpuMoe) { 'all' } elseif ($NCpuMoe -ge 0) { [string]$NCpuMoe } else { 'default' }
 Write-Host ("[{0}] ctx={1} kv={2}/{3} ub={4} split='{5}' cpu_moe={6}" -f $Label, $ContextTokens, $CacheTypeK, $CacheTypeV, $UBatchSize, $TensorOverride, $moe)
+Write-Host ("  request max_tokens={0} ({1}) reasoning_budget={2} answer_reserve={3}{4}" -f `
+    $(if ($budget.max_tokens -gt 0) { $budget.max_tokens } else { 'fixture default' }), `
+    $budget.source, `
+    $(if ($null -ne $budget.reasoning_budget) { $budget.reasoning_budget } else { 'none' }), `
+    $(if ($null -ne $budget.answer_reserve) { $budget.answer_reserve } else { 'n/a' }), `
+    $(if ($budget.diagnostic) { ' [CONSTRAINED DIAGNOSTIC]' } else { '' }))
+
+# Built here rather than inside the try block so -DryRun prints the same vector
+# the real run executes. Two constructions would let the reviewed command and
+# the executed command differ, which is the class of defect this whole file has
+# already paid for once.
+$pyArgs = @(
+    $qualify,
+    '--base-url', "http://127.0.0.1:$Port",
+    '--alias', 'local',
+    '--label', $Label,
+    '--workdir', $workdir,
+    '--out', $evalOut,
+    '--suites', $Suites
+)
+foreach ($t in $RetentionTokens) { $pyArgs += @('--retention-tokens', "$t") }
+if ($OnlyCodingTasks) { $pyArgs += @('--only', $OnlyCodingTasks) }
+if ($OnlyToolTasks) { $pyArgs += @('--only-tools', $OnlyToolTasks) }
+# Always forwarded when a ceiling was resolved, not only when an operator typed
+# one. Silence here is what let qwen38-27b-huge-256k benchmark its declared
+# 32768-token contract through an 8192-token coding-fixture default.
+if ($budget.max_tokens -gt 0) { $pyArgs += @('--max-tokens', "$($budget.max_tokens)") }
+$pyArgs += @('--max-tokens-source', $budget.source)
+if ($null -ne $budget.reasoning_budget) { $pyArgs += @('--reasoning-budget', "$($budget.reasoning_budget)") }
+if ($ConstrainedRequestBudgetDiagnostic) { $pyArgs += '--allow-constrained-request-budget' }
+$pyArgs += @('--temperature', "$Temperature", '--seed', "$Seed", '--system-policy', $SystemPolicy)
+if ($StrictToolPolicy) { $pyArgs += '--strict-tool-policy' }
+if ($ToolSchemaPolicy) { $pyArgs += '--tool-schema-policy' }
+if ($CaptureDiagnostics) {
+    $pyArgs += @('--capture-dir', (Join-Path $OutputRoot ("capture-" + $Label)))
+}
+
+if ($DryRun) {
+    $plan = [ordered]@{
+        schema_version   = 1
+        scenario         = 'profile-qualification-dry-run'
+        label            = $Label
+        server_command   = $commandLine
+        qualify_command  = ConvertTo-V2CommandLine -Arguments (@('python') + [string[]]$pyArgs)
+        qualify_arguments = [string[]]$pyArgs
+        request_budget   = [ordered]@{
+            effective_max_tokens   = $(if ($budget.max_tokens -gt 0) { $budget.max_tokens } else { $null })
+            source                 = $budget.source
+            reasoning_budget       = $budget.reasoning_budget
+            answer_reserve         = $budget.answer_reserve
+            minimum_answer_reserve = $budget.minimum_answer_reserve
+            reserve_ok             = $budget.reserve_ok
+            constrained_diagnostic = $budget.diagnostic
+        }
+        suites           = $Suites
+        retention_tokens = [int[]]$RetentionTokens
+        started          = $false
+    }
+    return [pscustomobject]$plan
+}
 
 $idle = Get-V2MemorySample -ProcessId 0
 
@@ -169,27 +268,6 @@ try {
     if (-not $ready) { throw "llama-server did not become ready within $StartupTimeoutSeconds seconds." }
     $loadSeconds = [Math]::Round($started.Elapsed.TotalSeconds, 1)
     Write-Host ("  loaded in {0}s" -f $loadSeconds)
-
-    $pyArgs = @(
-        $qualify,
-        '--base-url', "http://127.0.0.1:$Port",
-        '--alias', 'local',
-        '--label', $Label,
-        '--workdir', $workdir,
-        '--out', $evalOut,
-        '--suites', $Suites
-    )
-    foreach ($t in $RetentionTokens) { $pyArgs += @('--retention-tokens', "$t") }
-    if ($OnlyCodingTasks) { $pyArgs += @('--only', $OnlyCodingTasks) }
-    if ($OnlyToolTasks) { $pyArgs += @('--only-tools', $OnlyToolTasks) }
-    if ($MaxTokens -gt 0) { $pyArgs += @('--max-tokens', "$MaxTokens") }
-    $pyArgs += @('--temperature', "$Temperature", '--seed', "$Seed", '--system-policy', $SystemPolicy)
-    if ($StrictToolPolicy) { $pyArgs += '--strict-tool-policy' }
-    if ($ToolSchemaPolicy) { $pyArgs += '--tool-schema-policy' }
-    if ($CaptureDiagnostics) {
-        $captureDir = Join-Path $OutputRoot ("capture-" + $Label)
-        $pyArgs += @('--capture-dir', $captureDir)
-    }
 
     & python @pyArgs
     $evalExit = $LASTEXITCODE
@@ -277,11 +355,25 @@ $report = [ordered]@{
         n_cpu_moe       = $(if ($NCpuMoe -ge 0) { $NCpuMoe } else { $null })
         device_vram_mib = $DeviceVramMib
         max_tokens      = $(if ($MaxTokens -gt 0) { $MaxTokens } else { $null })
+        # What the battery was actually allowed to generate, and why. A future
+        # reader must be able to tell a NO_ANSWER produced under the deployed
+        # contract from one produced under a benchmark cap the deployment would
+        # never impose.
+        request_budget  = [ordered]@{
+            effective_max_tokens   = $(if ($budget.max_tokens -gt 0) { $budget.max_tokens } else { $null })
+            source                 = $budget.source
+            reasoning_budget       = $budget.reasoning_budget
+            answer_reserve         = $budget.answer_reserve
+            minimum_answer_reserve = $budget.minimum_answer_reserve
+            reserve_ok             = $budget.reserve_ok
+            constrained_diagnostic = $budget.diagnostic
+        }
         temperature     = $Temperature
         seed            = $Seed
         system_policy   = $SystemPolicy
         strict_tool_policy = [bool]$StrictToolPolicy
         tool_schema_policy = [bool]$ToolSchemaPolicy
+        constrained_request_budget_diagnostic = [bool]$ConstrainedRequestBudgetDiagnostic
         capture_diagnostics = [bool]$CaptureDiagnostics
         command_line    = $commandLine
     }

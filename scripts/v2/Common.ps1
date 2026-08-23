@@ -101,6 +101,140 @@ $script:V2ForkPinnedSettings = @(
     'checkpoint_min_step'
 )
 
+# --------------------------------------------------------------------------
+# Generation budget contract
+# --------------------------------------------------------------------------
+# One rule, three callers: the manifest validator, the qualification runner, and
+# any diagnostic that wants to know what a profile will actually be allowed to
+# emit. A profile states a generation ceiling (n_predict) and, optionally, how
+# much of that ceiling thinking may consume (reasoning_budget). What is left is
+# the answer reserve, and an answer reserve that is too small produces an empty
+# `content` field that a grader reads as broken code rather than as an
+# exhausted budget.
+#
+# The floor is deliberately not a fraction of the ceiling. A profile that
+# reserves 8192 answer tokens can write any fixture in this repository; one that
+# reserves 10% of 32768 cannot, and would pass a proportional rule.
+$script:V2MinimumAnswerReserve = 8192
+
+function Get-V2MinimumAnswerReserve {
+    <#
+    .SYNOPSIS
+    Answer tokens a profile with a positive reasoning budget must keep for the answer.
+
+    .DESCRIPTION
+    Min() rather than a constant so a profile whose whole ceiling is below the
+    floor is judged against its own ceiling instead of an unreachable target.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][int]$RequestCeiling
+    )
+    return [Math]::Min($script:V2MinimumAnswerReserve, $RequestCeiling)
+}
+
+function Test-V2AnswerReserve {
+    <#
+    .SYNOPSIS
+    Reports whether a generation ceiling leaves a usable answer reserve after reasoning.
+
+    .DESCRIPTION
+    Returns a verdict object rather than throwing, so the manifest validator can
+    phrase a manifest error and the qualification runner can phrase a
+    command-line error from the same arithmetic.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][int]$RequestCeiling,
+        [int]$ReasoningBudget = -1
+    )
+
+    $applies = ($ReasoningBudget -gt 0)
+    $reserve = if ($applies) { $RequestCeiling - $ReasoningBudget } else { $null }
+    $minimum = if ($applies) { Get-V2MinimumAnswerReserve -RequestCeiling $RequestCeiling } else { $null }
+    return [pscustomobject]@{
+        applies         = $applies
+        request_ceiling = $RequestCeiling
+        reasoning_budget = $(if ($applies) { $ReasoningBudget } else { $null })
+        answer_reserve  = $reserve
+        minimum_reserve = $minimum
+        ok              = (-not $applies) -or ($reserve -ge $minimum)
+    }
+}
+
+function Resolve-V2QualificationRequestBudget {
+    <#
+    .SYNOPSIS
+    Resolves the effective HTTP `max_tokens` one qualification run will request.
+
+    .DESCRIPTION
+    The defect this exists to prevent: a profile can tell llama-server to spend
+    up to `reasoning_budget` tokens thinking inside an `n_predict` ceiling, while
+    the benchmark's own HTTP request caps generation far below that ceiling. The
+    server then never gets the chance to honour the contract being measured, and
+    the run reports NO_ANSWER for a budget the deployment would never impose.
+
+    Precedence, highest first:
+
+      explicit   an operator passed -MaxTokens; the operator wins, always
+      profile    the profile declares a positive n_predict, which IS the
+                 generation contract the deployment serves
+      fixture    neither; each suite keeps the per-fixture default it has
+                 always used, and this function returns 0 to say so
+
+    `Diagnostic` names the one legitimate reason to run an explicit cap below
+    the profile's own answer reserve -- deliberately measuring a constrained
+    request -- and it must be asked for by name. Without it an impossible
+    combination is refused here, before a model is loaded.
+    #>
+    param(
+        [int]$ExplicitMaxTokens = 0,
+        [int]$NPredict = 0,
+        [int]$ReasoningBudget = -1,
+        [switch]$Diagnostic
+    )
+
+    if ($ExplicitMaxTokens -gt 0) {
+        $effective = $ExplicitMaxTokens
+        $source = 'explicit'
+    }
+    elseif ($NPredict -gt 0) {
+        $effective = $NPredict
+        $source = 'profile'
+    }
+    else {
+        $effective = 0
+        $source = 'fixture'
+    }
+
+    # A fixture default is per-suite and not known here, so the invariant cannot
+    # be evaluated against it. It is still worth refusing the one shape that is
+    # wrong regardless of which fixture default applies: a reasoning budget at or
+    # above every default this harness uses leaves nothing for any of them.
+    $ceilingForCheck = if ($effective -gt 0) { $effective } else { $script:V2MinimumAnswerReserve }
+    $verdict = Test-V2AnswerReserve -RequestCeiling $ceilingForCheck -ReasoningBudget $ReasoningBudget
+
+    if (-not $verdict.ok -and -not $Diagnostic) {
+        $where = if ($source -eq 'fixture') {
+            "the fixture default ceiling of $ceilingForCheck tokens"
+        }
+        else {
+            "the $source request ceiling of $effective tokens"
+        }
+        throw ("A reasoning_budget of $ReasoningBudget leaves $($verdict.answer_reserve) answer tokens under $where; " +
+            "at least $($verdict.minimum_reserve) are required. Raise the request ceiling, lower the reasoning budget, " +
+            'or pass -ConstrainedRequestBudgetDiagnostic to measure the constrained cap on purpose.')
+    }
+
+    return [pscustomobject]@{
+        max_tokens             = $effective
+        source                 = $source
+        reasoning_budget       = $(if ($ReasoningBudget -gt 0) { $ReasoningBudget } else { $null })
+        answer_reserve         = $verdict.answer_reserve
+        minimum_answer_reserve = $verdict.minimum_reserve
+        reserve_ok             = [bool]$verdict.ok
+        diagnostic             = [bool]$Diagnostic
+    }
+}
+
 function Assert-V2ManifestSemantics {
     param(
         [Parameter(Mandatory = $true)]
@@ -267,10 +401,13 @@ function Assert-V2ManifestSemantics {
             throw "Model '$($model.id)' declares reasoning_budget_message without a positive reasoning_budget."
         }
         if ($null -ne $reasoningBudget -and $null -ne $nPredict -and [int]$reasoningBudget -gt 0) {
-            $answerReserve = [int]$nPredict - [int]$reasoningBudget
-            $minimumAnswerReserve = [Math]::Min(8192, [int]$nPredict)
-            if ($answerReserve -lt $minimumAnswerReserve) {
-                throw "Model '$($model.id)' leaves only $answerReserve tokens after reasoning_budget; profiles with reasoning must reserve at least $minimumAnswerReserve answer tokens."
+            # Same arithmetic the qualification runner applies to its HTTP
+            # request ceiling. Two copies of this rule would let a profile be
+            # legal in the manifest and impossible on the wire, which is exactly
+            # what the 2026-08-23 campaign measured on qwen38-27b-huge-256k.
+            $verdict = Test-V2AnswerReserve -RequestCeiling ([int]$nPredict) -ReasoningBudget ([int]$reasoningBudget)
+            if (-not $verdict.ok) {
+                throw "Model '$($model.id)' leaves only $($verdict.answer_reserve) tokens after reasoning_budget; profiles with reasoning must reserve at least $($verdict.minimum_reserve) answer tokens."
             }
         }
         if ($null -ne $compactThresholdTokens -and $null -ne $maxOutputTokens) {

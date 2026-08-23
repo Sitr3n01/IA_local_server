@@ -357,11 +357,364 @@ if (-not $negativeRejected) {
     throw 'A runtime whose help omits --no-cache-idle-slots accepted a profile that requires it.'
 }
 
+# 12. Multi-word argument values must survive command construction as ONE argv
+#    token. Windows PowerShell 5.1's Start-Process joins an argument array into
+#    a command line without quoting elements that contain spaces, so on
+#    2026-08-23 the qwen38-27b-huge-256k reasoning-budget message reached
+#    llama-server as five stray words and the process died five seconds after
+#    launch on `invalid argument: budget`. Three benchmark runners now build
+#    their argument line through ConvertTo-V2CommandLine for exactly that
+#    reason, and this asserts the property they depend on: parsing the generated
+#    line back into argv must return the phrase intact.
+$reasoningMessage = 'Thinking budget reached. Stop analysing and write the final answer now.'
+$spacedSpec = New-V2BenchmarkModelSpec -ModelPath 'C:\IA\models\Qwen3.8-27B-GGUF\Qwen3.8-27B-UD-Q2_K_XL.gguf' `
+    -Alias 'local' -ContextTokens 262144 -CacheTypeK q4_0 -CacheTypeV q4_0 -UBatchSize 288 `
+    -BatchSize 2048 -NGpuLayers 99 -Threads 8 -Parallel 1 -TensorOverride 'blk\.(6[0-3])\.ffn_.*=CPU'
+$spacedSpec | Add-Member -NotePropertyName 'n_predict' -NotePropertyValue 32768
+$spacedSpec | Add-Member -NotePropertyName 'reasoning_budget' -NotePropertyValue 24576
+$spacedSpec | Add-Member -NotePropertyName 'reasoning_budget_message' -NotePropertyValue $reasoningMessage
+$spacedArguments = New-V2LlamaServerArguments -Model $spacedSpec -Port '19399' -Alias 'local' `
+    -IncludeJinja -IncludeWarmup -IncludeMetrics -IncludeNoWebui
+$spacedLine = ConvertTo-V2CommandLine -Arguments $spacedArguments
+
+Assert-Contains -Haystack $spacedLine -Needle ('--reasoning-budget-message "{0}"' -f $reasoningMessage) `
+    -Label 'The reasoning-budget message was not emitted as a single quoted value.'
+
+# The assertion that actually matters: split the generated line the way a
+# process launcher does and count the tokens. A regression that re-introduces
+# the raw-array pattern yields several tokens here instead of one.
+function Split-CommandLineForTest {
+    param([Parameter(Mandatory = $true)][string]$Line)
+    $tokens = [System.Collections.Generic.List[string]]::new()
+    $current = [System.Text.StringBuilder]::new()
+    $inQuotes = $false
+    $started = $false
+    foreach ($char in $Line.ToCharArray()) {
+        if ($char -eq [char]34) { $inQuotes = -not $inQuotes; $started = $true; continue }
+        if ($char -eq ' ' -and -not $inQuotes) {
+            if ($started) { [void]$tokens.Add($current.ToString()); [void]$current.Clear(); $started = $false }
+            continue
+        }
+        [void]$current.Append($char)
+        $started = $true
+    }
+    if ($started) { [void]$tokens.Add($current.ToString()) }
+    return [string[]]$tokens
+}
+
+$argv = Split-CommandLineForTest -Line $spacedLine
+$messageIndex = [Array]::IndexOf($argv, '--reasoning-budget-message')
+if ($messageIndex -lt 0) {
+    throw 'The generated command line lost --reasoning-budget-message entirely.'
+}
+if ($argv[$messageIndex + 1] -cne $reasoningMessage) {
+    throw ("A multi-word argument value was split across argv tokens." +
+        "`nexpected: $reasoningMessage`nactual:   $($argv[$messageIndex + 1])")
+}
+# The stray word that killed the first Huge-256k attempt. If quoting regresses,
+# 'budget' becomes an argv entry of its own.
+if ($argv -ccontains 'budget') {
+    throw 'The reasoning-budget message was split into separate command-line tokens again.'
+}
+$otIndex = [Array]::IndexOf($argv, '-ot')
+if ($otIndex -lt 0 -or $argv[$otIndex + 1] -cne 'blk\.(6[0-3])\.ffn_.*=CPU') {
+    throw 'The tensor override did not survive command construction as one argv value.'
+}
+
+# The same property through the production path rather than the benchmark path,
+# so the two cannot drift apart.
+$spacedProduction = ($template | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
+$spacedProduction | Add-Member -NotePropertyName 'reasoning_budget' -NotePropertyValue 24576
+$spacedProduction | Add-Member -NotePropertyName 'reasoning_budget_message' -NotePropertyValue $reasoningMessage
+$spacedProductionLine = New-V2LlamaServerCommand -Runtime $runtimesById[$spacedProduction.runtime] `
+    -Model $spacedProduction -RouterAPIKeyPath $routerAPIKeyPath
+$productionArgv = Split-CommandLineForTest -Line $spacedProductionLine
+$productionIndex = [Array]::IndexOf($productionArgv, '--reasoning-budget-message')
+if ($productionIndex -lt 0 -or $productionArgv[$productionIndex + 1] -cne $reasoningMessage) {
+    throw 'The production command line split the multi-word reasoning-budget message.'
+}
+
+# 13. The qualification request ceiling. Resolve-V2QualificationRequestBudget is
+#    the single source of truth for what one qualification run may generate, and
+#    its precedence is the contract the 2026-08-23 campaign violated by letting
+#    every profile inherit a coding-fixture default.
+function Assert-Budget {
+    param(
+        [Parameter(Mandatory = $true)][object]$Budget,
+        [Parameter(Mandatory = $true)][int]$ExpectedMaxTokens,
+        [Parameter(Mandatory = $true)][string]$ExpectedSource,
+        [Parameter(Mandatory = $true)][string]$Label
+    )
+    if ([int]$Budget.max_tokens -ne $ExpectedMaxTokens) {
+        throw "$Label`nexpected max_tokens: $ExpectedMaxTokens`nactual:              $($Budget.max_tokens)"
+    }
+    if ([string]$Budget.source -cne $ExpectedSource) {
+        throw "$Label`nexpected source: $ExpectedSource`nactual:          $($Budget.source)"
+    }
+}
+
+# The shipped canary profiles, by their manifest values.
+Assert-Budget -Budget (Resolve-V2QualificationRequestBudget -NPredict 8192) `
+    -ExpectedMaxTokens 8192 -ExpectedSource 'profile' `
+    -Label 'A Deep/Agent-shaped profile did not derive its request ceiling from n_predict.'
+Assert-Budget -Budget (Resolve-V2QualificationRequestBudget -NPredict 32768 -ReasoningBudget 24576) `
+    -ExpectedMaxTokens 32768 -ExpectedSource 'profile' `
+    -Label 'Huge 256k did not derive its 32768-token request ceiling from n_predict.'
+# Gemma declares no n_predict, so each suite keeps its own fixture default and
+# the resolver says so by returning 0 rather than inventing a number.
+Assert-Budget -Budget (Resolve-V2QualificationRequestBudget) `
+    -ExpectedMaxTokens 0 -ExpectedSource 'fixture' `
+    -Label 'A profile without n_predict did not fall through to the fixture default.'
+# An operator override outranks the profile in both directions.
+Assert-Budget -Budget (Resolve-V2QualificationRequestBudget -ExplicitMaxTokens 2048 -NPredict 32768) `
+    -ExpectedMaxTokens 2048 -ExpectedSource 'explicit' `
+    -Label 'An explicit -MaxTokens did not outrank the profile ceiling.'
+Assert-Budget -Budget (Resolve-V2QualificationRequestBudget -ExplicitMaxTokens 16384) `
+    -ExpectedMaxTokens 16384 -ExpectedSource 'explicit' `
+    -Label 'An explicit -MaxTokens was not honoured without a profile ceiling.'
+
+$hugeBudget = Resolve-V2QualificationRequestBudget -NPredict 32768 -ReasoningBudget 24576
+if ([int]$hugeBudget.answer_reserve -ne 8192) {
+    throw "Huge 256k reported an answer reserve of $($hugeBudget.answer_reserve); 32768 - 24576 = 8192."
+}
+if (-not $hugeBudget.reserve_ok) {
+    throw 'The shipped Huge 256k budget was reported as leaving too little for the answer.'
+}
+if ($hugeBudget.diagnostic) {
+    throw 'A normal profile qualification was flagged as a constrained diagnostic.'
+}
+
+# The exact combination the 2026-08-23 campaign ran, and the reason this
+# resolver exists: an 8192-token request against a 24576-token thinking budget
+# has a negative answer reserve and must never start a model.
+$impossibleRefused = $false
+try {
+    Resolve-V2QualificationRequestBudget -ExplicitMaxTokens 8192 -ReasoningBudget 24576 | Out-Null
+}
+catch {
+    $impossibleRefused = $_.Exception.Message -match 'reasoning_budget'
+}
+if (-not $impossibleRefused) {
+    throw 'max_tokens=8192 with reasoning_budget=24576 was accepted for a normal qualification.'
+}
+
+# The same shape reached by silence rather than by an explicit cap: a profile
+# with a reasoning budget and no ceiling would inherit a fixture default that
+# cannot hold the answer either.
+$impossibleByDefaultRefused = $false
+try {
+    Resolve-V2QualificationRequestBudget -ReasoningBudget 24576 | Out-Null
+}
+catch {
+    $impossibleByDefaultRefused = $_.Exception.Message -match 'fixture default'
+}
+if (-not $impossibleByDefaultRefused) {
+    throw 'A reasoning budget above every fixture default was accepted with no request ceiling.'
+}
+
+# Deliberately measuring a constrained cap stays possible, and is stamped.
+$diagnosticBudget = Resolve-V2QualificationRequestBudget -ExplicitMaxTokens 8192 `
+    -ReasoningBudget 24576 -Diagnostic
+if (-not $diagnosticBudget.diagnostic -or $diagnosticBudget.reserve_ok) {
+    throw 'The constrained-budget diagnostic did not record itself as constrained.'
+}
+if ([int]$diagnosticBudget.max_tokens -ne 8192) {
+    throw 'The constrained-budget diagnostic did not honour the explicit cap it was asked for.'
+}
+
+# A ceiling at or below the 8192 floor is judged against itself rather than
+# against an unreachable target, which is what makes the manifest rule and this
+# resolver the same rule: reserve min(8192, ceiling), so a ceiling that small
+# cannot fund bounded reasoning at all until it is raised. The error has to name
+# the profile's own ceiling, not 8192, or the operator is told to clear a bar
+# that does not apply to them.
+$smallCeilingRefused = ''
+try {
+    Resolve-V2QualificationRequestBudget -NPredict 4096 -ReasoningBudget 1024 | Out-Null
+}
+catch {
+    $smallCeilingRefused = $_.Exception.Message
+}
+if ($smallCeilingRefused -notmatch 'at least 4096 are required') {
+    throw "A 4096-token ceiling was judged against the 8192-token floor instead of its own: $smallCeilingRefused"
+}
+$smallVerdict = Test-V2AnswerReserve -RequestCeiling 4096 -ReasoningBudget 1024
+if ([int]$smallVerdict.minimum_reserve -ne 4096 -or [int]$smallVerdict.answer_reserve -ne 3072) {
+    throw 'Test-V2AnswerReserve did not scale its floor to a ceiling below 8192.'
+}
+# Raising the ceiling is the documented way out, and it works.
+$raisedBudget = Resolve-V2QualificationRequestBudget -NPredict 16384 -ReasoningBudget 8192
+if (-not $raisedBudget.reserve_ok -or [int]$raisedBudget.answer_reserve -ne 8192) {
+    throw 'A 16384/8192 split was not accepted despite reserving the full 8192-token floor.'
+}
+# A profile with no reasoning budget is never asked about an answer reserve.
+$noReasoning = Resolve-V2QualificationRequestBudget -NPredict 8192
+if (-not $noReasoning.reserve_ok -or $null -ne $noReasoning.answer_reserve) {
+    throw 'A profile without a reasoning budget was given an answer-reserve verdict.'
+}
+
+# 14. The manifest validator and the qualification runner must agree. A profile
+#    the manifest accepts has to be one the runner will measure at the ceiling
+#    it declares, or a legal manifest becomes an impossible benchmark -- which
+#    is the whole defect.
+foreach ($budgetModel in @($manifest.models)) {
+    $modelNPredict = Get-V2ModelSetting -Model $budgetModel -Name 'n_predict'
+    if ($null -eq $modelNPredict) { continue }
+    $modelReasoning = Get-V2ModelSetting -Model $budgetModel -Name 'reasoning_budget'
+    $resolved = Resolve-V2QualificationRequestBudget -NPredict ([int]$modelNPredict) `
+        -ReasoningBudget $(if ($null -ne $modelReasoning) { [int]$modelReasoning } else { -1 })
+    if ([int]$resolved.max_tokens -ne [int]$modelNPredict) {
+        throw "Model '$($budgetModel.id)' would be qualified at $($resolved.max_tokens) tokens against a declared n_predict of $modelNPredict."
+    }
+    $modelMaxOutput = Get-V2ModelSetting -Model $budgetModel -Name 'max_output_tokens'
+    if ($null -ne $modelMaxOutput -and [int]$resolved.max_tokens -lt [int]$modelMaxOutput) {
+        throw "Model '$($budgetModel.id)' would be qualified below its advertised max_output_tokens."
+    }
+}
+
+# 15. The runner's own wiring, end to end. Sections 12-14 prove the helpers are
+#    right; this proves Invoke-V2ProfileQualification.ps1 actually calls them.
+#    The 2026-08-23 defect was not a wrong helper -- it was a correct profile
+#    ceiling that the runner never forwarded, so `--max-tokens` was absent and
+#    every suite fell back to a fixture default. -DryRun resolves and prints
+#    exactly what the real run would execute, without loading anything.
+$qualificationRunner = Join-Path $PSScriptRoot 'Invoke-V2ProfileQualification.ps1'
+$dryRunRoot = Join-Path ([IO.Path]::GetTempPath()) ('v2-dryrun-' + [Guid]::NewGuid().ToString('N'))
+
+function Get-QualificationPlan {
+    param([hashtable]$Splat)
+    $defaults = @{
+        DryRun     = $true
+        ModelPath  = 'C:\IA\models\does-not-need-to-exist.gguf'
+        Label      = 'dryrun'
+        OutputRoot = $dryRunRoot
+    }
+    foreach ($key in $Splat.Keys) { $defaults[$key] = $Splat[$key] }
+    # 6>$null drops the runner's progress banner. A test that prints a plan for
+    # every cell it checks buries the one line that matters when it fails.
+    return & $qualificationRunner @defaults -WarningAction SilentlyContinue 6>$null
+}
+
+function Get-ArgumentValue {
+    param([string[]]$Arguments, [string]$Name)
+    $index = [Array]::IndexOf($Arguments, $Name)
+    if ($index -lt 0 -or $index -eq $Arguments.Count - 1) { return $null }
+    return [string]$Arguments[$index + 1]
+}
+
+# Huge 256k: the profile whose declared contract the campaign never measured.
+$hugePlan = Get-QualificationPlan -Splat @{
+    Label                  = 'huge-256k'
+    ContextTokens          = 262144
+    NPredict               = 32768
+    ReasoningBudget        = 24576
+    ReasoningBudgetMessage = 'Thinking budget reached. Stop analysing and write the final answer now.'
+}
+if ((Get-ArgumentValue -Arguments $hugePlan.qualify_arguments -Name '--max-tokens') -cne '32768') {
+    throw 'Huge 256k did not forward its 32768-token profile ceiling to qualify.py.'
+}
+if ((Get-ArgumentValue -Arguments $hugePlan.qualify_arguments -Name '--max-tokens-source') -cne 'profile') {
+    throw 'Huge 256k did not record that its request ceiling came from the profile.'
+}
+if ((Get-ArgumentValue -Arguments $hugePlan.qualify_arguments -Name '--reasoning-budget') -cne '24576') {
+    throw 'Huge 256k did not report its reasoning budget to qualify.py.'
+}
+if ([int]$hugePlan.request_budget.answer_reserve -ne 8192) {
+    throw 'The Huge 256k plan did not report an 8192-token answer reserve.'
+}
+if ($hugePlan.qualify_arguments -ccontains '--allow-constrained-request-budget') {
+    throw 'A normal Huge 256k qualification asked to allow a constrained request budget.'
+}
+if ($hugePlan.started) { throw 'A dry run reported that it started something.' }
+
+# Deep and Agent both declare n_predict 8192, which happens to equal the coding
+# fixture default. Asserted anyway: the value has to arrive by derivation, and
+# --max-tokens-source is what tells a future reader which it was.
+foreach ($profile in @('deep-32k', 'agent-128k')) {
+    $plan = Get-QualificationPlan -Splat @{ Label = $profile; NPredict = 8192 }
+    if ((Get-ArgumentValue -Arguments $plan.qualify_arguments -Name '--max-tokens') -cne '8192') {
+        throw "$profile did not forward its 8192-token profile ceiling to qualify.py."
+    }
+    if ((Get-ArgumentValue -Arguments $plan.qualify_arguments -Name '--max-tokens-source') -cne 'profile') {
+        throw "$profile did not record that its request ceiling came from the profile."
+    }
+}
+
+# Gemma declares no n_predict, so the fixtures keep their own defaults and the
+# plan says so rather than inventing a ceiling.
+$gemmaPlan = Get-QualificationPlan -Splat @{ Label = 'gemma4-12b'; ContextTokens = 131072 }
+if ($gemmaPlan.qualify_arguments -ccontains '--max-tokens') {
+    throw 'A profile without n_predict invented a request ceiling instead of using fixture defaults.'
+}
+if ((Get-ArgumentValue -Arguments $gemmaPlan.qualify_arguments -Name '--max-tokens-source') -cne 'fixture') {
+    throw 'A profile without n_predict did not record the fixture-default origin.'
+}
+if ($null -ne $gemmaPlan.request_budget.effective_max_tokens) {
+    throw 'A fixture-default plan reported a numeric effective ceiling.'
+}
+
+# An operator override still wins, and is labelled as an override.
+$overridePlan = Get-QualificationPlan -Splat @{
+    Label = 'override'; NPredict = 32768; MaxTokens = 4096
+}
+if ((Get-ArgumentValue -Arguments $overridePlan.qualify_arguments -Name '--max-tokens') -cne '4096') {
+    throw 'An explicit -MaxTokens did not reach qualify.py.'
+}
+if ((Get-ArgumentValue -Arguments $overridePlan.qualify_arguments -Name '--max-tokens-source') -cne 'explicit') {
+    throw 'An explicit -MaxTokens was not labelled as an override.'
+}
+
+# The impossible combination must be refused by the runner, not only by the
+# helper, and must be refused before anything expensive happens.
+$runnerRefused = $false
+try {
+    Get-QualificationPlan -Splat @{
+        Label = 'impossible'; MaxTokens = 8192; ReasoningBudget = 24576
+    } | Out-Null
+}
+catch {
+    $runnerRefused = $_.Exception.Message -match 'reasoning_budget'
+}
+if (-not $runnerRefused) {
+    throw 'The qualification runner accepted max_tokens=8192 against reasoning_budget=24576.'
+}
+
+# ... and must stay available when the constrained cap IS the experiment.
+$diagnosticPlan = Get-QualificationPlan -Splat @{
+    Label = 'constrained'; MaxTokens = 8192; ReasoningBudget = 24576
+    ConstrainedRequestBudgetDiagnostic = $true
+}
+if (-not ($diagnosticPlan.qualify_arguments -ccontains '--allow-constrained-request-budget')) {
+    throw 'The constrained diagnostic did not tell qualify.py to allow the constrained cap.'
+}
+if (-not $diagnosticPlan.request_budget.constrained_diagnostic) {
+    throw 'The constrained diagnostic plan did not label itself.'
+}
+
+# The runner also has to survive its own multi-word argument, all the way to the
+# command line it would execute. This is section 12's property at the call site.
+$hugeArgv = Split-CommandLineForTest -Line $hugePlan.server_command
+$hugeMessageIndex = [Array]::IndexOf($hugeArgv, '--reasoning-budget-message')
+if ($hugeMessageIndex -lt 0 -or
+    $hugeArgv[$hugeMessageIndex + 1] -cne 'Thinking budget reached. Stop analysing and write the final answer now.') {
+    throw 'The qualification runner split its multi-word reasoning-budget message.'
+}
+if ($hugeArgv -ccontains 'budget') {
+    throw 'The qualification runner emitted the reasoning-budget message as separate tokens again.'
+}
+
+if (Test-Path -LiteralPath $dryRunRoot) {
+    Remove-Item -LiteralPath $dryRunRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 if (-not $Quiet) {
     [pscustomobject]@{
         manifest              = (Resolve-Path -LiteralPath $ManifestPath).Path
         byte_stable_models    = $untunedCount
         generation_tests      = 17
+        argv_quoting_tests    = 5
+        request_budget_tests  = 12
+        runner_wiring_tests   = 16
         valid                 = $true
     } | ConvertTo-Json -Depth 3
 }

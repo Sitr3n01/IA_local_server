@@ -38,6 +38,16 @@ jobs:
           ./scripts/v2/Test-V2HarnessConfig.ps1
           ./scripts/v2/Test-V2ConfigGeneration.ps1
 
+      # Pure-Python, no server, no toolchain, sub-second. They guard the
+      # qualification generation budget and the tool-argument contract -- the
+      # two things the 2026-08-23 campaign got wrong -- so they belong in the
+      # gate rather than in a runbook step someone remembers to run.
+      - name: Qualification budget and tool-grading self-tests
+        shell: pwsh
+        run: |
+          python ./scripts/v2/eval/test_qualify_budget.py
+          python ./scripts/v2/eval/test_tool_grading.py
+
       - name: Production artifact store self-test
         shell: pwsh
         run: ./scripts/v2/Test-V2ArtifactStore.ps1
