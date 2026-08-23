@@ -165,6 +165,7 @@ func TestMetricsExposeStableNamesAndBoundedReleaseCardinality(t *testing.T) {
 		"cia_edge_model_loads_total",
 		"cia_edge_model_load_failures_total",
 		"cia_edge_admin_http_mutations_total",
+		"cia_edge_admin_pipe_mutations_total",
 		"cia_edge_queue_wait_seconds",
 		"cia_edge_inference_duration_seconds",
 		"cia_edge_model_load_duration_seconds",

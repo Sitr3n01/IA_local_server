@@ -21,6 +21,7 @@ type metrics struct {
 	// over the deprecated HTTP control plane. It is the migration signal for
 	// retiring that surface once every client speaks the named pipe.
 	httpAdminMutations atomic.Uint64
+	pipeAdminMutations atomic.Uint64
 
 	modelLoads        atomic.Uint64
 	modelUnloads      atomic.Uint64

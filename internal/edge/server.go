@@ -14,6 +14,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/sitr3n/local-ai-provider/internal/adminpipe"
 )
 
 const maxHeaderBytes = 64 << 10
@@ -130,9 +132,34 @@ func (s *Server) Run(ctx context.Context) error {
 		return fmt.Errorf("listen on control address: %w", err)
 	}
 
-	errCh := make(chan error, 2)
+	errCh := make(chan error, 3)
 	go func() { errCh <- dataServer.Serve(dataListener) }()
 	go func() { errCh <- controlServer.Serve(controlListener) }()
+
+	// The administrative pipe is a third listener with no network exposure at
+	// all. Failing to create it is fatal on purpose: the usual cause is another
+	// local process already holding the name, which is exactly the condition the
+	// transport exists to detect.
+	if s.cfg.AdminPipe != "" {
+		pipeListener, pipeErr := adminpipe.Listen(s.cfg.AdminPipe)
+		if pipeErr != nil {
+			_ = dataListener.Close()
+			_ = controlListener.Close()
+			return fmt.Errorf("listen on administrative pipe: %w", pipeErr)
+		}
+		pipeCtx, cancelPipe := context.WithCancel(ctx)
+		defer cancelPipe()
+		defer pipeListener.Close()
+		s.logEvent("admin_pipe_listening", map[string]any{"pipe": pipeListener.Name(), "dacl": pipeListener.SecurityDescriptor()})
+		go func() {
+			serveErr := pipeListener.Serve(pipeCtx, s.AdminHandler(), func(err error) {
+				s.logEvent("admin_pipe_error", map[string]any{"error": err.Error()})
+			})
+			if pipeCtx.Err() == nil {
+				errCh <- serveErr
+			}
+		}()
+	}
 
 	select {
 	case <-ctx.Done():
@@ -155,6 +182,24 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 		return err
 	}
+}
+
+// logEvent writes one sanitized structured line. Callers pass metadata only:
+// the fields here are addresses, security descriptors, and error strings this
+// process produced, never a header, body, prompt, or credential.
+func (s *Server) logEvent(name string, fields map[string]any) {
+	if s.cfg.LogOutput == nil {
+		return
+	}
+	line := map[string]any{
+		"time":    time.Now().UTC().Format(time.RFC3339Nano),
+		"service": "cia-edge",
+		"event":   name,
+	}
+	for key, value := range fields {
+		line[key] = value
+	}
+	_ = json.NewEncoder(s.cfg.LogOutput).Encode(line)
 }
 
 func (s *Server) observe(next http.Handler) http.Handler {
@@ -557,6 +602,7 @@ func (s *Server) writeMetrics(w http.ResponseWriter) {
 	writeCounter(w, "cia_edge_model_switches_total", "Administrative model switch operations attempted.", s.metrics.modelSwitches.Load())
 	writeCounter(w, "cia_edge_model_load_failures_total", "Administrative load or switch operations that failed upstream.", s.metrics.modelLoadFailures.Load())
 	writeCounter(w, "cia_edge_admin_http_mutations_total", "Administrative mutations accepted over the deprecated HTTP control plane.", s.metrics.httpAdminMutations.Load())
+	writeCounter(w, "cia_edge_admin_pipe_mutations_total", "Administrative mutations accepted over the DACL-protected named pipe.", s.metrics.pipeAdminMutations.Load())
 
 	s.gate.queueWait.write(w, "cia_edge_queue_wait_seconds", "Time an admitted request spent waiting for a slot. Requests admitted immediately are not observed.")
 	s.metrics.inferenceDuration.write(w, "cia_edge_inference_duration_seconds", "Wall time an admitted inference request held its slot.")

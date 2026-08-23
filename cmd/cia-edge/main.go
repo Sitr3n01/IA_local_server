@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sitr3n/local-ai-provider/internal/adminpipe"
 	"github.com/sitr3n/local-ai-provider/internal/edge"
 	"github.com/sitr3n/local-ai-provider/internal/manifestvalidator"
 	"github.com/sitr3n/local-ai-provider/internal/rotatelog"
@@ -56,6 +57,7 @@ func run() error {
 	modelsSchema := flags.String("models-schema", "", "path to the versioned model-manifest JSON Schema (required)")
 	environment := flags.String("environment", "canary", "deployment environment: canary or final")
 	releaseManifest := flags.String("release-manifest", "", "path to the installed release.json written by the deployment transaction")
+	adminPipe := flags.String("admin-pipe", "auto", `administrative named pipe: "auto" for the deployment default, "off" to disable, or an explicit \\.\pipe\ path`)
 	if err := flags.Parse(os.Args[1:]); err != nil {
 		return err
 	}
@@ -88,6 +90,15 @@ func run() error {
 		cfg.Release = release
 	}
 
+	switch strings.TrimSpace(*adminPipe) {
+	case "off":
+		cfg.AdminPipe = ""
+	case "auto", "":
+		cfg.AdminPipe = adminpipe.DefaultName(*environment)
+	default:
+		cfg.AdminPipe = strings.TrimSpace(*adminPipe)
+	}
+
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
@@ -102,6 +113,7 @@ func run() error {
 		"event":        "starting",
 		"data_addr":    cfg.DataAddr,
 		"control_addr": cfg.ControlAddr,
+		"admin_pipe":   cfg.AdminPipe,
 		"upstream":     cfg.UpstreamURL,
 		"model_count":  len(cfg.Models),
 		"release":      releaseLabel(cfg.Release),

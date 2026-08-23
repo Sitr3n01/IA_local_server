@@ -162,9 +162,13 @@ type Config struct {
 	// transaction wrote one. Nil means "not deployed through the transaction",
 	// which stays serviceable: release metadata is observability, not a gate.
 	Release *ReleaseInfo
-	// Environment is the deployment this process serves. It binds the release
-	// manifest to exactly one deployment.
+	// Environment is the deployment this process serves. It is used to bind the
+	// release manifest and the administrative pipe name to one deployment.
 	Environment string
+	// AdminPipe is the DACL-protected named-pipe path for administrative
+	// mutations. Empty disables the transport and leaves only the deprecated
+	// HTTP control plane.
+	AdminPipe string
 
 	MaxWireBytes    int64
 	MaxDecodedBytes int64

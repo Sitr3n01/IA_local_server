@@ -23,6 +23,10 @@ func TestServerExposesExactAdministrativeTools(t *testing.T) {
 			return
 		}
 		operation := r.URL.Path[strings.LastIndex(r.URL.Path, ":")+1:]
+		if strings.HasPrefix(r.URL.Path, "/api/v1/maintenance:") {
+			_, _ = fmt.Fprintf(w, `{"operation":%q,"status":"completed","maintenance":{"state":"maintenance","draining":true,"drained":true,"active":0,"queued":0}}`, operation)
+			return
+		}
 		_, _ = fmt.Fprintf(w, `{"operation":%q,"model":"local-coding","status":"completed","active_model":"local-coding"}`, operation)
 	}))
 	defer control.Close()
@@ -55,6 +59,11 @@ func TestServerExposesExactAdministrativeTools(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Maintenance is provider-wide, so its two tools deliberately take no
+	// parameters. Every other administrative tool must still require an exact
+	// model ID.
+	nonDestructive := map[string]bool{"local_ai_load_model": true, "local_ai_resume": true}
+	parameterless := map[string]bool{"local_ai_drain": true, "local_ai_resume": true}
 	gotNames := make([]string, 0, len(listed.Tools))
 	for _, tool := range listed.Tools {
 		gotNames = append(gotNames, tool.Name)
@@ -62,7 +71,7 @@ func TestServerExposesExactAdministrativeTools(t *testing.T) {
 			t.Errorf("tool %s has incorrect read-only/idempotent annotations: %+v", tool.Name, tool.Annotations)
 			continue
 		}
-		wantDestructive := tool.Name != "local_ai_load_model"
+		wantDestructive := !nonDestructive[tool.Name]
 		if tool.Annotations.DestructiveHint == nil || *tool.Annotations.DestructiveHint != wantDestructive {
 			t.Errorf("tool %s destructiveHint = %v, want %v", tool.Name, tool.Annotations.DestructiveHint, wantDestructive)
 		}
@@ -70,17 +79,22 @@ func TestServerExposesExactAdministrativeTools(t *testing.T) {
 			t.Errorf("tool %s has open-world annotation", tool.Name)
 		}
 		schema, _ := json.Marshal(tool.InputSchema)
-		if !strings.Contains(string(schema), `"required":["model_id"]`) {
+		switch {
+		case parameterless[tool.Name]:
+			if strings.Contains(string(schema), `"required"`) || strings.Contains(string(schema), "model_id") {
+				t.Errorf("maintenance tool %s accepts parameters: %s", tool.Name, schema)
+			}
+		case !strings.Contains(string(schema), `"required":["model_id"]`):
 			t.Errorf("tool %s does not require model_id: %s", tool.Name, schema)
 		}
 	}
 	sort.Strings(gotNames)
-	wantNames := []string{"local_ai_load_model", "local_ai_switch_model", "local_ai_unload_model"}
+	wantNames := []string{"local_ai_drain", "local_ai_load_model", "local_ai_resume", "local_ai_switch_model", "local_ai_unload_model"}
 	if adminStringJSON(gotNames) != adminStringJSON(wantNames) {
 		t.Fatalf("tool names = %v, want %v", gotNames, wantNames)
 	}
 
-	for _, toolName := range wantNames {
+	for _, toolName := range []string{"local_ai_load_model", "local_ai_switch_model", "local_ai_unload_model"} {
 		result, err := session.CallTool(ctx, &mcp.CallToolParams{
 			Name:      toolName,
 			Arguments: map[string]any{"model_id": "local-coding"},
@@ -101,6 +115,30 @@ func TestServerExposesExactAdministrativeTools(t *testing.T) {
 		}
 		if output.Model != "local-coding" || output.Status != "completed" {
 			t.Fatalf("%s: unexpected output: %+v", toolName, output)
+		}
+	}
+
+	for _, toolName := range []string{"local_ai_drain", "local_ai_resume"} {
+		result, err := session.CallTool(ctx, &mcp.CallToolParams{
+			Name:      toolName,
+			Arguments: map[string]any{},
+		})
+		if err != nil {
+			t.Fatalf("%s: %v", toolName, err)
+		}
+		if result.IsError {
+			t.Fatalf("%s returned tool error: %+v", toolName, result.Content)
+		}
+		payload, err := json.Marshal(result.StructuredContent)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var output MaintenanceOutput
+		if err := json.Unmarshal(payload, &output); err != nil {
+			t.Fatal(err)
+		}
+		if output.State != "maintenance" || !output.Drained {
+			t.Fatalf("%s: unexpected maintenance output: %+v", toolName, output)
 		}
 	}
 

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/sitr3n/local-ai-provider/internal/adminpipe"
 )
 
 const (
@@ -40,6 +42,12 @@ type Config struct {
 	Timeout       time.Duration
 	HTTPClient    *http.Client
 	TokenProvider TokenProvider
+	// AdminPipe and AdminPipeServer select the DACL-protected transport. When
+	// both are set the client prefers it and never puts the administrative
+	// bearer token on a loopback socket. Leaving them empty keeps the historical
+	// HTTP-only behaviour for an installation that has not been redeployed.
+	AdminPipe       string
+	AdminPipeServer string
 }
 
 // Client performs only the three explicitly supported model lifecycle
@@ -49,6 +57,7 @@ type Client struct {
 	httpClient    *http.Client
 	tokenProvider TokenProvider
 	userAgent     string
+	pipe          *adminpipe.Client
 }
 
 // OperationOutput is the structured success contract returned by cia-edge.
@@ -117,12 +126,38 @@ func NewClient(cfg Config, version string) (*Client, error) {
 	if version == "" {
 		version = "dev"
 	}
+
+	// The pipe client is validated eagerly. A configured but malformed
+	// administrative transport is a deployment error, not something to discover
+	// on the first mutation.
+	var pipe *adminpipe.Client
+	if strings.TrimSpace(cfg.AdminPipe) != "" {
+		pipe, err = adminpipe.NewClient(adminpipe.DialOptions{
+			Name:               cfg.AdminPipe,
+			Timeout:            timeout,
+			ExpectedServerPath: cfg.AdminPipeServer,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &Client{
 		baseURL:       baseURL,
 		httpClient:    client,
 		tokenProvider: cfg.TokenProvider,
 		userAgent:     "cia-mcp-admin/" + version,
+		pipe:          pipe,
 	}, nil
+}
+
+// Transport reports which administrative transport this client will use. It is
+// metadata for operator diagnostics and never carries a credential.
+func (c *Client) Transport() string {
+	if c.pipe != nil {
+		return "named-pipe"
+	}
+	return "http-deprecated"
 }
 
 func validateControlURL(raw string) (*url.URL, error) {
@@ -163,6 +198,17 @@ func (c *Client) Switch(ctx context.Context, modelID string) (OperationOutput, e
 	return c.operate(ctx, modelID, "switch")
 }
 
+// Drain asks the provider to stop admitting new inference. Requests already
+// admitted or queued are allowed to finish; nothing is cancelled.
+func (c *Client) Drain(ctx context.Context) (MaintenanceOutput, error) {
+	return c.maintain(ctx, "drain")
+}
+
+// Resume returns the provider to normal admission.
+func (c *Client) Resume(ctx context.Context) (MaintenanceOutput, error) {
+	return c.maintain(ctx, "resume")
+}
+
 func (c *Client) operate(ctx context.Context, modelID, operation string) (OperationOutput, error) {
 	modelID, err := validateModelID(modelID)
 	if err != nil {
@@ -170,6 +216,25 @@ func (c *Client) operate(ctx context.Context, modelID, operation string) (Operat
 	}
 	if operation != "load" && operation != "unload" && operation != "switch" {
 		return OperationOutput{}, errors.New("unsupported administrative operation")
+	}
+
+	if c.pipe != nil {
+		result, pipeErr := c.pipe.Execute(ctx, adminpipe.Request{Operation: operation, ModelID: modelID})
+		if pipeErr == nil {
+			output := OperationOutput{
+				Operation:   result.Operation,
+				Model:       result.Model,
+				Status:      result.Status,
+				ActiveModel: result.ActiveModel,
+			}
+			if output.Operation != operation || output.Model != modelID || output.Status != "completed" {
+				return OperationOutput{}, errors.New("administrative transport returned an inconsistent result")
+			}
+			return output, nil
+		}
+		if !fallbackPermitted(pipeErr) {
+			return OperationOutput{}, pipeErr
+		}
 	}
 
 	token, err := c.tokenProvider.Token(ctx)
@@ -212,6 +277,93 @@ func (c *Client) operate(ctx context.Context, modelID, operation string) (Operat
 		return OperationOutput{}, errors.New("administrative control API returned an inconsistent result")
 	}
 	return output, nil
+}
+
+// MaintenanceOutput is the sanitized drain lifecycle reported back to an
+// operator client. Counts and timing only; nothing identifies a request.
+type MaintenanceOutput struct {
+	State    string `json:"state"`
+	Draining bool   `json:"draining"`
+	Drained  bool   `json:"drained"`
+	Active   int64  `json:"active"`
+	Queued   int64  `json:"queued"`
+	Since    string `json:"since,omitempty"`
+}
+
+func (c *Client) maintain(ctx context.Context, operation string) (MaintenanceOutput, error) {
+	if operation != "drain" && operation != "resume" {
+		return MaintenanceOutput{}, errors.New("unsupported maintenance operation")
+	}
+
+	if c.pipe != nil {
+		pipeOperation := adminpipe.OperationDrain
+		if operation == "resume" {
+			pipeOperation = adminpipe.OperationResume
+		}
+		result, pipeErr := c.pipe.Execute(ctx, adminpipe.Request{Operation: pipeOperation})
+		if pipeErr == nil {
+			var output MaintenanceOutput
+			if len(result.Maintenance) > 0 {
+				if err := json.Unmarshal(result.Maintenance, &output); err != nil {
+					return MaintenanceOutput{}, errors.New("administrative transport returned an invalid maintenance state")
+				}
+			}
+			return output, nil
+		}
+		if !fallbackPermitted(pipeErr) {
+			return MaintenanceOutput{}, pipeErr
+		}
+	}
+
+	token, err := c.tokenProvider.Token(ctx)
+	if err != nil {
+		return MaintenanceOutput{}, fmt.Errorf("obtain administrative control credential: %w", err)
+	}
+	if token == "" || strings.ContainsAny(token, "\r\n") {
+		return MaintenanceOutput{}, errors.New("administrative control credential is empty or invalid")
+	}
+
+	target := strings.TrimSuffix(c.baseURL.String(), "/") + "/api/v1/maintenance:" + operation
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, target, nil)
+	if err != nil {
+		return MaintenanceOutput{}, errors.New("build maintenance request")
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("User-Agent", c.userAgent)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return MaintenanceOutput{}, fmt.Errorf("administrative control API unavailable: %w", err)
+	}
+	defer resp.Body.Close()
+
+	payload, err := readBounded(resp.Body)
+	if err != nil {
+		return MaintenanceOutput{}, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return MaintenanceOutput{}, operationError(resp.StatusCode, resp.Status, resp.Header.Get("X-Request-Id"), payload)
+	}
+	var envelope struct {
+		Operation   string            `json:"operation"`
+		Status      string            `json:"status"`
+		Maintenance MaintenanceOutput `json:"maintenance"`
+	}
+	if err := json.Unmarshal(payload, &envelope); err != nil {
+		return MaintenanceOutput{}, errors.New("administrative control API returned invalid JSON")
+	}
+	if envelope.Operation != operation || envelope.Status != "completed" {
+		return MaintenanceOutput{}, errors.New("administrative control API returned an inconsistent result")
+	}
+	return envelope.Maintenance, nil
+}
+
+// fallbackPermitted allows the deprecated HTTP transport only when nothing is
+// serving the pipe. Any other failure means something answered - or refused -
+// and sending a bearer token afterwards would undo the hardening.
+func fallbackPermitted(err error) bool {
+	return errors.Is(err, adminpipe.ErrNotListening) || errors.Is(err, adminpipe.ErrUnsupported)
 }
 
 func validateModelID(modelID string) (string, error) {

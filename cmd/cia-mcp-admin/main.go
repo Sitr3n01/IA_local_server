@@ -20,10 +20,15 @@ func main() {
 
 	shared, err := mcpserver.ConfigFromEnv()
 	if err == nil {
+		// Mutations prefer the DACL-protected pipe. The bearer token is still
+		// obtained lazily, and only if the pipe is absent entirely.
+		adminPipe, adminPipeServer := mcpadmin.AdminTransportFromEnv(shared.ControlURL)
 		err = mcpadmin.Run(ctx, mcpadmin.Config{
-			ControlURL: shared.ControlURL,
-			Timeout:    shared.Timeout,
-			HTTPClient: shared.HTTPClient,
+			ControlURL:      shared.ControlURL,
+			Timeout:         shared.Timeout,
+			HTTPClient:      shared.HTTPClient,
+			AdminPipe:       adminPipe,
+			AdminPipeServer: adminPipeServer,
 			TokenProvider: mcpadmin.TokenProviderFunc(func(context.Context) (string, error) {
 				return credential.Read("admin")
 			}),

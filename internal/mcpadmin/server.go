@@ -70,8 +70,32 @@ func New(client *Client, version string) *mcp.Server {
 		return nil, output, err
 	})
 
+	mcp.AddTool(server, administrativeTool(
+		"local_ai_drain",
+		"Stop admitting new local inference so the provider can be updated. Requests already running or queued are allowed to finish; nothing is cancelled.",
+		"Drain local AI provider",
+		true,
+	), func(ctx context.Context, _ *mcp.CallToolRequest, _ MaintenanceInput) (*mcp.CallToolResult, MaintenanceOutput, error) {
+		output, err := client.Drain(ctx)
+		return nil, output, err
+	})
+
+	mcp.AddTool(server, administrativeTool(
+		"local_ai_resume",
+		"Return the local provider to normal admission after maintenance. This is idempotent and never loads a model.",
+		"Resume local AI provider",
+		false,
+	), func(ctx context.Context, _ *mcp.CallToolRequest, _ MaintenanceInput) (*mcp.CallToolResult, MaintenanceOutput, error) {
+		output, err := client.Resume(ctx)
+		return nil, output, err
+	})
+
 	return server
 }
+
+// MaintenanceInput carries no parameters. Maintenance is provider-wide, so
+// there is nothing for a caller to select and nothing to validate.
+type MaintenanceInput struct{}
 
 func administrativeTool(name, description, title string, destructive bool) *mcp.Tool {
 	falseValue := false

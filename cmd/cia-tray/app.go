@@ -88,10 +88,18 @@ func newAppController(config panel.Config, appVersion string) (*appController, e
 	if err != nil {
 		return nil, err
 	}
+	// The installation root is the parent of the installed manifest's config
+	// directory, which the panel configuration already pins. Deriving it here
+	// avoids adding a field to a generated configuration that rejects unknown
+	// keys, and keeps the edge executable identity out of operator hands.
+	installRoot := filepath.Dir(filepath.Dir(config.ManifestPath))
+	adminPipe, adminPipeServer := mcpadmin.AdminPipeForInstallation(string(config.Environment), installRoot)
 	adminClient, err := mcpadmin.NewClient(mcpadmin.Config{
-		ControlURL:    config.ControlURL,
-		Timeout:       config.OperationTimeout(),
-		TokenProvider: mcpadmin.TokenProviderFunc(readAdmin),
+		ControlURL:      config.ControlURL,
+		Timeout:         config.OperationTimeout(),
+		AdminPipe:       adminPipe,
+		AdminPipeServer: adminPipeServer,
+		TokenProvider:   mcpadmin.TokenProviderFunc(readAdmin),
 	}, appVersion)
 	if err != nil {
 		return nil, err
