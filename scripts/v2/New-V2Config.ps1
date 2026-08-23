@@ -63,12 +63,41 @@ if ($Environment -eq 'Final') {
 }
 
 $runtimeIds = @($models | ForEach-Object { $_.runtime } | Select-Object -Unique)
-foreach ($runtimeId in $runtimeIds) {
-    $runtime = @($manifest.runtimes | Where-Object { $_.id -eq $runtimeId })[0]
-    Assert-V2Artifact -Artifact $runtime.artifact -Label "Runtime '$runtimeId'" -VerifyHash:$Apply
+
+# Artifact resolution differs by environment, and only by location.
+#
+# Canary reads candidate artifacts where they were produced: that is the whole
+# point of a canary, and those files are expected to move as qualification
+# proceeds. Final refuses to depend on a file the ordinary user can replace, so
+# it resolves the production copy inside the protected artifact store and proves
+# it holds the manifest's exact bytes. The manifest itself is never rewritten -
+# identity remains SHA-256 plus byte size, and the production path is derived
+# from the artifact identifier.
+$artifactSource = 'candidate'
+$effectiveRuntimes = @{}
+$effectiveModels = @{}
+if ($Environment -eq 'Final') {
+    $artifactSource = 'production'
+    foreach ($runtimeId in $runtimeIds) {
+        $runtime = @($manifest.runtimes | Where-Object { $_.id -eq $runtimeId })[0]
+        $productionPath = Assert-V2ProductionArtifact -InstallRoot $OutputRoot -Kind Runtime -Id $runtimeId -Artifact $runtime.artifact -VerifyHash:$Apply
+        $effectiveRuntimes[$runtimeId] = ConvertTo-V2ProductionEntry -Entry $runtime -ProductionPath $productionPath
+    }
+    foreach ($model in $models) {
+        $productionPath = Assert-V2ProductionArtifact -InstallRoot $OutputRoot -Kind Model -Id $model.id -Artifact $model.artifact -VerifyHash:$Apply
+        $effectiveModels[$model.id] = ConvertTo-V2ProductionEntry -Entry $model -ProductionPath $productionPath
+    }
 }
-foreach ($model in $models) {
-    Assert-V2Artifact -Artifact $model.artifact -Label "Model '$($model.id)'" -VerifyHash:$Apply
+else {
+    foreach ($runtimeId in $runtimeIds) {
+        $runtime = @($manifest.runtimes | Where-Object { $_.id -eq $runtimeId })[0]
+        Assert-V2Artifact -Artifact $runtime.artifact -Label "Runtime '$runtimeId'" -VerifyHash:$Apply
+        $effectiveRuntimes[$runtimeId] = $runtime
+    }
+    foreach ($model in $models) {
+        Assert-V2Artifact -Artifact $model.artifact -Label "Model '$($model.id)'" -VerifyHash:$Apply
+        $effectiveModels[$model.id] = $model
+    }
 }
 
 $configRoot = Join-Path $OutputRoot 'config'
@@ -98,8 +127,12 @@ function Get-V2RuntimeSupportedFlags {
 }
 
 $modelBlocks = [System.Collections.Generic.List[string]]::new()
-foreach ($model in $models) {
-    $runtime = @($manifest.runtimes | Where-Object { $_.id -eq $model.runtime })[0]
+foreach ($declaredModel in $models) {
+    # The effective entry differs from the declared one only in artifact.path,
+    # and only for Final. Every other field, including the pinned SHA-256, is
+    # the manifest's.
+    $model = $effectiveModels[$declaredModel.id]
+    $runtime = $effectiveRuntimes[$declaredModel.runtime]
     $envLines = @()
     foreach ($entry in $runtime.environment.psobject.Properties) {
         $envLines += "      - " + (ConvertTo-V2YamlSingleQuoted "$($entry.Name)=$($entry.Value)")
@@ -153,6 +186,9 @@ $deployment = [ordered]@{
     manifest_sha256 = $manifestSha256
     schema_sha256 = $schemaSha256
     models = @($models | ForEach-Object { $_.id })
+    # Records whether the generated router configuration invokes candidate
+    # artifacts in place or verified copies inside the protected artifact store.
+    artifact_source = $artifactSource
     router = "http://$($settings.RouterAddress)"
     data = "http://$($settings.DataAddress)"
     control = "http://$($settings.ControlAddress)"
@@ -215,6 +251,7 @@ $plan = [pscustomobject]@{
     models = @($models | ForEach-Object { $_.id })
     manifest_sha256 = $manifestSha256
     schema_sha256 = $schemaSha256
+    artifact_source = $artifactSource
     router_address = $settings.RouterAddress
     data_address = $settings.DataAddress
     control_address = $settings.ControlAddress

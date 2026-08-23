@@ -21,6 +21,16 @@ $writableDirectoryNames = @('logs', 'state')
 # owned by the serving user. Installed binaries/configuration remain in strict
 # immutable subtrees, and installers pin every staging copy by approved SHA-256.
 $requiredDirectoryNames = @('bin', 'config', 'logs', 'state')
+# Production model and runtime artifacts live under `artifacts`. The directory
+# is deliberately absent from $writableDirectoryNames: the serving user must be
+# able to read and execute those bytes and must not be able to replace them.
+# It is not in $requiredDirectoryNames either, because a canary-only
+# installation legitimately has no production artifacts yet; when it exists the
+# enumeration below classes it, and everything under it, as immutable.
+$productionArtifactDirectoryName = 'artifacts'
+if ($writableDirectoryNames -contains $productionArtifactDirectoryName) {
+    throw "The production artifact directory must never be runtime-writable."
+}
 
 function Test-IsAdministrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()

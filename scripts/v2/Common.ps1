@@ -1,5 +1,10 @@
 Set-StrictMode -Version Latest
 
+# Production artifact boundary helpers. Kept in their own file so Common.ps1
+# stays about manifests and command generation, and dot-sourced here so every
+# script that already loads Common.ps1 gets them without a second include.
+. (Join-Path $PSScriptRoot 'Artifacts.ps1')
+
 function Get-V2RepoRoot {
     return (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 }
