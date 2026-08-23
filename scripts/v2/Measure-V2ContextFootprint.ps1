@@ -142,7 +142,11 @@ $loadSeconds = $null
 $failure = $null
 try {
     $started = [Diagnostics.Stopwatch]::StartNew()
-    $process = Start-Process -FilePath $serverExe -ArgumentList $arguments -PassThru -WindowStyle Hidden
+    # See Invoke-V2ProfileQualification.ps1: Start-Process -ArgumentList does not
+    # quote array elements containing spaces under Windows PowerShell 5.1, so pass
+    # one pre-quoted string built by the same helper the display command uses.
+    $argumentLine = ConvertTo-V2CommandLine -Arguments $arguments
+    $process = Start-Process -FilePath $serverExe -ArgumentList $argumentLine -PassThru -WindowStyle Hidden
 
     $deadline = [DateTime]::UtcNow.AddSeconds($StartupTimeoutSeconds)
     $ready = $false

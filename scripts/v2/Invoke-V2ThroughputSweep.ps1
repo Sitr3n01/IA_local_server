@@ -114,7 +114,11 @@ try {
         $stderr = Join-Path $OutputRoot ("bench-$tag.err")
 
         $started = [Diagnostics.Stopwatch]::StartNew()
-        $proc = Start-Process -FilePath $benchExe -ArgumentList $args -PassThru `
+        # See Invoke-V2ProfileQualification.ps1: Start-Process -ArgumentList does not
+        # quote array elements containing spaces under Windows PowerShell 5.1, so pass
+        # one pre-quoted string built by the same helper the display command uses.
+        $argsLine = ConvertTo-V2CommandLine -Arguments $args
+        $proc = Start-Process -FilePath $benchExe -ArgumentList $argsLine -PassThru `
             -RedirectStandardOutput $stdout -RedirectStandardError $stderr -WindowStyle Hidden
 
         $sampler = Start-Job -ScriptBlock {

@@ -126,7 +126,14 @@ if (Test-Path -LiteralPath $samplePath) { Remove-Item -LiteralPath $samplePath -
 
 try {
     $started = [Diagnostics.Stopwatch]::StartNew()
-    $process = Start-Process -FilePath $serverExe -ArgumentList $arguments -PassThru `
+    # Windows PowerShell 5.1's Start-Process does not quote array elements that
+    # contain embedded spaces before joining them into the child command line, so
+    # a multi-word value (e.g. -ReasoningBudgetMessage) gets silently split into
+    # multiple argv tokens and llama-server's parser chokes on the stray words.
+    # ConvertTo-V2CommandLine already quotes correctly -- it's what builds the
+    # display $commandLine above -- so reuse it to pass one pre-quoted string.
+    $argumentLine = ConvertTo-V2CommandLine -Arguments $arguments
+    $process = Start-Process -FilePath $serverExe -ArgumentList $argumentLine -PassThru `
         -RedirectStandardOutput $serverLog -RedirectStandardError ($serverLog + '.err') `
         -WindowStyle Hidden
 
