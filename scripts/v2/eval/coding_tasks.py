@@ -646,15 +646,25 @@ SYS_CODER = (
 )
 
 
+# Matches the lowest max_output_tokens among the shipped manifest profiles. It
+# is not generous: Qwen3.8 reasons before answering, and a 2560-token budget was
+# measured spending all 2560 inside reasoning_content and emitting an empty
+# content field, which the grader then scored as broken code. The output cap has
+# to sit above what the model actually spends thinking or the suite measures the
+# harness.
+#
+# It is a floor for a fixture, never a substitute for a profile's own ceiling. A
+# profile that declares n_predict is served at that ceiling and must be measured
+# at it -- see Resolve-V2QualificationRequestBudget in scripts/v2/Common.ps1.
+# Raising this constant to suit one profile would silently change what every
+# other profile is measured against, which is why the profile ceiling is
+# resolved outside the fixture table instead.
+DEFAULT_MAX_TOKENS = 8192
+
+
 def _t(**kw):
     kw.setdefault("system", SYS_CODER)
-    # Matches max_output_tokens in the shipped manifest profiles. It is not
-    # generous: Qwen3.8 reasons before answering, and a 2560-token budget was
-    # measured spending all 2560 inside reasoning_content and emitting an empty
-    # content field, which the grader then scored as broken code. The output cap
-    # has to sit above what the model actually spends thinking or the suite
-    # measures the harness.
-    kw.setdefault("max_tokens", 8192)
+    kw.setdefault("max_tokens", DEFAULT_MAX_TOKENS)
     kw.setdefault("langs", ())
     kw.setdefault("pick", "last")
     return kw
@@ -1059,8 +1069,17 @@ TOOL_TASKS = [
      "prompt": "Search only docs/TUNING.md for the phrase reasoning_budget. Use a tool.",
      "want_name": "search_file",
      "want_args": {"path": "docs/TUNING.md", "query": "reasoning_budget"}},
+    # The grader demands `vendor/**` and `*.go` exactly, so the synthetic user
+    # has to say them. It previously said "all Go files ... excluding vendor",
+    # which asks the model to invent both globs and then fails it for inventing
+    # a different one: measured on 2026-08-23 as Deep normalising to `vendor/`,
+    # Gemma broadening to `**/*.go`, and Agent and Huge dropping `exclude`
+    # entirely. Tool *selection* and literal *preservation* are separate
+    # properties and this task grades both, so both must be stated. The expected
+    # arguments are unchanged -- the prompt was wrong, not the contract.
     {"id": "tool_pick_search_many_nested",
-     "prompt": "Search all Go files for resource_profile_incomplete, case-insensitive, excluding vendor. Use a tool.",
+     "prompt": "Search for resource_profile_incomplete, case-insensitive, including "
+               "the glob `*.go` and excluding the glob `vendor/**`. Use a tool.",
      "want_name": "search_files",
      "want_args": {"query": "resource_profile_incomplete",
                    "filters": {"include": ["*.go"], "exclude": ["vendor/**"],
@@ -1079,14 +1098,26 @@ LITERAL_TOOL_TASKS = [
      "prompt": "Read the file `docs/reports/Release Notes.md`. Preserve the path exactly. Use a tool.",
      "want_name": "read_file",
      "want_args": {"path": "docs/reports/Release Notes.md"}},
+    # Both globs were already stated and stay strict: Deep and Huge dropped
+    # `exclude` on 2026-08-23 and that is a genuine literal-argument failure.
+    # `case_sensitive` was not stated, yet the schema makes it required and the
+    # grader demands True -- an unstated required field is a coin flip, which is
+    # what Gemma lost. Stating it grades the model instead of the coin. The
+    # expected arguments are unchanged.
     {"id": "literal_cs_glob",
-     "prompt": "Search all C# scripts for ApplyDamage, including `Assets/Scripts/**/*.cs` and excluding `Library/**`. Use a tool.",
+     "prompt": "Search all C# scripts for ApplyDamage, case-sensitive, including "
+               "`Assets/Scripts/**/*.cs` and excluding `Library/**`. Use a tool.",
      "want_name": "search_files",
      "want_args": {"query": "ApplyDamage",
                    "filters": {"include": ["Assets/Scripts/**/*.cs"], "exclude": ["Library/**"],
                                "case_sensitive": True}}},
+    # Same defect as tool_pick_search_many_nested: the grader wants `vendor/**`
+    # and the user said "vendor". All four 2026-08-23 profiles emitted exactly
+    # what they were told. The regex literal itself was already explicit and
+    # stays strict -- preserving `foo[0-9]+` verbatim is the point of the task.
     {"id": "literal_regex",
-     "prompt": "Search all Go files for the regex `foo[0-9]+`, case-sensitive, excluding vendor. Use a tool.",
+     "prompt": "Search for the regex `foo[0-9]+`, case-sensitive, including the "
+               "glob `*.go` and excluding the glob `vendor/**`. Use a tool.",
      "want_name": "search_files",
      "want_args": {"query": "foo[0-9]+",
                    "filters": {"include": ["*.go"], "exclude": ["vendor/**"],

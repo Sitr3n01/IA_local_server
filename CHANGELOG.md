@@ -59,9 +59,88 @@ All notable changes are documented here. This project follows Keep a Changelog c
   through D, plus an upstream control at identical settings), with the checkpoint
   count/spacing, `spec_draft_n_max` and near-256k context sweeps recorded as
   sweeps rather than as settled values.
+- `Resolve-V2QualificationRequestBudget` in `Common.ps1`: one source of truth for
+  the HTTP `max_tokens` a qualification run may request. Explicit `-MaxTokens`
+  wins, otherwise a positive `n_predict` -- the profile's own generation contract
+  -- becomes the ceiling, otherwise each suite keeps its fixture default. It
+  shares the answer-reserve invariant with `Assert-V2ManifestSemantics` through a
+  new `Test-V2AnswerReserve`, so a profile the manifest accepts cannot become a
+  benchmark that is impossible to run.
+- `-DryRun` on `Invoke-V2ProfileQualification.ps1`: resolves the budget, builds
+  both the llama-server and `qualify.py` command lines, prints them and stops
+  without loading anything. A multi-hour cell can be reviewed -- and asserted on
+  by a fast test -- before the night it costs hours.
+- `-ConstrainedRequestBudgetDiagnostic`: the named way to measure a request cap
+  below the profile's answer reserve on purpose. Without it the combination is
+  refused before the model loads; with it the report is stamped as a diagnostic.
+- `request_budget` in every qualification report (effective ceiling, its origin,
+  reasoning budget, answer reserve) and `policy_profile` (`baseline` or
+  `diagnostic`) in `qualify.py` output, so a future `NO_ANSWER` is attributable
+  to either the deployed contract or a named benchmark cap.
+- `scripts/v2/eval/test_tool_grading.py` and `scripts/v2/eval/test_qualify_budget.py`:
+  pure-Python self-tests, no server and no toolchain, wired into CI. They pin the
+  budget arithmetic, the retention context clamp, the failure taxonomy, nested
+  and literal tool-argument grading, and -- the regression that matters -- that
+  every literal a fixture grades byte-exactly is supplied byte-exactly in its
+  prompt.
+- Named `unity_impl` regressions in `test_verifiers.py`: a known-good
+  `ProjectilePool` compiles against `UNITY_SHIM`; the answer
+  `qwen38-27b-deep-32k` produced on 2026-08-23 does not, and the toolchain output
+  must name `CS0136`; the same answer with the scope repaired compiles again.
+  The 2026-08-23 verdict is now falsifiable by running something rather than by
+  re-reading a report.
+- Argv-quoting regression in `Test-V2ConfigGeneration.ps1`: a multi-word
+  `reasoning_budget_message` must survive command construction as one argv token,
+  through both the benchmark and the production path. A regression that
+  re-introduces the raw-array pattern makes `budget` a token of its own again,
+  which is what killed the first Huge-256k launch.
+- `internal/panel/capability_contract_test.go`: pins what
+  `capabilities.function_calling` means -- required rather than defaulted,
+  carried verbatim into the projection, and deliberately not a launch gate --
+  and `Test-V2HarnessConfig.ps1` now asserts the Codex catalog's
+  `supports_parallel_tool_calls` tracks it exactly in both directions.
+- `docs/reports/HARDENING-post-qualification-20260823.md`: the harness changes,
+  a staged and explicitly unqualified Gemma reasoning-budget candidate, the
+  preserved Qwen3.6-35B-A3B status, and the exact commands for the physical
+  re-run. Nothing in it has been run.
 
 ### Changed
 
+- Tool-argument strings are compared byte-for-byte instead of through `norm()`,
+  which folded case and stripped whitespace. `Vendor/**` matched `vendor/**` and
+  `FOO[0-9]+` matched `foo[0-9]+`, so `literal_identifier` could not see the case
+  it asks a model to preserve. Re-graded against all 44 tool rows in the raw
+  2026-08-23 arguments this changes no historical verdict. Retention probes keep
+  the lenient comparison, where `"Go" == "go"` is correct.
+- Three tool fixtures now state every literal the grader demands.
+  `tool_pick_search_many_nested` and `literal_regex` said "excluding vendor" while
+  grading against `vendor/**`; `literal_cs_glob` demanded `case_sensitive: true`
+  -- a required schema field -- from a prompt that never mentioned case. **No
+  expected value changed and no verifier was loosened**: `vendor`, `vendor/`,
+  `vendor/*` and `vendor/**` remain four different arguments. The 2026-08-23
+  scores stand as measured.
+- The coding-fixture output cap is the named `coding_tasks.DEFAULT_MAX_TOKENS`
+  rather than a literal, and is documented as a floor for a fixture that a
+  profile ceiling overrides -- never something to raise to suit one profile.
+- Failure taxonomy extended so a transport failure can no longer be read as a
+  model result: `REQUEST_TIMEOUT`, `REQUEST_ERROR`, `MODEL_OUTPUT_FAILURE`,
+  `TOOL_ARGUMENT_ERROR` and `STRUCTURED_OUTPUT_ERROR` join the existing
+  `NO_ANSWER` / `OUTPUT_LENGTH` / `REASONING_EXHAUSTED` set, every suite tags its
+  exception rows, and the toolchain-level `TIMEOUT` is renamed `VERIFIER_TIMEOUT`
+  to keep it distinct from an HTTP timeout. `COMPILE_ERROR` now also matches
+  `dotnet` output in pt-BR, the host locale. Output exhaustion is still never
+  converted into a compile failure.
+- The retention suite receives the resolved profile ceiling, clamped to the room
+  left in the context window and never below its 4096-token floor, and reports
+  which of `fixture` / `profile` / `context-clamped` applied.
+- `capabilities.function_calling` is documented in the schema and in
+  `MODEL_PROMOTION.md` as a per-artifact deployment guarantee proven through
+  `internal/edge/namespace.go`, not a description of what a chat template can do.
+  `gemma4-12b-qat-ud-q4xl` scoring 6/7 on the tool suite against llama-server's
+  own endpoint is a different measurement and the flag stays `false`.
+- `docs/reports/QUALIFICATION-CAMPAIGN-20260823.md` carries an appended errata
+  section. The measured tables above it, and every file in
+  `benchmarks/campaign-20260823-full/`, are unchanged.
 - `cache_idle_slots` is three-valued in the generator. Absent still emits
   nothing, so every model generated before the field existed keeps a
   byte-identical command line; a declared value now emits `--cache-idle-slots`

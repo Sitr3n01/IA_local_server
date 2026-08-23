@@ -202,6 +202,33 @@ foreach ($catalogModel in @($catalog.models)) {
 	Assert-True ($null -eq $applyPatchProperty -or $null -eq $applyPatchProperty.Value) "Codex apply_patch must remain disabled for $($catalogModel.slug)."
 }
 
+# capabilities.function_calling is the one capability flag with a behavioural
+# consumer: New-V2ClientCatalogs.ps1 maps it onto the Codex catalog's
+# supports_parallel_tool_calls, which is what a harness reads before deciding it
+# may issue parallel tool calls against this model. The mapping has to stay
+# exact in both directions.
+#
+# It is asserted here because the flag's meaning was questioned after the
+# 2026-08-23 campaign scored gemma4-12b-qat-ud-q4xl at 6/7 on the tool suite
+# while its manifest declares function_calling: false. That score was measured
+# against llama-server's own endpoint; docs/MODEL_PROMOTION.md defines the flag
+# as a forced tool call demonstrated through internal/edge/namespace.go for this
+# exact quantization. Different question, so the flag stayed false -- and this
+# assertion makes the consequence of ever flipping it visible in a fast test
+# rather than in a client's behaviour.
+$manifestCapabilityById = @{}
+foreach ($manifestModel in @($manifest.models)) {
+	$manifestCapabilityById[[string]$manifestModel.id] = [bool]$manifestModel.capabilities.function_calling
+}
+foreach ($catalogModel in @($catalog.models)) {
+	$slug = [string]$catalogModel.slug
+	Assert-True ($manifestCapabilityById.ContainsKey($slug)) "Codex catalog advertises '$slug', which is not in the manifest."
+	if (-not $manifestCapabilityById.ContainsKey($slug)) { continue }
+	$declared = $manifestCapabilityById[$slug]
+	$advertised = [bool]$catalogModel.supports_parallel_tool_calls
+	Assert-True ($advertised -eq $declared) "Codex supports_parallel_tool_calls=$advertised for '$slug' but the manifest declares function_calling=$declared; regenerate the catalogs with New-V2ClientCatalogs.ps1 instead of editing them."
+}
+
 foreach ($openCodePath in @(
 	(Join-Path $RepoRoot 'integrations\opencode\opencode.local-provider.jsonc'),
 	(Join-Path $RepoRoot 'integrations\opencode\opencode.canary-provider.jsonc')

@@ -118,6 +118,24 @@ class Server:
         except Exception:
             return {}
 
+    def context_window(self):
+        """Tokens the loaded slot can hold, or None if the server will not say.
+
+        llama.cpp reports it under default_generation_settings rather than at the
+        top level on every build, so both are tried before giving up. None means
+        "unknown", which callers must treat as "do not assume room", never as 0.
+        """
+        props = self.props() or {}
+        for candidate in (props.get("n_ctx"),
+                          (props.get("default_generation_settings") or {}).get("n_ctx")):
+            try:
+                value = int(candidate)
+            except (TypeError, ValueError):
+                continue
+            if value > 0:
+                return value
+        return None
+
     def chat(self, messages, max_tokens=1024, temperature=0.0, tools=None,
              timeout=None, seed=20260821, tool_choice="auto", tag=None):
         payload = {
@@ -291,6 +309,52 @@ def compose_system(base, system_policy="current", strict_tool_policy=False):
     return "\n\n".join(p for p in parts if p)
 
 
+# Per-suite fixture defaults, named so a report can state what a run would have
+# used had no profile ceiling been resolved. The coding default lives in the
+# fixture table because it is a property of the fixtures.
+CODING_FIXTURE_DEFAULT_MAX_TOKENS = CT.DEFAULT_MAX_TOKENS
+TOOL_SUITE_DEFAULT_MAX_TOKENS = 4096
+JSON_SUITE_DEFAULT_MAX_TOKENS = 4096
+# Retention answers a fixed list of probes as one small JSON object, so its
+# reserve is sized for the answer rather than for the profile. A profile ceiling
+# raises it only as far as the unused part of the context window allows -- at
+# 91% occupancy of a 262144-token window there is no room for a 32768-token
+# answer, and asking for one would fail the prefill rather than measure it.
+RETENTION_DEFAULT_OUTPUT_RESERVE = 4096
+# Slack between the prefill and the answer cap. The tokenizer count and the
+# server's own accounting differ slightly (template wrapping, BOS handling), and
+# a probe that overflows the window measures nothing at all.
+RETENTION_CONTEXT_MARGIN_TOKENS = 1024
+
+# The floor mirrors $script:V2MinimumAnswerReserve in scripts/v2/Common.ps1.
+# Common.ps1 derives the ceiling before a model is loaded; this module verifies
+# the ceiling it was handed. One deriver, one verifier -- not two algorithms.
+MINIMUM_ANSWER_RESERVE = 8192
+
+
+def minimum_answer_reserve(request_ceiling):
+    """Answer tokens a run with a positive reasoning budget must keep back.
+
+    min() rather than a constant so a ceiling below the floor is judged against
+    itself instead of an unreachable target.
+    """
+    return min(MINIMUM_ANSWER_RESERVE, request_ceiling)
+
+
+def answer_reserve_verdict(request_ceiling, reasoning_budget):
+    """Describe what a (ceiling, reasoning budget) pair leaves for the answer."""
+    applies = bool(reasoning_budget and reasoning_budget > 0)
+    if not applies:
+        return {"applies": False, "request_ceiling": request_ceiling,
+                "reasoning_budget": None, "answer_reserve": None,
+                "minimum_answer_reserve": None, "ok": True}
+    reserve = request_ceiling - reasoning_budget
+    minimum = minimum_answer_reserve(request_ceiling)
+    return {"applies": True, "request_ceiling": request_ceiling,
+            "reasoning_budget": reasoning_budget, "answer_reserve": reserve,
+            "minimum_answer_reserve": minimum, "ok": reserve >= minimum}
+
+
 def max_tokens(default, override):
     return override if override and override > 0 else default
 
@@ -328,6 +392,42 @@ def diagnostic_tools(with_schema_policy=False):
     return tools
 
 
+# The canonical failure vocabulary. Every failing row in every suite carries at
+# least one of these, because the distinction they encode is the one a campaign
+# report keeps getting wrong by hand: a model that wrote bad code, a model that
+# never got to write anything, and a request that never completed are three
+# different findings, and only the first is a quality result.
+#
+# Sub-reasons (CONSTRAINT_VIOLATION, INVENTED_API, SYNTAX_ERROR, TEST_FAILURE,
+# VERIFIER_TIMEOUT, INVALID_TOOL, PARSER_FAILURE) may accompany a canonical tag
+# and never replace it.
+CANONICAL_FAILURES = (
+    "MODEL_OUTPUT_FAILURE",     # the model answered and the answer was wrong
+    "COMPILE_ERROR",            # the answer did not build
+    "NO_ANSWER",                # generation ended with an empty content field
+    "REASONING_EXHAUSTED",      # ... and it ended inside reasoning_content
+    "OUTPUT_LENGTH",            # generation stopped at the request ceiling
+    "REQUEST_TIMEOUT",          # the HTTP request never returned in time
+    "REQUEST_ERROR",            # the HTTP request failed for any other reason
+    "TOOL_ARGUMENT_ERROR",      # the right tool with mutated or missing arguments
+    "STRUCTURED_OUTPUT_ERROR",  # the reply was not the object the schema asked for
+)
+
+
+def classify_request_exception(exc):
+    """Split a failed HTTP request into timeout and everything else.
+
+    An untagged transport failure is how the 2026-08-23 report came to describe
+    a 900-second timeout as "empty response, no output or reasoning tokens at
+    all": the row carried an error string and no taxonomy at all, so a reader
+    scored it as a model result.
+    """
+    text = str(exc).lower()
+    if "timed out" in text or "timeout" in text:
+        return ["REQUEST_TIMEOUT"]
+    return ["REQUEST_ERROR"]
+
+
 def classify_coding_failure(task, passed, constraint_ok, no_answer, truncated, detail, code):
     if passed and constraint_ok:
         return []
@@ -342,17 +442,26 @@ def classify_coding_failure(task, passed, constraint_ok, no_answer, truncated, d
     if not constraint_ok:
         categories.append("CONSTRAINT_VIOLATION")
     if "TIMEOUT" in text:
-        categories.append("TIMEOUT")
+        # The toolchain timed out running the model's code, which is a property
+        # of the answer. Deliberately not REQUEST_TIMEOUT, which is transport.
+        categories.append("VERIFIER_TIMEOUT")
     lower = text.lower()
     if task["id"] == "no_invented_api" or "does not contain a definition" in lower or "undefined" in lower:
         categories.append("INVENTED_API")
     if "syntaxerror" in lower:
         categories.append("SYNTAX_ERROR")
     if ("build failed" in lower or "compilation failed" in lower or
-            "error cs" in lower or "go test" in lower or "tsc" in lower):
+            "error cs" in lower or "go test" in lower or "tsc" in lower or
+            # dotnet speaks the host locale. Matching English only classified
+            # Deep's real CS0136 on this pt-BR host as a bare TEST_FAILURE.
+            "falha da compila" in lower or "erro(s)" in lower):
         categories.append("COMPILE_ERROR")
     if not categories:
         categories.append("TEST_FAILURE" if detail else "OTHER")
+    # Output exhaustion is never promoted to a model-quality verdict: a model
+    # that emitted no code cannot have emitted code that fails to compile.
+    if not no_answer and not truncated:
+        categories.insert(0, "MODEL_OUTPUT_FAILURE")
     return categories
 
 
@@ -376,9 +485,17 @@ def run_coding(server, workdir, only=None, max_tokens_override=0, temperature=0.
                 temperature=temperature, seed=seed, timeout=900,
                 tag="%s-%s" % (suite_name, task["id"]))
         except Exception as exc:
+            # Tagged, because an untagged transport failure in this list is
+            # indistinguishable from a model that answered badly.
+            taxonomy = classify_request_exception(exc)
             results.append({"id": task["id"], "family": task["family"],
                             "lang": task["lang"], "passed": False,
-                            "error": "request failed: %s" % exc})
+                            "compiled_or_ran": False, "no_answer": False,
+                            "truncated": False, "request_failed": True,
+                            "error": "request failed: %s" % exc,
+                            "failure_taxonomy": taxonomy})
+            print("  %-6s %-24s %-9s (%s)"
+                  % (suite_name, task["id"], "REQ-FAIL", taxonomy[0]), flush=True)
             continue
 
         code = CT.extract_code(reply["content"], task["langs"], task["pick"])
@@ -450,6 +567,16 @@ def _value_match(actual, expected):
         if not isinstance(actual, dict):
             return False
         return not _arg_mismatches(actual, expected)
+    if isinstance(expected, str):
+        # Byte-exact, deliberately. `norm` folds case, collapses whitespace and
+        # strips trailing punctuation, which is right for a retention probe
+        # ("Go" == "go") and wrong for a tool argument: it made `Vendor/**`
+        # match `vendor/**`, `FOO[0-9]+` match `foo[0-9]+`, and a trailing space
+        # on a path invisible. literal_identifier asks a model to preserve case
+        # exactly and the grader could not see case at all. Re-graded against
+        # the 2026-08-23 raw arguments this changes no historical verdict -- the
+        # hole was latent, not load-bearing.
+        return isinstance(actual, str) and actual == expected
     return norm(actual) == norm(expected)
 
 
@@ -497,7 +624,8 @@ def run_chat_smoke(server, temperature=0.0, seed=20260821, system_policy="curren
              "finish_reason": reply["finish_reason"],
              "reasoning_chars": reply["reasoning_chars"]})
     except Exception as exc:
-        add({"id": "system_user_stop", "passed": False, "error": str(exc)})
+        add({"id": "system_user_stop", "passed": False, "error": str(exc),
+             "failure_taxonomy": classify_request_exception(exc)})
 
     try:
         reply = server.chat(
@@ -512,7 +640,8 @@ def run_chat_smoke(server, temperature=0.0, seed=20260821, system_policy="curren
              "finish_reason": reply["finish_reason"],
              "reasoning_chars": reply["reasoning_chars"]})
     except Exception as exc:
-        add({"id": "multi_turn", "passed": False, "error": str(exc)})
+        add({"id": "multi_turn", "passed": False, "error": str(exc),
+             "failure_taxonomy": classify_request_exception(exc)})
 
     try:
         streamed = server.stream_chat(
@@ -521,7 +650,8 @@ def run_chat_smoke(server, temperature=0.0, seed=20260821, system_policy="curren
         add({"id": "streaming", "passed": streamed["done"] and streamed["chunks"] > 1,
              "chunks": streamed["chunks"], "done": streamed["done"]})
     except Exception as exc:
-        add({"id": "streaming", "passed": False, "error": str(exc)})
+        add({"id": "streaming", "passed": False, "error": str(exc),
+             "failure_taxonomy": classify_request_exception(exc)})
 
     tool = {"type": "function", "function": {
         "name": "read_file",
@@ -570,7 +700,8 @@ def run_chat_smoke(server, temperature=0.0, seed=20260821, system_policy="curren
              "finish_reason": finish_reason,
              "reasoning_chars": reasoning_chars})
     except Exception as exc:
-        add({"id": "tool_result_continuation", "passed": False, "error": str(exc)})
+        add({"id": "tool_result_continuation", "passed": False, "error": str(exc),
+             "failure_taxonomy": classify_request_exception(exc)})
 
     return {"results": results,
             "passed": sum(1 for r in results if r.get("passed")),
@@ -592,12 +723,17 @@ def run_tools(server, only=None, max_tokens_override=0, temperature=0.0, seed=20
                   "asked, call it. Do not describe the call in prose.",
                   system_policy, strict_tool_policy)},
                  {"role": "user", "content": task["prompt"]}],
-                max_tokens=max_tokens(4096, max_tokens_override),
+                max_tokens=max_tokens(TOOL_SUITE_DEFAULT_MAX_TOKENS, max_tokens_override),
                 temperature=temperature, seed=seed, tools=tools, timeout=900,
                 tag="%s-%s" % (suite_name, task["id"]))
         except Exception as exc:
+            taxonomy = classify_request_exception(exc)
             results.append({"id": task["id"], "passed": False,
-                            "error": "request failed: %s" % exc})
+                            "request_failed": True,
+                            "error": "request failed: %s" % exc,
+                            "failure_taxonomy": taxonomy})
+            print("  %-6s %-24s %-9s (%s)"
+                  % (suite_name, task["id"], "REQ-FAIL", taxonomy[0]), flush=True)
             continue
 
         calls = reply["tool_calls"]
@@ -633,18 +769,30 @@ def run_tools(server, only=None, max_tokens_override=0, temperature=0.0, seed=20
                     row["detail"] = "; ".join(mismatches)[:300]
             row["passed"] = bool(row["name_ok"] and row["args_ok"]
                                  and row["json_ok"] and not row["forbidden_called"])
+        row["truncated"] = reply["finish_reason"] == "length"
+        row["no_answer"] = bool(row["truncated"] and not calls
+                                and not CT.strip_reasoning(reply["content"]).strip())
         if not row["passed"]:
             failure = []
-            if not calls:
+            # Budget exhaustion first: a model still reasoning when the ceiling
+            # arrived never chose a tool, and grading that as tool selection is
+            # the same mistake NO_ANSWER exists to prevent on the coding suite.
+            if row["no_answer"]:
+                failure.extend(["NO_ANSWER", "OUTPUT_LENGTH", "REASONING_EXHAUSTED"])
+            elif row["truncated"]:
+                failure.append("OUTPUT_LENGTH")
+            if not calls and not row["no_answer"]:
                 failure.append("INVALID_TOOL")
             if calls and not row["name_ok"]:
                 failure.append("INVALID_TOOL")
             if calls and not row["json_ok"]:
-                failure.append("PARSER_FAILURE")
+                failure.extend(["TOOL_ARGUMENT_ERROR", "PARSER_FAILURE"])
             if calls and row["json_ok"] and not row["args_ok"]:
-                failure.append("WRONG_TOOL_ARGUMENT")
+                failure.append("TOOL_ARGUMENT_ERROR")
             if row["forbidden_called"]:
                 failure.append("CONSTRAINT_VIOLATION")
+            if calls and "MODEL_OUTPUT_FAILURE" not in failure and not row["no_answer"]:
+                failure.insert(0, "MODEL_OUTPUT_FAILURE")
             row["failure_taxonomy"] = failure or ["OTHER"]
         results.append(row)
         print("  %-6s %-24s %s" % (suite_name, task["id"], "PASS" if row["passed"] else "FAIL"),
@@ -659,11 +807,12 @@ def run_json(server, max_tokens_override=0, temperature=0.0, seed=20260821,
         reply = server.chat(
             [{"role": "system", "content": compose_system("Return only JSON. No prose, no fence.", system_policy, strict_tool_policy)},
              {"role": "user", "content": task["prompt"]}],
-            max_tokens=max_tokens(4096, max_tokens_override),
+            max_tokens=max_tokens(JSON_SUITE_DEFAULT_MAX_TOKENS, max_tokens_override),
             temperature=temperature, seed=seed, timeout=900,
             tag="json-%s" % task["id"])
     except Exception as exc:
-        return {"id": task["id"], "passed": False, "error": str(exc)}
+        return {"id": task["id"], "passed": False, "request_failed": True,
+                "error": str(exc), "failure_taxonomy": classify_request_exception(exc)}
 
     obj, clean = parse_json_reply(reply["content"])
     row = {"id": task["id"], "parsed": obj is not None, "clean_json": clean,
@@ -690,6 +839,20 @@ def run_json(server, max_tokens_override=0, temperature=0.0, seed=20260821,
                 bad.append("%s=%r" % (key, actual))
         row["mismatches"] = bad
         row["passed"] = not bad
+    row["truncated"] = reply["finish_reason"] == "length"
+    row["no_answer"] = bool(row["truncated"] and not CT.strip_reasoning(reply["content"]).strip())
+    if not row["passed"]:
+        failure = []
+        if row["no_answer"]:
+            failure.extend(["NO_ANSWER", "OUTPUT_LENGTH", "REASONING_EXHAUSTED"])
+        elif row["truncated"]:
+            failure.append("OUTPUT_LENGTH")
+        if not row["no_answer"]:
+            # Either it did not parse, or it parsed and disagreed with the
+            # schema. Both are structured-output failures; neither is a
+            # transport failure and neither is exhaustion.
+            failure.extend(["MODEL_OUTPUT_FAILURE", "STRUCTURED_OUTPUT_ERROR"])
+        row["failure_taxonomy"] = failure or ["OTHER"]
     print("  json   %-24s %s" % (task["id"], "PASS" if row["passed"] else "FAIL"), flush=True)
     return row
 
@@ -714,13 +877,39 @@ def build_corpus_for(server, target_tokens, question_tokens_guess=600, seed=2026
     return doc, units, server.count_tokens(doc)
 
 
-def run_retention(server, target_tokens, output_reserve=4096, seed=20260821):
+def resolve_retention_reserve(prompt_tokens, n_ctx, requested_ceiling,
+                              floor=RETENTION_DEFAULT_OUTPUT_RESERVE):
+    """Answer cap for one retention probe, and why it is that number.
+
+    A profile ceiling is the contract to measure, but the prefill has already
+    taken most of the window by the time this is asked. Requesting more than the
+    window has left turns a retention measurement into a context-overflow error,
+    so the ceiling is clamped to the room that remains and never falls below the
+    floor the probes actually need.
+    """
+    if not requested_ceiling or requested_ceiling <= floor:
+        return floor, "fixture"
+    room = None
+    if n_ctx and prompt_tokens:
+        room = n_ctx - prompt_tokens - RETENTION_CONTEXT_MARGIN_TOKENS
+    if room is None:
+        return floor, "fixture"
+    allowed = min(requested_ceiling, room)
+    if allowed <= floor:
+        return floor, "fixture"
+    return allowed, ("profile" if allowed == requested_ceiling else "context-clamped")
+
+
+def run_retention(server, target_tokens, output_reserve=RETENTION_DEFAULT_OUTPUT_RESERVE,
+                  seed=20260821, request_ceiling=0):
     print("  retention: sizing corpus for ~%d prompt tokens" % target_tokens, flush=True)
     doc, units, doc_tokens = build_corpus_for(server, target_tokens, seed=seed)
     prompt = doc + FC.QUESTION_BLOCK
     total_tokens = server.count_tokens(prompt)
-    print("  retention: %d filler units, %d prompt tokens; prefilling" %
-          (units, total_tokens), flush=True)
+    reserve, reserve_source = resolve_retention_reserve(
+        total_tokens, server.context_window(), request_ceiling, floor=output_reserve)
+    print("  retention: %d filler units, %d prompt tokens, %d answer tokens (%s); prefilling" %
+          (units, total_tokens, reserve, reserve_source), flush=True)
 
     started = time.monotonic()
     try:
@@ -729,10 +918,12 @@ def run_retention(server, target_tokens, output_reserve=4096, seed=20260821):
               "You are a coding agent reading a project briefing. Answer only "
               "from the briefing. Never guess a value you did not read."},
              {"role": "user", "content": prompt}],
-            max_tokens=output_reserve, timeout=7200)
+            max_tokens=reserve, timeout=7200)
     except Exception as exc:
         return {"target_tokens": target_tokens, "prompt_tokens": total_tokens,
-                "failure": "request failed: %s" % exc}
+                "output_reserve": reserve, "output_reserve_source": reserve_source,
+                "failure": "request failed: %s" % exc,
+                "failure_taxonomy": classify_request_exception(exc)}
 
     obj, clean = parse_json_reply(reply["content"])
     probes = []
@@ -758,6 +949,8 @@ def run_retention(server, target_tokens, output_reserve=4096, seed=20260821):
     timings = reply["timings"]
     return {
         "target_tokens": target_tokens,
+        "output_reserve": reserve,
+        "output_reserve_source": reserve_source,
         "filler_units": units,
         "corpus_tokens": doc_tokens,
         "prompt_tokens": total_tokens,
@@ -799,7 +992,18 @@ def main():
     ap.add_argument("--only", default="", help="restrict the coding suite to these ids")
     ap.add_argument("--only-tools", default="", help="restrict the tool suite to these ids")
     ap.add_argument("--max-tokens", type=int, default=0,
-                    help="override per-task completion cap for diagnostic cells")
+                    help="effective completion cap for every suite; 0 keeps each "
+                         "fixture's own default")
+    ap.add_argument("--max-tokens-source", choices=("explicit", "profile", "fixture"),
+                    default="fixture",
+                    help="where --max-tokens came from, recorded so a report can "
+                         "distinguish a deployment contract from a benchmark cap")
+    ap.add_argument("--reasoning-budget", type=int, default=0,
+                    help="the server's --reasoning-budget, recorded and checked "
+                         "against the request ceiling; 0 means unbounded/unset")
+    ap.add_argument("--allow-constrained-request-budget", action="store_true",
+                    help="permit a request ceiling that cannot hold the answer "
+                         "reserve; names a diagnostic cell, never a baseline")
     ap.add_argument("--temperature", type=float, default=0.0)
     ap.add_argument("--seed", type=int, default=20260821)
     ap.add_argument("--capture-dir", default="",
@@ -808,6 +1012,23 @@ def main():
     ap.add_argument("--strict-tool-policy", action="store_true")
     ap.add_argument("--tool-schema-policy", action="store_true")
     args = ap.parse_args()
+
+    # The ceiling that actually applies. 0 means "each suite keeps its own
+    # fixture default", and the invariant is then checked against the smallest
+    # default this harness uses, because a reasoning budget that starves the
+    # smallest starves the run whatever the fixture says.
+    effective_ceiling = args.max_tokens if args.max_tokens > 0 else 0
+    budget = answer_reserve_verdict(
+        effective_ceiling or MINIMUM_ANSWER_RESERVE, args.reasoning_budget)
+    if not budget["ok"] and not args.allow_constrained_request_budget:
+        print("refusing to measure an impossible generation contract: a "
+              "reasoning_budget of %d leaves %d answer tokens under a %d-token "
+              "request ceiling, and at least %d are required. Raise the ceiling, "
+              "lower the budget, or pass --allow-constrained-request-budget."
+              % (args.reasoning_budget, budget["answer_reserve"],
+                 budget["request_ceiling"], budget["minimum_answer_reserve"]),
+              file=sys.stderr)
+        return 3
 
     os.makedirs(args.workdir, exist_ok=True)
     server = Server(args.base_url, args.alias, capture_dir=args.capture_dir or None)
@@ -828,8 +1049,34 @@ def main():
                          if k in ("n_ctx", "model_path", "default_generation_settings",
                                   "total_slots", "build_info", "chat_template")
                          and k != "chat_template"},
+        # The generation contract this run measured, kept beside the results so
+        # a NO_ANSWER can be read as either "the deployment budget was not
+        # enough" or "the benchmark capped it below the deployment budget".
+        "request_budget": {
+            "effective_max_tokens": effective_ceiling or None,
+            "source": args.max_tokens_source,
+            "fixture_defaults": {
+                "coding": CODING_FIXTURE_DEFAULT_MAX_TOKENS,
+                "tools": TOOL_SUITE_DEFAULT_MAX_TOKENS,
+                "json": JSON_SUITE_DEFAULT_MAX_TOKENS,
+                "retention": RETENTION_DEFAULT_OUTPUT_RESERVE,
+            },
+            "reasoning_budget": args.reasoning_budget or None,
+            "answer_reserve": budget["answer_reserve"],
+            "minimum_answer_reserve": budget["minimum_answer_reserve"],
+            "reserve_ok": budget["ok"],
+            "constrained_diagnostic": bool(args.allow_constrained_request_budget),
+        },
+        # Baseline means "the profile as served". Any non-default policy below
+        # makes this a labelled diagnostic cell whose score is not comparable to
+        # a baseline score.
+        "policy_profile": ("baseline" if (args.system_policy == "current"
+                                          and not args.strict_tool_policy
+                                          and not args.tool_schema_policy)
+                           else "diagnostic"),
         "diagnostic_config": {
             "max_tokens_override": args.max_tokens or None,
+            "max_tokens_source": args.max_tokens_source,
             "temperature": args.temperature,
             "seed": args.seed,
             "system_policy": args.system_policy,
@@ -934,7 +1181,8 @@ def main():
     if "retention" in suites:
         print("[retention]", flush=True)
         levels = args.retention_tokens or [30000]
-        report["suites"]["retention"] = [run_retention(server, t) for t in levels]
+        report["suites"]["retention"] = [
+            run_retention(server, t, request_ceiling=effective_ceiling) for t in levels]
 
     with open(args.out, "w", encoding="utf-8") as handle:
         json.dump(report, handle, indent=2, default=str)

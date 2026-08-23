@@ -480,7 +480,9 @@
           "type": "boolean"
         },
         "function_calling": {
-          "type": "boolean"
+          "type": "boolean",
+          "$comment": "A deployment guarantee for THIS artifact, not a description of what the chat template can do. True means a forced tool call has been demonstrated end to end through internal/edge/namespace.go for this exact quantization, per docs/MODEL_PROMOTION.md. A score on a benchmark that talks straight to llama-server is not that evidence and does not license flipping this: the 2026-08-23 campaign measured gemma4-12b-qat-ud-q4xl at 6/7 on the tool suite against the server's own endpoint while this flag stayed false, and the flag was right. Its consumers advertise a promise rather than gate behaviour -- New-V2ClientCatalogs.ps1 maps it to the Codex catalog's supports_parallel_tool_calls, and the tray renders it as a capability badge -- so an over-claimed true is visible to a harness that will then depend on it.",
+          "default": false
         },
         "structured_output": {
           "type": "boolean"

@@ -95,6 +95,25 @@ Adding such a model touches four files that CI checks against each other, and th
 
 Declare `capabilities.function_calling` and `capabilities.responses` as `false` until the stress evaluation demonstrates a valid forced tool call through `internal/edge/namespace.go`. A model family's tool-call serialization is not evidence for a specific quantization of it.
 
+### What `capabilities.function_calling` does and does not mean
+
+The flag is a **deployment guarantee for one artifact**, not a description of what a chat template is capable of. Reading it the other way is easy and has happened: the 2026-08-23 campaign scored `gemma4-12b-qat-ud-q4xl` at 6/7 on the tool suite while its manifest declares `function_calling: false`, and the campaign report recorded the flag as looking over-conservative. It was not wrong — the two are measuring different things.
+
+| | Measures | Sets the flag? |
+|---|---|---|
+| `scripts/v2/eval/qualify.py` tool suites | Whether the model picks the right function with the right arguments, over HTTP straight to `llama-server`'s `/v1/chat/completions` | **No.** The edge is not in the path. |
+| `scripts/v2/Test-V2WorkstationSmoke.ps1` | The same question against the real chat template, as part of an end-to-end profile smoke | No, on its own |
+| Stress evaluation through `internal/edge/namespace.go` | Whether a **forced** tool call survives the serving path this deployment actually exposes, for this exact quantization | **Yes.** This is the evidence. |
+
+Consumers advertise the promise rather than gate on it, which is exactly why an over-claimed `true` is expensive:
+
+- `scripts/v2/New-V2ClientCatalogs.ps1` maps it to the Codex catalog's `supports_parallel_tool_calls`, so a harness reads it before issuing parallel tool calls. `Test-V2HarnessConfig.ps1` asserts the mapping stays exact in both directions.
+- `cmd/cia-tray` renders it as a capability badge and as the "candidato sem function calling" label.
+- `internal/panel` requires the field to be present and carries it verbatim; `CanLaunchCodex` and `CanLaunchOpenCode` deliberately ignore it, so a weaker model stays launchable by operator choice. Pinned by `internal/panel/capability_contract_test.go`.
+- `internal/edge` never reads it. The edge serves the protocol surface regardless; the flag describes what has been proven about a model, not what the router permits.
+
+So a benchmark score, however good, is not grounds for flipping it. Raising `function_calling` to `true` requires the forced-tool-call evidence above, recorded for that artifact.
+
 ## Runtimes that are not upstream release builds
 
 A runtime built from source is qualified as an artifact in its own right, and it
