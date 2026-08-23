@@ -1,12 +1,14 @@
 <#
 .SYNOPSIS
-Completes a reviewed canary deployment.
+Completes a reviewed final deployment.
 
 .DESCRIPTION
-A thin wrapper over Complete-V2Deployment.ps1 with -Environment Canary. It
-exists so the documented canary command and the operator muscle memory built
-around it keep working; the transaction, drain, rollback, and verification are
-the shared implementation.
+A thin wrapper over Complete-V2Deployment.ps1 with -Environment Final. Final is
+a first-class deployment environment with exactly the canary transaction: the
+same approvals, drain, release record, rollback, and verification. The only
+differences are the ports, the task names, and that Final resolves its model and
+runtime bytes from the protected production artifact store rather than from the
+candidate locations.
 #>
 [CmdletBinding()]
 param(
@@ -48,7 +50,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 & (Join-Path $PSScriptRoot 'Complete-V2Deployment.ps1') `
-    -Environment Canary `
+    -Environment Final `
     -InstallRoot $InstallRoot `
     -TargetCodexHome $TargetCodexHome `
     -ExpectedHarnessPlanSha256 $ExpectedHarnessPlanSha256 `

@@ -4,6 +4,8 @@ Set-StrictMode -Version Latest
 # stays about manifests and command generation, and dot-sourced here so every
 # script that already loads Common.ps1 gets them without a second include.
 . (Join-Path $PSScriptRoot 'Artifacts.ps1')
+. (Join-Path $PSScriptRoot 'Release.ps1')
+. (Join-Path $PSScriptRoot 'Deployment.ps1')
 
 function Get-V2RepoRoot {
     return (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
