@@ -19,9 +19,9 @@ Do not clean or reset the dirty v1 panel file. Preserve it independently before 
 
 Build from tracked source. Never build an elevated process directly into the
 protected `bin` directory. `Build-V2Binaries.ps1` runs the complete Go test
-suite and atomically publishes exactly five application artifacts to the
-user-writable staging directory: Edge, read-only MCP, administrative MCP,
-inference MCP, and the Windows-GUI tray. Their independently reviewed hashes
+suite and atomically publishes exactly six application artifacts to the
+user-writable staging directory: Edge, supervisor, read-only MCP, administrative
+MCP, inference MCP, and the Windows-GUI tray. Their independently reviewed hashes
 authorize the later elevated cutover. Run `Test-V2Manifest.ps1`; it requires
 the already installed `cia-manifest.exe` and applies
 `config/models.schema.json` before semantic and artifact checks.
@@ -33,12 +33,12 @@ $version = 'v2-canary-YYYYMMDD.N' # replace with one immutable reviewed release 
 ```
 
 The apply result must say `tests_passed: true` and list hashes for
-`cia-edge.exe`, `cia-mcp.exe`, `cia-mcp-admin.exe`,
+`cia-edge.exe`, `cia-supervisor.exe`, `cia-mcp.exe`, `cia-mcp-admin.exe`,
 `cia-mcp-inference.exe`, and `cia-tray.exe`. Record and independently review
-all five SHA-256 values. Do not calculate or substitute them inline in a later
+all six SHA-256 values. Do not calculate or substitute them inline in a later
 `-Apply` command: each literal reviewed value is an approval boundary. The
 script uses a private build directory and rolls back all staging publications
-if any of the five cannot be published and reverified.
+if any of the six cannot be published and reverified.
 
 Obtain `llama-swap_240_windows_amd64.zip` from the official v240 release and verify it before extraction:
 
@@ -122,7 +122,7 @@ $codexHome = 'C:\Users\Sitr3n\.codex'
 .\scripts\v2\Install-V2Harness.ps1 -Environment Canary -TargetCodexHome $codexHome -Replace
 ```
 
-After independently recording that plan hash and the five hashes emitted by
+After independently recording that plan hash and the six hashes emitted by
 `Build-V2Binaries.ps1`, place only the literal reviewed values in the approval
 map. Open an elevated PowerShell, define the map there, and run the first
 command as a non-mutating preview. Run the second command in the same shell
@@ -131,8 +131,10 @@ only after that preview is identical to the intended cutover:
 ```powershell
 $canaryApproval = @{
     TargetCodexHome               = 'C:\Users\Sitr3n\.codex'
+    Version                       = 'v2-canary-YYYYMMDD.N'
     ExpectedHarnessPlanSha256     = '<reviewed 64-hex harness plan SHA-256>'
     ExpectedEdgeSha256            = '<reviewed 64-hex cia-edge.exe SHA-256>'
+    ExpectedSupervisorSha256      = '<reviewed 64-hex cia-supervisor.exe SHA-256>'
     ExpectedMcpSha256             = '<reviewed 64-hex cia-mcp.exe SHA-256>'
     ExpectedMcpAdminSha256        = '<reviewed 64-hex cia-mcp-admin.exe SHA-256>'
     ExpectedMcpInferenceSha256    = '<reviewed 64-hex cia-mcp-inference.exe SHA-256>'
@@ -144,14 +146,54 @@ $canaryApproval = @{
 .\scripts\v2\Complete-V2Canary.ps1 @canaryApproval -Apply
 ```
 
-Completion revalidates every staging hash before mutation. It then generates
-configuration, installs the harness transaction, atomically installs the three
-MCP binaries and tray, stops Edge followed by Router, atomically replaces
-Edge, applies ACL and firewall policy, restarts Router followed by Edge, audits
-ACLs, and runs the online installation check. Once process cutover begins, the
-task restart is attempted from `finally` even if installation fails. The script
-does not load a model; first inference remains lazy. Do not replace this
-transaction with a hand-written sequence of individual binary installers.
+`Complete-V2Canary.ps1` is a thin wrapper over
+`Complete-V2Deployment.ps1 -Environment Canary`; the two are interchangeable and
+Final uses the same transaction. Do not replace either with a hand-written
+sequence of individual binary installers.
+
+The transaction runs in four phases:
+
+1. **Preflight.** Every staged hash is revalidated against its independently
+   reviewed value, and the environment's directories, generated configuration,
+   and scheduled tasks must already exist. A preview stops here.
+2. **Preparation.** Configuration generation and harness installation. Both are
+   individually transactional and neither interrupts the running provider.
+   Before either runs, the release transaction records the current bytes of
+   every file and the definition of every task the cutover will replace, under
+   `state\releases\<release-id>\backup`.
+3. **Drain and cutover.** The provider is asked to stop admitting new inference
+   and to finish what it already had. Requests already running or queued are
+   never cancelled. Only once `active` and `queued` reach zero are the tasks
+   stopped and the binaries, tasks, ACLs, and firewall policy replaced. If the
+   drain does not complete within `-DrainTimeoutSeconds` (300 by default), the
+   provider is resumed and the deployment aborts **before any binary is
+   touched**.
+4. **Restart and verification.** Router then Edge, health, ACL audit, and the
+   independent installation check. The restart is attempted even if the cutover
+   failed.
+
+The very first deployment of this build faces an edge that has no drain API. It
+refuses to proceed until you accept that explicitly:
+
+```powershell
+.\scripts\v2\Complete-V2Canary.ps1 @canaryApproval -Apply -AllowUndrainableProvider
+```
+
+Use that switch once. Every later deployment drains first, and the run is
+recorded in the release journal.
+
+On failure after the cutover begins, the recorded backup drives a restore to the
+previous release. If the restore also fails the script reports **DEGRADED**,
+names the recovery record, and leaves the release manifest absent so every
+consumer stays fail-closed. The script does not load a model; first inference
+remains lazy.
+
+Completion writes `config\release.<environment>.json`. `/api/v1/status` then
+reports the installed release:
+
+```powershell
+(Invoke-RestMethod http://127.0.0.1:18091/api/v1/status).deployment
+```
 
 ## 7. Install the separate inference MCP integration
 
@@ -327,25 +369,107 @@ intended policy, then run the independent read-only audit:
 Apply writes a timestamped pre-change SDDL recovery record beneath
 `state\acl-backups` before changing exact child items. Subsequent deployment
 changes must run from a reviewed elevated maintenance session. The script never
-changes ACLs outside the v2 installation. Consequently, the runtime and GGUF
-paths currently referenced outside that root still require relocation into a
-protected v2 artifact directory or a separately reviewed, exact-target
-hardening procedure before final cutover.
+changes ACLs outside the v2 installation.
+
+Production model and runtime artifacts live under `artifacts` and are covered by
+the same immutable class: the serving user reads and executes them and cannot
+replace them. Candidate artifacts outside the installation root are deliberately
+left writable — qualification campaigns rewrite them — and a final deployment
+does not read them (ADR 0013).
 
 ## 10. Promotion and final cutover
 
-Complete the checklist in `MODEL_PROMOTION.md` and the soak in `BENCHMARKS.md`. Only then change `local-coding` to `qualified`/`enabled` and add `final` to its deployments.
+Complete the checklist in `MODEL_PROMOTION.md` and the soak in `BENCHMARKS.md`. Only then change the model to `qualified`/`enabled` and add `final` to its deployments.
 
-Generate final files and tasks with the same preview/apply sequence. Migrate OpenCode first, then Codex. Observe final operation for seven days before archiving v1.
+### 10.1 Publish the production artifacts
 
-Final harness installation has its own gate and refuses to proceed until
-`deployment.final.json` exists:
+Final never runs from a candidate file. Publish each deployed model and each
+runtime it references into the protected artifact store first. Preview, review
+the manifest hash, then apply from an elevated shell:
 
 ```powershell
-$codexHome = 'C:\Users\Sitr3n\.codex'
-.\scripts\v2\Install-V2Harness.ps1 -Environment Final -TargetCodexHome $codexHome -Replace
-.\scripts\v2\Install-V2Harness.ps1 -Environment Final -TargetCodexHome $codexHome -ExpectedPlanSha256 '<reviewed final plan_sha256>' -Apply -Replace
+.\scripts\v2\Publish-V2Artifact.ps1 -Kind Runtime -Id '<runtime-id>'
+.\scripts\v2\Publish-V2Artifact.ps1 -Kind Runtime -Id '<runtime-id>' -ExpectedSha256 '<reviewed 64-hex>' -Apply
+.\scripts\v2\Publish-V2Artifact.ps1 -Kind Model -Id '<model-id>'
+.\scripts\v2\Publish-V2Artifact.ps1 -Kind Model -Id '<model-id>' -ExpectedSha256 '<reviewed 64-hex>' -Apply
 ```
+
+Publication copies; it never moves or deletes. The candidate stays exactly where
+it was, byte for byte, and the script verifies that afterwards. A runtime is
+published as its whole directory because `llama-server.exe` cannot load without
+the backend libraries beside it, so expect the copy to take as long as the
+artifact is large. Hashing a 14 GB GGUF twice is minutes, not seconds.
+
+Replacing an already published artifact requires `-Replace` and a second
+reviewed hash. Nothing reclaims the previous copy automatically.
+
+### 10.2 Generate and register the final environment
+
+```powershell
+.\scripts\v2\New-V2Config.ps1 -Environment Final
+.\scripts\v2\New-V2Config.ps1 -Environment Final -Apply
+.\scripts\v2\Install-V2ScheduledTasks.ps1 -Environment Final
+.\scripts\v2\Install-V2ScheduledTasks.ps1 -Environment Final -Apply
+```
+
+Final generation resolves every artifact from the protected store and proves it
+holds the manifest's exact bytes. If an artifact was not published, generation
+fails with the identifier that is missing. The generated deployment marker
+records `artifact_source: production`.
+
+### 10.3 Complete the final deployment
+
+Final is a first-class deployment environment with exactly the canary
+transaction — same approvals, drain, release record, rollback, and verification:
+
+```powershell
+$finalApproval = @{
+    TargetCodexHome               = 'C:\Users\Sitr3n\.codex'
+    Version                       = 'v2-final-YYYYMMDD.N'
+    ExpectedHarnessPlanSha256     = '<reviewed 64-hex final harness plan SHA-256>'
+    ExpectedEdgeSha256            = '<reviewed 64-hex cia-edge.exe SHA-256>'
+    ExpectedSupervisorSha256      = '<reviewed 64-hex cia-supervisor.exe SHA-256>'
+    ExpectedMcpSha256             = '<reviewed 64-hex cia-mcp.exe SHA-256>'
+    ExpectedMcpAdminSha256        = '<reviewed 64-hex cia-mcp-admin.exe SHA-256>'
+    ExpectedMcpInferenceSha256    = '<reviewed 64-hex cia-mcp-inference.exe SHA-256>'
+    ExpectedTraySha256            = '<reviewed 64-hex cia-tray.exe SHA-256>'
+    Replace                       = $true
+}
+
+.\scripts\v2\Complete-V2Final.ps1 @finalApproval
+.\scripts\v2\Complete-V2Final.ps1 @finalApproval -Apply
+```
+
+Migrate OpenCode first, then Codex. Observe final operation for seven days before archiving v1.
+
+### 10.4 Roll a deployment back
+
+Use this when a deployment succeeded technically but must be undone. It drains
+first, for the same reason the deployment does:
+
+```powershell
+.\scripts\v2\Rollback-V2Deployment.ps1 -Environment Final
+.\scripts\v2\Rollback-V2Deployment.ps1 -Environment Final -Apply
+```
+
+Without `-ReleaseId` it undoes the release named by the installed release
+manifest. It restores exactly what that deployment replaced: configuration,
+launchers, application binaries, and scheduled task definitions. It does not
+touch candidate models, published production artifacts, benchmark results, user
+data, or any configuration the deployment did not replace.
+
+An incomplete restore is reported as **DEGRADED** with the recovery record path.
+It is never silent.
+
+### 10.5 Read the maintenance and release state
+
+```powershell
+$status = Invoke-RestMethod http://127.0.0.1:8091/api/v1/status
+$status.deployment      # environment, release, commit, previous release, status
+$status.maintenance     # running | draining | maintenance, with active and queued
+```
+
+Both are public, sanitized, and free of credentials and paths.
 
 ## 11. Onboard a hybrid model with partial offload (Qwen3.8-27B)
 
@@ -805,9 +929,15 @@ gates on the larger figure.
 
 ## Safe rollback
 
+To undo a v2 deployment, use `Rollback-V2Deployment.ps1` (section 10.4). It
+drains first, restores the previous release from its recorded transaction, and
+reports DEGRADED rather than hiding a restore it could not complete.
+
+To leave v2 entirely:
+
 - Stop/disable v2 Edge, then Router.
 - Restore harnesses to their prior explicit cloud profile or temporarily use direct `llama-server` on loopback for local work.
-- Preserve v2 configs, sanitized logs, hashes, and failure timestamps for diagnosis.
+- Preserve v2 configs, release records under `state\releases`, sanitized logs, hashes, and failure timestamps for diagnosis.
 - Do not reactivate the v1 panel/proxy or its cloud fallback.
 
 ## Incident evidence and cleanup

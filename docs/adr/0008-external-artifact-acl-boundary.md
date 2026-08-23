@@ -2,7 +2,15 @@
 
 ## Status
 
-Proposed.
+Superseded by [ADR 0013](0013-production-artifact-boundary.md).
+
+ADR 0013 keeps this ADR's premise - that relocating artifacts must not invalidate
+a pinned hash - and reaches the opposite decision, because relocation does not
+require re-pinning: production paths are *derived* from the artifact identifier,
+so `models.yaml`, the source snapshot, the validation state, and the client
+catalogs are untouched by publication. The candidate locations analysed below
+stay exactly as this ADR describes them; they simply stop being what production
+runs from.
 
 ## Context
 

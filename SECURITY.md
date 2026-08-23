@@ -25,6 +25,21 @@ Never attach raw v1 panel/Unsloth logs or `last-bad-body.bin`; they may contain 
 - No prompt, response, header, cookie, credential, GGUF, runtime binary, or generated secret-bearing config belongs in Git.
 - Dependencies, release assets, runtimes, and models are fixed by immutable version/revision and SHA-256.
 - Administrative MCP is not registered by default.
+- Administrative mutations travel over a DACL-protected Windows named pipe that
+  transmits no credential. The bearer-authenticated HTTP mutation API is
+  retained for compatibility and is deprecated; a client falls back to it only
+  when no pipe is listening.
+- A production deployment runs only from model and runtime bytes inside the
+  protected installation root, verified by size and SHA-256 before and after
+  publication. Candidate artifacts are never modified, moved, or deleted by a
+  deployment.
+- A deployment drains the provider and waits for it to finish in-flight work
+  before stopping anything. It never cancels an admitted or queued request to
+  make a cutover faster, and a drain that does not complete aborts the
+  deployment before any binary is replaced.
+- A failed cutover restores the previous release from a record written before
+  any mutation. A restore that cannot complete is reported as DEGRADED, never
+  hidden, and the release manifest is withdrawn so consumers stay fail-closed.
 - Inference MCP is a separate, stateless, text-only executable with a pinned
   literal-loopback endpoint/model and no filesystem, tool, or administrative
   access. It may be invoked only for an explicit user-requested delegation.
@@ -44,5 +59,18 @@ Any credential found in a log, process command line, tracked file, issue, or cha
 5. Correct the root cause and add a regression test.
 6. Delete contaminated artifacts only after explicit operator confirmation.
 7. Re-run contract, secret, listener, and egress tests before service restoration.
+
+## Release distribution
+
+`.github/workflows/release.yml` packages Windows binaries, schemas, an SBOM,
+`SHA256SUMS`, and release metadata. It never deploys: there is no runner with
+access to the workstation, no update channel, and no downloader. An operator
+moves the files and approves every SHA-256 by hand, which is the boundary the
+deployment transaction depends on.
+
+Model weights, private configuration, local state, and logs are refused by an
+explicit check before packaging. Code signing is not performed because no
+certificate exists for this project; `SHA256SUMS` and the release metadata are
+the integrity evidence, and signing remains a documented future capability.
 
 See `docs/THREAT_MODEL.md` and `docs/RUNBOOK.md` for the complete controls and operational sequence.
