@@ -316,11 +316,18 @@ func servingUserDescriptor() (*windows.SECURITY_DESCRIPTOR, string, error) {
 	return descriptor, sddl, nil
 }
 
+// pipePrefix is the only local named-pipe namespace this transport accepts.
+// It is a single constant on purpose: the prefix was duplicated across the
+// listener, the default-name helper, and the client, and one copy silently lost
+// a backslash - which the listener then refused, stopping the edge from
+// starting at all.
+const pipePrefix = `\\.\pipe\`
+
 func validatePipeName(name string) error {
-	if !strings.HasPrefix(name, `\\.\pipe\`) {
-		return errors.New(`administrative pipe name must begin with \\.\pipe\`)
+	if !strings.HasPrefix(name, pipePrefix) {
+		return errors.New("administrative pipe name must begin with " + pipePrefix)
 	}
-	leaf := strings.TrimPrefix(name, `\\.\pipe\`)
+	leaf := strings.TrimPrefix(name, pipePrefix)
 	if leaf == "" || len(leaf) > 128 {
 		return errors.New("administrative pipe name is empty or too long")
 	}

@@ -209,3 +209,29 @@ func TestPipeRejectsOversizedAndUnknownMessagesOverTheRealTransport(t *testing.T
 		t.Fatalf("endpoint became unusable after refusals: %v", err)
 	}
 }
+
+// The edge starts its listener on DefaultName. A default the listener's own
+// validation refuses would stop the process from starting, and no test that
+// builds a pipe name by hand can catch that - so this one uses the default.
+func TestDefaultNameSatisfiesTheListener(t *testing.T) {
+	for _, environment := range []string{"canary", "final"} {
+		name := DefaultName(environment)
+		if name == "" {
+			t.Fatalf("DefaultName(%q) resolved nothing on Windows", environment)
+		}
+		if err := validatePipeName(name); err != nil {
+			t.Fatalf("DefaultName(%q) = %q, which the listener refuses: %v", environment, name, err)
+		}
+		if !strings.HasPrefix(name, pipePrefix) {
+			t.Fatalf("DefaultName(%q) = %q, which is not a local pipe path", environment, name)
+		}
+	}
+	if DefaultName("canary") == DefaultName("final") {
+		t.Fatal("both deployments resolved to the same default pipe")
+	}
+	for _, environment := range []string{"staging", "", "Canary"} {
+		if name := DefaultName(environment); name != "" {
+			t.Fatalf("DefaultName(%q) resolved %q; only the two pinned deployments have a pipe", environment, name)
+		}
+	}
+}

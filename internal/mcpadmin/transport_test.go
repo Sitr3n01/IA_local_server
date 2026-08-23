@@ -14,16 +14,15 @@ import (
 	"github.com/sitr3n/local-ai-provider/internal/adminpipe"
 )
 
-func TestAdminTransportFromEnvResolvesOnePipePerDeployment(t *testing.T) {
+// The resolution rules below hold on every platform. Whether a *default* pipe
+// name exists at all is platform-specific and is asserted separately, because
+// the transport is deliberately absent where its DACL does not exist.
+func TestAdminTransportFromEnvAppliesTheConfiguredPrecedence(t *testing.T) {
 	t.Setenv("CIA_ADMIN_PIPE", "")
 	t.Setenv("CIA_ADMIN_PIPE_SERVER", "")
 	t.Setenv("CIA_ENVIRONMENT", "")
 
-	canary, server := AdminTransportFromEnv("http://127.0.0.1:18091")
-	final, _ := AdminTransportFromEnv("http://127.0.0.1:8091")
-	if canary == final {
-		t.Fatalf("canary and final resolved to the same pipe: %q", canary)
-	}
+	_, server := AdminTransportFromEnv("http://127.0.0.1:18091")
 	if !strings.HasSuffix(server, "cia-edge.exe") {
 		t.Fatalf("default pipe server = %q, want the installed edge executable", server)
 	}
@@ -33,14 +32,20 @@ func TestAdminTransportFromEnvResolvesOnePipePerDeployment(t *testing.T) {
 		t.Fatalf("unknown control port resolved to pipe %q", unknown)
 	}
 
+	// Explicit configuration wins over any derivation, on any platform.
+	t.Setenv("CIA_ADMIN_PIPE", `\\.\pipe\explicit-choice`)
+	if explicit, _ := AdminTransportFromEnv("http://127.0.0.1:8091"); explicit != `\\.\pipe\explicit-choice` {
+		t.Fatalf("explicit pipe was overridden: %q", explicit)
+	}
+
 	t.Setenv("CIA_ADMIN_PIPE", "off")
 	if disabled, _ := AdminTransportFromEnv("http://127.0.0.1:8091"); disabled != "" {
 		t.Fatalf("CIA_ADMIN_PIPE=off still resolved pipe %q", disabled)
 	}
 
-	t.Setenv("CIA_ADMIN_PIPE", `\\.\pipe\explicit-choice`)
-	if explicit, _ := AdminTransportFromEnv("http://127.0.0.1:8091"); explicit != `\\.\pipe\explicit-choice` {
-		t.Fatalf("explicit pipe was overridden: %q", explicit)
+	t.Setenv("CIA_ADMIN_PIPE_SERVER", `D:\elsewhere\cia-edge.exe`)
+	if _, overridden := AdminTransportFromEnv("http://127.0.0.1:8091"); overridden != `D:\elsewhere\cia-edge.exe` {
+		t.Fatalf("explicit pipe server was overridden: %q", overridden)
 	}
 }
 
