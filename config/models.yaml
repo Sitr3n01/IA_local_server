@@ -124,6 +124,48 @@
       }
     },
     {
+      "id": "gemma4-12b-qat-ud-q4xl-256k",
+      "display_name": "Gemma 4 12B QAT UD Q4_K_XL - 256k context candidate",
+      "state": "candidate",
+      "deployments": [
+        "canary"
+      ],
+      "runtime": "unsloth-runtime-candidate",
+      "artifact": {
+        "path": "C:\\IA\\models\\gemma-4-12B-it-qat-GGUF\\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+        "bytes": 6716356800,
+        "sha256": "90FD44E29E0D7CFFEB0FD00DC73CFDAB9ED0B0E95306ECF7821EA634C940C370"
+      },
+      "source": {
+        "repository": "unsloth/gemma-4-12B-it-qat-GGUF",
+        "revision": "980b060c40a8539ac159e0501a3e0f66a6365af3",
+        "filename": "gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+        "license": "Apache-2.0"
+      },
+      "context_tokens": 262144,
+      "max_output_tokens": 8192,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "parallel": 1,
+      "batch_size": 2048,
+      "ubatch_size": 512,
+      "gpu_layers": 99,
+      "jinja": true,
+      "reasoning": "auto",
+      "capabilities": {
+        "responses": false,
+        "chat_completions": true,
+        "streaming": true,
+        "function_calling": false,
+        "structured_output": false
+      },
+      "resources": {
+        "peak_vram_gib": null,
+        "peak_commit_gib": null,
+        "peak_ram_gib": null
+      }
+    },
+    {
       "id": "qwen38-27b-ws-32k",
       "display_name": "Qwen 3.8 27B UD-IQ4_XS | workstation default | 32k ctx",
       "state": "retired",
@@ -470,10 +512,8 @@
     {
       "id": "qwen38-27b-huge-256k",
       "display_name": "Qwen3.8 Huge 256k - Q2_K_XL / KV q4_0 - huge context, high thinking budget",
-      "state": "candidate",
-      "deployments": [
-        "canary"
-      ],
+      "state": "retired",
+      "deployments": [],
       "runtime": "amd-rocm-qwen38",
       "artifact": {
         "path": "C:\\IA\\models\\Qwen3.8-27B-GGUF\\Qwen3.8-27B-UD-Q2_K_XL.gguf",

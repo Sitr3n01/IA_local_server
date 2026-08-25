@@ -52,9 +52,9 @@ func TestRepositoryManifestExposesCanaryModels(t *testing.T) {
 	// current inventory only.
 	want := []string{
 		"gemma4-12b-qat-ud-q4xl",
+		"gemma4-12b-qat-ud-q4xl-256k",
 		"qwen38-27b-deep-32k",
 		"qwen38-27b-agent-128k",
-		"qwen38-27b-huge-256k",
 	}
 	if len(models) != len(want) {
 		t.Fatalf("repository allowlist = %+v, want %d canary models", models, len(want))

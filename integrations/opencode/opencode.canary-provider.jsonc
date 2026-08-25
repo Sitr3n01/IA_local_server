@@ -21,6 +21,13 @@
                                                                                                           "output":  8192
                                                                                                       }
                                                                                         },
+                                                             "gemma4-12b-qat-ud-q4xl-256k":  {
+                                                                                                 "name":  "Gemma 4 12B QAT UD Q4_K_XL - 256k context candidate",
+                                                                                                 "limit":  {
+                                                                                                               "context":  262144,
+                                                                                                               "output":  8192
+                                                                                                           }
+                                                                                             },
                                                              "qwen38-27b-deep-32k":  {
                                                                                          "name":  "Qwen3.8 Deep 32k - IQ4_XS / KV q8_0 - hardest localized tasks",
                                                                                          "limit":  {
@@ -34,14 +41,7 @@
                                                                                                          "context":  131072,
                                                                                                          "output":  8192
                                                                                                      }
-                                                                                       },
-                                                             "qwen38-27b-huge-256k":  {
-                                                                                          "name":  "Qwen3.8 Huge 256k - Q2_K_XL / KV q4_0 - huge context, high thinking budget",
-                                                                                          "limit":  {
-                                                                                                        "context":  262144,
-                                                                                                        "output":  32768
-                                                                                                    }
-                                                                                      }
+                                                                                       }
                                                          }
                                           }
                  },
