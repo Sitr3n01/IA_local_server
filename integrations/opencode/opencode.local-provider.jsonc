@@ -41,7 +41,14 @@
                                                                                                   "context":  131072,
                                                                                                   "output":  8192
                                                                                               }
-                                                                                }
+                                                                                },
+                                                      "qwen36-35b-a3b-huge-256k":  {
+                                                                                       "name":  "Qwen3.6 35B-A3B Huge 256k - UD-Q2_K_XL / KV q4_0 - long-context MoE",
+                                                                                       "limit":  {
+                                                                                                     "context":  262144,
+                                                                                                     "output":  16384
+                                                                                                 }
+                                                                                   }
                                                   }
                                    }
                  },

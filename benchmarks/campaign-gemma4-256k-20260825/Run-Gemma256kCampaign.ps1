@@ -51,7 +51,12 @@ Resumable: a cell whose output JSON exists is skipped.
 param(
     [string]$CampaignRoot = 'C:\IA\IA_local_server\benchmarks\campaign-gemma4-256k-20260825',
     [string]$RepoRoot = 'C:\IA\IA_local_server',
-    [string]$RuntimeRoot = 'C:\IA\runtimes\llama.cpp\b10549-rocm-7.14',
+    # The runtime the profile declares, not the one the MoE campaign used.
+    # gemma4-12b-qat-ud-q4xl names `unsloth-runtime-candidate`, and the
+    # 2026-08-23 baseline this campaign is measured against ran on it. Putting
+    # 256k on b10549 would compare two windows across two runtimes and then
+    # attribute the whole difference to the window.
+    [string]$RuntimeRoot = 'C:\Users\Sitr3n\.unsloth\llama.cpp\build\bin\Release',
     [string]$ModelPath = 'C:\IA\models\gemma-4-12B-it-qat-GGUF\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf',
     [int]$DeviceVramMib = 16304,
     [ValidateSet('G1', 'G2', 'G3', 'all')][string[]]$Phases = @('all'),
@@ -130,11 +135,32 @@ function Stop-StrayServers {
 # --------------------------------------------------------------------------
 # G1 - can the window be held at all, and with what headroom
 # --------------------------------------------------------------------------
+# The footprint report states what it measured; it does not judge. The judgement
+# is the project's admission policy, and this is the same predicate the Ornith
+# census used, so a cell called admissible here means the same thing it meant
+# there. Returns $null for "cannot say", which is deliberately different from
+# $false: a missing or unparseable report must not read as a model that fits
+# nowhere.
 function Test-Admissible {
-    param([Parameter(Mandatory = $true)][string]$Path)
-    if (-not (Test-Path -LiteralPath $Path)) { return $null }
-    try { $r = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json } catch { return $null }
-    return $r
+    param([Parameter(Mandatory = $true)][string]$Path,
+        [int]$VramReserveMib = 1024,
+        [int]$ReserveMarginMib = 512,
+        [int]$SharedMarginMib = 400)
+    if (-not (Test-Path -LiteralPath $Path)) {
+        Write-Step "  (admissibility: no report at $Path)"
+        return $null
+    }
+    try { $r = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json }
+    catch { Write-Step "  (admissibility: unparseable report)"; return $null }
+    if ($null -ne $r.failure) { return $false }
+    if ($null -eq $r.peak -or $null -eq $r.peak.vram_dedicated_mib) { return $null }
+    $headroom = $DeviceVramMib - [double]$r.peak.vram_dedicated_mib
+    if ($headroom -lt ($VramReserveMib + $ReserveMarginMib)) { return $false }
+    if ($null -ne $r.gpu_pressure -and [string]$r.gpu_pressure.state -eq 'pressured') { return $false }
+    if ($null -ne $r.idle -and $null -ne $r.idle.vram_shared_mib -and $null -ne $r.peak.vram_shared_mib) {
+        if (([double]$r.peak.vram_shared_mib - [double]$r.idle.vram_shared_mib) -gt $SharedMarginMib) { return $false }
+    }
+    return $true
 }
 
 function Invoke-Admission {
@@ -154,16 +180,20 @@ function Invoke-Admission {
             -UBatchSize $UBATCH -BatchSize $BATCH -NGpuLayers $GPU_LAYERS `
             -DeviceVramMib $DeviceVramMib -OutputPath $outJson -Quiet 2>&1
     }
-    $report = Test-Admissible -Path $outJson
-    if ($null -eq $report) {
-        Write-Step "  $label : NO REPORT (see $outJson)"
+    $ok = Test-Admissible -Path $outJson
+    if ($null -eq $ok) {
+        Write-Step "  $label : CANNOT SAY (no usable report at $outJson)"
         $failed.Add($label); return $null
     }
-    $ok = $report.admissible
-    Write-Step ("  {0} : admissible={1} headroom={2} MiB shared_margin={3} MiB pressure={4}" -f `
-            $label, $ok, $report.headroom_mib, $report.shared_margin_mib, $report.gpu_pressure.state)
+    # Report the figures the verdict was reached on, not just the verdict.
+    $r = Get-Content -LiteralPath $outJson -Raw -Encoding UTF8 | ConvertFrom-Json
+    $headroom = $DeviceVramMib - [double]$r.peak.vram_dedicated_mib
+    $sharedDelta = [double]$r.peak.vram_shared_mib - [double]$r.idle.vram_shared_mib
+    Write-Step ("  {0} : admissible={1}  peak_vram={2} MiB  headroom={3} MiB  shared_delta={4} MiB  pressure={5}  load={6}s" -f `
+            $label, $ok, $r.peak.vram_dedicated_mib, [math]::Round($headroom, 1),
+            [math]::Round($sharedDelta, 1), $r.gpu_pressure.state, $r.load_seconds)
     $done.Add("$label (admissible=$ok)")
-    return $report
+    return $ok
 }
 
 # --------------------------------------------------------------------------
@@ -224,8 +254,8 @@ try {
     if ($runPhases -contains 'G1') {
         Write-Step '### PHASE G1 - admission'
         foreach ($ctx in $ContextLadder) {
-            $report = Invoke-Admission -Context $ctx
-            if ($null -ne $report -and $report.admissible) {
+            $ok = Invoke-Admission -Context $ctx
+            if ($ok -eq $true) {
                 $script:ChosenContext = $ctx
                 Write-Step "  largest admissible context: $ctx"
                 break
@@ -234,6 +264,10 @@ try {
         }
         if ($script:ChosenContext -eq 0 -and -not $WhatIf) {
             Write-Step '  NO admissible context on the ladder; stopping'
+            # Nothing on the ladder holds, so there is no cell to measure. Fall
+            # through with 0 rather than defaulting to the top of the ladder,
+            # which would run a suite against a window just judged unusable.
+            return
         }
     }
     if ($script:ChosenContext -eq 0) { $script:ChosenContext = $ContextLadder[0] }

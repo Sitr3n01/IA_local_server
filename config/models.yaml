@@ -510,6 +510,57 @@
       }
     },
     {
+      "id": "qwen36-35b-a3b-huge-256k",
+      "display_name": "Qwen3.6 35B-A3B Huge 256k - UD-Q2_K_XL / KV q4_0 - long-context MoE",
+      "state": "candidate",
+      "deployments": [
+        "canary"
+      ],
+      "runtime": "amd-rocm-qwen38",
+      "artifact": {
+        "path": "C:\\IA\\models\\Qwen3.6-35B-A3B-GGUF\\Qwen3.6-35B-A3B-UD-Q2_K_XL.gguf",
+        "bytes": 12290628576,
+        "sha256": "96B9C0AF5C77A4ECAABE3983175112B5ECE763261C1ECE12B2494B692A70DAD7"
+      },
+      "source": {
+        "repository": "unsloth/Qwen3.6-35B-A3B-GGUF",
+        "revision": "a483e9e6cbd595906af30beda3187c2663a1118c",
+        "filename": "Qwen3.6-35B-A3B-UD-Q2_K_XL.gguf",
+        "license": "Apache-2.0"
+      },
+      "context_tokens": 262144,
+      "max_output_tokens": 16384,
+      "n_predict": 16384,
+      "reasoning_budget": 6144,
+      "reasoning_budget_message": "Thinking budget reached. Stop analysing and write the final answer now.",
+      "compact_threshold_tokens": 221184,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "parallel": 1,
+      "batch_size": 2048,
+      "ubatch_size": 288,
+      "gpu_layers": 99,
+      "jinja": true,
+      "reasoning": "auto",
+      "context_shift": false,
+      "threads": 8,
+      "moe_offload": {
+        "cpu_layers": 8
+      },
+      "capabilities": {
+        "responses": false,
+        "chat_completions": true,
+        "streaming": true,
+        "function_calling": false,
+        "structured_output": false
+      },
+      "resources": {
+        "peak_vram_gib": 11.75,
+        "peak_commit_gib": 16.71,
+        "peak_ram_gib": 15.39
+      }
+    },
+    {
       "id": "qwen38-27b-huge-256k",
       "display_name": "Qwen3.8 Huge 256k - Q2_K_XL / KV q4_0 - huge context, high thinking budget",
       "state": "retired",
