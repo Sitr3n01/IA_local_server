@@ -144,6 +144,9 @@
       },
       "context_tokens": 262144,
       "max_output_tokens": 8192,
+      "n_predict": 16384,
+      "reasoning_budget": 6144,
+      "reasoning_budget_message": "Thinking budget reached. Stop analysing and write the final answer now.",
       "cache_type_k": "q4_0",
       "cache_type_v": "q4_0",
       "parallel": 1,
@@ -160,9 +163,9 @@
         "structured_output": false
       },
       "resources": {
-        "peak_vram_gib": null,
-        "peak_commit_gib": null,
-        "peak_ram_gib": null
+        "peak_vram_gib": 9.67,
+        "peak_commit_gib": 14.91,
+        "peak_ram_gib": 9.94
       }
     },
     {
@@ -555,9 +558,9 @@
         "structured_output": false
       },
       "resources": {
-        "peak_vram_gib": 11.75,
-        "peak_commit_gib": 16.71,
-        "peak_ram_gib": 15.39
+        "peak_vram_gib": 12.49,
+        "peak_commit_gib": 20.61,
+        "peak_ram_gib": 16.2
       }
     },
     {

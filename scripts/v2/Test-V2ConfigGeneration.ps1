@@ -53,9 +53,22 @@ foreach ($runtime in @($manifest.runtimes)) { $runtimesById[$runtime.id] = $runt
 #    is the regression that matters most: growing the schema must not rewrite an
 #    already-published deployment. The expected string is rebuilt independently
 #    of New-V2LlamaServerCommand, from the pre-tuning flag list.
+#
+#    The list is every optional field that CHANGES the emitted command line, not
+#    every optional field: compact_threshold_tokens is deliberately absent
+#    because it never reaches llama-server, so a model declaring only that one
+#    must still match the historical line.
+#
+#    The generation-budget fields and chat_template_file were added on
+#    2026-08-25. They had always belonged here, but no model had ever declared
+#    them WITHOUT also declaring threads or tensor_overrides, so the gap could
+#    not be reached. gemma4-12b-qat-ud-q4xl-256k is the first: it declares a
+#    reasoning budget and nothing else from this list, and was held to a
+#    historical line it has a documented reason to differ from.
 $untunedFields = @(
     'context_shift', 'kv_unified', 'threads', 'threads_batch', 'cache_ram_mib', 'ctx_checkpoints',
-    'checkpoint_min_step', 'cache_idle_slots', 'spec_decoding', 'moe_offload', 'tensor_overrides'
+    'checkpoint_min_step', 'cache_idle_slots', 'spec_decoding', 'moe_offload', 'tensor_overrides',
+    'n_predict', 'reasoning_budget', 'reasoning_budget_message', 'chat_template_file'
 )
 $untunedCount = 0
 foreach ($model in @($manifest.models)) {

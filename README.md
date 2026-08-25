@@ -137,13 +137,26 @@ uma troca de modelo no llama-swap, não uma reconfiguração.
 
 | Perfil | Pesos | KV | Contexto | Saída | Quando usar |
 |---|---|---|---:|---:|---|
-| `qwen38-27b-deep-32k` | UD-IQ4_XS | `q8_0`/`q8_0` | 32k | 8k | Tarefas difíceis e localizadas: algoritmos, arquitetura, bug complexo em poucos arquivos |
-| **`qwen38-27b-agent-128k`** | UD-Q3_K_XL | `q4_0`/`q4_0` | 128k | 8k | **Padrão diário.** Codex, Claude Code, OpenCode, Unity, refactors, investigação de repositório |
-| `qwen38-27b-huge-256k` | UD-Q2_K_XL | `q4_0`/`q4_0` | 256k | 32k | Contexto ativo enorme. Perfil de **contexto gigante / orçamento alto de raciocínio**, não de qualidade máxima |
+| `qwen38-27b-deep-32k` | Qwen3.8 27B UD-IQ4_XS | `q8_0`/`q8_0` | 32k | 8k | Tarefas difíceis e localizadas: algoritmos, arquitetura, bug complexo em poucos arquivos |
+| **`qwen38-27b-agent-128k`** | Qwen3.8 27B UD-Q3_K_XL | `q4_0`/`q4_0` | 128k | 8k | **Padrão diário.** Codex, Claude Code, OpenCode, Unity, refactors, investigação de repositório |
+| `qwen36-35b-a3b-huge-256k` | Qwen3.6 35B-A3B UD-Q2_K_XL | `q4_0`/`q4_0` | 256k | 16k | Contexto ativo enorme. MoE esparso: 35B de parâmetros, 3B ativos por token |
 
 Regra de seleção: **confiabilidade de raciocínio → Deep. Trabalho normal de agente
 → Agent. Contexto ativo enorme → Huge.** Escolha Huge quando o *working set*
 excede o do Agent, não quando a tarefa é apenas difícil.
+
+O perfil Huge deixou de ser um Qwen3.8 denso a 2 bits e passou a ser um MoE em
+2026-08-25. Um modelo que ativa 3B de 35B parâmetros segura a mesma janela com
+mais throughput em profundidade, que é exatamente para o que um perfil de
+contexto gigante existe. A decisão, o confronto que a produziu e o que foi
+apagado do disco estão em
+[FINAL-ROSTER-20260825](docs/reports/FINAL-ROSTER-20260825.md) e na
+[ADR 0016](docs/adr/0016-one-moe-and-the-four-function-roster.md).
+
+O Huge carrega `reasoning_budget: 6144` sob um teto `n_predict: 16384`. Isso não
+é enfeite: sem o orçamento, este modelo gasta 8.192 tokens inteiros pensando e
+devolve resposta vazia nas tarefas de coding mais difíceis — três casos em
+trinta e quatro, medidos.
 
 O padrão diário é o Agent, não o Deep: um harness de coding gasta dezenas de
 milhares de tokens em system prompt, definições de ferramentas, arquivos, logs e

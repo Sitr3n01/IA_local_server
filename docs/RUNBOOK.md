@@ -768,9 +768,27 @@ because the thing each optimises for costs the others something measured.
 
 | Profile | Weights | KV | Context | Output | Use it when |
 |---|---|---|---:|---:|---|
-| `qwen38-27b-deep-32k` | UD-IQ4_XS | `q8_0`/`q8_0` | 32768 | 8192 | Hardest localized tasks: algorithms, architecture, a complex bug in a few highly relevant files. Reasoning matters more than how much context you can hold. |
-| **`qwen38-27b-agent-128k`** | UD-Q3_K_XL | `q4_0`/`q4_0` | 131072 | 8192 | **Daily default.** Codex, Claude Code, OpenCode, Unity work, refactors, features, repo investigation, tool loops. |
-| `qwen38-27b-huge-256k` | UD-Q2_K_XL | `q4_0`/`q4_0` | 262144 | 32768 | Huge active context: very large repositories, long investigations, long histories, many tool calls. Explicitly a **huge-context / high-thinking-budget** profile, not the highest-quality one. |
+| `qwen38-27b-deep-32k` | Qwen3.8 27B UD-IQ4_XS | `q8_0`/`q8_0` | 32768 | 8192 | Hardest localized tasks: algorithms, architecture, a complex bug in a few highly relevant files. Reasoning matters more than how much context you can hold. |
+| **`qwen38-27b-agent-128k`** | Qwen3.8 27B UD-Q3_K_XL | `q4_0`/`q4_0` | 131072 | 8192 | **Daily default.** Codex, Claude Code, OpenCode, Unity work, refactors, features, repo investigation, tool loops. |
+| `qwen36-35b-a3b-huge-256k` | Qwen3.6 35B-A3B UD-Q2_K_XL | `q4_0`/`q4_0` | 262144 | 16384 | Huge active context: very large repositories, long investigations, long histories, many tool calls. Explicitly a **huge-context** profile, not the highest-quality one. |
+
+The Huge slot stopped being a 2-bit dense Qwen3.8 and became a sparse MoE on
+2026-08-25 — 35B parameters, 3B active per token, which holds the same window
+with more throughput at depth. `qwen38-27b-huge-256k` is `retired`, and its
+`Qwen3.8-27B-UD-Q2_K_XL.gguf` was deleted; the profile keeps its id and its
+measurements but is no longer servable. The head-to-head that chose between the
+two MoE candidates is in
+[FINAL-ROSTER-20260825](reports/FINAL-ROSTER-20260825.md); the reasoning is in
+[ADR 0016](adr/0016-one-moe-and-the-four-function-roster.md).
+
+**The Huge profile's `reasoning_budget` is load-bearing.** Measured without one,
+Qwen3.6 Q2_K_XL spends an entire 8,192-token output budget inside
+`reasoning_content` and returns an empty answer on three of thirty-four
+qualification cases. With `reasoning_budget: 6144` under an `n_predict: 16384`
+ceiling, all three return answers and the suite score goes from 27/34 to 31/34.
+Do not lower the ceiling without lowering the budget with it — the manifest
+validator refuses a budget that leaves less answer room than the profile's own
+reserve, which is the guard that catches this.
 
 ### The selection rule
 
