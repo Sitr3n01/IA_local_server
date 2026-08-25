@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "scenario": "edge-contract",
+  "base_url": "http://127.0.0.1:19407",
+  "alias": "local",
+  "label": "contract-qwen36-q2kxl",
+  "started_utc": "2026-08-25T13:13:09Z",
+  "probes": {
+    "developer_role": {
+      "status": 200,
+      "honoured": true,
+      "content": "BANANA",
+      "error": null,
+      "passed": true,
+      "seconds": 2.2,
+      "informational": false
+    },
+    "developer_after_content": {
+      "status": 200,
+      "error_code": null,
+      "body": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"2 + 2 = 4.\",\"reasoning_content\":\"Here's a thinking process:\\n\\n1.  **Analyze User Input:** The user asks \\\"What is 2+2?\\\"\\n2.  **Identify Core Question:** This is a simple arithmetic question.\\n3.  **Calculate:** ",
+      "note": "edge is expected to refuse; direct llama-server is expected to accept",
+      "passed": true,
+      "seconds": 1.8,
+      "informational": true
+    },
+    "forced_tool_required": {
+      "status": 200,
+      "call_count": 1,
+      "name": "read_file",
+      "arguments": {
+        "path": "src/main.rs",
+        "max_bytes": 4096
+      },
+      "arguments_parsed": true,
+      "leaked_content": "",
+      "passed": true,
+      "seconds": 1.2,
+      "informational": false
+    },
+    "tool_choice_object_form": {
+      "status": 200,
+      "call_count": 1,
+      "name": "read_file",
+      "honoured": false,
+      "silently_ignored": true,
+      "body": null,
+      "note": "200 with the wrong function means the runtime discarded the constraint",
+      "passed": true,
+      "seconds": 0.9,
+      "informational": true
+    },
+    "nested_arguments": {
+      "status": 200,
+      "call_count": 1,
+      "name": "search_files",
+      "arguments": {
+        "query": "resource_profile_incomplete",
+        "filters": {
+          "include": [
+            ".go"
+          ],
+          "exclude": [
+            "vendor/"
+          ],
+          "case_sensitive": false
+        }
+      },
+      "arguments_parsed": true,
+      "nested_object_ok": true,
+      "error": null,
+      "passed": true,
+      "seconds": 2.1,
+      "informational": false
+    },
+    "sequential_tool_calls": {
+      "rounds": [
+        {
+          "round": 0,
+          "status": 200,
+          "call_count": 1,
+          "names": [
+            "read_file"
+          ],
+          "error": null
+        },
+        {
+          "round": 1,
+          "status": 200,
+          "call_count": 1,
+          "names": [
+            "run_tests"
+          ],
+          "error": null
+        }
+      ],
+      "passed": true,
+      "seconds": 2.3,
+      "informational": false
+    },
+    "streaming_tool_call": {
+      "status": 200,
+      "chunks": 107,
+      "done": true,
+      "aborted": false,
+      "tool_deltas": 9,
+      "name": "run_tests",
+      "argument_chars": 42,
+      "finish_reason": "tool_calls",
+      "passed": true,
+      "seconds": 1.6,
+      "informational": false
+    },
+    "cancel_during_tool": {
+      "abort": {
+        "status": 200,
+        "chunks": 1,
+        "done": false,
+        "aborted": true
+      },
+      "abort_seconds": 0.33,
+      "recovery_status": 200,
+      "recovery_content": "ALIVE",
+      "recovery_error": null,
+      "passed": true,
+      "seconds": 3.6,
+      "informational": false
+    },
+    "malformed_tool_result": {
+      "status": 200,
+      "finish_reason": "stop",
+      "content": "The file `status.json` does not exist in the repository.",
+      "error": null,
+      "passed": true,
+      "seconds": 0.7,
+      "informational": false
+    },
+    "reasoning_separation": {
+      "status": 200,
+      "finish_reason": "stop",
+      "reasoning_chars": 1799,
+      "answer_chars": 362,
+      "reasoning_field_present": true,
+      "completion_tokens": 715,
+      "answer_preview": "The probability of drawing a blue marble first is $\\frac{5}{8}$. After one blue marble is removed, there are 4 blue marbles left out of 7 total marbles, so the probability of drawing a second blue mar",
+      "reasoning_markers_leaked": false,
+      "error": null,
+      "passed": true,
+      "seconds": 6.6,
+      "informational": false
+    },
+    "reasoning_roundtrip": {
+      "status_without": 200,
+      "status_with": 200,
+      "content_without": "782",
+      "content_with": "782",
+      "accepted": true,
+      "both_answered": true,
+      "error": null,
+      "passed": true,
+      "seconds": 4.9,
+      "informational": false
+    },
+    "image_rejected": {
+      "status": 500,
+      "content": "",
+      "body": "{\"error\":{\"code\":500,\"message\":\"image input is not supported - hint: if this is unexpected, you may need to provide the mmproj\",\"type\":\"server_error\"}}",
+      "note": "vision is unqualified for this campaign; this records behaviour, it does not gate",
+      "passed": true,
+      "seconds": 0.0,
+      "informational": true
+    }
+  },
+  "models_status": 200,
+  "models": [
+    "local"
+  ],
+  "graded": 9,
+  "passed": 9,
+  "verdict": "PASS"
+}

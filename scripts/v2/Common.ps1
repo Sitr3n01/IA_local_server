@@ -703,7 +703,7 @@ function ConvertTo-V2CommandLine {
     )
 
     $quotedValueFlags = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-    foreach ($flag in @('--model', '--api-key-file', '-ot', '--reasoning-budget-message')) {
+    foreach ($flag in @('--model', '--api-key-file', '-ot', '--reasoning-budget-message', '--chat-template-file')) {
         [void]$quotedValueFlags.Add($flag)
     }
 
@@ -867,6 +867,19 @@ function New-V2LlamaServerArguments {
     }
 
     if ($IncludeJinja) { $arguments.Add('--jinja') }
+    # An override for a GGUF whose embedded template is wrong for our contract.
+    # Ornith-1.5 ships the upstream Qwen3-Coder template, which raises on
+    # `system -> developer -> user` and so returns HTTP 500 for an ordinary
+    # OpenAI-shaped request; config/chat-templates/ holds the corrected copy
+    # next to the verbatim upstream one it was derived from. Emitted after
+    # --jinja because llama-server only honours a template file in jinja mode.
+    $chatTemplateFile = Get-V2ModelSetting -Model $Model -Name 'chat_template_file'
+    if (-not [string]::IsNullOrWhiteSpace($chatTemplateFile)) {
+        if (-not $IncludeJinja) {
+            throw "Model '$($Model.id)' sets chat_template_file but the command is not built with -IncludeJinja; llama-server would ignore it."
+        }
+        $arguments.AddRange([string[]]@('--chat-template-file', [string]$chatTemplateFile))
+    }
     if ($IncludeWarmup) { $arguments.Add('--warmup') }
     if ($IncludeMetrics) { $arguments.Add('--metrics') }
     if ($IncludeNoWebui) { $arguments.Add('--no-webui') }
@@ -909,7 +922,8 @@ function New-V2BenchmarkModelSpec {
         [Parameter(Mandatory = $true)][int]$Parallel,
         [string]$TensorOverride = '',
         [ValidateRange(-1, 1024)][int]$NCpuMoe = -1,
-        [switch]$CpuMoe
+        [switch]$CpuMoe,
+        [string]$ChatTemplateFile = ''
     )
 
     if ($CpuMoe -and $NCpuMoe -ge 0) {
@@ -927,6 +941,12 @@ function New-V2BenchmarkModelSpec {
         parallel       = $Parallel
         context_shift  = $false
         threads        = $Threads
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ChatTemplateFile)) {
+        if (-not (Test-Path -LiteralPath $ChatTemplateFile)) {
+            throw "ChatTemplateFile '$ChatTemplateFile' does not exist."
+        }
+        $model | Add-Member -NotePropertyName 'chat_template_file' -NotePropertyValue ((Resolve-Path -LiteralPath $ChatTemplateFile).Path)
     }
     if ($CpuMoe) {
         $model | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_all = $true })

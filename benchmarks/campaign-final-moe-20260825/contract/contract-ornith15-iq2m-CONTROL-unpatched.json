@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "scenario": "edge-contract",
+  "base_url": "http://127.0.0.1:19408",
+  "alias": "local",
+  "label": "control-ornith-unpatched",
+  "started_utc": "2026-08-25T13:14:42Z",
+  "probes": {
+    "developer_role": {
+      "status": 500,
+      "honoured": false,
+      "content": "",
+      "error": null,
+      "passed": false,
+      "seconds": 0.0,
+      "informational": false
+    },
+    "developer_after_content": {
+      "status": 500,
+      "error_code": 500,
+      "body": "{\"error\":{\"code\":500,\"message\":\"\\n------------\\nWhile executing CallExpression at line 85, column 32 in source:\\n...first %}\u21b5            {{- raise_exception('System message must be at the beginnin...\\n                                           ^\\nError: Jinja Exception: System message must be at the",
+      "note": "edge is expected to refuse; direct llama-server is expected to accept",
+      "passed": false,
+      "seconds": 0.0,
+      "informational": true
+    }
+  },
+  "models_status": 200,
+  "models": [
+    "local"
+  ],
+  "graded": 1,
+  "passed": 0,
+  "verdict": "FAIL"
+}

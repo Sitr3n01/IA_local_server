@@ -52,6 +52,20 @@ jobs:
           python ./scripts/v2/eval/test_qualify_budget.py
           python ./scripts/v2/eval/test_tool_grading.py
 
+      # The chat-template contract needs a Jinja renderer, which is the only
+      # third-party import in the gate. jinja2 is pure Python and pinned; the
+      # test renders both the patched Ornith template and the verbatim upstream
+      # copy it was derived from, so the developer-role fix is demonstrated on
+      # every build rather than asserted once in a report. It also pins the
+      # no-regression property the campaign evidence rests on: for every message
+      # shape upstream already accepted, the patched template must produce a
+      # byte-identical prompt.
+      - name: Chat template developer-role contract
+        shell: pwsh
+        run: |
+          python -m pip install --quiet --disable-pip-version-check jinja2==3.1.6
+          python ./scripts/v2/eval/test_chat_template_contract.py
+
       - name: Production artifact store self-test
         shell: pwsh
         run: ./scripts/v2/Test-V2ArtifactStore.ps1

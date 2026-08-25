@@ -651,6 +651,10 @@
         "context_shift": {
           "type": "boolean"
         },
+        "chat_template_file": {
+          "type": "string",
+          "$comment": "Path to a Jinja chat template that overrides the one inside the GGUF, emitted as --chat-template-file. It exists for an artifact whose embedded template is wrong for the OpenAI-shaped contract this server serves rather than wrong in general: Ornith-1.5-35B-A3B ships the upstream Qwen3-Coder template, which accepts one authority message at index 0 and raises on anything else, so `system -> developer -> user` returns HTTP 500. The corrected template and the verbatim upstream copy it was derived from both live in config/chat-templates/, so the patch is a reviewable diff, and scripts/v2/eval/test_chat_template_contract.py renders both on every CI run. Requires jinja: true."
+        },
         "kv_unified": {
           "type": "boolean"
         },

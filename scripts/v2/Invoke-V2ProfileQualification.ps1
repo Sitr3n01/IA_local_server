@@ -66,6 +66,9 @@ param(
     [int]$Threads = 8,
     [ValidateRange(-1, 1024)][int]$NCpuMoe = -1,
     [switch]$CpuMoe,
+    # Override the template baked into the GGUF. Ornith-1.5 needs one; see
+    # config/chat-templates/README.md.
+    [string]$ChatTemplateFile = '',
     [ValidateRange(1, 16)][int]$Parallel = 1,
     [int]$DeviceVramMib = 16304,
     [ValidateRange(1024, 65535)][int]$Port = 19399,
@@ -134,7 +137,7 @@ if ($Suites -match 'retention' -and $RetentionTokens.Count -eq 0) {
 $modelSpec = New-V2BenchmarkModelSpec -ModelPath $ModelPath -Alias 'local' -ContextTokens $ContextTokens `
     -CacheTypeK $CacheTypeK -CacheTypeV $CacheTypeV -UBatchSize $UBatchSize -BatchSize $BatchSize `
     -NGpuLayers $NGpuLayers -Threads $Threads -Parallel $Parallel -TensorOverride $TensorOverride `
-    -NCpuMoe $NCpuMoe -CpuMoe:$CpuMoe
+    -NCpuMoe $NCpuMoe -CpuMoe:$CpuMoe -ChatTemplateFile $ChatTemplateFile
 if ($NPredict -gt 0) {
     $modelSpec | Add-Member -NotePropertyName 'n_predict' -NotePropertyValue $NPredict
 }
