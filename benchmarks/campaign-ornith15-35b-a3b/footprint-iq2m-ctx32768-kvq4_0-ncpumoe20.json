@@ -1,0 +1,45 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "context-footprint-at-load",
+    "started_utc":  "2026-08-24T23:33:35.9632417Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-IQ2_M.gguf",
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  32768,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "parallel":  1,
+                          "tensor_override":  "",
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  20,
+                          "device_vram_mib":  16304
+                      },
+    "load_seconds":  4.5,
+    "idle":  {
+                 "vram_dedicated_mib":  2509.3,
+                 "vram_shared_mib":  359.5,
+                 "commit_gib":  21.307,
+                 "physical_used_gib":  10.659
+             },
+    "peak":  {
+                 "vram_dedicated_mib":  9512.2,
+                 "vram_shared_mib":  460.6,
+                 "process_vram_mib":  7000.4,
+                 "process_ws_gib":  6.931,
+                 "process_private_gib":  6.891,
+                 "commit_gib":  28.964,
+                 "physical_used_gib":  17.667
+             },
+    "marginal_vram_mib":  7002.9,
+    "gpu_pressure":  {
+                         "state":  "ok",
+                         "occupancy":  0.5834,
+                         "shared_mib":  460.6,
+                         "message":  "GPU memory is within budget: 9.512 / 16.304 MiB dedicated (58,3%), 461 MiB shared."
+                     },
+    "failure":  null
+}

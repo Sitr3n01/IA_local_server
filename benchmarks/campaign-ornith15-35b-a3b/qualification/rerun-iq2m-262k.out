@@ -1,0 +1,36 @@
+[iq2m-retention-ctx262144-ncpumoe6-retry] ctx=262144 kv=q4_0/q4_0 ub=288 split='' cpu_moe=6
+  request max_tokens=fixture default (fixture) n_predict=unset effective_ceiling=fixture default budget_profile=deployment reasoning_budget=none answer_reserve=n/a
+  loaded in 10,8s
+[retention]
+  retention: sizing corpus for ~32768 prompt tokens
+  retention: 396 filler units, 32620 prompt tokens, 4096 answer tokens (fixture); prefilling
+  retention: sizing corpus for ~81920 prompt tokens
+  retention: 1011 filler units, 81689 prompt tokens, 4096 answer tokens (fixture); prefilling
+  retention: sizing corpus for ~131072 prompt tokens
+  retention: 1628 filler units, 130986 prompt tokens, 4096 answer tokens (fixture); prefilling
+  retention: sizing corpus for ~180224 prompt tokens
+  retention: 2244 filler units, 180109 prompt tokens, 4096 answer tokens (fixture); prefilling
+  retention: sizing corpus for ~240000 prompt tokens
+  retention: 2994 filler units, 239893 prompt tokens, 4096 answer tokens (fixture); prefilling
+wrote C:\IA\IA_local_server\benchmarks\campaign-ornith15-35b-a3b\qualification\qualify-iq2m-retention-ctx262144-ncpumoe6-retry.json
+  -> C:\IA\IA_local_server\benchmarks\campaign-ornith15-35b-a3b\qualification\profile-iq2m-retention-ctx262144-ncpumoe6-retry.json
+  peak: dedicated 12.514 MiB | shared 696 MiB | ws 15,28 GiB | private 14,23 GiB | ok
+
+Name                           Value                                                                                   
+----                           -----                                                                                   
+schema_version                 1                                                                                       
+scenario                       profile-qualification                                                                   
+label                          iq2m-retention-ctx262144-ncpumoe6-retry                                                 
+started_utc                    2026-08-25T09:35:30.4817690Z                                                            
+configuration                  {model_path, model_bytes, runtime_root, context_tokens...}                              
+load_seconds                   10,8                                                                                    
+idle                           {vram_dedicated_mib, vram_shared_mib, commit_gib, physical_used_gib}                    
+session_peak                   {vram_dedicated_mib, vram_shared_mib, process_vram_mib, process_ws_gib...}              
+marginal_vram_mib              12391,5                                                                                 
+memory_samples                 300                                                                                     
+gpu_pressure                   @{state=ok; occupancy=0,7675; shared_mib=695,8; message=GPU memory is within budget: ...
+eval_exit_code                 0                                                                                       
+failure                                                                                                                
+eval                           @{schema_version=1; scenario=profile-qualification; label=iq2m-retention-ctx262144-nc...
+
+

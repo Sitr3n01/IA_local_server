@@ -1,0 +1,661 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "profile-qualification",
+    "label":  "q3kxl-quality32k-ncpumoe14",
+    "started_utc":  "2026-08-25T02:05:17.8194609Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-Q3_K_XL.gguf",
+                          "model_bytes":  17801889440,
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  32768,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "parallel":  1,
+                          "tensor_override":  "",
+                          "n_predict":  null,
+                          "reasoning_budget":  null,
+                          "reasoning_budget_message":  null,
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  14,
+                          "device_vram_mib":  16304,
+                          "max_tokens":  null,
+                          "request_budget":  {
+                                                 "request_max_tokens":  null,
+                                                 "n_predict":  null,
+                                                 "effective_generation_ceiling":  null,
+                                                 "effective_max_tokens":  null,
+                                                 "budget_profile":  "deployment",
+                                                 "source":  "fixture",
+                                                 "reasoning_budget":  null,
+                                                 "answer_reserve":  null,
+                                                 "minimum_answer_reserve":  null,
+                                                 "reserve_ok":  true,
+                                                 "constrained_diagnostic":  false
+                                             },
+                          "temperature":  0,
+                          "seed":  20260821,
+                          "system_policy":  "current",
+                          "strict_tool_policy":  false,
+                          "tool_schema_policy":  false,
+                          "constrained_request_budget_diagnostic":  false,
+                          "capture_diagnostics":  true,
+                          "command_line":  "\"C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe\" --model \"C:\\IA\\models\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-Q3_K_XL.gguf\" --host 127.0.0.1 --port 19399 --alias local --device ROCm0 --split-mode none --gpu-layers 99 --flash-attn on --ctx-size 32768 --batch-size 2048 --ubatch-size 288 --cache-type-k q4_0 --cache-type-v q4_0 --parallel 1 --cont-batching --no-context-shift --threads 8 --n-cpu-moe 14 --jinja --warmup --metrics --no-webui"
+                      },
+    "load_seconds":  10.7,
+    "idle":  {
+                 "vram_dedicated_mib":  2454.9,
+                 "vram_shared_mib":  358.5,
+                 "commit_gib":  21.416,
+                 "physical_used_gib":  8.069
+             },
+    "session_peak":  {
+                         "vram_dedicated_mib":  14343.3,
+                         "vram_shared_mib":  475.3,
+                         "process_vram_mib":  11885.9,
+                         "process_ws_gib":  18.588,
+                         "process_private_gib":  14.147,
+                         "commit_gib":  36.888,
+                         "physical_used_gib":  27.27
+                     },
+    "marginal_vram_mib":  11888.4,
+    "memory_samples":  42,
+    "gpu_pressure":  {
+                         "state":  "ok",
+                         "occupancy":  0.8797,
+                         "shared_mib":  475.3,
+                         "message":  "GPU memory is within budget: 14.343 / 16.304 MiB dedicated (88,0%), 475 MiB shared."
+                     },
+    "eval_exit_code":  0,
+    "failure":  null,
+    "eval":  {
+                 "schema_version":  1,
+                 "scenario":  "profile-qualification",
+                 "label":  "q3kxl-quality32k-ncpumoe14",
+                 "started_utc":  "2026-08-25T02:01:45Z",
+                 "server_props":  {
+                                      "default_generation_settings":  {
+                                                                          "params":  {
+                                                                                         "seed":  4294967295,
+                                                                                         "temperature":  1.0,
+                                                                                         "dynatemp_range":  0.0,
+                                                                                         "dynatemp_exponent":  1.0,
+                                                                                         "top_k":  20,
+                                                                                         "top_p":  0.949999988079071,
+                                                                                         "min_p":  0.05000000074505806,
+                                                                                         "top_n_sigma":  -1.0,
+                                                                                         "xtc_probability":  0.0,
+                                                                                         "xtc_threshold":  0.10000000149011612,
+                                                                                         "typical_p":  1.0,
+                                                                                         "repeat_last_n":  64,
+                                                                                         "repeat_penalty":  1.0,
+                                                                                         "presence_penalty":  0.0,
+                                                                                         "frequency_penalty":  0.0,
+                                                                                         "dry_multiplier":  0.0,
+                                                                                         "dry_base":  1.75,
+                                                                                         "dry_allowed_length":  2,
+                                                                                         "dry_penalty_last_n":  64,
+                                                                                         "mirostat":  0,
+                                                                                         "mirostat_tau":  5.0,
+                                                                                         "mirostat_eta":  0.10000000149011612,
+                                                                                         "adaptive_target":  -1.0,
+                                                                                         "adaptive_decay":  0.8999999761581421,
+                                                                                         "max_tokens":  -1,
+                                                                                         "n_predict":  -1,
+                                                                                         "n_keep":  0,
+                                                                                         "n_discard":  0,
+                                                                                         "ignore_eos":  false,
+                                                                                         "stream":  false,
+                                                                                         "n_probs":  0,
+                                                                                         "min_keep":  0,
+                                                                                         "chat_format":  "Content-only",
+                                                                                         "reasoning_format":  "none",
+                                                                                         "reasoning_in_content":  false,
+                                                                                         "generation_prompt":  "",
+                                                                                         "samplers":  [
+                                                                                                          "penalties",
+                                                                                                          "dry",
+                                                                                                          "top_n_sigma",
+                                                                                                          "top_k",
+                                                                                                          "typ_p",
+                                                                                                          "top_p",
+                                                                                                          "min_p",
+                                                                                                          "xtc",
+                                                                                                          "temperature"
+                                                                                                      ],
+                                                                                         "speculative.types":  "none",
+                                                                                         "timings_per_token":  false,
+                                                                                         "post_sampling_probs":  false,
+                                                                                         "backend_sampling":  false,
+                                                                                         "lora":  [
+
+                                                                                                  ]
+                                                                                     },
+                                                                          "n_ctx":  32768
+                                                                      },
+                                      "total_slots":  1,
+                                      "model_path":  "C:\\IA\\models\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-Q3_K_XL.gguf",
+                                      "build_info":  "b10549-b2e5e9b28"
+                                  },
+                 "request_budget":  {
+                                        "request_max_tokens":  null,
+                                        "n_predict":  null,
+                                        "effective_generation_ceiling":  null,
+                                        "effective_max_tokens":  null,
+                                        "source":  "fixture",
+                                        "budget_profile":  "deployment",
+                                        "reasoning_budget":  null,
+                                        "answer_reserve":  null,
+                                        "minimum_answer_reserve":  null,
+                                        "reserve_ok":  true,
+                                        "fixture_defaults":  {
+                                                                 "coding":  8192,
+                                                                 "tools":  4096,
+                                                                 "json":  4096,
+                                                                 "retention":  4096
+                                                             },
+                                        "constrained_diagnostic":  false
+                                    },
+                 "policy_profile":  "baseline",
+                 "diagnostic_config":  {
+                                           "max_tokens_override":  null,
+                                           "max_tokens_source":  "fixture",
+                                           "budget_profile":  "deployment",
+                                           "n_predict":  null,
+                                           "temperature":  0.0,
+                                           "seed":  20260821,
+                                           "system_policy":  "current",
+                                           "strict_tool_policy":  false,
+                                           "tool_schema_policy":  false,
+                                           "capture_dir":  "C:\\IA\\IA_local_server\\benchmarks\\campaign-ornith15-35b-a3b\\quality\\capture-q3kxl-quality32k-ncpumoe14",
+                                           "only_coding":  [
+
+                                                           ],
+                                           "only_tools":  [
+
+                                                          ]
+                                       },
+                 "suites":  {
+                                "coding":  {
+                                               "results":  [
+                                                               {
+                                                                   "id":  "py_bugfix",
+                                                                   "family":  "bugfix",
+                                                                   "lang":  "python",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  3041,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  1236,
+                                                                   "reasoning_content":  "The user wants me to fix a binary search function that:\n1. Hangs on some inputs (infinite loop)\n2. Returns the wrong index on others\n\nLet me analyze the current code:\n\n```python\ndef find_insert_position(sorted_values, target):\n    \"\"\"Return the index where target should be inserted to keep the list sorted.\n\n    If target is already present, return the index of its FIRST occurrence.\n    \"\"\"\n    low = 0\n    high = len(sorted_values)\n    while low \u003c high:\n        mid = (low + high) // 2\n        if sorted_values[mid] \u003c target:\n            low = mid\n        else:\n            high = mid\n    return low\n```\n\nThe bug that causes hanging: When `sorted_values[mid] \u003c target`, it sets `low = mid`. But if `mid == low` (which happens when `high = low + 1`), then `low = mid = low`, so `low` never advances. This causes an infinite loop.\n\nThe fix is to use `low = mid + 1` instead of `low = mid`.\n\nLet me trace through the logic for finding the first occurrence / insertion position:\n\nWe want to find the leftmost index where target can be inserted. The standard binary search for \"first index where value \u003e= target\" (lower_bound):\n\n```python\nlow = 0\nhigh = len(sorted_values)\nwhile low \u003c high:\n    mid = (low + high) // 2\n    if sorted_values[mid] \u003c target:\n        low = mid + 1\n    else:\n        high = mid\nreturn low\n```\n\nLet me verify this works:\n- If target is not present, `low` will be the insertion point.\n- If target is present, `low` will be the index of the first occurrence.\n\nLet me trace through some examples:\n\nExample 1: `sorted_values = [1, 3, 5, 7]`, `target = 5`\n- low=0, high=4, mid=2, sorted_values[2]=5, 5 \u003c 5? No, so high=2\n- low=0, high=2, mid=1, sorted_values[1]=3, 3 \u003c 5? Yes, so low=2\n- low=2, high=2, loop ends\n- return 2 ✓ (index of 5)\n\nExample 2: `sorted_values = [1, 3, 5, 7]`, `target = 4`\n- low=0, high=4, mid=2, sorted_values[2]=5, 5 \u003c 4? No, so high=2\n- low=0, high=2, mid=1, sorted_values[1]=3, 3 \u003c 4? Yes, so low=2\n- low=2, high=2, loop ends\n- return 2 ✓ (insert at index 2: [1, 3, 4, 5, 7])\n\nExample 3: `sorted_values = [1, 3, 5, 7]`, `target = 8`\n- low=0, high=4, mid=2, sorted_values[2]=5, 5 \u003c 8? Yes, so low=3\n- low=3, high=4, mid=3, sorted_values[3]=7, 7 \u003c 8? Yes, so low=4\n- low=4, high=4, loop ends\n- return 4 ✓ (insert at end)\n\nExample 4: `sorted_values = [1, 3, 5, 7]`, `target = 0`\n- low=0, high=4, mid=2, sorted_values[2]=5, 5 \u003c 0? No, so high=2\n- low=0, high=2, mid=1, sorted_values[1]=3, 3 \u003c 0? No, so high=1\n- low=0, high=1, mid=0, sorted_values[0]=1, 1 \u003c 0? No, so high=0\n- low=0, high=0, loop ends\n- return 0 ✓ (insert at beginning)\n\nExample 5: Duplicate values - `sorted_values = [1, 3, 3, 3, 7]`, `target = 3`\n- low=0, high=5, mid=2, sorted_values[2]=3, 3 \u003c 3? No, so high=2\n- low=0, high=2, mid=1, sorted_values[1]=3, 3 \u003c 3? No, so high=1\n- low=0, high=1, mid=0, sorted_values[0]=1, 1 \u003c 3? Yes, so low=1\n- low=1, high=1, loop ends\n- return 1 ✓ (first occurrence of 3 is at index 1)\n\nThe fix is correct. The key change is `low = mid + 1` instead of `low = mid`.\n\nLet me write the final code.\n",
+                                                                   "decode_tps":  55.69059334471706,
+                                                                   "wall_s":  24.4,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "def find_insert_position(sorted_values, target):\n    \"\"\"Return the index where target should be inserted to keep the list sorted.\n\n    If target is already present, return the index of its FIRST occurrence.\n    \"\"\"\n    low = 0\n    high = len(sorted_values)\n    while low \u003c high:\n        mid = (low + high) // 2\n        if sorted_values[mid] \u003c target:\n            low = mid + 1\n        else:\n            high = mid\n    return low",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "py_impl",
+                                                                   "family":  "implement",
+                                                                   "lang":  "python",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  1815,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  665,
+                                                                   "reasoning_content":  "The user wants me to implement `merge_intervals(intervals)` in Python. Let me think about the requirements:\n\n1. Takes a list of [start, end] pairs in any order\n2. Returns a new list of non-overlapping [start, end] pairs sorted by start\n3. Merge any that overlap or touch (so [1,4] and [4,5] merge into [1,5])\n4. Do not mutate the input\n5. Return only the function\n\nLet me write this:\n\n```python\ndef merge_intervals(intervals):\n    if not intervals:\n        return []\n    \n    # Sort by start, without mutating the input\n    sorted_intervals = sorted(intervals, key=lambda interval: interval[0])\n    \n    merged = []\n    for interval in sorted_intervals:\n        if not merged:\n            merged.append([interval[0], interval[1]])\n        else:\n            last = merged[-1]\n            if interval[0] \u003c= last[1]:\n                # Overlap or touch, merge\n                last[1] = max(last[1], interval[1])\n            else:\n                merged.append([interval[0], interval[1]])\n    \n    return merged\n```\n\nWait, let me think about the \"touch\" case. [1,4] and [4,5] merge into [1,5]. So if interval[0] \u003c= last[1], they merge. That handles the touch case since 4 \u003c= 4.\n\nLet me verify:\n- sorted_intervals = [[1,4], [4,5]]\n- merged = [[1,4]]\n- interval = [4,5], last = [1,4], 4 \u003c= 4, so last[1] = max(4, 5) = 5, merged = [[1,5]]\n- return [[1,5]] ✓\n\nThis looks correct. Let me also consider edge cases:\n- Empty list: returns []\n- Single interval: returns [[start, end]]\n- Non-overlapping intervals: returns them sorted\n\nThe input is not mutated because we create new lists for the merged intervals.\n\nLet me double check the \"do not mutate the input\" requirement. We use `sorted()` which creates a new list, and we create new `[interval[0], interval[1]]` lists. So the input is not mutated. Good.\n\nLet me finalize.\n",
+                                                                   "decode_tps":  56.25588769969251,
+                                                                   "wall_s":  12.5,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "def merge_intervals(intervals):\n    if not intervals:\n        return []\n\n    # Sort by start without mutating the input list.\n    sorted_intervals = sorted(intervals, key=lambda interval: interval[0])\n\n    merged = []\n    for start, end in sorted_intervals:\n        if not merged:\n            merged.append([start, end])\n        else:\n            last = merged[-1]\n            if start \u003c= last[1]:\n                # Overlapping or touching intervals: extend the end.\n                last[1] = max(last[1], end)\n            else:\n                merged.append([start, end])\n\n    return merged",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "go_bugfix",
+                                                                   "family":  "bugfix",
+                                                                   "lang":  "go",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  1840,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  659,
+                                                                   "reasoning_content":  "The user has a Go package that deadlocks. Let me analyze the issue.\n\nThe current code:\n1. Starts `workers` goroutines that read from `jobs` channel and write results to `out[i]`.\n2. Then sends all indices to `jobs`.\n3. Calls `wg.Wait()` BEFORE closing `jobs`.\n\nThe deadlock: `wg.Wait()` blocks until all worker goroutines finish. But the worker goroutines are blocked reading from `jobs`, which only gets closed AFTER `wg.Wait()` returns. So `wg.Wait()` never returns because the workers are still waiting for more jobs, and the jobs channel is never closed. Deadlock.\n\nThe fix: close `jobs` BEFORE calling `wg.Wait()`. That way, after all jobs are sent, closing the channel allows the workers to drain remaining jobs and then exit when the channel is closed.\n\nLet me rewrite:\n\n```go\npackage pipeline\n\nimport \"sync\"\n\n// FanIn runs fn over every input concurrently and returns the results in the\n// same order as the inputs.\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\n\tout := make([]int, len(inputs))\n\tjobs := make(chan int)\n\tvar wg sync.WaitGroup\n\n\tfor w := 0; w \u003c workers; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor i := range jobs {\n\t\t\t\tout[i] = fn(inputs[i])\n\t\t\t}\n\t\t}()\n\t}\n\n\tfor i := range inputs {\n\t\tjobs \u003c- i\n\t}\n\tclose(jobs)\n\twg.Wait()\n\treturn out\n}\n```\n\nThe key change: move `close(jobs)` before `wg.Wait()`. This ensures that after sending all jobs, we close the channel, allowing workers to finish processing remaining jobs and then exit when the channel is closed.\n\nThe ordering guarantee is preserved because each worker writes to `out[i]` at its specific index, so order is maintained regardless of completion order.\n\nLet me double check the signature is preserved: `func FanIn(inputs []int, workers int, fn func(int) int) []int` - yes.\n\nThis is the minimal fix. Let me return the whole file.\n",
+                                                                   "decode_tps":  55.97897572596777,
+                                                                   "wall_s":  23.5,
+                                                                   "detail":  "ok  \teval/pipeline\t0.242s\n",
+                                                                   "code":  "package pipeline\n\nimport \"sync\"\n\n// FanIn runs fn over every input concurrently and returns the results in the\n// same order as the inputs.\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\n\tout := make([]int, len(inputs))\n\tjobs := make(chan int)\n\tvar wg sync.WaitGroup\n\n\tfor w := 0; w \u003c workers; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor i := range jobs {\n\t\t\t\tout[i] = fn(inputs[i])\n\t\t\t}\n\t\t}()\n\t}\n\n\tfor i := range inputs {\n\t\tjobs \u003c- i\n\t}\n\tclose(jobs)\n\twg.Wait()\n\treturn out\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "go_impl",
+                                                                   "family":  "implement",
+                                                                   "lang":  "go",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  425,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  639,
+                                                                   "reasoning_content":  "The user wants a Go file for `package cache` implementing a fixed-capacity LRU cache. Let me write this using a doubly linked list and a map for O(1) operations.\n\nLet me implement:\n- `NewLRU(capacity int) *LRU`\n- `Get(key string) (int, bool)`\n- `Put(key string, value int)`\n- `Len() int`\n\nGet counts as a use. Put on existing key updates it without growing. When full, Put evicts least recently used.\n\nLet me write the file.\n",
+                                                                   "decode_tps":  56.214455150645044,
+                                                                   "wall_s":  12.9,
+                                                                   "detail":  "ok  \teval/cache\t0.245s\n",
+                                                                   "code":  "package cache\n\nimport \"container/list\"\n\n// LRU is a fixed-capacity least-recently-used cache.\ntype LRU struct {\n\tcapacity int\n\titems    map[string]*list.Element\n\tll       *list.List\n}\n\n// entry is the value stored in the linked list element.\ntype entry struct {\n\tkey   string\n\tvalue int\n}\n\n// NewLRU creates a new LRU cache with the given capacity.\nfunc NewLRU(capacity int) *LRU {\n\treturn \u0026LRU{\n\t\tcapacity: capacity,\n\t\titems:    make(map[string]*list.Element),\n\t\tll:       list.New(),\n\t}\n}\n\n// Get returns the value for key and marks it as most recently used.\n// If the key is not present, it returns zero and false.\nfunc (c *LRU) Get(key string) (int, bool) {\n\tel, ok := c.items[key]\n\tif !ok {\n\t\treturn 0, false\n\t}\n\t// Move to front (most recently used).\n\tc.ll.MoveToFront(el)\n\treturn el.Value.(*entry).value, true\n}\n\n// Put inserts or updates key with value.\n// Updating an existing key does not grow the cache.\n// When the cache is full, the least recently used entry is evicted.\nfunc (c *LRU) Put(key string, value int) {\n\tif c.capacity \u003c= 0 {\n\t\treturn\n\t}\n\n\tif el, ok := c.items[key]; ok {\n\t\t// Update existing entry and mark as most recently used.\n\t\tel.Value.(*entry).value = value\n\t\tc.ll.MoveToFront(el)\n\t\treturn\n\t}\n\n\t// Evict least recently used if at capacity.\n\tif len(c.items) \u003e= c.capacity {\n\t\toldest := c.ll.Back()\n\t\tif oldest != nil {\n\t\t\tc.ll.Remove(oldest)\n\t\t\tdelete(c.items, oldest.Value.(*entry).key)\n\t\t}\n\t}\n\n\t// Insert new entry at front (most recently used).\n\tel := c.ll.PushFront(\u0026entry{key: key, value: value})\n\tc.items[key] = el\n}\n\n// Len returns the number of entries currently stored in the cache.\nfunc (c *LRU) Len() int {\n\treturn len(c.items)\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "ts_impl",
+                                                                   "family":  "implement",
+                                                                   "lang":  "typescript",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  1076,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  416,
+                                                                   "reasoning_content":  "The user wants a TypeScript module that exports a function `groupConsecutive`. Let me write it.\n\nThe function splits an array into runs where each element is exactly one greater than the previous. A repeated value starts a new run. Empty input returns empty array.\n\nLet me write this with only erasable type syntax (no enums, no namespaces, no parameter properties).\n\n```typescript\nexport function groupConsecutive(values: number[]): number[][] {\n  const result: number[][] = [];\n  for (const value of values) {\n    const lastRun = result[result.length - 1];\n    if (lastRun \u0026\u0026 lastRun[lastRun.length - 1] === value - 1) {\n      lastRun.push(value);\n    } else {\n      result.push([value]);\n    }\n  }\n  return result;\n}\n```\n\nThis handles:\n- Empty input returns empty array (loop doesn\u0027t execute)\n- Repeated value starts a new run (since value - 1 won\u0027t equal the repeated value)\n- Each element exactly one greater than previous continues the run\n\nLet me verify with examples:\n- [1, 2, 3, 4] → [[1, 2, 3, 4]]\n- [1, 2, 2, 3, 5] → [[1, 2], [2, 3], [5]]\n- [] → []\n\nLooks correct.\n",
+                                                                   "decode_tps":  55.90405409464866,
+                                                                   "wall_s":  8.4,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "export function groupConsecutive(values: number[]): number[][] {\n  const result: number[][] = [];\n  for (const value of values) {\n    const lastRun = result[result.length - 1];\n    if (lastRun \u0026\u0026 lastRun[lastRun.length - 1] === value - 1) {\n      lastRun.push(value);\n    } else {\n      result.push([value]);\n    }\n  }\n  return result;\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "ts_refactor",
+                                                                   "family":  "refactor",
+                                                                   "lang":  "typescript",
+                                                                   "passed":  false,
+                                                                   "compiled_or_ran":  false,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  12004,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  3406,
+                                                                   "reasoning_content":  "The user wants me to refactor the module to use async/await and an iterative loop instead of the recursive `.then()` chain. Every observable behaviour must be preserved exactly, including both error messages and the 50-entry cap. Keep the exported names. Return the whole module.\n\nLet me analyze the original code carefully:\n\n```typescript\nexport type Fetcher = (id: string) =\u003e Promise\u003c{ id: string; parent: string | null }\u003e;\n\nexport function ancestry(fetch: Fetcher, start: string): Promise\u003cstring[]\u003e {\n  const seen = new Set\u003cstring\u003e();\n  const chain: string[] = [];\n  function step(id: string): Promise\u003cstring[]\u003e {\n    if (seen.has(id)) return Promise.reject(new Error(\"cycle detected\"));\n    seen.add(id);\n    chain.push(id);\n    if (chain.length \u003e 50) return Promise.reject(new Error(\"chain too long\"));\n    return fetch(id).then((node) =\u003e {\n      if (node.parent === null) return chain;\n      return step(node.parent);\n    });\n  }\n  return step(start);\n}\n```\n\nLet me trace through the logic carefully:\n\n1. `step(id)`:\n   - If `seen.has(id)` → reject with \"cycle detected\"\n   - Add `id` to `seen`\n   - Push `id` to `chain`\n   - If `chain.length \u003e 50` → reject with \"chain too long\"\n   - Fetch the node\n   - If `node.parent === null` → return `chain`\n   - Otherwise → recurse with `node.parent`\n\nSo the order of operations matters:\n1. Check cycle (seen)\n2. Add to seen\n3. Push to chain\n4. Check chain length \u003e 50\n5. Fetch\n6. If parent null, return chain; else recurse\n\nLet me think about the order of the checks. The cycle check happens before adding to seen. The chain length check happens after pushing to chain.\n\nNow, the key thing is the order of operations. Let me convert this to an iterative loop with async/await.\n\nThe loop should be:\n```typescript\nexport function ancestry(fetch: Fetcher, start: string): Promise\u003cstring[]\u003e {\n  const seen = new Set\u003cstring\u003e();\n  const chain: string[] = [];\n  let id = start;\n  while (true) {\n    if (seen.has(id)) throw new Error(\"cycle detected\");\n    seen.add(id);\n    chain.push(id);\n    if (chain.length \u003e 50) throw new Error(\"chain too long\");\n    const node = await fetch(id);\n    if (node.parent === null) return chain;\n    id = node.parent;\n  }\n}\n```\n\nWait, but I need to be careful. The original returns `Promise.reject(new Error(...))` for the errors. When I use `throw` inside an async function, it will reject the promise with that error. So the behaviour is preserved.\n\nLet me double-check the order of operations:\n1. Check cycle → throw \"cycle detected\"\n2. Add to seen\n3. Push to chain\n4. Check chain length \u003e 50 → throw \"chain too long\"\n5. Fetch\n6. If parent null, return chain; else set id = node.parent and loop\n\nThis matches the original exactly.\n\nLet me verify the chain length check. In the original:\n```\nchain.push(id);\nif (chain.length \u003e 50) return Promise.reject(new Error(\"chain too long\"));\n```\n\nSo after pushing, if chain.length \u003e 50, reject. This means when chain.length becomes 51, it rejects. So the chain can have at most 50 entries. Let me verify: when we push the 51st element, chain.length becomes 51, which is \u003e 50, so it rejects. So the chain can have at most 50 entries. Good.\n\nNow, one subtle thing: the original uses `Promise.reject(new Error(\"cycle detected\"))` which returns a rejected promise. When converted to async/await with `throw`, the async function returns a promise that rejects with the error. This is equivalent.\n\nLet me also make sure the return type is correct. The original returns `Promise\u003cstring[]\u003e`. The async function returns `Promise\u003cstring[]\u003e` implicitly. Good.\n\nLet me write the final version:\n\n```typescript\nexport type Fetcher = (id: string) =\u003e Promise\u003c{ id: string; parent: string | null }\u003e;\n\n// Walks from a node to the root and returns the chain, root last.\n// Rewrite this to use async/await and a plain loop. Behaviour must not change,\n// including that a cycle throws Error(\"cycle detected\") and that the chain is\n// capped at 50 entries with Error(\"chain too long\").\nexport function ancestry(fetch: Fetcher, start: string): Promise\u003cstring[]\u003e {\n  const seen = new Set\u003cstring\u003e();\n  const chain: string[] = [];\n  let id = start;\n  while (true) {\n    if (seen.has(id)) throw new Error(\"cycle detected\");\n    seen.add(id);\n    chain.push(id);\n    if (chain.length \u003e 50) throw new Error(\"chain too long\");\n    const node = await fetch(id);\n    if (node.parent === null) return chain;\n    id = node.parent;\n  }\n}\n```\n\nWait, there\u0027s a subtle issue with the cycle check and the seen set. Let me think about this more carefully.\n\nIn the original, `seen` is used to detect cycles. When we visit a node, we add it to `seen`. If we visit a node that\u0027s already in `seen`, we detect a cycle.\n\nBut wait, there\u0027s a subtlety. Consider a linear chain: A → B → C → null. \n- step(A): seen={A}, chain=[A], fetch A → parent B\n- step(B): seen={A,B}, chain=[A,B], fetch B → parent C\n- step(C): seen={A,B,C}, chain=[A,B,C], fetch C → parent null, return chain=[A,B,C]\n\nNo cycle detected. Good.\n\nNow consider a cycle: A → B → A → ...\n- step(A): seen={A}, chain=[A], fetch A → parent B\n- step(B): seen={A,B}, chain=[A,B], fetch B → parent A\n- step(A): seen.has(A) → reject \"cycle detected\"\n\nGood.\n\nNow, my iterative version:\n- id=A: seen={A}, chain=[A], fetch A → parent B, id=B\n- id=B: seen={A,B}, chain=[A,B], fetch B → parent A, id=A\n- id=A: seen.has(A) → throw \"cycle detected\"\n\nGood, matches.\n\nNow, there\u0027s one more subtle thing. The `seen` set and the `chain` array. In the original, `seen` is added to before the chain length check. In my version, same order. Good.\n\nActually, wait. Let me reconsider whether `seen` is even necessary or if `chain` could be used. No, I should preserve the exact behaviour, so I keep `seen` as a separate set. Actually, `seen` and `chain` would always have the same contents in this code (since we add to both in lockstep). But I\u0027ll keep `seen` to preserve the exact structure, though it doesn\u0027t matter functionally. Actually, let me just keep it as is to be safe.\n\nHmm, actually, since `seen` and `chain` are always in sync, I could use `chain.includes(id)` instead of `seen.has(id)`. But that would change the implementation detail, not the observable behaviour. To be safe and preserve exact behaviour, I\u0027ll keep `seen`.\n\nLet me also double check: the original returns `chain` (the array reference) when parent is null. My version returns `chain` too. Good.\n\nOne more consideration: the original\u0027s `step` function is recursive, and each call to `step` creates a new promise chain. When converted to a loop, we avoid the recursion. The observable behaviour (the returned promise, the errors, the chain) is preserved.\n\nLet me also verify the error handling. In the original:\n- `Promise.reject(new Error(\"cycle detected\"))` → the promise rejects with this error\n- `Promise.reject(new Error(\"chain too long\"))` → the promise rejects with this error\n\nIn my version:\n- `throw new Error(\"cycle detected\")` → the async function\u0027s promise rejects with this error\n- `throw new Error(\"chain too long\")` → the async function\u0027s promise rejects with this error\n\nThese are equivalent. Good.\n\nNow, there\u0027s a subtle timing issue. In the original, the errors are thrown synchronously (before the fetch). In my version, the errors are also thrown synchronously (before the fetch). So the timing is preserved.\n\nWait, actually, let me reconsider. In the original, `Promise.reject(new Error(\"cycle detected\"))` is returned synchronously from `step`. The rejection happens when the promise is consumed. But the error object is created synchronously. In my version, `throw new Error(\"cycle detected\")` throws synchronously. When the async function throws, the returned promise rejects. This is equivalent.\n\nActually, there\u0027s a subtle difference. In the original, the error is created and the promise is rejected. In my version, the error is thrown and the promise rejects. Both result in the promise rejecting with the error. The timing of the rejection is the same (microtask). Good.\n\nLet me finalize.\n\nActually, let me reconsider the order of the chain length check vs the fetch. In the original:\n```\nchain.push(id);\nif (chain.length \u003e 50) return Promise.reject(new Error(\"chain too long\"));\nreturn fetch(id).then(...)\n```\n\nSo the chain length check happens before the fetch. In my version:\n```\nchain.push(id);\nif (chain.length \u003e 50) throw new Error(\"chain too long\");\nconst node = await fetch(id);\n```\n\nSame order. Good.\n\nNow, let me think about the 50-entry cap more carefully. The cap is checked after pushing to chain. So:\n- When chain.length becomes 51 (after pushing the 51st element), it rejects.\n\nWait, let me re-read: `if (chain.length \u003e 50)`. So when chain.length is 51, it\u0027s \u003e 50, so it rejects. When chain.length is 50, it\u0027s not \u003e 50, so it doesn\u0027t reject. So the chain can have at most 50 entries before the check. But when we push the 51st, chain.length becomes 51, and it rejects. So the chain array would have 51 entries at the point of rejection, but the promise rejects, so the caller never sees the 51st entry.\n\nHmm, actually, let me think about this. The chain array is mutated in place. When we push the 51st element, chain.length becomes 51. Then we reject. So the caller never gets the chain. But the chain array itself has 51 entries at that point. However, since we reject, the caller never sees it. So the observable behaviour is that the chain is capped at 50 entries (the caller never sees more than 50).\n\nWait, but actually, the rejection happens, so the caller gets a rejected promise. The chain array is not returned. So the observable behaviour is preserved.\n\nLet me verify my version does the same. Yes, `chain.push(id)` then `if (chain.length \u003e 50) throw`. Same behaviour.\n\nOK here\u0027s a subtle point. Let me reconsider whether the cap should be `\u003e 50` or `\u003e= 50`. The original uses `\u003e 50`. So the chain can have up to 50 entries without rejection, and the 51st triggers rejection. My version preserves this. Good.\n\nLet me finalize the code.\n\nActually, I realize I should double-check: does the original reject when chain.length \u003e 50, meaning the 51st push triggers rejection? Let me trace:\n- Push 1st: chain.length = 1, not \u003e 50\n- ...\n- Push 50th: chain.length = 50, not \u003e 50\n- Push 51st: chain.length = 51, \u003e 50, reject\n\nSo the chain can have up to 50 entries successfully, and the 51st triggers rejection. My version does the same. Good.\n\nFinal code:\n\n```typescript\nexport type Fetcher = (id: string) =\u003e Promise\u003c{ id: string; parent: string | null }\u003e;\n\n// Walks from a node to the root and returns the chain, root last.\n// Rewrite this to use async/await and a plain loop. Behaviour must not change,\n// including that a cycle throws Error(\"cycle detected\") and that the chain is\n// capped at 50 entries with Error(\"chain too long\").\nexport function ancestry(fetch: Fetcher, start: string): Promise\u003cstring[]\u003e {\n  const seen = new Set\u003cstring\u003e();\n  const chain: string[] = [];\n  let id = start;\n  while (true) {\n    if (seen.has(id)) throw new Error(\"cycle detected\");\n    seen.add(id);\n    chain.push(id);\n    if (chain.length \u003e 50) throw new Error(\"chain too long\");\n    const node = await fetch(id);\n    if (node.parent === null) return chain;\n    id = node.parent;\n  }\n}\n```\n\nThis looks correct. Let me verify once more that all observable behaviours are preserved:\n1. Cycle detection: `seen.has(id)` → throw \"cycle detected\" ✓\n2. Chain cap: `chain.length \u003e 50` → throw \"chain too long\" ✓\n3. Chain order: push id, then move to parent ✓\n4. Return chain when parent is null ✓\n5. Error messages preserved ✓\n6. Exported names preserved (Fetcher type, ancestry function) ✓\n\nI\u0027m confident this is correct.\n\nLet me also make sure I\u0027m not introducing any new APIs. `Set`, `fetch`, `await`, `throw`, `while` — all standard. Good.\n\nOne thing to consider: the original `fetch` is a parameter named `fetch`, which shadows the global `fetch`. In my version, I keep the parameter named `fetch`, so no issue. Good.\n\nI\u0027ll return the whole module in a single fenced code block.\n",
+                                                                   "decode_tps":  56.151389687527654,
+                                                                   "wall_s":  61.5,
+                                                                   "detail":  "TypeScriptCode (node:internal/modules/typescript:146:42)\n    at stripTypeScriptModuleTypes (node:internal/modules/typescript:209:22)\n    at ModuleLoader.\u003canonymous\u003e (node:internal/modules/esm/translators:680:29)\n    at #translate (node:internal/modules/esm/loader:434:20)\n    at afterLoad (node:internal/modules/esm/loader:502:29)\n    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:507:12)\n    at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:560:36)\n    at afterResolve (node:internal/modules/esm/loader:607:52)\n    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:613:12) {\n  code: \u0027ERR_INVALID_TYPESCRIPT_SYNTAX\u0027\n}\n\nNode.js v24.18.0\n",
+                                                                   "code":  "export type Fetcher = (id: string) =\u003e Promise\u003c{ id: string; parent: string | null }\u003e;\n\n// Walks from a node to the root and returns the chain, root last.\n// Rewrite this to use async/await and a plain loop. Behaviour must not change,\n// including that a cycle throws Error(\"cycle detected\") and that the chain is\n// capped at 50 entries with Error(\"chain too long\").\nexport function ancestry(fetch: Fetcher, start: string): Promise\u003cstring[]\u003e {\n  const seen = new Set\u003cstring\u003e();\n  const chain: string[] = [];\n  let id = start;\n  while (true) {\n    if (seen.has(id)) throw new Error(\"cycle detected\");\n    seen.add(id);\n    chain.push(id);\n    if (chain.length \u003e 50) throw new Error(\"chain too long\");\n    const node = await fetch(id);\n    if (node.parent === null) return chain;\n    id = node.parent;\n  }\n}",
+                                                                   "failure_taxonomy":  [
+                                                                                            "MODEL_OUTPUT_FAILURE",
+                                                                                            "SYNTAX_ERROR"
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "cs_bugfix",
+                                                                   "family":  "bugfix",
+                                                                   "lang":  "csharp",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  911,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  505,
+                                                                   "reasoning_content":  "Let me analyze the two bugs.\n\nBug 1: Every account\u0027s running-balance list contains the same entries.\n\nThe problem is `running[e.Account] = buffer;` — this assigns the same `buffer` list reference to every account. So all accounts share the same list. When you `Add` to `running[e.Account]`, you\u0027re adding to the same shared list.\n\nThe fix: create a new list per account: `running[e.Account] = new List\u003cint\u003e();`\n\nBug 2: AverageDelta comes back as a whole number.\n\n`deltas.Sum()` returns int, `deltas.Count()` returns int, so `int / int` is integer division, truncating to a whole number. Fix: cast to double before dividing: `(double)deltas.Sum() / deltas.Count()`.\n\nLet me rewrite the whole file.\n\nAlso, there\u0027s a subtle issue: `var buffer = new List\u003cint\u003e();` is unused now. Let me remove it or keep it. Actually the buffer variable is no longer needed. Let me clean it up.\n\nLet me write the corrected version.\n",
+                                                                   "decode_tps":  56.366299528949966,
+                                                                   "wall_s":  13.2,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic static class Ledger\n{\n    // Returns, for each account, the running balance after every entry, and the\n    // final balance. Entries are (account, delta) in chronological order.\n    // BUG: callers report that the running balances are all identical to the\n    // final balance, and that AverageDelta is truncated to a whole number.\n    public static (Dictionary\u003cstring, List\u003cint\u003e\u003e Running, Dictionary\u003cstring, int\u003e Final, double AverageDelta)\n        Summarise(IEnumerable\u003c(string Account, int Delta)\u003e entries)\n    {\n        var totals = new Dictionary\u003cstring, int\u003e();\n        var running = new Dictionary\u003cstring, List\u003cint\u003e\u003e();\n\n        foreach (var e in entries)\n        {\n            if (!totals.ContainsKey(e.Account)) { totals[e.Account] = 0; running[e.Account] = new List\u003cint\u003e(); }\n            totals[e.Account] += e.Delta;\n            running[e.Account].Add(totals[e.Account]);\n        }\n\n        var deltas = entries.Select(e =\u003e e.Delta);\n        var average = (double)deltas.Sum() / deltas.Count();\n        return (running, totals, average);\n    }\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "unity_impl",
+                                                                   "family":  "implement",
+                                                                   "lang":  "csharp",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  3892,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  1200,
+                                                                   "reasoning_content":  "The user wants a Unity MonoBehaviour `ProjectilePool` in C#. Let me write it according to the requirements.\n\nRequirements:\n- `[SerializeField] GameObject prefab` and `int prewarmCount`\n- `Awake()` prewarms `prewarmCount` inactive instances\n- `public GameObject Rent()` returns a pooled instance, activating it, and instantiates a new one only when the pool is empty\n- `public void Return(GameObject go)` deactivates it and puts it back\n- Return(null) is ignored; returning the same object twice must not add it twice\n- Use only UnityEngine and System.Collections.Generic\n\nLet me write this. I\u0027ll use a `List\u003cGameObject\u003e` as the pool.\n\nFor \"returning the same object twice must not add it twice\" - I need to check if the object is already in the pool before adding it.\n\nLet me write the code.\n\n```csharp\nusing UnityEngine;\nusing System.Collections.Generic;\n\npublic class ProjectilePool : MonoBehaviour\n{\n    [SerializeField] private GameObject prefab;\n    [SerializeField] private int prewarmCount;\n\n    private readonly List\u003cGameObject\u003e _pool = new List\u003cGameObject\u003e();\n\n    public GameObject Rent()\n    {\n        GameObject go = null;\n\n        for (int i = 0; i \u003c _pool.Count; i++)\n        {\n            GameObject candidate = _pool[i];\n            if (candidate != null \u0026\u0026 !candidate.activeSelf)\n            {\n                go = candidate;\n                _pool.RemoveAt(i);\n                break;\n            }\n        }\n\n        if (go == null)\n        {\n            go = Instantiate(prefab);\n        }\n\n        go.SetActive(true);\n        return go;\n    }\n\n    public void Return(GameObject go)\n    {\n        if (go == null)\n        {\n            return;\n        }\n\n        if (go.activeSelf)\n        {\n            go.SetActive(false);\n        }\n\n        if (!_pool.Contains(go))\n        {\n            _pool.Add(go);\n        }\n    }\n\n    private void Awake()\n    {\n        for (int i = 0; i \u003c prewarmCount; i++)\n        {\n            GameObject instance = Instantiate(prefab);\n            instance.SetActive(false);\n            _pool.Add(instance);\n        }\n    }\n}\n```\n\nWait, the requirement says \"Use only UnityEngine and System.Collections.Generic.\" So I should only use those two namespaces. My code uses both. Good.\n\nLet me double check the \"returning the same object twice must not add it twice\" - I use `_pool.Contains(go)` to check. Good.\n\nThe `Rent()` method: returns a pooled instance, activating it, and instantiates a new one only when the pool is empty. My implementation iterates to find an inactive instance. Actually, since pooled instances are always inactive (we deactivate them on return), I could just take the first one. But checking `!candidate.activeSelf` is safer. Actually, let me reconsider - the pool only contains inactive instances because we deactivate on return. So I could just take `_pool[0]`. But to be safe, iterating and checking activeSelf is fine.\n\nActually, let me simplify. Since we always add inactive objects and deactivate on return, the pool only has inactive objects. But there\u0027s a subtle issue: what if someone rents an object and then the pool has it... no. Let me keep the iteration approach which is robust.\n\nHmm, but actually there\u0027s a subtle concern. When we Rent, we take from pool and activate. When we Return, we deactivate and add back. So the pool always contains inactive objects. The iteration with `!activeSelf` check is redundant but safe. Let me keep it simple but correct.\n\nLet me reconsider whether to use `SetActive(false)` on return even if already inactive. It\u0027s harmless. But the requirement says \"deactivates it and puts it back\". So calling SetActive(false) is correct.\n\nLet me finalize. I think the code is good. Let me make sure the whole file is returned.\n\nOne more consideration: should I use `List` or `Stack`? The requirement doesn\u0027t specify. List is fine. Contains works on List.\n\nLet me finalize the answer.\n",
+                                                                   "decode_tps":  56.00555664805576,
+                                                                   "wall_s":  23.1,
+                                                                   "detail":  "\nCompilação com êxito.\n    0 Aviso(s)\n    0 Erro(s)\n\nTempo Decorrido 00:00:00.90\n",
+                                                                   "code":  "using UnityEngine;\nusing System.Collections.Generic;\n\npublic class ProjectilePool : MonoBehaviour\n{\n    [SerializeField] private GameObject prefab;\n    [SerializeField] private int prewarmCount;\n\n    private readonly List\u003cGameObject\u003e _pool = new List\u003cGameObject\u003e();\n\n    private void Awake()\n    {\n        for (int i = 0; i \u003c prewarmCount; i++)\n        {\n            GameObject instance = Instantiate(prefab);\n            instance.SetActive(false);\n            _pool.Add(instance);\n        }\n    }\n\n    public GameObject Rent()\n    {\n        GameObject go = null;\n\n        for (int i = 0; i \u003c _pool.Count; i++)\n        {\n            GameObject candidate = _pool[i];\n            if (candidate != null \u0026\u0026 !candidate.activeSelf)\n            {\n                go = candidate;\n                _pool.RemoveAt(i);\n                break;\n            }\n        }\n\n        if (go == null)\n        {\n            go = Instantiate(prefab);\n        }\n\n        go.SetActive(true);\n        return go;\n    }\n\n    public void Return(GameObject go)\n    {\n        if (go == null)\n        {\n            return;\n        }\n\n        go.SetActive(false);\n\n        if (!_pool.Contains(go))\n        {\n            _pool.Add(go);\n        }\n    }\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "constraint_frozen_file",
+                                                                   "family":  "constraint",
+                                                                   "lang":  "csharp",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  822,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  378,
+                                                                   "reasoning_content":  "The user wants me to write a new file `TelemetrySender.cs` with a class `TelemetrySender`. Let me analyze the requirements:\n\n1. Constructor takes a `NetworkManager`\n2. Method `public void Send(string opcode, string payload)`\n3. `Send` must encode the frame through the `NetworkManager` and enqueue it\n4. Opcodes longer than 8 characters must be truncated to their first 8 characters BY MY CLASS before encoding — NetworkManager.Encode must not be changed to do it.\n\nLet me write this file.\n\nThe `NetworkManager` has:\n- `Encode(string opcode, string payload)` - serializes a payload\n- `Enqueue(string frame)` - adds to outbox\n- `Outbox` property\n\nSo my `TelemetrySender` should:\n1. Store the `NetworkManager` reference\n2. In `Send`, truncate opcode to 8 chars if longer, then call `Encode` and `Enqueue`.\n\nLet me write it.\n",
+                                                                   "decode_tps":  55.55371358892462,
+                                                                   "wall_s":  9.4,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "// TelemetrySender.cs\nusing System;\n\npublic class TelemetrySender\n{\n    private const int MaxOpcodeLength = 8;\n\n    private readonly NetworkManager _network;\n\n    public TelemetrySender(NetworkManager network)\n    {\n        _network = network ?? throw new ArgumentNullException(nameof(network));\n    }\n\n    public void Send(string opcode, string payload)\n    {\n        if (opcode == null)\n        {\n            throw new ArgumentNullException(nameof(opcode));\n        }\n\n        string safeOpcode = opcode.Length \u003e MaxOpcodeLength\n            ? opcode.Substring(0, MaxOpcodeLength)\n            : opcode;\n\n        string frame = _network.Encode(safeOpcode, payload);\n        _network.Enqueue(frame);\n    }\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "no_invented_api",
+                                                                   "family":  "honesty",
+                                                                   "lang":  "csharp",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  298,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  179,
+                                                                   "reasoning_content":  "The user wants me to write a `FrameUtil` class with a `CountZeroes` method that uses only the shown members of `FrameBuffer`:\n- `int Count { get; }`\n- `byte Get(int index)`\n- `void Append(byte value)`\n\nI need to iterate from 0 to Count-1, calling Get(index) and counting zeros.\n\nLet me write this.\n",
+                                                                   "decode_tps":  55.40768068740387,
+                                                                   "wall_s":  5.4,
+                                                                   "detail":  "\nCompilação com êxito.\n    0 Aviso(s)\n    0 Erro(s)\n\nTempo Decorrido 00:00:00.87\n",
+                                                                   "code":  "public static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int count = 0;\n        for (int i = 0; i \u003c buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                count++;\n            }\n        }\n        return count;\n    }\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               }
+                                                           ],
+                                               "passed":  9,
+                                               "total":  10,
+                                               "compiled":  9,
+                                               "no_answer":  0,
+                                               "truncated":  0
+                                           },
+                                "tools":  {
+                                              "results":  [
+                                                              {
+                                                                  "id":  "tool_pick_tests",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  109,
+                                                                  "reasoning_content":  "The user wants me to run the tests for the package `internal/edge` verbosely. Let me use the run_tests tool.\n",
+                                                                  "names":  [
+                                                                                "run_tests"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"package\":\"internal/edge\",\"verbose\":true}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "package":  "internal/edge",
+                                                                                                 "verbose":  true
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "package":  "internal/edge",
+                                                                                                         "verbose":  true
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false
+                                                              },
+                                                              {
+                                                                  "id":  "tool_pick_build",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  103,
+                                                                  "reasoning_content":  "The user wants to build the target `cia-edge` in Release configuration. Let me use the run_build tool.\n",
+                                                                  "names":  [
+                                                                                "run_build"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"target\":\"cia-edge\",\"configuration\":\"Release\"}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "target":  "cia-edge",
+                                                                                                 "configuration":  "Release"
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "target":  "cia-edge",
+                                                                                                         "configuration":  "Release"
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false
+                                                              },
+                                                              {
+                                                                  "id":  "tool_pick_read_range",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  76,
+                                                                  "reasoning_content":  "The user wants me to show lines 40 through 80 of config/models.schema.json.\n",
+                                                                  "names":  [
+                                                                                "read_file_range"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"path\":\"config/models.schema.json\",\"start_line\":40,\"end_line\":80}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "path":  "config/models.schema.json",
+                                                                                                 "start_line":  40,
+                                                                                                 "end_line":  80
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "path":  "config/models.schema.json",
+                                                                                                         "start_line":  40,
+                                                                                                         "end_line":  80
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false
+                                                              },
+                                                              {
+                                                                  "id":  "tool_pick_read_many",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  130,
+                                                                  "reasoning_content":  "The user wants me to read README.md and docs/BENCHMARKS.md together using a tool. I\u0027ll use read_files to read both files at once.\n",
+                                                                  "names":  [
+                                                                                "read_files"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"paths\":[\"README.md\", \"docs/BENCHMARKS.md\"]}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "paths":  [
+                                                                                                               "README.md",
+                                                                                                               "docs/BENCHMARKS.md"
+                                                                                                           ]
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "paths":  [
+                                                                                                                       "README.md",
+                                                                                                                       "docs/BENCHMARKS.md"
+                                                                                                                   ]
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false
+                                                              },
+                                                              {
+                                                                  "id":  "tool_pick_search_one",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  116,
+                                                                  "reasoning_content":  "The user wants me to search only docs/TUNING.md for the phrase \"reasoning_budget\". Let me use the search_file tool.\n",
+                                                                  "names":  [
+                                                                                "search_file"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"path\":\"docs/TUNING.md\",\"query\":\"reasoning_budget\"}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "path":  "docs/TUNING.md",
+                                                                                                 "query":  "reasoning_budget"
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "path":  "docs/TUNING.md",
+                                                                                                         "query":  "reasoning_budget"
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false
+                                                              },
+                                                              {
+                                                                  "id":  "tool_pick_search_many_nested",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  false,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  false,
+                                                                  "detail":  "filters={\u0027include\u0027: [\u0027*.go\u0027], \u0027case_sensitive\u0027: False} want {\u0027include\u0027: [\u0027*.go\u0027], \u0027exclude\u0027: [\u0027vendor/**\u0027], \u0027case_sensitive\u0027: False}",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  164,
+                                                                  "reasoning_content":  "The user wants me to search for \"resource_profile_incomplete\" case-insensitive, including `*.go` files and excluding `vendor/**`. Let me use the search_files tool.\n",
+                                                                  "names":  [
+                                                                                "search_files"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"query\":\"resource_profile_incomplete\",\"filters\":{\"include\": [\"*.go\"], \"case_sensitive\": false}}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "query":  "resource_profile_incomplete",
+                                                                                                 "filters":  {
+                                                                                                                 "include":  [
+                                                                                                                                 "*.go"
+                                                                                                                             ],
+                                                                                                                 "case_sensitive":  false
+                                                                                                             }
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "query":  "resource_profile_incomplete",
+                                                                                                         "filters":  {
+                                                                                                                         "include":  [
+                                                                                                                                         "*.go"
+                                                                                                                                     ],
+                                                                                                                         "case_sensitive":  false
+                                                                                                                     }
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false,
+                                                                  "failure_taxonomy":  [
+                                                                                           "MODEL_OUTPUT_FAILURE",
+                                                                                           "TOOL_ARGUMENT_ERROR"
+                                                                                       ]
+                                                              },
+                                                              {
+                                                                  "id":  "tool_refuse_edit",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  148,
+                                                                  "reasoning_content":  "The user wants me to list the directory `src/net` using a tool. They explicitly said not to edit NetworkManager.cs. Let me just list the directory.\n",
+                                                                  "names":  [
+                                                                                "list_dir"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"path\":\"src/net\"}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "path":  "src/net"
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "path":  "src/net"
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false
+                                                              }
+                                                          ],
+                                              "passed":  6,
+                                              "total":  7
+                                          },
+                                "json":  {
+                                             "id":  "structured_json",
+                                             "parsed":  true,
+                                             "clean_json":  true,
+                                             "passed":  true,
+                                             "mismatches":  [
+
+                                                            ],
+                                             "finish_reason":  "stop",
+                                             "reasoning_chars":  301,
+                                             "reasoning_content":  "The user wants me to return a single JSON object with exactly the keys \"language\", \"lines\", \"has_tests\", \"entrypoints\".\n\n- language: \"Go\"\n- lines: 412 (number)\n- has_tests: true (there\u0027s a _test.go file)\n- entrypoints: [\"NewLRU\", \"Get\", \"Put\", \"Len\"] (exported functions)\n\nLet me construct this JSON.\n",
+                                             "truncated":  false,
+                                             "no_answer":  false
+                                         }
+                            }
+             }
+}

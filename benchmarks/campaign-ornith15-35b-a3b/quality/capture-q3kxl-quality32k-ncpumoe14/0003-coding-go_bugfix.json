@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "This Go package deadlocks. Fix it so the tests pass, keeping the exported signature and the ordering guarantee. Return the whole file.\n\n```go\npackage pipeline\n\nimport \"sync\"\n\n// FanIn runs fn over every input concurrently and returns the results in the\n// same order as the inputs. It currently deadlocks on any non-empty input.\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\n\tout := make([]int, len(inputs))\n\tjobs := make(chan int)\n\tvar wg sync.WaitGroup\n\n\tfor w := 0; w < workers; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor i := range jobs {\n\t\t\t\tout[i] = fn(inputs[i])\n\t\t\t}\n\t\t}()\n\t}\n\n\tfor i := range inputs {\n\t\tjobs <- i\n\t}\n\twg.Wait()\n\tclose(jobs)\n\treturn out\n}\n```"
+      }
+    ],
+    "max_tokens": 8192,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260821,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```go\\npackage pipeline\\n\\nimport \\\"sync\\\"\\n\\n// FanIn runs fn over every input concurrently and returns the results in the\\n// same order as the inputs.\\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\\n\\tout := make([]int, len(inputs))\\n\\tjobs := make(chan int)\\n\\tvar wg sync.WaitGroup\\n\\n\\tfor w := 0; w < workers; w++ {\\n\\t\\twg.Add(1)\\n\\t\\tgo func() {\\n\\t\\t\\tdefer wg.Done()\\n\\t\\t\\tfor i := range jobs {\\n\\t\\t\\t\\tout[i] = fn(inputs[i])\\n\\t\\t\\t}\\n\\t\\t}()\\n\\t}\\n\\n\\tfor i := range inputs {\\n\\t\\tjobs <- i\\n\\t}\\n\\tclose(jobs)\\n\\twg.Wait()\\n\\treturn out\\n}\\n```\",\"reasoning_content\":\"The user has a Go package that deadlocks. Let me analyze the issue.\\n\\nThe current code:\\n1. Starts `workers` goroutines that read from `jobs` channel and write results to `out[i]`.\\n2. Then sends all indices to `jobs`.\\n3. Calls `wg.Wait()` BEFORE closing `jobs`.\\n\\nThe deadlock: `wg.Wait()` blocks until all worker goroutines finish. But the worker goroutines are blocked reading from `jobs`, which only gets closed AFTER `wg.Wait()` returns. So `wg.Wait()` never returns because the workers are still waiting for more jobs, and the jobs channel is never closed. Deadlock.\\n\\nThe fix: close `jobs` BEFORE calling `wg.Wait()`. That way, after all jobs are sent, closing the channel allows the workers to drain remaining jobs and then exit when the channel is closed.\\n\\nLet me rewrite:\\n\\n```go\\npackage pipeline\\n\\nimport \\\"sync\\\"\\n\\n// FanIn runs fn over every input concurrently and returns the results in the\\n// same order as the inputs.\\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\\n\\tout := make([]int, len(inputs))\\n\\tjobs := make(chan int)\\n\\tvar wg sync.WaitGroup\\n\\n\\tfor w := 0; w < workers; w++ {\\n\\t\\twg.Add(1)\\n\\t\\tgo func() {\\n\\t\\t\\tdefer wg.Done()\\n\\t\\t\\tfor i := range jobs {\\n\\t\\t\\t\\tout[i] = fn(inputs[i])\\n\\t\\t\\t}\\n\\t\\t}()\\n\\t}\\n\\n\\tfor i := range inputs {\\n\\t\\tjobs <- i\\n\\t}\\n\\tclose(jobs)\\n\\twg.Wait()\\n\\treturn out\\n}\\n```\\n\\nThe key change: move `close(jobs)` before `wg.Wait()`. This ensures that after sending all jobs, we close the channel, allowing workers to finish processing remaining jobs and then exit when the channel is closed.\\n\\nThe ordering guarantee is preserved because each worker writes to `out[i]` at its specific index, so order is maintained regardless of completion order.\\n\\nLet me double check the signature is preserved: `func FanIn(inputs []int, workers int, fn func(int) int) []int` - yes.\\n\\nThis is the minimal fix. Let me return the whole file.\\n\"}}],\"created\":1787623354,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":659,\"prompt_tokens\":271,\"total_tokens\":930,\"prompt_tokens_details\":{\"cached_tokens\":50}},\"id\":\"chatcmpl-OhDtRX2ypfkBl2tW8ekzsk3UbEAuKOsu\",\"timings\":{\"cache_n\":50,\"prompt_n\":221,\"prompt_ms\":608.68,\"prompt_per_token_ms\":2.75420814479638,\"prompt_per_second\":363.08076493395544,\"predicted_n\":659,\"predicted_ms\":11754.413,\"predicted_per_token_ms\":17.86384954407295,\"predicted_per_second\":55.97897572596777}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```go\npackage pipeline\n\nimport \"sync\"\n\n// FanIn runs fn over every input concurrently and returns the results in the\n// same order as the inputs.\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\n\tout := make([]int, len(inputs))\n\tjobs := make(chan int)\n\tvar wg sync.WaitGroup\n\n\tfor w := 0; w < workers; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor i := range jobs {\n\t\t\t\tout[i] = fn(inputs[i])\n\t\t\t}\n\t\t}()\n\t}\n\n\tfor i := range inputs {\n\t\tjobs <- i\n\t}\n\tclose(jobs)\n\twg.Wait()\n\treturn out\n}\n```",
+          "reasoning_content": "The user has a Go package that deadlocks. Let me analyze the issue.\n\nThe current code:\n1. Starts `workers` goroutines that read from `jobs` channel and write results to `out[i]`.\n2. Then sends all indices to `jobs`.\n3. Calls `wg.Wait()` BEFORE closing `jobs`.\n\nThe deadlock: `wg.Wait()` blocks until all worker goroutines finish. But the worker goroutines are blocked reading from `jobs`, which only gets closed AFTER `wg.Wait()` returns. So `wg.Wait()` never returns because the workers are still waiting for more jobs, and the jobs channel is never closed. Deadlock.\n\nThe fix: close `jobs` BEFORE calling `wg.Wait()`. That way, after all jobs are sent, closing the channel allows the workers to drain remaining jobs and then exit when the channel is closed.\n\nLet me rewrite:\n\n```go\npackage pipeline\n\nimport \"sync\"\n\n// FanIn runs fn over every input concurrently and returns the results in the\n// same order as the inputs.\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\n\tout := make([]int, len(inputs))\n\tjobs := make(chan int)\n\tvar wg sync.WaitGroup\n\n\tfor w := 0; w < workers; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor i := range jobs {\n\t\t\t\tout[i] = fn(inputs[i])\n\t\t\t}\n\t\t}()\n\t}\n\n\tfor i := range inputs {\n\t\tjobs <- i\n\t}\n\tclose(jobs)\n\twg.Wait()\n\treturn out\n}\n```\n\nThe key change: move `close(jobs)` before `wg.Wait()`. This ensures that after sending all jobs, we close the channel, allowing workers to finish processing remaining jobs and then exit when the channel is closed.\n\nThe ordering guarantee is preserved because each worker writes to `out[i]` at its specific index, so order is maintained regardless of completion order.\n\nLet me double check the signature is preserved: `func FanIn(inputs []int, workers int, fn func(int) int) []int` - yes.\n\nThis is the minimal fix. Let me return the whole file.\n"
+        }
+      }
+    ],
+    "created": 1787623354,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 659,
+      "prompt_tokens": 271,
+      "total_tokens": 930,
+      "prompt_tokens_details": {
+        "cached_tokens": 50
+      }
+    },
+    "id": "chatcmpl-OhDtRX2ypfkBl2tW8ekzsk3UbEAuKOsu",
+    "timings": {
+      "cache_n": 50,
+      "prompt_n": 221,
+      "prompt_ms": 608.68,
+      "prompt_per_token_ms": 2.75420814479638,
+      "prompt_per_second": 363.08076493395544,
+      "predicted_n": 659,
+      "predicted_ms": 11754.413,
+      "predicted_per_token_ms": 17.86384954407295,
+      "predicted_per_second": 55.97897572596777
+    }
+  }
+}

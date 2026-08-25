@@ -1,0 +1,170 @@
+﻿[
+    {
+        "model":  "iq2m",
+        "context":  32768,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  0
+    },
+    {
+        "model":  "iq2m",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  0
+    },
+    {
+        "model":  "iq2m",
+        "context":  131072,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  0
+    },
+    {
+        "model":  "iq2m",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  0
+    },
+    {
+        "model":  "iq2m",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  4
+    },
+    {
+        "model":  "iq2m",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  0
+    },
+    {
+        "model":  "iq2m",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  4
+    },
+    {
+        "model":  "iq2m",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  8
+    },
+    {
+        "model":  "iq3xxs",
+        "context":  32768,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  8
+    },
+    {
+        "model":  "iq3xxs",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  8
+    },
+    {
+        "model":  "iq3xxs",
+        "context":  131072,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  8
+    },
+    {
+        "model":  "iq3xxs",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  8
+    },
+    {
+        "model":  "iq3xxs",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  12
+    },
+    {
+        "model":  "iq3xxs",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  8
+    },
+    {
+        "model":  "iq3xxs",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  12
+    },
+    {
+        "model":  "iq3xxs",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  16
+    },
+    {
+        "model":  "q3kxl",
+        "context":  32768,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  14
+    },
+    {
+        "model":  "q3kxl",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  14
+    },
+    {
+        "model":  "q3kxl",
+        "context":  131072,
+        "ctk":  "q8_0",
+        "ctv":  "q8_0",
+        "ncpumoe":  14
+    },
+    {
+        "model":  "q3kxl",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  14
+    },
+    {
+        "model":  "q3kxl",
+        "context":  131072,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  18
+    },
+    {
+        "model":  "q3kxl",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  14
+    },
+    {
+        "model":  "q3kxl",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  18
+    },
+    {
+        "model":  "q3kxl",
+        "context":  262144,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  22
+    }
+]

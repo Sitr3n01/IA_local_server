@@ -1,0 +1,43 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "throughput-sweep",
+    "label":  "qwen36-q2kxl-filled-deep-ctx32768-ncpumoe2",
+    "started_utc":  "2026-08-25T09:38:21.1095437Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.6-35B-A3B-GGUF\\Qwen3.6-35B-A3B-UD-Q2_K_XL.gguf",
+                          "model_bytes":  12290628576,
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  32768,
+                          "cache_type_k":  "q8_0",
+                          "cache_type_v":  "q8_0",
+                          "tensor_override":  "",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "repetitions":  2,
+                          "device_vram_mib":  16304,
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  2
+                      },
+    "results":  [
+                    {
+                        "tag":  "qwen36-q2kxl-filled-deep-ctx32768-ncpumoe2-tg128-d30000",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  30000,
+                        "tokens_per_second":  86.96,
+                        "stddev":  0.96,
+                        "relative_stddev_percent":  1.1,
+                        "timed_out":  false,
+                        "wall_s":  36.6,
+                        "peak":  {
+                                     "vram_dedicated_mib":  12010.2,
+                                     "vram_shared_mib":  568.4,
+                                     "process_ws_gib":  11.879,
+                                     "physical_used_gib":  22.965
+                                 },
+                        "failure":  null
+                    }
+                ]
+}

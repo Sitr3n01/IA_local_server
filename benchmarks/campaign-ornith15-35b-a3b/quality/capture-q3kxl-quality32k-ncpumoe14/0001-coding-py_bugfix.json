@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "This function hangs on some inputs and returns the wrong index on others. Fix it. Keep the name and signature.\n\n```python\ndef find_insert_position(sorted_values, target):\n    \"\"\"Return the index where target should be inserted to keep the list sorted.\n\n    If target is already present, return the index of its FIRST occurrence.\n    \"\"\"\n    low = 0\n    high = len(sorted_values)\n    while low < high:\n        mid = (low + high) // 2\n        if sorted_values[mid] < target:\n            low = mid\n        else:\n            high = mid\n    return low\n```"
+      }
+    ],
+    "max_tokens": 8192,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260821,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```python\\ndef find_insert_position(sorted_values, target):\\n    \\\"\\\"\\\"Return the index where target should be inserted to keep the list sorted.\\n\\n    If target is already present, return the index of its FIRST occurrence.\\n    \\\"\\\"\\\"\\n    low = 0\\n    high = len(sorted_values)\\n    while low < high:\\n        mid = (low + high) // 2\\n        if sorted_values[mid] < target:\\n            low = mid + 1\\n        else:\\n            high = mid\\n    return low\\n```\",\"reasoning_content\":\"The user wants me to fix a binary search function that:\\n1. Hangs on some inputs (infinite loop)\\n2. Returns the wrong index on others\\n\\nLet me analyze the current code:\\n\\n```python\\ndef find_insert_position(sorted_values, target):\\n    \\\"\\\"\\\"Return the index where target should be inserted to keep the list sorted.\\n\\n    If target is already present, return the index of its FIRST occurrence.\\n    \\\"\\\"\\\"\\n    low = 0\\n    high = len(sorted_values)\\n    while low < high:\\n        mid = (low + high) // 2\\n        if sorted_values[mid] < target:\\n            low = mid\\n        else:\\n            high = mid\\n    return low\\n```\\n\\nThe bug that causes hanging: When `sorted_values[mid] < target`, it sets `low = mid`. But if `mid == low` (which happens when `high = low + 1`), then `low = mid = low`, so `low` never advances. This causes an infinite loop.\\n\\nThe fix is to use `low = mid + 1` instead of `low = mid`.\\n\\nLet me trace through the logic for finding the first occurrence / insertion position:\\n\\nWe want to find the leftmost index where target can be inserted. The standard binary search for \\\"first index where value >= target\\\" (lower_bound):\\n\\n```python\\nlow = 0\\nhigh = len(sorted_values)\\nwhile low < high:\\n    mid = (low + high) // 2\\n    if sorted_values[mid] < target:\\n        low = mid + 1\\n    else:\\n        high = mid\\nreturn low\\n```\\n\\nLet me verify this works:\\n- If target is not present, `low` will be the insertion point.\\n- If target is present, `low` will be the index of the first occurrence.\\n\\nLet me trace through some examples:\\n\\nExample 1: `sorted_values = [1, 3, 5, 7]`, `target = 5`\\n- low=0, high=4, mid=2, sorted_values[2]=5, 5 < 5? No, so high=2\\n- low=0, high=2, mid=1, sorted_values[1]=3, 3 < 5? Yes, so low=2\\n- low=2, high=2, loop ends\\n- return 2 ✓ (index of 5)\\n\\nExample 2: `sorted_values = [1, 3, 5, 7]`, `target = 4`\\n- low=0, high=4, mid=2, sorted_values[2]=5, 5 < 4? No, so high=2\\n- low=0, high=2, mid=1, sorted_values[1]=3, 3 < 4? Yes, so low=2\\n- low=2, high=2, loop ends\\n- return 2 ✓ (insert at index 2: [1, 3, 4, 5, 7])\\n\\nExample 3: `sorted_values = [1, 3, 5, 7]`, `target = 8`\\n- low=0, high=4, mid=2, sorted_values[2]=5, 5 < 8? Yes, so low=3\\n- low=3, high=4, mid=3, sorted_values[3]=7, 7 < 8? Yes, so low=4\\n- low=4, high=4, loop ends\\n- return 4 ✓ (insert at end)\\n\\nExample 4: `sorted_values = [1, 3, 5, 7]`, `target = 0`\\n- low=0, high=4, mid=2, sorted_values[2]=5, 5 < 0? No, so high=2\\n- low=0, high=2, mid=1, sorted_values[1]=3, 3 < 0? No, so high=1\\n- low=0, high=1, mid=0, sorted_values[0]=1, 1 < 0? No, so high=0\\n- low=0, high=0, loop ends\\n- return 0 ✓ (insert at beginning)\\n\\nExample 5: Duplicate values - `sorted_values = [1, 3, 3, 3, 7]`, `target = 3`\\n- low=0, high=5, mid=2, sorted_values[2]=3, 3 < 3? No, so high=2\\n- low=0, high=2, mid=1, sorted_values[1]=3, 3 < 3? No, so high=1\\n- low=0, high=1, mid=0, sorted_values[0]=1, 1 < 3? Yes, so low=1\\n- low=1, high=1, loop ends\\n- return 1 ✓ (first occurrence of 3 is at index 1)\\n\\nThe fix is correct. The key change is `low = mid + 1` instead of `low = mid`.\\n\\nLet me write the final code.\\n\"}}],\"created\":1787623329,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":1236,\"prompt_tokens\":195,\"total_tokens\":1431,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-Nq19rWGDBebLQeJCTaaq1hALs6WbvcV0\",\"timings\":{\"cache_n\":0,\"prompt_n\":195,\"prompt_ms\":2127.788,\"prompt_per_token_ms\":10.911733333333334,\"prompt_per_second\":91.644468339891,\"predicted_n\":1236,\"predicted_ms\":22176.097,\"predicted_per_token_ms\":17.956353846153846,\"predicted_per_second\":55.69059334471706}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```python\ndef find_insert_position(sorted_values, target):\n    \"\"\"Return the index where target should be inserted to keep the list sorted.\n\n    If target is already present, return the index of its FIRST occurrence.\n    \"\"\"\n    low = 0\n    high = len(sorted_values)\n    while low < high:\n        mid = (low + high) // 2\n        if sorted_values[mid] < target:\n            low = mid + 1\n        else:\n            high = mid\n    return low\n```",
+          "reasoning_content": "The user wants me to fix a binary search function that:\n1. Hangs on some inputs (infinite loop)\n2. Returns the wrong index on others\n\nLet me analyze the current code:\n\n```python\ndef find_insert_position(sorted_values, target):\n    \"\"\"Return the index where target should be inserted to keep the list sorted.\n\n    If target is already present, return the index of its FIRST occurrence.\n    \"\"\"\n    low = 0\n    high = len(sorted_values)\n    while low < high:\n        mid = (low + high) // 2\n        if sorted_values[mid] < target:\n            low = mid\n        else:\n            high = mid\n    return low\n```\n\nThe bug that causes hanging: When `sorted_values[mid] < target`, it sets `low = mid`. But if `mid == low` (which happens when `high = low + 1`), then `low = mid = low`, so `low` never advances. This causes an infinite loop.\n\nThe fix is to use `low = mid + 1` instead of `low = mid`.\n\nLet me trace through the logic for finding the first occurrence / insertion position:\n\nWe want to find the leftmost index where target can be inserted. The standard binary search for \"first index where value >= target\" (lower_bound):\n\n```python\nlow = 0\nhigh = len(sorted_values)\nwhile low < high:\n    mid = (low + high) // 2\n    if sorted_values[mid] < target:\n        low = mid + 1\n    else:\n        high = mid\nreturn low\n```\n\nLet me verify this works:\n- If target is not present, `low` will be the insertion point.\n- If target is present, `low` will be the index of the first occurrence.\n\nLet me trace through some examples:\n\nExample 1: `sorted_values = [1, 3, 5, 7]`, `target = 5`\n- low=0, high=4, mid=2, sorted_values[2]=5, 5 < 5? No, so high=2\n- low=0, high=2, mid=1, sorted_values[1]=3, 3 < 5? Yes, so low=2\n- low=2, high=2, loop ends\n- return 2 ✓ (index of 5)\n\nExample 2: `sorted_values = [1, 3, 5, 7]`, `target = 4`\n- low=0, high=4, mid=2, sorted_values[2]=5, 5 < 4? No, so high=2\n- low=0, high=2, mid=1, sorted_values[1]=3, 3 < 4? Yes, so low=2\n- low=2, high=2, loop ends\n- return 2 ✓ (insert at index 2: [1, 3, 4, 5, 7])\n\nExample 3: `sorted_values = [1, 3, 5, 7]`, `target = 8`\n- low=0, high=4, mid=2, sorted_values[2]=5, 5 < 8? Yes, so low=3\n- low=3, high=4, mid=3, sorted_values[3]=7, 7 < 8? Yes, so low=4\n- low=4, high=4, loop ends\n- return 4 ✓ (insert at end)\n\nExample 4: `sorted_values = [1, 3, 5, 7]`, `target = 0`\n- low=0, high=4, mid=2, sorted_values[2]=5, 5 < 0? No, so high=2\n- low=0, high=2, mid=1, sorted_values[1]=3, 3 < 0? No, so high=1\n- low=0, high=1, mid=0, sorted_values[0]=1, 1 < 0? No, so high=0\n- low=0, high=0, loop ends\n- return 0 ✓ (insert at beginning)\n\nExample 5: Duplicate values - `sorted_values = [1, 3, 3, 3, 7]`, `target = 3`\n- low=0, high=5, mid=2, sorted_values[2]=3, 3 < 3? No, so high=2\n- low=0, high=2, mid=1, sorted_values[1]=3, 3 < 3? No, so high=1\n- low=0, high=1, mid=0, sorted_values[0]=1, 1 < 3? Yes, so low=1\n- low=1, high=1, loop ends\n- return 1 ✓ (first occurrence of 3 is at index 1)\n\nThe fix is correct. The key change is `low = mid + 1` instead of `low = mid`.\n\nLet me write the final code.\n"
+        }
+      }
+    ],
+    "created": 1787623329,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 1236,
+      "prompt_tokens": 195,
+      "total_tokens": 1431,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-Nq19rWGDBebLQeJCTaaq1hALs6WbvcV0",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 195,
+      "prompt_ms": 2127.788,
+      "prompt_per_token_ms": 10.911733333333334,
+      "prompt_per_second": 91.644468339891,
+      "predicted_n": 1236,
+      "predicted_ms": 22176.097,
+      "predicted_per_token_ms": 17.956353846153846,
+      "predicted_per_second": 55.69059334471706
+    }
+  }
+}

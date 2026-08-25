@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "Write a Go file for `package cache` implementing a fixed-capacity LRU cache with:\n  func NewLRU(capacity int) *LRU\n  func (c *LRU) Get(key string) (int, bool)\n  func (c *LRU) Put(key string, value int)\n  func (c *LRU) Len() int\nGet counts as a use. Put on an existing key updates it without growing the cache. When full, Put evicts the least recently used entry. Use only the standard library. Return the whole file."
+      }
+    ],
+    "max_tokens": 8192,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260821,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```go\\npackage cache\\n\\nimport \\\"container/list\\\"\\n\\n// LRU is a fixed-capacity least-recently-used cache.\\ntype LRU struct {\\n\\tcapacity int\\n\\titems    map[string]*list.Element\\n\\tll       *list.List\\n}\\n\\n// entry is the value stored in the linked list element.\\ntype entry struct {\\n\\tkey   string\\n\\tvalue int\\n}\\n\\n// NewLRU creates a new LRU cache with the given capacity.\\nfunc NewLRU(capacity int) *LRU {\\n\\treturn &LRU{\\n\\t\\tcapacity: capacity,\\n\\t\\titems:    make(map[string]*list.Element),\\n\\t\\tll:       list.New(),\\n\\t}\\n}\\n\\n// Get returns the value for key and marks it as most recently used.\\n// If the key is not present, it returns zero and false.\\nfunc (c *LRU) Get(key string) (int, bool) {\\n\\tel, ok := c.items[key]\\n\\tif !ok {\\n\\t\\treturn 0, false\\n\\t}\\n\\t// Move to front (most recently used).\\n\\tc.ll.MoveToFront(el)\\n\\treturn el.Value.(*entry).value, true\\n}\\n\\n// Put inserts or updates key with value.\\n// Updating an existing key does not grow the cache.\\n// When the cache is full, the least recently used entry is evicted.\\nfunc (c *LRU) Put(key string, value int) {\\n\\tif c.capacity <= 0 {\\n\\t\\treturn\\n\\t}\\n\\n\\tif el, ok := c.items[key]; ok {\\n\\t\\t// Update existing entry and mark as most recently used.\\n\\t\\tel.Value.(*entry).value = value\\n\\t\\tc.ll.MoveToFront(el)\\n\\t\\treturn\\n\\t}\\n\\n\\t// Evict least recently used if at capacity.\\n\\tif len(c.items) >= c.capacity {\\n\\t\\toldest := c.ll.Back()\\n\\t\\tif oldest != nil {\\n\\t\\t\\tc.ll.Remove(oldest)\\n\\t\\t\\tdelete(c.items, oldest.Value.(*entry).key)\\n\\t\\t}\\n\\t}\\n\\n\\t// Insert new entry at front (most recently used).\\n\\tel := c.ll.PushFront(&entry{key: key, value: value})\\n\\tc.items[key] = el\\n}\\n\\n// Len returns the number of entries currently stored in the cache.\\nfunc (c *LRU) Len() int {\\n\\treturn len(c.items)\\n}\\n```\",\"reasoning_content\":\"The user wants a Go file for `package cache` implementing a fixed-capacity LRU cache. Let me write this using a doubly linked list and a map for O(1) operations.\\n\\nLet me implement:\\n- `NewLRU(capacity int) *LRU`\\n- `Get(key string) (int, bool)`\\n- `Put(key string, value int)`\\n- `Len() int`\\n\\nGet counts as a use. Put on existing key updates it without growing. When full, Put evicts least recently used.\\n\\nLet me write the file.\\n\"}}],\"created\":1787623377,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":639,\"prompt_tokens\":180,\"total_tokens\":819,\"prompt_tokens_details\":{\"cached_tokens\":50}},\"id\":\"chatcmpl-9mNnH9EjC7NamKPytBlvzVD8f3jJ7U4H\",\"timings\":{\"cache_n\":50,\"prompt_n\":130,\"prompt_ms\":606.921,\"prompt_per_token_ms\":4.668623076923077,\"prompt_per_second\":214.19591676676202,\"predicted_n\":639,\"predicted_ms\":11349.394,\"predicted_per_token_ms\":17.78901880877743,\"predicted_per_second\":56.214455150645044}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```go\npackage cache\n\nimport \"container/list\"\n\n// LRU is a fixed-capacity least-recently-used cache.\ntype LRU struct {\n\tcapacity int\n\titems    map[string]*list.Element\n\tll       *list.List\n}\n\n// entry is the value stored in the linked list element.\ntype entry struct {\n\tkey   string\n\tvalue int\n}\n\n// NewLRU creates a new LRU cache with the given capacity.\nfunc NewLRU(capacity int) *LRU {\n\treturn &LRU{\n\t\tcapacity: capacity,\n\t\titems:    make(map[string]*list.Element),\n\t\tll:       list.New(),\n\t}\n}\n\n// Get returns the value for key and marks it as most recently used.\n// If the key is not present, it returns zero and false.\nfunc (c *LRU) Get(key string) (int, bool) {\n\tel, ok := c.items[key]\n\tif !ok {\n\t\treturn 0, false\n\t}\n\t// Move to front (most recently used).\n\tc.ll.MoveToFront(el)\n\treturn el.Value.(*entry).value, true\n}\n\n// Put inserts or updates key with value.\n// Updating an existing key does not grow the cache.\n// When the cache is full, the least recently used entry is evicted.\nfunc (c *LRU) Put(key string, value int) {\n\tif c.capacity <= 0 {\n\t\treturn\n\t}\n\n\tif el, ok := c.items[key]; ok {\n\t\t// Update existing entry and mark as most recently used.\n\t\tel.Value.(*entry).value = value\n\t\tc.ll.MoveToFront(el)\n\t\treturn\n\t}\n\n\t// Evict least recently used if at capacity.\n\tif len(c.items) >= c.capacity {\n\t\toldest := c.ll.Back()\n\t\tif oldest != nil {\n\t\t\tc.ll.Remove(oldest)\n\t\t\tdelete(c.items, oldest.Value.(*entry).key)\n\t\t}\n\t}\n\n\t// Insert new entry at front (most recently used).\n\tel := c.ll.PushFront(&entry{key: key, value: value})\n\tc.items[key] = el\n}\n\n// Len returns the number of entries currently stored in the cache.\nfunc (c *LRU) Len() int {\n\treturn len(c.items)\n}\n```",
+          "reasoning_content": "The user wants a Go file for `package cache` implementing a fixed-capacity LRU cache. Let me write this using a doubly linked list and a map for O(1) operations.\n\nLet me implement:\n- `NewLRU(capacity int) *LRU`\n- `Get(key string) (int, bool)`\n- `Put(key string, value int)`\n- `Len() int`\n\nGet counts as a use. Put on existing key updates it without growing. When full, Put evicts least recently used.\n\nLet me write the file.\n"
+        }
+      }
+    ],
+    "created": 1787623377,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 639,
+      "prompt_tokens": 180,
+      "total_tokens": 819,
+      "prompt_tokens_details": {
+        "cached_tokens": 50
+      }
+    },
+    "id": "chatcmpl-9mNnH9EjC7NamKPytBlvzVD8f3jJ7U4H",
+    "timings": {
+      "cache_n": 50,
+      "prompt_n": 130,
+      "prompt_ms": 606.921,
+      "prompt_per_token_ms": 4.668623076923077,
+      "prompt_per_second": 214.19591676676202,
+      "predicted_n": 639,
+      "predicted_ms": 11349.394,
+      "predicted_per_token_ms": 17.78901880877743,
+      "predicted_per_second": 56.214455150645044
+    }
+  }
+}

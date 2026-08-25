@@ -1,0 +1,44 @@
+﻿[
+    {
+        "model":  "iq2m",
+        "label":  "iq2m-ctx32768-kvq4-ncpumoe0",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  0,
+        "draft_n_max":  [
+                            0,
+                            2,
+                            3,
+                            5
+                        ]
+    },
+    {
+        "model":  "iq3xxs",
+        "label":  "iq3xxs-ctx32768-kvq4-ncpumoe8",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  8,
+        "draft_n_max":  [
+                            0,
+                            2,
+                            3,
+                            5
+                        ]
+    },
+    {
+        "model":  "q3kxl",
+        "label":  "q3kxl-ctx32768-kvq4-ncpumoe14",
+        "context":  32768,
+        "ctk":  "q4_0",
+        "ctv":  "q4_0",
+        "ncpumoe":  14,
+        "draft_n_max":  [
+                            0,
+                            2,
+                            3,
+                            5
+                        ]
+    }
+]

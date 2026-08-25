@@ -1,0 +1,14 @@
+﻿done=11 skipped=0 elapsed=2,72 h
+completed:
+  iq2m-retention-ctx131072-ncpumoe2
+  iq3xxs-retention-ctx131072-ncpumoe10
+  q3kxl-retention-ctx131072-ncpumoe20
+  q3kxl-retention-ctx262144-ncpumoe18
+  iq2m-quality32k-ncpumoe0
+  iq3xxs-quality32k-ncpumoe8
+  iq2m-full128k-ncpumoe2
+  iq3xxs-full128k-ncpumoe10
+  q3kxl-full128k-ncpumoe20
+  iq3xxs-retention-ctx262144-ncpumoe14
+  iq2m-retention-ctx262144-ncpumoe6
+not run:

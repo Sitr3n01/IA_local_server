@@ -1,0 +1,1062 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "ornith15-mtp-speculation",
+    "started_utc":  "2026-08-25T02:16:51.7565655Z",
+    "runtime":  {
+                    "path":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe",
+                    "sha256":  "C8B1E5A66E1BB45854BED3DAAAB116C37E74526E30143D737C67557BAB822359"
+                },
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-Q3_K_XL.gguf",
+                          "label":  "q3kxl-ctx32768-kvq4-ncpumoe14",
+                          "context_tokens":  32768,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "n_cpu_moe":  14,
+                          "n_predict":  256,
+                          "repetitions":  3,
+                          "seed":  20260824,
+                          "device_vram_mib":  16304
+                      },
+    "cells":  [
+                  {
+                      "label":  "q3kxl-ctx32768-kvq4-ncpumoe14-mtp-off",
+                      "draft_n_max":  0,
+                      "speculation":  false,
+                      "spec_draft_n_cpu_moe":  null,
+                      "command_line":  "\"C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe\" --model \"C:\\IA\\models\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-Q3_K_XL.gguf\" --host 127.0.0.1 --port 19405 --alias ornith15mtp --device ROCm0 --split-mode none --gpu-layers 99 --flash-attn on --ctx-size 32768 --batch-size 2048 --ubatch-size 288 --cache-type-k q4_0 --cache-type-v q4_0 --parallel 1 --cont-batching --no-context-shift --threads 8 --n-cpu-moe 14 --jinja --no-webui",
+                      "load_seconds":  10.6,
+                      "runs":  [
+                                   {
+                                       "prompt_id":  "code",
+                                       "repetition":  1,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  58,
+                                                       "prompt_ms":  1017.082,
+                                                       "prompt_per_token_ms":  17.53589655172414,
+                                                       "prompt_per_second":  57.025883852039456,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4740.678,
+                                                       "predicted_per_token_ms":  18.590894117647057,
+                                                       "predicted_per_second":  53.78977437404523
+                                                   },
+                                       "content_chars":  876,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "code",
+                                       "repetition":  2,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  58,
+                                                       "prompt_ms":  523.313,
+                                                       "prompt_per_token_ms":  9.022637931034483,
+                                                       "prompt_per_second":  110.83233170205976,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4560.684,
+                                                       "predicted_per_token_ms":  17.88503529411765,
+                                                       "predicted_per_second":  55.91266573171919
+                                                   },
+                                       "content_chars":  876,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "code",
+                                       "repetition":  3,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  58,
+                                                       "prompt_ms":  488.984,
+                                                       "prompt_per_token_ms":  8.430758620689655,
+                                                       "prompt_per_second":  118.61328796034226,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4553.316,
+                                                       "predicted_per_token_ms":  17.856141176470587,
+                                                       "predicted_per_second":  56.003141446804925
+                                                   },
+                                       "content_chars":  876,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "prose",
+                                       "repetition":  1,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  35,
+                                                       "prompt_ms":  166.881,
+                                                       "prompt_per_token_ms":  4.768028571428571,
+                                                       "prompt_per_second":  209.73028685110947,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4556.728,
+                                                       "predicted_per_token_ms":  17.86952156862745,
+                                                       "predicted_per_second":  55.961207252221335
+                                                   },
+                                       "content_chars":  1132,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "prose",
+                                       "repetition":  2,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  35,
+                                                       "prompt_ms":  153.53,
+                                                       "prompt_per_token_ms":  4.386571428571429,
+                                                       "prompt_per_second":  227.96847521657006,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4535.236,
+                                                       "predicted_per_token_ms":  17.785239215686275,
+                                                       "predicted_per_second":  56.226401448568495
+                                                   },
+                                       "content_chars":  1132,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "prose",
+                                       "repetition":  3,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  35,
+                                                       "prompt_ms":  154.557,
+                                                       "prompt_per_token_ms":  4.415914285714285,
+                                                       "prompt_per_second":  226.4536708140039,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4524.074,
+                                                       "predicted_per_token_ms":  17.741466666666664,
+                                                       "predicted_per_second":  56.36512576938397
+                                                   },
+                                       "content_chars":  1132,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "json",
+                                       "repetition":  1,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  65,
+                                                       "prompt_ms":  534.574,
+                                                       "prompt_per_token_ms":  8.224215384615384,
+                                                       "prompt_per_second":  121.59214626974003,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4559.011,
+                                                       "predicted_per_token_ms":  17.878474509803922,
+                                                       "predicted_per_second":  55.93318375410807
+                                                   },
+                                       "content_chars":  653,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "json",
+                                       "repetition":  2,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  65,
+                                                       "prompt_ms":  506.285,
+                                                       "prompt_per_token_ms":  7.789000000000001,
+                                                       "prompt_per_second":  128.38618564642442,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4545.691,
+                                                       "predicted_per_token_ms":  17.826239215686275,
+                                                       "predicted_per_second":  56.097081829803216
+                                                   },
+                                       "content_chars":  653,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "json",
+                                       "repetition":  3,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  65,
+                                                       "prompt_ms":  509.012,
+                                                       "prompt_per_token_ms":  7.830953846153847,
+                                                       "prompt_per_second":  127.69836467509607,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4538.182,
+                                                       "predicted_per_token_ms":  17.796792156862743,
+                                                       "predicted_per_second":  56.18990159495586
+                                                   },
+                                       "content_chars":  653,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   }
+                               ],
+                      "draft_acceptance":  [
+
+                                           ],
+                      "draft_acceptance_mean":  null,
+                      "server_eval_tps":  [
+                                              44.23,
+                                              42.75,
+                                              57.03,
+                                              53.79,
+                                              110.83,
+                                              55.91,
+                                              118.61,
+                                              56,
+                                              209.73,
+                                              55.96,
+                                              227.97,
+                                              56.23,
+                                              226.45,
+                                              56.37,
+                                              121.59,
+                                              55.93,
+                                              128.39,
+                                              56.1,
+                                              127.7,
+                                              56.19
+                                          ],
+                      "speculation_log_lines":  [
+
+                                                ],
+                      "failure":  null
+                  },
+                  {
+                      "label":  "q3kxl-ctx32768-kvq4-ncpumoe14-mtp-n2",
+                      "draft_n_max":  2,
+                      "speculation":  true,
+                      "spec_draft_n_cpu_moe":  null,
+                      "command_line":  "\"C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe\" --model \"C:\\IA\\models\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-Q3_K_XL.gguf\" --host 127.0.0.1 --port 19405 --alias ornith15mtp --device ROCm0 --split-mode none --gpu-layers 99 --flash-attn on --ctx-size 32768 --batch-size 2048 --ubatch-size 288 --cache-type-k q4_0 --cache-type-v q4_0 --parallel 1 --cont-batching --no-context-shift --threads 8 --n-cpu-moe 14 --jinja --no-webui --spec-type draft-mtp --spec-draft-n-max 2",
+                      "load_seconds":  6.6,
+                      "runs":  [
+                                   {
+                                       "prompt_id":  "code",
+                                       "repetition":  1,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  58,
+                                                       "prompt_ms":  925.188,
+                                                       "prompt_per_token_ms":  15.95151724137931,
+                                                       "prompt_per_second":  62.689961391630675,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4261.456,
+                                                       "predicted_per_token_ms":  16.711592156862746,
+                                                       "predicted_per_second":  59.83870301605836,
+                                                       "draft_n":  255,
+                                                       "draft_n_accepted":  126
+                                                   },
+                                       "content_chars":  808,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "code",
+                                       "repetition":  2,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  58,
+                                                       "prompt_ms":  514.65,
+                                                       "prompt_per_token_ms":  8.873275862068965,
+                                                       "prompt_per_second":  112.69795006314972,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4084.623,
+                                                       "predicted_per_token_ms":  16.018129411764708,
+                                                       "predicted_per_second":  62.42926213753387,
+                                                       "draft_n":  255,
+                                                       "draft_n_accepted":  126
+                                                   },
+                                       "content_chars":  808,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "code",
+                                       "repetition":  3,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  58,
+                                                       "prompt_ms":  491.143,
+                                                       "prompt_per_token_ms":  8.467982758620689,
+                                                       "prompt_per_second":  118.09187955442712,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4079.91,
+                                                       "predicted_per_token_ms":  15.999647058823529,
+                                                       "predicted_per_second":  62.501378706883244,
+                                                       "draft_n":  255,
+                                                       "draft_n_accepted":  126
+                                                   },
+                                       "content_chars":  808,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "prose",
+                                       "repetition":  1,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  35,
+                                                       "prompt_ms":  170.967,
+                                                       "prompt_per_token_ms":  4.884771428571429,
+                                                       "prompt_per_second":  204.7178695303772,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4915.165,
+                                                       "predicted_per_token_ms":  19.2751568627451,
+                                                       "predicted_per_second":  51.880252239751876,
+                                                       "draft_n":  307,
+                                                       "draft_n_accepted":  100
+                                                   },
+                                       "content_chars":  1112,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "prose",
+                                       "repetition":  2,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  35,
+                                                       "prompt_ms":  162.863,
+                                                       "prompt_per_token_ms":  4.6532285714285715,
+                                                       "prompt_per_second":  214.90455167840454,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4909.637,
+                                                       "predicted_per_token_ms":  19.25347843137255,
+                                                       "predicted_per_second":  51.93866674868224,
+                                                       "draft_n":  307,
+                                                       "draft_n_accepted":  100
+                                                   },
+                                       "content_chars":  1112,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "prose",
+                                       "repetition":  3,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  35,
+                                                       "prompt_ms":  159.889,
+                                                       "prompt_per_token_ms":  4.568257142857143,
+                                                       "prompt_per_second":  218.9018631675725,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4917.003,
+                                                       "predicted_per_token_ms":  19.28236470588235,
+                                                       "predicted_per_second":  51.86085914529644,
+                                                       "draft_n":  307,
+                                                       "draft_n_accepted":  100
+                                                   },
+                                       "content_chars":  1112,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "json",
+                                       "repetition":  1,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  65,
+                                                       "prompt_ms":  536.041,
+                                                       "prompt_per_token_ms":  8.246784615384616,
+                                                       "prompt_per_second":  121.25938127867083,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4064.694,
+                                                       "predicted_per_token_ms":  15.939976470588235,
+                                                       "predicted_per_second":  62.73534981969122,
+                                                       "draft_n":  249,
+                                                       "draft_n_accepted":  130
+                                                   },
+                                       "content_chars":  653,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "json",
+                                       "repetition":  2,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  65,
+                                                       "prompt_ms":  511.184,
+                                                       "prompt_per_token_ms":  7.864369230769231,
+                                                       "prompt_per_second":  127.15577952361575,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4032.635,
+                                                       "predicted_per_token_ms":  15.814254901960785,
+                                                       "predicted_per_second":  63.23408887737174,
+                                                       "draft_n":  249,
+                                                       "draft_n_accepted":  130
+                                                   },
+                                       "content_chars":  653,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "json",
+                                       "repetition":  3,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  65,
+                                                       "prompt_ms":  518.632,
+                                                       "prompt_per_token_ms":  7.978953846153845,
+                                                       "prompt_per_second":  125.32971355411931,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  4043.889,
+                                                       "predicted_per_token_ms":  15.858388235294118,
+                                                       "predicted_per_second":  63.05811064547024,
+                                                       "draft_n":  249,
+                                                       "draft_n_accepted":  130
+                                                   },
+                                       "content_chars":  653,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   }
+                               ],
+                      "draft_acceptance":  [
+                                               {
+                                                   "rate":  0.2,
+                                                   "accepted":  4,
+                                                   "generated":  20,
+                                                   "mean_len":  1.4
+                                               },
+                                               {
+                                                   "rate":  0.49412,
+                                                   "accepted":  126,
+                                                   "generated":  255,
+                                                   "mean_len":  1.98
+                                               },
+                                               {
+                                                   "rate":  0.49412,
+                                                   "accepted":  126,
+                                                   "generated":  255,
+                                                   "mean_len":  1.98
+                                               },
+                                               {
+                                                   "rate":  0.49412,
+                                                   "accepted":  126,
+                                                   "generated":  255,
+                                                   "mean_len":  1.98
+                                               },
+                                               {
+                                                   "rate":  0.32573,
+                                                   "accepted":  100,
+                                                   "generated":  307,
+                                                   "mean_len":  1.65
+                                               },
+                                               {
+                                                   "rate":  0.32573,
+                                                   "accepted":  100,
+                                                   "generated":  307,
+                                                   "mean_len":  1.65
+                                               },
+                                               {
+                                                   "rate":  0.32573,
+                                                   "accepted":  100,
+                                                   "generated":  307,
+                                                   "mean_len":  1.65
+                                               },
+                                               {
+                                                   "rate":  0.52209,
+                                                   "accepted":  130,
+                                                   "generated":  249,
+                                                   "mean_len":  2.04
+                                               },
+                                               {
+                                                   "rate":  0.52209,
+                                                   "accepted":  130,
+                                                   "generated":  249,
+                                                   "mean_len":  2.04
+                                               },
+                                               {
+                                                   "rate":  0.52209,
+                                                   "accepted":  130,
+                                                   "generated":  249,
+                                                   "mean_len":  2.04
+                                               }
+                                           ],
+                      "draft_acceptance_mean":  0.42258,
+                      "server_eval_tps":  [
+                                              44.75,
+                                              33.98,
+                                              62.69,
+                                              59.84,
+                                              112.7,
+                                              62.43,
+                                              118.09,
+                                              62.5,
+                                              204.72,
+                                              51.88,
+                                              214.9,
+                                              51.94,
+                                              218.9,
+                                              51.86,
+                                              121.26,
+                                              62.74,
+                                              127.16,
+                                              63.23,
+                                              125.33,
+                                              63.06
+                                          ],
+                      "speculation_log_lines":  [
+
+                                                ],
+                      "failure":  null
+                  },
+                  {
+                      "label":  "q3kxl-ctx32768-kvq4-ncpumoe14-mtp-n3",
+                      "draft_n_max":  3,
+                      "speculation":  true,
+                      "spec_draft_n_cpu_moe":  null,
+                      "command_line":  "\"C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe\" --model \"C:\\IA\\models\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-Q3_K_XL.gguf\" --host 127.0.0.1 --port 19405 --alias ornith15mtp --device ROCm0 --split-mode none --gpu-layers 99 --flash-attn on --ctx-size 32768 --batch-size 2048 --ubatch-size 288 --cache-type-k q4_0 --cache-type-v q4_0 --parallel 1 --cont-batching --no-context-shift --threads 8 --n-cpu-moe 14 --jinja --no-webui --spec-type draft-mtp --spec-draft-n-max 3",
+                      "load_seconds":  6.6,
+                      "runs":  [
+                                   {
+                                       "prompt_id":  "code",
+                                       "repetition":  1,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  58,
+                                                       "prompt_ms":  1105.278,
+                                                       "prompt_per_token_ms":  19.05651724137931,
+                                                       "prompt_per_second":  52.47548580538109,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  5605.613,
+                                                       "predicted_per_token_ms":  21.982796078431374,
+                                                       "predicted_per_second":  45.49011856508824,
+                                                       "draft_n":  382,
+                                                       "draft_n_accepted":  126
+                                                   },
+                                       "content_chars":  808,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "code",
+                                       "repetition":  2,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  58,
+                                                       "prompt_ms":  639.01,
+                                                       "prompt_per_token_ms":  11.017413793103447,
+                                                       "prompt_per_second":  90.7654027323516,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  5393.847,
+                                                       "predicted_per_token_ms":  21.152341176470586,
+                                                       "predicted_per_second":  47.27609070112667,
+                                                       "draft_n":  382,
+                                                       "draft_n_accepted":  126
+                                                   },
+                                       "content_chars":  808,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "code",
+                                       "repetition":  3,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  58,
+                                                       "prompt_ms":  619.504,
+                                                       "prompt_per_token_ms":  10.681103448275863,
+                                                       "prompt_per_second":  93.62328572535448,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  5403.333,
+                                                       "predicted_per_token_ms":  21.189541176470588,
+                                                       "predicted_per_second":  47.19309359611928,
+                                                       "draft_n":  382,
+                                                       "draft_n_accepted":  126
+                                                   },
+                                       "content_chars":  808,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "prose",
+                                       "repetition":  1,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  35,
+                                                       "prompt_ms":  197.994,
+                                                       "prompt_per_token_ms":  5.6569714285714285,
+                                                       "prompt_per_second":  176.77303352626848,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  6576.048,
+                                                       "predicted_per_token_ms":  25.788423529411762,
+                                                       "predicted_per_second":  38.77708921832687,
+                                                       "draft_n":  460,
+                                                       "draft_n_accepted":  100
+                                                   },
+                                       "content_chars":  1112,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "prose",
+                                       "repetition":  2,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  35,
+                                                       "prompt_ms":  187.965,
+                                                       "prompt_per_token_ms":  5.3704285714285716,
+                                                       "prompt_per_second":  186.20487856781847,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  6461.011,
+                                                       "predicted_per_token_ms":  25.33729803921569,
+                                                       "predicted_per_second":  39.467507484509774,
+                                                       "draft_n":  460,
+                                                       "draft_n_accepted":  100
+                                                   },
+                                       "content_chars":  1112,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "prose",
+                                       "repetition":  3,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  35,
+                                                       "prompt_ms":  185.878,
+                                                       "prompt_per_token_ms":  5.3107999999999995,
+                                                       "prompt_per_second":  188.29554869322888,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  6501.941,
+                                                       "predicted_per_token_ms":  25.497807843137256,
+                                                       "predicted_per_second":  39.21905781673504,
+                                                       "draft_n":  460,
+                                                       "draft_n_accepted":  100
+                                                   },
+                                       "content_chars":  1112,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "json",
+                                       "repetition":  1,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  65,
+                                                       "prompt_ms":  712.093,
+                                                       "prompt_per_token_ms":  10.955276923076923,
+                                                       "prompt_per_second":  91.28021199478158,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  5281.463,
+                                                       "predicted_per_token_ms":  20.711619607843136,
+                                                       "predicted_per_second":  48.282076386789036,
+                                                       "draft_n":  370,
+                                                       "draft_n_accepted":  131
+                                                   },
+                                       "content_chars":  653,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "json",
+                                       "repetition":  2,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  65,
+                                                       "prompt_ms":  647.043,
+                                                       "prompt_per_token_ms":  9.954507692307692,
+                                                       "prompt_per_second":  100.45700208486917,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  5250.318,
+                                                       "predicted_per_token_ms":  20.58948235294118,
+                                                       "predicted_per_second":  48.56848670880507,
+                                                       "draft_n":  370,
+                                                       "draft_n_accepted":  131
+                                                   },
+                                       "content_chars":  653,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "json",
+                                       "repetition":  3,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  65,
+                                                       "prompt_ms":  641.448,
+                                                       "prompt_per_token_ms":  9.86843076923077,
+                                                       "prompt_per_second":  101.3332335590726,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  5263.753,
+                                                       "predicted_per_token_ms":  20.642168627450978,
+                                                       "predicted_per_second":  48.44452237785474,
+                                                       "draft_n":  370,
+                                                       "draft_n_accepted":  131
+                                                   },
+                                       "content_chars":  653,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   }
+                               ],
+                      "draft_acceptance":  [
+                                               {
+                                                   "rate":  0.13793,
+                                                   "accepted":  4,
+                                                   "generated":  29,
+                                                   "mean_len":  1.4
+                                               },
+                                               {
+                                                   "rate":  0.32984,
+                                                   "accepted":  126,
+                                                   "generated":  382,
+                                                   "mean_len":  1.98
+                                               },
+                                               {
+                                                   "rate":  0.32984,
+                                                   "accepted":  126,
+                                                   "generated":  382,
+                                                   "mean_len":  1.98
+                                               },
+                                               {
+                                                   "rate":  0.32984,
+                                                   "accepted":  126,
+                                                   "generated":  382,
+                                                   "mean_len":  1.98
+                                               },
+                                               {
+                                                   "rate":  0.21739,
+                                                   "accepted":  100,
+                                                   "generated":  460,
+                                                   "mean_len":  1.65
+                                               },
+                                               {
+                                                   "rate":  0.21739,
+                                                   "accepted":  100,
+                                                   "generated":  460,
+                                                   "mean_len":  1.65
+                                               },
+                                               {
+                                                   "rate":  0.21739,
+                                                   "accepted":  100,
+                                                   "generated":  460,
+                                                   "mean_len":  1.65
+                                               },
+                                               {
+                                                   "rate":  0.35405,
+                                                   "accepted":  131,
+                                                   "generated":  370,
+                                                   "mean_len":  2.06
+                                               },
+                                               {
+                                                   "rate":  0.35405,
+                                                   "accepted":  131,
+                                                   "generated":  370,
+                                                   "mean_len":  2.06
+                                               },
+                                               {
+                                                   "rate":  0.35405,
+                                                   "accepted":  131,
+                                                   "generated":  370,
+                                                   "mean_len":  2.06
+                                               }
+                                           ],
+                      "draft_acceptance_mean":  0.28418,
+                      "server_eval_tps":  [
+                                              49.29,
+                                              26.61,
+                                              52.48,
+                                              45.49,
+                                              90.77,
+                                              47.28,
+                                              93.62,
+                                              47.19,
+                                              176.77,
+                                              38.78,
+                                              186.2,
+                                              39.47,
+                                              188.3,
+                                              39.22,
+                                              91.28,
+                                              48.28,
+                                              100.46,
+                                              48.57,
+                                              101.33,
+                                              48.44
+                                          ],
+                      "speculation_log_lines":  [
+
+                                                ],
+                      "failure":  null
+                  },
+                  {
+                      "label":  "q3kxl-ctx32768-kvq4-ncpumoe14-mtp-n5",
+                      "draft_n_max":  5,
+                      "speculation":  true,
+                      "spec_draft_n_cpu_moe":  null,
+                      "command_line":  "\"C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe\" --model \"C:\\IA\\models\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-Q3_K_XL.gguf\" --host 127.0.0.1 --port 19405 --alias ornith15mtp --device ROCm0 --split-mode none --gpu-layers 99 --flash-attn on --ctx-size 32768 --batch-size 2048 --ubatch-size 288 --cache-type-k q4_0 --cache-type-v q4_0 --parallel 1 --cont-batching --no-context-shift --threads 8 --n-cpu-moe 14 --jinja --no-webui --spec-type draft-mtp --spec-draft-n-max 5",
+                      "load_seconds":  6.6,
+                      "runs":  [
+                                   {
+                                       "prompt_id":  "code",
+                                       "repetition":  1,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  58,
+                                                       "prompt_ms":  1158.416,
+                                                       "prompt_per_token_ms":  19.972689655172413,
+                                                       "prompt_per_second":  50.0683692214196,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  7616.937,
+                                                       "predicted_per_token_ms":  29.87034117647059,
+                                                       "predicted_per_second":  33.478024040372134,
+                                                       "draft_n":  645,
+                                                       "draft_n_accepted":  125
+                                                   },
+                                       "content_chars":  807,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "code",
+                                       "repetition":  2,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  58,
+                                                       "prompt_ms":  693.175,
+                                                       "prompt_per_token_ms":  11.951293103448275,
+                                                       "prompt_per_second":  83.67295416020487,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  7456.039,
+                                                       "predicted_per_token_ms":  29.23936862745098,
+                                                       "predicted_per_second":  34.20046488490738,
+                                                       "draft_n":  650,
+                                                       "draft_n_accepted":  124
+                                                   },
+                                       "content_chars":  807,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "code",
+                                       "repetition":  3,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  58,
+                                                       "prompt_ms":  613.544,
+                                                       "prompt_per_token_ms":  10.578344827586207,
+                                                       "prompt_per_second":  94.53274744761582,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  7511.312,
+                                                       "predicted_per_token_ms":  29.45612549019608,
+                                                       "predicted_per_second":  33.948796162374826,
+                                                       "draft_n":  650,
+                                                       "draft_n_accepted":  124
+                                                   },
+                                       "content_chars":  807,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "prose",
+                                       "repetition":  1,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  35,
+                                                       "prompt_ms":  187.627,
+                                                       "prompt_per_token_ms":  5.360771428571429,
+                                                       "prompt_per_second":  186.5403166921605,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  9015.072,
+                                                       "predicted_per_token_ms":  35.353223529411764,
+                                                       "predicted_per_second":  28.285963772668705,
+                                                       "draft_n":  781,
+                                                       "draft_n_accepted":  97
+                                                   },
+                                       "content_chars":  1120,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "prose",
+                                       "repetition":  2,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  35,
+                                                       "prompt_ms":  181.565,
+                                                       "prompt_per_token_ms":  5.187571428571428,
+                                                       "prompt_per_second":  192.76843003882905,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  9051.658,
+                                                       "predicted_per_token_ms":  35.49669803921569,
+                                                       "predicted_per_second":  28.17163441217068,
+                                                       "draft_n":  791,
+                                                       "draft_n_accepted":  95
+                                                   },
+                                       "content_chars":  1120,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "prose",
+                                       "repetition":  3,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  35,
+                                                       "prompt_ms":  179.96,
+                                                       "prompt_per_token_ms":  5.141714285714286,
+                                                       "prompt_per_second":  194.48766392531672,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  9102.233,
+                                                       "predicted_per_token_ms":  35.69503137254902,
+                                                       "predicted_per_second":  28.01510354656929,
+                                                       "draft_n":  791,
+                                                       "draft_n_accepted":  95
+                                                   },
+                                       "content_chars":  1120,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "json",
+                                       "repetition":  1,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  65,
+                                                       "prompt_ms":  640.755,
+                                                       "prompt_per_token_ms":  9.85776923076923,
+                                                       "prompt_per_second":  101.4428291624724,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  7204.832,
+                                                       "predicted_per_token_ms":  28.254243137254903,
+                                                       "predicted_per_second":  35.39291408876709,
+                                                       "draft_n":  614,
+                                                       "draft_n_accepted":  131
+                                                   },
+                                       "content_chars":  653,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "json",
+                                       "repetition":  2,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  65,
+                                                       "prompt_ms":  642.641,
+                                                       "prompt_per_token_ms":  9.886784615384615,
+                                                       "prompt_per_second":  101.14511834756887,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  7148.277,
+                                                       "predicted_per_token_ms":  28.032458823529414,
+                                                       "predicted_per_second":  35.672932092586784,
+                                                       "draft_n":  614,
+                                                       "draft_n_accepted":  131
+                                                   },
+                                       "content_chars":  653,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   },
+                                   {
+                                       "prompt_id":  "json",
+                                       "repetition":  3,
+                                       "timings":  {
+                                                       "cache_n":  0,
+                                                       "prompt_n":  65,
+                                                       "prompt_ms":  631.782,
+                                                       "prompt_per_token_ms":  9.719723076923078,
+                                                       "prompt_per_second":  102.88358959261264,
+                                                       "predicted_n":  256,
+                                                       "predicted_ms":  7219.449,
+                                                       "predicted_per_token_ms":  28.31156470588235,
+                                                       "predicted_per_second":  35.321255126256865,
+                                                       "draft_n":  614,
+                                                       "draft_n_accepted":  131
+                                                   },
+                                       "content_chars":  653,
+                                       "stop_type":  "limit",
+                                       "tokens_predicted":  256
+                                   }
+                               ],
+                      "draft_acceptance":  [
+                                               {
+                                                   "rate":  0.09302,
+                                                   "accepted":  4,
+                                                   "generated":  43,
+                                                   "mean_len":  1.4
+                                               },
+                                               {
+                                                   "rate":  0.1938,
+                                                   "accepted":  125,
+                                                   "generated":  645,
+                                                   "mean_len":  1.96
+                                               },
+                                               {
+                                                   "rate":  0.19077,
+                                                   "accepted":  124,
+                                                   "generated":  650,
+                                                   "mean_len":  1.95
+                                               },
+                                               {
+                                                   "rate":  0.19077,
+                                                   "accepted":  124,
+                                                   "generated":  650,
+                                                   "mean_len":  1.95
+                                               },
+                                               {
+                                                   "rate":  0.1242,
+                                                   "accepted":  97,
+                                                   "generated":  781,
+                                                   "mean_len":  1.62
+                                               },
+                                               {
+                                                   "rate":  0.1201,
+                                                   "accepted":  95,
+                                                   "generated":  791,
+                                                   "mean_len":  1.6
+                                               },
+                                               {
+                                                   "rate":  0.1201,
+                                                   "accepted":  95,
+                                                   "generated":  791,
+                                                   "mean_len":  1.6
+                                               },
+                                               {
+                                                   "rate":  0.21336,
+                                                   "accepted":  131,
+                                                   "generated":  614,
+                                                   "mean_len":  2.06
+                                               },
+                                               {
+                                                   "rate":  0.21336,
+                                                   "accepted":  131,
+                                                   "generated":  614,
+                                                   "mean_len":  2.06
+                                               },
+                                               {
+                                                   "rate":  0.21336,
+                                                   "accepted":  131,
+                                                   "generated":  614,
+                                                   "mean_len":  2.06
+                                               }
+                                           ],
+                      "draft_acceptance_mean":  0.16728,
+                      "server_eval_tps":  [
+                                              42.2,
+                                              21.02,
+                                              50.07,
+                                              33.48,
+                                              83.67,
+                                              34.2,
+                                              94.53,
+                                              33.95,
+                                              186.54,
+                                              28.29,
+                                              192.77,
+                                              28.17,
+                                              194.49,
+                                              28.02,
+                                              101.44,
+                                              35.39,
+                                              101.15,
+                                              35.67,
+                                              102.88,
+                                              35.32
+                                          ],
+                      "speculation_log_lines":  [
+
+                                                ],
+                      "failure":  null
+                  }
+              ]
+}

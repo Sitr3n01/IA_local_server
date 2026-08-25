@@ -1,0 +1,61 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "throughput-sweep",
+    "label":  "qwen36-q2kxl-filled-huge-ctx262144-ncpumoe8",
+    "started_utc":  "2026-08-25T10:15:04.8151455Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.6-35B-A3B-GGUF\\Qwen3.6-35B-A3B-UD-Q2_K_XL.gguf",
+                          "model_bytes":  12290628576,
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  262144,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "tensor_override":  "",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "repetitions":  2,
+                          "device_vram_mib":  16304,
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  8
+                      },
+    "results":  [
+                    {
+                        "tag":  "qwen36-q2kxl-filled-huge-ctx262144-ncpumoe8-tg128-d131072",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  131072,
+                        "tokens_per_second":  43.96,
+                        "stddev":  0.33,
+                        "relative_stddev_percent":  0.75,
+                        "timed_out":  false,
+                        "wall_s":  272.2,
+                        "peak":  {
+                                     "vram_dedicated_mib":  11260.7,
+                                     "vram_shared_mib":  663.5,
+                                     "process_ws_gib":  12.346,
+                                     "physical_used_gib":  23.216
+                                 },
+                        "failure":  null
+                    },
+                    {
+                        "tag":  "qwen36-q2kxl-filled-huge-ctx262144-ncpumoe8-tg128-d240000",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  240000,
+                        "tokens_per_second":  32.85,
+                        "stddev":  0.09,
+                        "relative_stddev_percent":  0.27,
+                        "timed_out":  false,
+                        "wall_s":  663.3,
+                        "peak":  {
+                                     "vram_dedicated_mib":  12132.1,
+                                     "vram_shared_mib":  723.3,
+                                     "process_ws_gib":  13.012,
+                                     "physical_used_gib":  23.884
+                                 },
+                        "failure":  null
+                    }
+                ]
+}
