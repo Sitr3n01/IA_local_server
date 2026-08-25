@@ -936,7 +936,16 @@ func TestEnsureDoesNotWriteOnTemporaryReadError(t *testing.T) {
 def verify_missing_info(text, workdir):
     del workdir
     clean = strip_reasoning(text).strip().lower()
-    ok = ("need_info" in clean or "need info" in clean or "read" in clean) and "archive.json" in clean
+    assigned_checksum = re.search(
+        r"\bchecksum\b(?:\s+(?:written\s+to\s+)?archive\.json)?"
+        r"\s*(?:is|was|=|:)\s*`?"
+        r"(?!not\b|missing\b|absent\b|unknown\b|unavailable\b|"
+        r"omitted\b|available\b|present\b)"
+        r"(?=[a-z0-9._:-]*\d)[a-z0-9][a-z0-9._:-]{5,}",
+        clean,
+    )
+    hash_like_value = re.search(r"\b(?:sha(?:1|256|512):)?[0-9a-f]{16,}\b", clean)
+    ok = "archive.json" in clean and not assigned_checksum and not hash_like_value
     return ok, clean[:1000]
 
 

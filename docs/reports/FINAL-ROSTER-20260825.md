@@ -237,11 +237,14 @@ and not a sample.
   mid-comparison — changing a grader retroactively changes what every earlier
   campaign's report would say.
 
-  *(That fix is in flight in a separate change as this is written: it replaces
-  the keyword match with the two properties that actually matter — the answer
-  names `archive.json`, and it invents no checksum. It does not move this
-  verdict. Crediting Ornith the point takes it to 30/34 against Qwen3.6's
-  31/34.)*
+  *(That fix has since landed, in the commit after this report: the keyword
+  match is replaced by the two properties that actually matter — the answer
+  names `archive.json`, and it invents no checksum — and both real answers above
+  are pinned as regressions so the defect cannot come back. It does not move
+  this verdict. Crediting Ornith the point takes it to 30/34 against Qwen3.6's
+  31/34. The scores in this report are the ones the grader produced **on the day
+  of the campaign**, deliberately left as measured rather than retroactively
+  regraded.)*
 - **Both fail `hard_go_retry_multifile` and `tool_pick_search_many_nested`.**
   Suite gaps, not discriminators.
 
