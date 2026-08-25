@@ -513,6 +513,55 @@
       }
     },
     {
+      "id": "ornith15-35b-a3b-fast-128k",
+      "display_name": "Ornith 1.5 35B-A3B Fast 128k - IQ2_M / KV q4_0 - low-latency coding agent",
+      "state": "candidate",
+      "deployments": [
+        "canary"
+      ],
+      "runtime": "amd-rocm-qwen38",
+      "artifact": {
+        "path": "C:\\IA\\models\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-IQ2_M.gguf",
+        "bytes": 12543403680,
+        "sha256": "BE92ED1EB2DA35876E91A5551C527DDCCE450D49EC53ABA92F03E26ADBA7B996"
+      },
+      "source": {
+        "repository": "bartowski/Ornith-1.5-35B-A3B-GGUF",
+        "revision": "64b0493d34a5ca4c1b4ad67bb99b41d74b4f07d6",
+        "filename": "Ornith-1.5-35B-A3B-IQ2_M.gguf",
+        "license": "MIT"
+      },
+      "context_tokens": 131072,
+      "max_output_tokens": 8192,
+      "compact_threshold_tokens": 114688,
+      "cache_type_k": "q4_0",
+      "cache_type_v": "q4_0",
+      "parallel": 1,
+      "batch_size": 2048,
+      "ubatch_size": 288,
+      "gpu_layers": 99,
+      "jinja": true,
+      "chat_template_file": "C:\\IA\\IA_local_server\\config\\chat-templates\\ornith15-35b-a3b.jinja",
+      "reasoning": "auto",
+      "context_shift": false,
+      "threads": 8,
+      "moe_offload": {
+        "cpu_layers": 2
+      },
+      "capabilities": {
+        "responses": false,
+        "chat_completions": true,
+        "streaming": true,
+        "function_calling": false,
+        "structured_output": false
+      },
+      "resources": {
+        "peak_vram_gib": 12.15,
+        "peak_commit_gib": 17.56,
+        "peak_ram_gib": 15.61
+      }
+    },
+    {
       "id": "qwen36-35b-a3b-huge-256k",
       "display_name": "Qwen3.6 35B-A3B Huge 256k - UD-Q2_K_XL / KV q4_0 - long-context MoE",
       "state": "candidate",

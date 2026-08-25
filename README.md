@@ -139,11 +139,24 @@ uma troca de modelo no llama-swap, não uma reconfiguração.
 |---|---|---|---:|---:|---|
 | `qwen38-27b-deep-32k` | Qwen3.8 27B UD-IQ4_XS | `q8_0`/`q8_0` | 32k | 8k | Tarefas difíceis e localizadas: algoritmos, arquitetura, bug complexo em poucos arquivos |
 | **`qwen38-27b-agent-128k`** | Qwen3.8 27B UD-Q3_K_XL | `q4_0`/`q4_0` | 128k | 8k | **Padrão diário.** Codex, Claude Code, OpenCode, Unity, refactors, investigação de repositório |
+| `ornith15-35b-a3b-fast-128k` | Ornith 1.5 35B-A3B IQ2_M | `q4_0`/`q4_0` | 128k | 8k | **Latência.** Termina a mesma suíte 3,5× mais rápido que o Huge porque responde com um terço dos tokens |
 | `qwen36-35b-a3b-huge-256k` | Qwen3.6 35B-A3B UD-Q2_K_XL | `q4_0`/`q4_0` | 256k | 16k | Contexto ativo enorme. MoE esparso: 35B de parâmetros, 3B ativos por token |
 
 Regra de seleção: **confiabilidade de raciocínio → Deep. Trabalho normal de agente
-→ Agent. Contexto ativo enorme → Huge.** Escolha Huge quando o *working set*
-excede o do Agent, não quando a tarefa é apenas difícil.
+→ Agent. Resposta rápida → Fast. Contexto ativo enorme → Huge.** Escolha Huge
+quando o *working set* excede o do Agent, não quando a tarefa é apenas difícil.
+
+⚠️ **O perfil Fast tem um defeito medido: ele descarta o campo `exclude` de
+chamadas de ferramenta.** Em 8 ocorrências de 8, o nome da ferramenta sai certo e
+o JSON é válido — só o argumento some, enquanto o próprio raciocínio do modelo
+nomeia a exclusão. Uma busca que inclui `vendor/**` em silêncio devolve
+resultados errados com cara de certos. Use o Fast quando latência importa mais
+que fidelidade de argumento; para loops de ferramenta que dependem de filtros
+exatos, prefira o Agent.
+
+O Fast é o único perfil que precisa de
+[`chat_template_file`](config/chat-templates/README.md): o GGUF da bartowski traz
+o template upstream, que devolve HTTP 500 para `system → developer → user`.
 
 O perfil Huge deixou de ser um Qwen3.8 denso a 2 bits e passou a ser um MoE em
 2026-08-25. Um modelo que ativa 3B de 35B parâmetros segura a mesma janela com

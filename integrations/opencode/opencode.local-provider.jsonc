@@ -42,6 +42,13 @@
                                                                                                   "output":  8192
                                                                                               }
                                                                                 },
+                                                      "ornith15-35b-a3b-fast-128k":  {
+                                                                                         "name":  "Ornith 1.5 35B-A3B Fast 128k - IQ2_M / KV q4_0 - low-latency coding agent",
+                                                                                         "limit":  {
+                                                                                                       "context":  131072,
+                                                                                                       "output":  8192
+                                                                                                   }
+                                                                                     },
                                                       "qwen36-35b-a3b-huge-256k":  {
                                                                                        "name":  "Qwen3.6 35B-A3B Huge 256k - UD-Q2_K_XL / KV q4_0 - long-context MoE",
                                                                                        "limit":  {

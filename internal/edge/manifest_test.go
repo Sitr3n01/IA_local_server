@@ -55,6 +55,7 @@ func TestRepositoryManifestExposesCanaryModels(t *testing.T) {
 		"gemma4-12b-qat-ud-q4xl-256k",
 		"qwen38-27b-deep-32k",
 		"qwen38-27b-agent-128k",
+		"ornith15-35b-a3b-fast-128k",
 		"qwen36-35b-a3b-huge-256k",
 	}
 	if len(models) != len(want) {

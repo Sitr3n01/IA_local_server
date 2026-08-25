@@ -114,8 +114,8 @@ Python self-tests including the new chat-template contract.
 | Gemma 4 12B QAT | `gemma-4-12B-it-qat-UD-Q4_K_XL.gguf` | 6.72 GB | **kept** | Public model; now also the artifact of the 256k candidate |
 | Qwen3.8 27B | `Qwen3.8-27B-UD-IQ4_XS.gguf` | 14.25 GB | **kept** | `qwen38-27b-deep-32k`; hardest localized tasks |
 | Qwen3.8 27B | `Qwen3.8-27B-UD-Q3_K_XL.gguf` | 13.15 GB | **kept** | `qwen38-27b-agent-128k`; daily agentic default |
-| Qwen3.6 35B-A3B | `Qwen3.6-35B-A3B-UD-Q2_K_XL.gguf` | 12.29 GB | see verdict | MoE finalist |
-| Ornith 1.5 35B-A3B | `Ornith-1.5-35B-A3B-IQ2_M.gguf` | 12.54 GB | see verdict | MoE finalist |
+| Qwen3.6 35B-A3B | `Qwen3.6-35B-A3B-UD-Q2_K_XL.gguf` | 12.29 GB | **kept** | Wins the long-context slot as `qwen36-35b-a3b-huge-256k` |
+| Ornith 1.5 35B-A3B | `Ornith-1.5-35B-A3B-IQ2_M.gguf` | 12.54 GB | **kept** | Loses long-context, takes the latency slot as `ornith15-35b-a3b-fast-128k` |
 
 `Qwen3.6-35B-A3B-UD-Q3_K_XL` was on the delete list but was **not present** — it
 had been removed in an earlier round. Its SHA-256 is still on record in the
@@ -314,16 +314,36 @@ equivalent. It is not equivalent, so speed does not get to decide.
 
 **`C:\IA\models\Qwen3.6-35B-A3B-GGUF\Qwen3.6-35B-A3B-UD-Q2_K_XL.gguf` stays.**
 
-**`C:\IA\models\Ornith-1.5-35B-A3B-GGUF\Ornith-1.5-35B-A3B-IQ2_M.gguf` can now be
-deleted — 12.54 GB.**
+**`C:\IA\models\Ornith-1.5-35B-A3B-GGUF\Ornith-1.5-35B-A3B-IQ2_M.gguf` loses the
+long-context slot.** Whether it is deleted is a separate question, answered
+below.
 
 Worth saying plainly, because it is the one number that argues the other way:
-**Ornith finishes the same work 3.5× faster.** If a fast long-context MoE that is
-weaker on tool-argument fidelity is a role worth having, that is a different
-question from the one asked here, and it would need a decision about the
-`exclude`-dropping defect first. Under the rule set for this round, Qwen3.6
-wins on quality, wins on VRAM, ties on retention and contract, and needs no
-maintained template override to do it.
+**Ornith finishes the same work 3.5× faster.** Under the rule set for this
+round, Qwen3.6 wins on quality, wins on VRAM, ties on retention and contract,
+and needs no maintained template override to do it.
+
+### Ornith is kept, in a different slot
+
+The operator's call after reading the above: keep the artifact for a
+**low-latency coding agent** beside the Qwen3.8 Agent profile. The speed number
+that lost the long-context argument is the whole point of a latency role, so
+that is a coherent use of the same evidence rather than a reversal of it.
+
+`ornith15-35b-a3b-fast-128k` is added as a candidate on canary — 131072, KV
+`q4_0`, `--n-cpu-moe 2`, and the `chat_template_file` without which it cannot be
+given a `developer` message. Smoke-tested from the manifest after the field was
+added: **9/9 graded contract probes, developer instruction honoured**, evidence
+in `contract/contract-ornith15-fast-128k-PROFILE-smoke.json`.
+
+**The `exclude` defect follows it into the new slot and is documented there.**
+It is why this is a latency profile and not a tool-loop profile: the failure is
+a silently-wrong search, not a visibly-wrong one. `README.md` and
+`docs/RUNBOOK.md` both carry the warning next to the row.
+
+That makes the roster five profiles over six artifacts rather than four over
+five, and the disk stays at 58.95 GB rather than 46.41 GB. Deliberate, measured,
+and the operator's decision to make.
 
 The chat-template fix stays in the repository regardless. It is correct, it is
 tested, and it cost nothing to keep; deleting the weights does not make the
@@ -587,10 +607,16 @@ Four jobs, four artifacts, 58.95 GB on disk.
 | 1b | general, larger window | `gemma4-12b-qat-ud-q4xl-256k` | *the same file* | 262144 | candidate, canary |
 | 2 | dense, hardest localized | `qwen38-27b-deep-32k` | Qwen3.8 27B UD-IQ4_XS, 14.25 GB | 32768 | candidate, canary |
 | 3 | dense agentic default | `qwen38-27b-agent-128k` | Qwen3.8 27B UD-Q3_K_XL, 13.15 GB | 131072 | candidate, canary |
-| 4 | long-context MoE | `qwen36-35b-a3b-huge-256k` | Qwen3.6 35B-A3B UD-Q2_K_XL, 12.29 GB | 262144 | candidate, canary |
+| 4 | low-latency MoE | `ornith15-35b-a3b-fast-128k` | Ornith 1.5 35B-A3B IQ2_M, 12.54 GB | 131072 | candidate, canary, **needs `chat_template_file`** |
+| 5 | long-context MoE | `qwen36-35b-a3b-huge-256k` | Qwen3.6 35B-A3B UD-Q2_K_XL, 12.29 GB | 262144 | candidate, canary |
 
-Five GGUFs for five profiles, because the two Gemma profiles share one file —
+Six GGUFs for five artifacts on disk — the two Gemma profiles share one file:
 same path, same bytes, same SHA-256, no duplication.
+
+The original target for this round was four jobs and one MoE. It ends at five
+jobs and two, because the head-to-head produced a number — Ornith finishing the
+same work 3.5× faster — that describes a role the roster did not have. Keeping
+the artifact for that role is using the evidence, not overriding it.
 
 **Retired, not deleted:** `qwen38-27b-huge-256k` and the five
 `qwen38-27b-ws-*` entries keep their ids, their measurements and their
@@ -602,15 +628,19 @@ measurement.
 
 ### What is left to do by hand
 
-**Delete `C:\IA\models\Ornith-1.5-35B-A3B-GGUF\Ornith-1.5-35B-A3B-IQ2_M.gguf`**
-— 12.54 GB. It is not referenced by any manifest entry, so nothing breaks when
-it goes. Left undone deliberately: the losing artifact should not vanish in the
-same breath as the report that judged it, in case a cell needs re-running.
+Nothing on disk. Every artifact that stays is referenced by a profile, and every
+profile that references an artifact can be served.
 
-```bash
-rm "/c/IA/models/Ornith-1.5-35B-A3B-GGUF/Ornith-1.5-35B-A3B-IQ2_M.gguf"
-```
+The one deletion this report originally proposed — Ornith's IQ2_M — is
+**withdrawn**: it lost the long-context slot and took the latency slot instead.
+The volume sits at roughly 129 GB free with 58.95 GB of weights on it.
 
-That takes the volume to roughly 139 GB free and the roster to its final five
-files.
+Two things are recommendations rather than changes, and both are promotion
+decisions:
 
+1. **`reasoning_budget` on the public Gemma profile.** Measured worth 5 of 34
+   cases and 7 empty answers. Written onto the 256k candidate; the public 128k
+   profile is untouched.
+2. **Whether `gemma4-12b-qat-ud-q4xl-256k` takes over as `public_model`,** and
+   whether the 128k profile is then retired. The measurement says it can; the
+   measurement does not get to decide.

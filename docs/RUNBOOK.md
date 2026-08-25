@@ -770,7 +770,24 @@ because the thing each optimises for costs the others something measured.
 |---|---|---|---:|---:|---|
 | `qwen38-27b-deep-32k` | Qwen3.8 27B UD-IQ4_XS | `q8_0`/`q8_0` | 32768 | 8192 | Hardest localized tasks: algorithms, architecture, a complex bug in a few highly relevant files. Reasoning matters more than how much context you can hold. |
 | **`qwen38-27b-agent-128k`** | Qwen3.8 27B UD-Q3_K_XL | `q4_0`/`q4_0` | 131072 | 8192 | **Daily default.** Codex, Claude Code, OpenCode, Unity work, refactors, features, repo investigation, tool loops. |
+| `ornith15-35b-a3b-fast-128k` | Ornith 1.5 35B-A3B IQ2_M | `q4_0`/`q4_0` | 131072 | 8192 | **Latency.** Finishes the same 34-case suite in 218.6 s against Huge's 757.0 s, because it answers with 17,999 output tokens where the others spend 60,659. Same window as Agent, a third of the words. |
 | `qwen36-35b-a3b-huge-256k` | Qwen3.6 35B-A3B UD-Q2_K_XL | `q4_0`/`q4_0` | 262144 | 16384 | Huge active context: very large repositories, long investigations, long histories, many tool calls. Explicitly a **huge-context** profile, not the highest-quality one. |
+
+**The Fast profile has a measured defect, and it is the kind that matters for a
+tool loop: it drops the `exclude` field from tool calls.** Eight occurrences out
+of eight across four runs — the tool name is right, the JSON is well formed, and
+only the argument is missing, while the model's own reasoning names the
+exclusion it then omits. A search that silently includes `vendor/**` returns
+wrong results that look right. Reach for Fast when latency beats
+argument fidelity; when a tool loop depends on exact filters, use Agent.
+
+It is also the only profile that needs
+[`chat_template_file`](../config/chat-templates/README.md). bartowski's GGUF
+ships the upstream Qwen3-Coder template, which returns HTTP 500 on
+`system -> developer -> user`; the corrected template lives beside the verbatim
+upstream copy it was derived from. The profile was smoke-tested from the
+manifest after the field was added and passes all nine graded contract probes
+with the developer instruction honoured.
 
 The Huge slot stopped being a 2-bit dense Qwen3.8 and became a sparse MoE on
 2026-08-25 — 35B parameters, 3B active per token, which holds the same window
