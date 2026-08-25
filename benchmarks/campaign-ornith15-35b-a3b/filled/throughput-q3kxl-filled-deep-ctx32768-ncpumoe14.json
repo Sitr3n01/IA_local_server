@@ -1,0 +1,43 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "throughput-sweep",
+    "label":  "q3kxl-filled-deep-ctx32768-ncpumoe14",
+    "started_utc":  "2026-08-25T02:18:16.3233569Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-Q3_K_XL.gguf",
+                          "model_bytes":  17801889440,
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  32768,
+                          "cache_type_k":  "q8_0",
+                          "cache_type_v":  "q8_0",
+                          "tensor_override":  "",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "repetitions":  2,
+                          "device_vram_mib":  16304,
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  14
+                      },
+    "results":  [
+                    {
+                        "tag":  "q3kxl-filled-deep-ctx32768-ncpumoe14-tg128-d30000",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  30000,
+                        "tokens_per_second":  52.54,
+                        "stddev":  0.34,
+                        "relative_stddev_percent":  0.65,
+                        "timed_out":  false,
+                        "wall_s":  78.5,
+                        "peak":  {
+                                     "vram_dedicated_mib":  14445.7,
+                                     "vram_shared_mib":  471.4,
+                                     "process_ws_gib":  16.282,
+                                     "physical_used_gib":  24.907
+                                 },
+                        "failure":  null
+                    }
+                ]
+}

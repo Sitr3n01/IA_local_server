@@ -321,6 +321,11 @@ JSON_SUITE_DEFAULT_MAX_TOKENS = 4096
 # 91% occupancy of a 262144-token window there is no room for a 32768-token
 # answer, and asking for one would fail the prefill rather than measure it.
 RETENTION_DEFAULT_OUTPUT_RESERVE = 4096
+# Returned instead of a reserve when the prefill has taken so much of the window
+# that not even the floor fits. The probe is then not measurable as configured,
+# and the honest outcome is to say so rather than to send a request the server
+# has to reject: n_ctx is a hard wall, and a rejected request measures nothing.
+INSUFFICIENT_CONTEXT_RESERVE = "INSUFFICIENT_CONTEXT_RESERVE"
 # Slack between the prefill and the answer cap. The tokenizer count and the
 # server's own accounting differ slightly (template wrapping, BOS handling), and
 # a probe that overflows the window measures nothing at all.
@@ -329,7 +334,23 @@ RETENTION_CONTEXT_MARGIN_TOKENS = 1024
 # The floor mirrors $script:V2MinimumAnswerReserve in scripts/v2/Common.ps1.
 # Common.ps1 derives the ceiling before a model is loaded; this module verifies
 # the ceiling it was handed. One deriver, one verifier -- not two algorithms.
+#
+# It is the minimum answer reserve the output contract chose, and deliberately
+# not "the smallest per-suite default": tools, literal_tools, json and retention
+# all ask for 4096. The floor answers a different question -- how many tokens a
+# profile with a bounded reasoning budget must keep back so the answer can still
+# be written -- and 8192 is the number every fixture in this repository fits in.
 MINIMUM_ANSWER_RESERVE = 8192
+
+# The widest per-suite request default below, mirrored by
+# $script:V2WidestFixtureCeiling in scripts/v2/Common.ps1. A profile that
+# declares no n_predict is benchmarked through the per-suite defaults, so a
+# uniform explicit ceiling is classified against the widest of them.
+WIDEST_FIXTURE_CEILING = 8192
+
+# What a run's request ceiling says about the profile it claims to measure.
+# Only `deployment` is a baseline.
+BUDGET_PROFILES = ("deployment", "constrained", "expanded")
 
 
 def minimum_answer_reserve(request_ceiling):
@@ -339,6 +360,55 @@ def minimum_answer_reserve(request_ceiling):
     itself instead of an unreachable target.
     """
     return min(MINIMUM_ANSWER_RESERVE, request_ceiling)
+
+
+def effective_generation_ceiling(request_ceiling, n_predict):
+    """Tokens a run can actually generate: min(request_max_tokens, n_predict).
+
+    llama-server stops at `n_predict` whatever `max_tokens` asks for, so a
+    request ceiling above `n_predict` is arithmetic rather than headroom. Every
+    budget rule is evaluated against this number, not against the request.
+
+    0 on either side means "not stated": a request of 0 leaves each suite its own
+    fixture default, and an `n_predict` of 0 means the profile declares none.
+
+    Mirrors Get-V2EffectiveGenerationCeiling in scripts/v2/Common.ps1.
+    """
+    n_predict = n_predict or 0
+    request_ceiling = request_ceiling or 0
+    if n_predict <= 0:
+        return max(request_ceiling, 0)
+    if request_ceiling <= 0:
+        return n_predict
+    return min(request_ceiling, n_predict)
+
+
+def budget_profile(source, request_ceiling, n_predict):
+    """Name how a run's request ceiling relates to the served contract.
+
+      deployment   the request is the served contract -- no override at all, a
+                   ceiling derived from n_predict, or an explicit ceiling that
+                   restates it exactly. The only one that is a baseline.
+      constrained  an explicit ceiling below the contract; a NO_ANSWER may be the
+                   benchmark cap rather than the model.
+      expanded     an explicit ceiling above the contract; the server still stops
+                   at n_predict, so a pass is not evidence about the profile.
+
+    Classified on the ceiling that was *requested*, not on the effective one: an
+    explicit 32768 against an n_predict of 8192 generates exactly what the
+    deployment generates and is still not the deployment's own contract.
+
+    Mirrors Get-V2BudgetProfile in scripts/v2/Common.ps1.
+    """
+    if source != "explicit":
+        return "deployment"
+    contract = n_predict if (n_predict or 0) > 0 else WIDEST_FIXTURE_CEILING
+    request_ceiling = request_ceiling or 0
+    if request_ceiling == contract:
+        return "deployment"
+    if request_ceiling < contract:
+        return "constrained"
+    return "expanded"
 
 
 def answer_reserve_verdict(request_ceiling, reasoning_budget):
@@ -353,6 +423,57 @@ def answer_reserve_verdict(request_ceiling, reasoning_budget):
     return {"applies": True, "request_ceiling": request_ceiling,
             "reasoning_budget": reasoning_budget, "answer_reserve": reserve,
             "minimum_answer_reserve": minimum, "ok": reserve >= minimum}
+
+
+def resolve_request_budget(request_max_tokens, source, n_predict,
+                           reasoning_budget):
+    """Everything a report has to say about one run's generation budget.
+
+    The Python-side mirror of Resolve-V2QualificationRequestBudget in
+    scripts/v2/Common.ps1: Common.ps1 derives this before a model is loaded, and
+    this verifies the same arithmetic on the values it was handed. Both are
+    pinned against the same table -- RESERVE_TABLE / CEILING_TABLE in
+    test_qualify_budget.py and Assert-Budget in Test-V2ConfigGeneration.ps1.
+    """
+    requested = request_max_tokens if request_max_tokens and request_max_tokens > 0 else 0
+    effective = effective_generation_ceiling(requested, n_predict)
+    # With neither a request nor an n_predict the ceiling is per-suite and not
+    # known here, so the invariant falls back to the minimum answer reserve the
+    # output contract requires -- the floor every fixture must fit in, not the
+    # smallest per-suite default.
+    verdict = answer_reserve_verdict(effective or MINIMUM_ANSWER_RESERVE,
+                                     reasoning_budget)
+    return {
+        "request_max_tokens": requested or None,
+        "n_predict": (n_predict or 0) or None,
+        "effective_generation_ceiling": effective or None,
+        # Retained under its historical name so older readers keep working; it
+        # has always meant the effective ceiling, and now really is one.
+        "effective_max_tokens": effective or None,
+        "source": source,
+        "budget_profile": budget_profile(source, requested, n_predict),
+        "reasoning_budget": (reasoning_budget or 0) or None,
+        "answer_reserve": verdict["answer_reserve"],
+        "minimum_answer_reserve": verdict["minimum_answer_reserve"],
+        "reserve_ok": verdict["ok"],
+    }
+
+
+def resolve_policy_profile(system_policy, strict_tool_policy, tool_schema_policy,
+                           run_budget_profile, constrained_diagnostic):
+    """`baseline` only when the run measured the profile exactly as served.
+
+    Served means both halves of the contract: the system and tool policies the
+    deployment uses, and the generation budget it grants. An explicit ceiling
+    that is not the profile's own contract is a diagnostic cell however ordinary
+    the rest of the run looks.
+    """
+    baseline = (system_policy == "current"
+                and not strict_tool_policy
+                and not tool_schema_policy
+                and run_budget_profile == "deployment"
+                and not constrained_diagnostic)
+    return "baseline" if baseline else "diagnostic"
 
 
 def max_tokens(default, override):
@@ -411,6 +532,7 @@ CANONICAL_FAILURES = (
     "REQUEST_ERROR",            # the HTTP request failed for any other reason
     "TOOL_ARGUMENT_ERROR",      # the right tool with mutated or missing arguments
     "STRUCTURED_OUTPUT_ERROR",  # the reply was not the object the schema asked for
+    INSUFFICIENT_CONTEXT_RESERVE,  # the prefill left no room for even a floor answer
 )
 
 
@@ -886,12 +1008,23 @@ def resolve_retention_reserve(prompt_tokens, n_ctx, requested_ceiling,
     window has left turns a retention measurement into a context-overflow error,
     so the ceiling is clamped to the room that remains and never falls below the
     floor the probes actually need.
+
+    The floor is a floor on what to ask for, never a promise that it fits. When
+    the room left is smaller than the floor, this returns
+    (0, INSUFFICIENT_CONTEXT_RESERVE) and the caller must shrink the corpus or
+    skip the probe -- sending a floor-sized request into a window that cannot
+    hold it produces a rejected request, not a measurement.
     """
-    if not requested_ceiling or requested_ceiling <= floor:
-        return floor, "fixture"
     room = None
     if n_ctx and prompt_tokens:
         room = n_ctx - prompt_tokens - RETENTION_CONTEXT_MARGIN_TOKENS
+    # Checked before the ceiling, because the floor path has to obey the window
+    # too: a 4096-token request is still a request, and a 261000-token prefill in
+    # a 262144-token window has nowhere to put it.
+    if room is not None and room < floor:
+        return 0, INSUFFICIENT_CONTEXT_RESERVE
+    if not requested_ceiling or requested_ceiling <= floor:
+        return floor, "fixture"
     if room is None:
         return floor, "fixture"
     allowed = min(requested_ceiling, room)
@@ -906,8 +1039,35 @@ def run_retention(server, target_tokens, output_reserve=RETENTION_DEFAULT_OUTPUT
     doc, units, doc_tokens = build_corpus_for(server, target_tokens, seed=seed)
     prompt = doc + FC.QUESTION_BLOCK
     total_tokens = server.count_tokens(prompt)
+    n_ctx = server.context_window()
     reserve, reserve_source = resolve_retention_reserve(
-        total_tokens, server.context_window(), request_ceiling, floor=output_reserve)
+        total_tokens, n_ctx, request_ceiling, floor=output_reserve)
+    if reserve_source == INSUFFICIENT_CONTEXT_RESERVE:
+        # No request is sent. The prompt plus even a floor-sized answer exceeds
+        # n_ctx, so the only thing a request could measure is the server
+        # rejecting it. The probe depth has to come down, or the window go up.
+        room = n_ctx - total_tokens - RETENTION_CONTEXT_MARGIN_TOKENS
+        print("  retention: %d filler units, %d prompt tokens, %d of %d window left "
+              "after the %d-token margin -- below the %d-token floor; not sent" %
+              (units, total_tokens, room, n_ctx, RETENTION_CONTEXT_MARGIN_TOKENS,
+               output_reserve), flush=True)
+        return {
+            "target_tokens": target_tokens,
+            "prompt_tokens": total_tokens,
+            "corpus_tokens": doc_tokens,
+            "filler_units": units,
+            "n_ctx": n_ctx,
+            "context_room": room,
+            "output_reserve": 0,
+            "output_reserve_source": reserve_source,
+            "requested": False,
+            "failure": ("not measurable: a %d-token prompt leaves %d tokens of a "
+                        "%d-token window after the %d-token margin, and the probes "
+                        "need %d. Lower the retention depth or raise n_ctx."
+                        % (total_tokens, room, n_ctx,
+                           RETENTION_CONTEXT_MARGIN_TOKENS, output_reserve)),
+            "failure_taxonomy": [INSUFFICIENT_CONTEXT_RESERVE],
+        }
     print("  retention: %d filler units, %d prompt tokens, %d answer tokens (%s); prefilling" %
           (units, total_tokens, reserve, reserve_source), flush=True)
 
@@ -998,9 +1158,15 @@ def main():
                     default="fixture",
                     help="where --max-tokens came from, recorded so a report can "
                          "distinguish a deployment contract from a benchmark cap")
+    ap.add_argument("--n-predict", type=int, default=0,
+                    help="the profile's --n-predict. The server stops there "
+                         "whatever --max-tokens asks for, so the budget rules are "
+                         "checked against min(max_tokens, n_predict); 0 means the "
+                         "profile declares none")
     ap.add_argument("--reasoning-budget", type=int, default=0,
                     help="the server's --reasoning-budget, recorded and checked "
-                         "against the request ceiling; 0 means unbounded/unset")
+                         "against the effective generation ceiling; 0 means "
+                         "unbounded/unset")
     ap.add_argument("--allow-constrained-request-budget", action="store_true",
                     help="permit a request ceiling that cannot hold the answer "
                          "reserve; names a diagnostic cell, never a baseline")
@@ -1013,20 +1179,30 @@ def main():
     ap.add_argument("--tool-schema-policy", action="store_true")
     args = ap.parse_args()
 
-    # The ceiling that actually applies. 0 means "each suite keeps its own
-    # fixture default", and the invariant is then checked against the smallest
-    # default this harness uses, because a reasoning budget that starves the
-    # smallest starves the run whatever the fixture says.
-    effective_ceiling = args.max_tokens if args.max_tokens > 0 else 0
-    budget = answer_reserve_verdict(
-        effective_ceiling or MINIMUM_ANSWER_RESERVE, args.reasoning_budget)
-    if not budget["ok"] and not args.allow_constrained_request_budget:
+    # What the HTTP request asks for. 0 means "each suite keeps its own fixture
+    # default".
+    requested_ceiling = args.max_tokens if args.max_tokens > 0 else 0
+    # What the server will actually emit. A request above the profile's n_predict
+    # is arithmetic, not headroom, and checking the budget against the request
+    # rather than against this is how -MaxTokens 32768 on an 8192-token profile
+    # came to look like a legal 8192-token answer reserve.
+    resolved = resolve_request_budget(requested_ceiling, args.max_tokens_source,
+                                      args.n_predict, args.reasoning_budget)
+    effective_ceiling = resolved["effective_generation_ceiling"] or 0
+    profile_of_budget = resolved["budget_profile"]
+    if not resolved["reserve_ok"] and not args.allow_constrained_request_budget:
+        capped = ""
+        if requested_ceiling and effective_ceiling < requested_ceiling:
+            capped = (" (the request asks for %d, but n_predict %d is all the "
+                      "server will emit)" % (requested_ceiling, args.n_predict))
         print("refusing to measure an impossible generation contract: a "
               "reasoning_budget of %d leaves %d answer tokens under a %d-token "
-              "request ceiling, and at least %d are required. Raise the ceiling, "
-              "lower the budget, or pass --allow-constrained-request-budget."
-              % (args.reasoning_budget, budget["answer_reserve"],
-                 budget["request_ceiling"], budget["minimum_answer_reserve"]),
+              "effective generation ceiling%s, and at least %d are required. "
+              "Raise the ceiling, lower the budget, or pass "
+              "--allow-constrained-request-budget."
+              % (args.reasoning_budget, resolved["answer_reserve"],
+                 effective_ceiling or MINIMUM_ANSWER_RESERVE, capped,
+                 resolved["minimum_answer_reserve"]),
               file=sys.stderr)
         return 3
 
@@ -1051,32 +1227,32 @@ def main():
                          and k != "chat_template"},
         # The generation contract this run measured, kept beside the results so
         # a NO_ANSWER can be read as either "the deployment budget was not
-        # enough" or "the benchmark capped it below the deployment budget".
-        "request_budget": {
-            "effective_max_tokens": effective_ceiling or None,
-            "source": args.max_tokens_source,
+        # enough" or "the benchmark capped it below the deployment budget":
+        # what the request asked for, what the server serves, the smaller of the
+        # two -- the only one any budget rule may use -- and what that says about
+        # which contract this run measured.
+        "request_budget": dict(resolved, **{
             "fixture_defaults": {
                 "coding": CODING_FIXTURE_DEFAULT_MAX_TOKENS,
                 "tools": TOOL_SUITE_DEFAULT_MAX_TOKENS,
                 "json": JSON_SUITE_DEFAULT_MAX_TOKENS,
                 "retention": RETENTION_DEFAULT_OUTPUT_RESERVE,
             },
-            "reasoning_budget": args.reasoning_budget or None,
-            "answer_reserve": budget["answer_reserve"],
-            "minimum_answer_reserve": budget["minimum_answer_reserve"],
-            "reserve_ok": budget["ok"],
             "constrained_diagnostic": bool(args.allow_constrained_request_budget),
-        },
-        # Baseline means "the profile as served". Any non-default policy below
-        # makes this a labelled diagnostic cell whose score is not comparable to
-        # a baseline score.
-        "policy_profile": ("baseline" if (args.system_policy == "current"
-                                          and not args.strict_tool_policy
-                                          and not args.tool_schema_policy)
-                           else "diagnostic"),
+        }),
+        # Baseline means "the profile as served", in both senses: the policies
+        # it is served under AND the generation budget it is served with. Any
+        # non-default policy, any budget_profile other than `deployment`, and any
+        # deliberately constrained cap makes this a labelled diagnostic cell whose
+        # score is not comparable to a baseline score.
+        "policy_profile": resolve_policy_profile(
+            args.system_policy, args.strict_tool_policy, args.tool_schema_policy,
+            profile_of_budget, args.allow_constrained_request_budget),
         "diagnostic_config": {
             "max_tokens_override": args.max_tokens or None,
             "max_tokens_source": args.max_tokens_source,
+            "budget_profile": profile_of_budget,
+            "n_predict": args.n_predict or None,
             "temperature": args.temperature,
             "seed": args.seed,
             "system_policy": args.system_policy,

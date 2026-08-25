@@ -1,0 +1,8 @@
+﻿{
+    "model":  "q3kxl",
+    "label":  "q3kxl-quality32k-ncpumoe14",
+    "context":  32768,
+    "ctk":  "q4_0",
+    "ctv":  "q4_0",
+    "ncpumoe":  14
+}

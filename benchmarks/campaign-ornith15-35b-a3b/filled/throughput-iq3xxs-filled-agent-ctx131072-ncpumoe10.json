@@ -1,0 +1,61 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "throughput-sweep",
+    "label":  "iq3xxs-filled-agent-ctx131072-ncpumoe10",
+    "started_utc":  "2026-08-25T02:35:18.7418371Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-IQ3_XXS.gguf",
+                          "model_bytes":  15340447392,
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  131072,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "tensor_override":  "",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "repetitions":  2,
+                          "device_vram_mib":  16304,
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  10
+                      },
+    "results":  [
+                    {
+                        "tag":  "iq3xxs-filled-agent-ctx131072-ncpumoe10-tg128-d32768",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  32768,
+                        "tokens_per_second":  49.92,
+                        "stddev":  0.05,
+                        "relative_stddev_percent":  0.1,
+                        "timed_out":  false,
+                        "wall_s":  71.3,
+                        "peak":  {
+                                     "vram_dedicated_mib":  14130.7,
+                                     "vram_shared_mib":  473.7,
+                                     "process_ws_gib":  14.241,
+                                     "physical_used_gib":  22.933
+                                 },
+                        "failure":  null
+                    },
+                    {
+                        "tag":  "iq3xxs-filled-agent-ctx131072-ncpumoe10-tg128-d120000",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  120000,
+                        "tokens_per_second":  39.39,
+                        "stddev":  0.19,
+                        "relative_stddev_percent":  0.48,
+                        "timed_out":  false,
+                        "wall_s":  280.1,
+                        "peak":  {
+                                     "vram_dedicated_mib":  14754.7,
+                                     "vram_shared_mib":  521.6,
+                                     "process_ws_gib":  14.78,
+                                     "physical_used_gib":  23.518
+                                 },
+                        "failure":  null
+                    }
+                ]
+}

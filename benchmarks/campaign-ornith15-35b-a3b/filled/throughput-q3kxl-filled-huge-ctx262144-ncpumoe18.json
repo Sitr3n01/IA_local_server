@@ -1,0 +1,61 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "throughput-sweep",
+    "label":  "q3kxl-filled-huge-ctx262144-ncpumoe18",
+    "started_utc":  "2026-08-25T03:04:37.0890489Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Ornith-1.5-35B-A3B-GGUF\\Ornith-1.5-35B-A3B-Q3_K_XL.gguf",
+                          "model_bytes":  17801889440,
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  262144,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "tensor_override":  "",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "repetitions":  2,
+                          "device_vram_mib":  16304,
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  18
+                      },
+    "results":  [
+                    {
+                        "tag":  "q3kxl-filled-huge-ctx262144-ncpumoe18-tg128-d131072",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  131072,
+                        "tokens_per_second":  33.61,
+                        "stddev":  0.09,
+                        "relative_stddev_percent":  0.27,
+                        "timed_out":  false,
+                        "wall_s":  451.6,
+                        "peak":  {
+                                     "vram_dedicated_mib":  13595.2,
+                                     "vram_shared_mib":  529.4,
+                                     "process_ws_gib":  16.753,
+                                     "physical_used_gib":  25.394
+                                 },
+                        "failure":  null
+                    },
+                    {
+                        "tag":  "q3kxl-filled-huge-ctx262144-ncpumoe18-tg128-d240000",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  240000,
+                        "tokens_per_second":  25.9,
+                        "stddev":  0.07,
+                        "relative_stddev_percent":  0.27,
+                        "timed_out":  false,
+                        "wall_s":  1056.7,
+                        "peak":  {
+                                     "vram_dedicated_mib":  15003.8,
+                                     "vram_shared_mib":  673.5,
+                                     "process_ws_gib":  17.332,
+                                     "physical_used_gib":  28.234
+                                 },
+                        "failure":  null
+                    }
+                ]
+}

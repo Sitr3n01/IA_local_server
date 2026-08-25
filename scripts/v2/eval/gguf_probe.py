@@ -239,8 +239,20 @@ def _refine_hybrid_layers(rows):
 def summarize(info, mtp_prefix="blk.64."):
     tensors = info["tensors"]
     census = tensor_census(info)
-    mtp = [t for t in tensors if t["name"].startswith(mtp_prefix)]
     nextn = [t for t in tensors if "nextn" in t["name"]]
+    mtp = [t for t in tensors if t["name"].startswith(mtp_prefix)]
+    # The default prefix is Qwen3.8's 64-block layout. A model that carries its
+    # MTP head on another block would otherwise be reported NO_MTP_HEAD with its
+    # nextn tensors sitting in plain sight of the same census - which is how a
+    # Q4_0 draft head reads as "no head to grade". Fall back to the block the
+    # nextn projections actually live on; an explicit --mtp-prefix that matches
+    # something still wins.
+    if not mtp and nextn:
+        blocks = {t["name"].split(".")[1] for t in nextn
+                  if t["name"].startswith("blk.")}
+        if len(blocks) == 1:
+            mtp_prefix = "blk." + blocks.pop() + "."
+            mtp = [t for t in tensors if t["name"].startswith(mtp_prefix)]
 
     quant_mix = {}
     for t in tensors:
@@ -278,6 +290,7 @@ def summarize(info, mtp_prefix="blk.64."):
         "block_count": meta_suffix(".block_count"),
         "n_ctx_train": meta_suffix(".context_length"),
         "n_tensors": info["n_tensors"],
+        "mtp_prefix": mtp_prefix if mtp else None,
         "mtp_tensor_count": len(mtp),
         "nextn_tensor_count": len(nextn),
         "mtp_tensors": [{"name": t["name"], "type": t["type"], "dims": t["dims"]}

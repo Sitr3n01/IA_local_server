@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "Write a TypeScript module exporting:\n\n  export function groupConsecutive(values: number[]): number[][]\n\nIt splits the array into runs where each element is exactly one greater than the previous one. A repeated value starts a new run. An empty input returns an empty array. Use only erasable type syntax (no enums, no namespaces, no parameter properties). Return the whole module."
+      }
+    ],
+    "max_tokens": 8192,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260821,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```typescript\\nexport function groupConsecutive(values: number[]): number[][] {\\n  const result: number[][] = [];\\n  for (const value of values) {\\n    const lastRun = result[result.length - 1];\\n    if (lastRun && lastRun[lastRun.length - 1] === value - 1) {\\n      lastRun.push(value);\\n    } else {\\n      result.push([value]);\\n    }\\n  }\\n  return result;\\n}\\n```\",\"reasoning_content\":\"The user wants a TypeScript module that exports a function `groupConsecutive`. Let me write it.\\n\\nThe function splits an array into runs where each element is exactly one greater than the previous. A repeated value starts a new run. Empty input returns empty array.\\n\\nLet me write this with only erasable type syntax (no enums, no namespaces, no parameter properties).\\n\\n```typescript\\nexport function groupConsecutive(values: number[]): number[][] {\\n  const result: number[][] = [];\\n  for (const value of values) {\\n    const lastRun = result[result.length - 1];\\n    if (lastRun && lastRun[lastRun.length - 1] === value - 1) {\\n      lastRun.push(value);\\n    } else {\\n      result.push([value]);\\n    }\\n  }\\n  return result;\\n}\\n```\\n\\nThis handles:\\n- Empty input returns empty array (loop doesn't execute)\\n- Repeated value starts a new run (since value - 1 won't equal the repeated value)\\n- Each element exactly one greater than previous continues the run\\n\\nLet me verify with examples:\\n- [1, 2, 3, 4] → [[1, 2, 3, 4]]\\n- [1, 2, 2, 3, 5] → [[1, 2], [2, 3], [5]]\\n- [] → []\\n\\nLooks correct.\\n\"}}],\"created\":1787623386,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":416,\"prompt_tokens\":137,\"total_tokens\":553,\"prompt_tokens_details\":{\"cached_tokens\":50}},\"id\":\"chatcmpl-1KgmZc3JFXL0SerFm0nIb90VavMjBf1J\",\"timings\":{\"cache_n\":50,\"prompt_n\":87,\"prompt_ms\":521.379,\"prompt_per_token_ms\":5.992862068965517,\"prompt_per_second\":166.8651786895905,\"predicted_n\":416,\"predicted_ms\":7423.433,\"predicted_per_token_ms\":17.887790361445784,\"predicted_per_second\":55.90405409464866}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```typescript\nexport function groupConsecutive(values: number[]): number[][] {\n  const result: number[][] = [];\n  for (const value of values) {\n    const lastRun = result[result.length - 1];\n    if (lastRun && lastRun[lastRun.length - 1] === value - 1) {\n      lastRun.push(value);\n    } else {\n      result.push([value]);\n    }\n  }\n  return result;\n}\n```",
+          "reasoning_content": "The user wants a TypeScript module that exports a function `groupConsecutive`. Let me write it.\n\nThe function splits an array into runs where each element is exactly one greater than the previous. A repeated value starts a new run. Empty input returns empty array.\n\nLet me write this with only erasable type syntax (no enums, no namespaces, no parameter properties).\n\n```typescript\nexport function groupConsecutive(values: number[]): number[][] {\n  const result: number[][] = [];\n  for (const value of values) {\n    const lastRun = result[result.length - 1];\n    if (lastRun && lastRun[lastRun.length - 1] === value - 1) {\n      lastRun.push(value);\n    } else {\n      result.push([value]);\n    }\n  }\n  return result;\n}\n```\n\nThis handles:\n- Empty input returns empty array (loop doesn't execute)\n- Repeated value starts a new run (since value - 1 won't equal the repeated value)\n- Each element exactly one greater than previous continues the run\n\nLet me verify with examples:\n- [1, 2, 3, 4] → [[1, 2, 3, 4]]\n- [1, 2, 2, 3, 5] → [[1, 2], [2, 3], [5]]\n- [] → []\n\nLooks correct.\n"
+        }
+      }
+    ],
+    "created": 1787623386,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 416,
+      "prompt_tokens": 137,
+      "total_tokens": 553,
+      "prompt_tokens_details": {
+        "cached_tokens": 50
+      }
+    },
+    "id": "chatcmpl-1KgmZc3JFXL0SerFm0nIb90VavMjBf1J",
+    "timings": {
+      "cache_n": 50,
+      "prompt_n": 87,
+      "prompt_ms": 521.379,
+      "prompt_per_token_ms": 5.992862068965517,
+      "prompt_per_second": 166.8651786895905,
+      "predicted_n": 416,
+      "predicted_ms": 7423.433,
+      "predicted_per_token_ms": 17.887790361445784,
+      "predicted_per_second": 55.90405409464866
+    }
+  }
+}

@@ -1,0 +1,12 @@
+﻿done=9 skipped=0
+completed:
+qwen36-q2kxl-filled-deep-ctx32768-ncpumoe2
+qwen36-q3ks-filled-deep-ctx32768-ncpumoe12
+qwen36-iq4xs-filled-deep-ctx32768-ncpumoe16
+qwen36-q2kxl-filled-agent-ctx131072-ncpumoe4
+qwen36-q3ks-filled-agent-ctx131072-ncpumoe12
+qwen36-iq4xs-filled-agent-ctx131072-ncpumoe18
+qwen36-q2kxl-filled-huge-ctx262144-ncpumoe8
+qwen36-q3ks-filled-huge-ctx262144-ncpumoe16
+qwen36-iq4xs-filled-huge-ctx262144-ncpumoe20
+not run:

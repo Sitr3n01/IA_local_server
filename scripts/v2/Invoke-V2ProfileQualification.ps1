@@ -17,9 +17,22 @@ generation contract -- becomes the ceiling; otherwise each suite keeps its
 fixture default. Leaving that to the fixtures is what made the 2026-08-23
 qwen38-27b-huge-256k run measure a 32768-token profile through an 8192-token
 coding-fixture cap while the server had been told to spend up to 24576 tokens
-thinking. A ceiling that cannot hold the profile's answer reserve is refused
-before the model loads unless -ConstrainedRequestBudgetDiagnostic names the
-constrained measurement as the point of the run.
+thinking.
+
+What the request asks for is not what the server will emit. llama-server stops
+at `n_predict`, so the budget rules are evaluated against
+min(-MaxTokens, -NPredict) -- the effective generation ceiling -- and
+`-NPredict 8192 -MaxTokens 32768 -ReasoningBudget 24576` is refused as the
+physically impossible contract it is, not accepted as a legal 32768-token one.
+A ceiling that cannot hold the profile's answer reserve is refused before the
+model loads unless -ConstrainedRequestBudgetDiagnostic names the constrained
+measurement as the point of the run.
+
+`budget_profile` records which contract the cell measured: `deployment` (the
+profile as served -- the only shape that is a baseline), `constrained` (an
+explicit ceiling below it) or `expanded` (an explicit ceiling above it, which
+the server truncates back to `n_predict` anyway). Anything but `deployment`
+makes `policy_profile` in the qualify.py report read `diagnostic`.
 
 Memory is sampled on a timer in a background job for the whole life of the
 server, not just at load. The distinction matters on this workstation: dedicated
@@ -147,12 +160,21 @@ $budget = Resolve-V2QualificationRequestBudget -ExplicitMaxTokens $MaxTokens -NP
 $commandLine = ConvertTo-V2CommandLine -Arguments (@($serverExe) + @($arguments))
 $moe = if ($CpuMoe) { 'all' } elseif ($NCpuMoe -ge 0) { [string]$NCpuMoe } else { 'default' }
 Write-Host ("[{0}] ctx={1} kv={2}/{3} ub={4} split='{5}' cpu_moe={6}" -f $Label, $ContextTokens, $CacheTypeK, $CacheTypeV, $UBatchSize, $TensorOverride, $moe)
-Write-Host ("  request max_tokens={0} ({1}) reasoning_budget={2} answer_reserve={3}{4}" -f `
+Write-Host ("  request max_tokens={0} ({1}) n_predict={2} effective_ceiling={3} budget_profile={4} reasoning_budget={5} answer_reserve={6}{7}" -f `
     $(if ($budget.max_tokens -gt 0) { $budget.max_tokens } else { 'fixture default' }), `
     $budget.source, `
+    $(if ($null -ne $budget.n_predict) { $budget.n_predict } else { 'unset' }), `
+    $(if ($null -ne $budget.effective_generation_ceiling) { $budget.effective_generation_ceiling } else { 'fixture default' }), `
+    $budget.budget_profile, `
     $(if ($null -ne $budget.reasoning_budget) { $budget.reasoning_budget } else { 'none' }), `
     $(if ($null -ne $budget.answer_reserve) { $budget.answer_reserve } else { 'n/a' }), `
     $(if ($budget.diagnostic) { ' [CONSTRAINED DIAGNOSTIC]' } else { '' }))
+if ($budget.budget_profile -ne 'deployment') {
+    Write-Warning ("This cell requests {0} tokens against a profile contract of {1}: budget_profile={2}, which is a DIAGNOSTIC cell and not a baseline." -f `
+            $budget.max_tokens, `
+        $(if ($null -ne $budget.n_predict) { $budget.n_predict } else { 'the fixture defaults' }), `
+            $budget.budget_profile)
+}
 
 # Built here rather than inside the try block so -DryRun prints the same vector
 # the real run executes. Two constructions would let the reviewed command and
@@ -175,6 +197,10 @@ if ($OnlyToolTasks) { $pyArgs += @('--only-tools', $OnlyToolTasks) }
 # 32768-token contract through an 8192-token coding-fixture default.
 if ($budget.max_tokens -gt 0) { $pyArgs += @('--max-tokens', "$($budget.max_tokens)") }
 $pyArgs += @('--max-tokens-source', $budget.source)
+# The profile's own generation contract, forwarded separately from the request so
+# qualify.py can evaluate min(max_tokens, n_predict) rather than trusting a
+# request the server is about to truncate.
+if ($NPredict -gt 0) { $pyArgs += @('--n-predict', "$NPredict") }
 if ($null -ne $budget.reasoning_budget) { $pyArgs += @('--reasoning-budget', "$($budget.reasoning_budget)") }
 if ($ConstrainedRequestBudgetDiagnostic) { $pyArgs += '--allow-constrained-request-budget' }
 $pyArgs += @('--temperature', "$Temperature", '--seed', "$Seed", '--system-policy', $SystemPolicy)
@@ -193,13 +219,17 @@ if ($DryRun) {
         qualify_command  = ConvertTo-V2CommandLine -Arguments (@('python') + [string[]]$pyArgs)
         qualify_arguments = [string[]]$pyArgs
         request_budget   = [ordered]@{
-            effective_max_tokens   = $(if ($budget.max_tokens -gt 0) { $budget.max_tokens } else { $null })
-            source                 = $budget.source
-            reasoning_budget       = $budget.reasoning_budget
-            answer_reserve         = $budget.answer_reserve
-            minimum_answer_reserve = $budget.minimum_answer_reserve
-            reserve_ok             = $budget.reserve_ok
-            constrained_diagnostic = $budget.diagnostic
+            request_max_tokens           = $budget.request_max_tokens
+            n_predict                    = $budget.n_predict
+            effective_generation_ceiling = $budget.effective_generation_ceiling
+            effective_max_tokens         = $budget.effective_generation_ceiling
+            budget_profile               = $budget.budget_profile
+            source                       = $budget.source
+            reasoning_budget             = $budget.reasoning_budget
+            answer_reserve               = $budget.answer_reserve
+            minimum_answer_reserve       = $budget.minimum_answer_reserve
+            reserve_ok                   = $budget.reserve_ok
+            constrained_diagnostic       = $budget.diagnostic
         }
         suites           = $Suites
         retention_tokens = [int[]]$RetentionTokens
@@ -360,13 +390,17 @@ $report = [ordered]@{
         # contract from one produced under a benchmark cap the deployment would
         # never impose.
         request_budget  = [ordered]@{
-            effective_max_tokens   = $(if ($budget.max_tokens -gt 0) { $budget.max_tokens } else { $null })
-            source                 = $budget.source
-            reasoning_budget       = $budget.reasoning_budget
-            answer_reserve         = $budget.answer_reserve
-            minimum_answer_reserve = $budget.minimum_answer_reserve
-            reserve_ok             = $budget.reserve_ok
-            constrained_diagnostic = $budget.diagnostic
+            request_max_tokens           = $budget.request_max_tokens
+            n_predict                    = $budget.n_predict
+            effective_generation_ceiling = $budget.effective_generation_ceiling
+            effective_max_tokens         = $budget.effective_generation_ceiling
+            budget_profile               = $budget.budget_profile
+            source                       = $budget.source
+            reasoning_budget             = $budget.reasoning_budget
+            answer_reserve               = $budget.answer_reserve
+            minimum_answer_reserve       = $budget.minimum_answer_reserve
+            reserve_ok                   = $budget.reserve_ok
+            constrained_diagnostic       = $budget.diagnostic
         }
         temperature     = $Temperature
         seed            = $Seed

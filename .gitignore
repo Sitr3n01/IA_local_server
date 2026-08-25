@@ -41,3 +41,15 @@ benchmarks/**/*.err
 # not parseable Go at all.
 benchmarks/**/work-*/
 benchmarks/**/node_modules/
+
+# Tokenizer echoes from a retention probe captured with -CaptureDiagnostics.
+# The retention suite prefills one corpus of up to ~240k tokens and the /tokenize
+# capture holds every token id of it, so a single file runs 2-6 MB and one
+# 262144 profile alone produced 55 MB - six times the rest of a whole campaign's
+# evidence put together.
+#
+# Excluded because it is not evidence: the corpus is generated deterministically
+# by scripts/v2/eval/fixture_corpus.py, and every retention JSON already records
+# the corpus SHA-256 that reproduces it. The graded exchanges - capture-*/
+# *-v1_chat_completions.json - stay tracked, and those are what a report cites.
+benchmarks/**/*-tokenize.json

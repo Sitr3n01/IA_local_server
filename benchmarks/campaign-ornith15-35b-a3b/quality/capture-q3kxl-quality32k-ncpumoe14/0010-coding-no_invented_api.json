@@ -1,0 +1,60 @@
+{
+  "path": "/v1/chat/completions",
+  "request_payload": {
+    "model": "local",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a senior engineer working in an existing repository. Return the complete corrected or requested source file in a single fenced code block. Do not add commentary outside the block. Do not invent APIs that are not shown to you."
+      },
+      {
+        "role": "user",
+        "content": "Here is the complete surface of a class you must use. It has no other members.\n\n```csharp\npublic sealed class FrameBuffer\n{\n    public int Count { get; }\n    public byte Get(int index);\n    public void Append(byte value);\n}\n```\n\nWrite `public static class FrameUtil` with `public static int CountZeroes(FrameBuffer buffer)` returning how many bytes equal zero. Use only the members shown above — FrameBuffer has no Clear, no ToArray, no indexer, no enumerator, and no Length. Return only FrameUtil."
+      }
+    ],
+    "max_tokens": 8192,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 20260821,
+    "stream": false,
+    "timings_per_token": false
+  },
+  "raw_wire_response_text": "{\"choices\":[{\"finish_reason\":\"stop\",\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"```csharp\\npublic static class FrameUtil\\n{\\n    public static int CountZeroes(FrameBuffer buffer)\\n    {\\n        int count = 0;\\n        for (int i = 0; i < buffer.Count; i++)\\n        {\\n            if (buffer.Get(i) == 0)\\n            {\\n                count++;\\n            }\\n        }\\n        return count;\\n    }\\n}\\n```\",\"reasoning_content\":\"The user wants me to write a `FrameUtil` class with a `CountZeroes` method that uses only the shown members of `FrameBuffer`:\\n- `int Count { get; }`\\n- `byte Get(int index)`\\n- `void Append(byte value)`\\n\\nI need to iterate from 0 to Count-1, calling Get(index) and counting zeros.\\n\\nLet me write this.\\n\"}}],\"created\":1787623498,\"model\":\"local\",\"system_fingerprint\":\"b10549-b2e5e9b28\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":179,\"prompt_tokens\":179,\"total_tokens\":358,\"prompt_tokens_details\":{\"cached_tokens\":0}},\"id\":\"chatcmpl-MgryEwiMVXB3JdX5MepClNyNfFKqIz80\",\"timings\":{\"cache_n\":0,\"prompt_n\":179,\"prompt_ms\":1065.848,\"prompt_per_token_ms\":5.954458100558659,\"prompt_per_second\":167.94139502067839,\"predicted_n\":179,\"predicted_ms\":3212.551,\"predicted_per_token_ms\":18.048039325842698,\"predicted_per_second\":55.40768068740387}}",
+  "raw_wire_response_json": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "```csharp\npublic static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int count = 0;\n        for (int i = 0; i < buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                count++;\n            }\n        }\n        return count;\n    }\n}\n```",
+          "reasoning_content": "The user wants me to write a `FrameUtil` class with a `CountZeroes` method that uses only the shown members of `FrameBuffer`:\n- `int Count { get; }`\n- `byte Get(int index)`\n- `void Append(byte value)`\n\nI need to iterate from 0 to Count-1, calling Get(index) and counting zeros.\n\nLet me write this.\n"
+        }
+      }
+    ],
+    "created": 1787623498,
+    "model": "local",
+    "system_fingerprint": "b10549-b2e5e9b28",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 179,
+      "prompt_tokens": 179,
+      "total_tokens": 358,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-MgryEwiMVXB3JdX5MepClNyNfFKqIz80",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 179,
+      "prompt_ms": 1065.848,
+      "prompt_per_token_ms": 5.954458100558659,
+      "prompt_per_second": 167.94139502067839,
+      "predicted_n": 179,
+      "predicted_ms": 3212.551,
+      "predicted_per_token_ms": 18.048039325842698,
+      "predicted_per_second": 55.40768068740387
+    }
+  }
+}

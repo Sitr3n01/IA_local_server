@@ -1,0 +1,9 @@
+﻿done=6 skipped=0 elapsed=5,19 h
+completed:
+  qwen36-q2kxl-retention-ctx131072-ncpumoe4
+  qwen36-q3ks-retention-ctx131072-ncpumoe12
+  qwen36-iq4xs-retention-ctx131072-ncpumoe18
+  qwen36-q2kxl-retention-ctx262144-ncpumoe8
+  qwen36-q3ks-retention-ctx262144-ncpumoe16
+  qwen36-iq4xs-retention-ctx262144-ncpumoe20
+not run:

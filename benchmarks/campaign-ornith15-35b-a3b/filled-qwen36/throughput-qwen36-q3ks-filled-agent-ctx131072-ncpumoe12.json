@@ -1,0 +1,61 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "throughput-sweep",
+    "label":  "qwen36-q3ks-filled-agent-ctx131072-ncpumoe12",
+    "started_utc":  "2026-08-25T09:51:26.0455383Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.6-35B-A3B-GGUF\\Qwen3.6-35B-A3B-UD-Q3_K_S.gguf",
+                          "model_bytes":  15359196128,
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  131072,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "tensor_override":  "",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "repetitions":  2,
+                          "device_vram_mib":  16304,
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  12
+                      },
+    "results":  [
+                    {
+                        "tag":  "qwen36-q3ks-filled-agent-ctx131072-ncpumoe12-tg128-d32768",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  32768,
+                        "tokens_per_second":  49.48,
+                        "stddev":  0.57,
+                        "relative_stddev_percent":  1.15,
+                        "timed_out":  false,
+                        "wall_s":  71.9,
+                        "peak":  {
+                                     "vram_dedicated_mib":  11664.5,
+                                     "vram_shared_mib":  571.3,
+                                     "process_ws_gib":  14.509,
+                                     "physical_used_gib":  25.388
+                                 },
+                        "failure":  null
+                    },
+                    {
+                        "tag":  "qwen36-q3ks-filled-agent-ctx131072-ncpumoe12-tg128-d120000",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  120000,
+                        "tokens_per_second":  38.22,
+                        "stddev":  0.11,
+                        "relative_stddev_percent":  0.29,
+                        "timed_out":  false,
+                        "wall_s":  285.9,
+                        "peak":  {
+                                     "vram_dedicated_mib":  12430.6,
+                                     "vram_shared_mib":  658.1,
+                                     "process_ws_gib":  15.064,
+                                     "physical_used_gib":  25.971
+                                 },
+                        "failure":  null
+                    }
+                ]
+}

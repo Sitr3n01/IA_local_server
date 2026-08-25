@@ -317,12 +317,16 @@ default and a fair reading of its contract) but is affected by the *ceiling*; se
 **Fixed.** The request ceiling is now derived rather than defaulted, by one function
 (`Resolve-V2QualificationRequestBudget`) that the manifest validator and the qualification runner
 share: an explicit `-MaxTokens` wins, otherwise a positive `n_predict` becomes the ceiling,
-otherwise the fixtures keep their defaults. A ceiling that cannot hold the profile's answer
-reserve is refused **before the model loads**; measuring one on purpose now requires
-`-ConstrainedRequestBudgetDiagnostic`, and stamps the report as a diagnostic cell. Every
-qualification report now carries `request_budget` — the effective ceiling, where it came from, the
-reasoning budget, and the resulting answer reserve — so this can never again be a thing a reader
-has to reconstruct.
+otherwise the fixtures keep their defaults. *(Sharpened later the same day: the explicit ceiling
+still wins for what the **request** asks, but every budget rule is now evaluated against
+`min(request_max_tokens, n_predict)` — the server stops at `n_predict` regardless. See
+[`HARDENING-post-qualification-20260823.md`](HARDENING-post-qualification-20260823.md) §1.)*
+
+A ceiling that cannot hold the profile's answer reserve is refused **before the model loads**;
+measuring one on purpose now requires `-ConstrainedRequestBudgetDiagnostic`, and stamps the report
+as a diagnostic cell. Every qualification report now carries `request_budget` — the effective
+ceiling, where it came from, the reasoning budget, and the resulting answer reserve — so this can
+never again be a thing a reader has to reconstruct.
 
 Coding fixtures were **not** raised from 8192 to 32768. The request limit is a profile contract,
 not a property of the coding problem; raising the fixture would have changed what every other

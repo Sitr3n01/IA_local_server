@@ -1,0 +1,201 @@
+{
+  "arch": "qwen35moe",
+  "block_count": 41,
+  "n_ctx_train": 262144,
+  "n_tensors": 753,
+  "mtp_prefix": "blk.40.",
+  "mtp_tensor_count": 20,
+  "nextn_tensor_count": 4,
+  "mtp_tensors": [
+    {
+      "name": "blk.40.attn_k.weight",
+      "type": "Q4_0",
+      "dims": [
+        2048,
+        512
+      ]
+    },
+    {
+      "name": "blk.40.attn_k_norm.weight",
+      "type": "F32",
+      "dims": [
+        256
+      ]
+    },
+    {
+      "name": "blk.40.attn_norm.weight",
+      "type": "F32",
+      "dims": [
+        2048
+      ]
+    },
+    {
+      "name": "blk.40.attn_output.weight",
+      "type": "Q4_0",
+      "dims": [
+        4096,
+        2048
+      ]
+    },
+    {
+      "name": "blk.40.attn_q.weight",
+      "type": "Q4_0",
+      "dims": [
+        2048,
+        8192
+      ]
+    },
+    {
+      "name": "blk.40.attn_q_norm.weight",
+      "type": "F32",
+      "dims": [
+        256
+      ]
+    },
+    {
+      "name": "blk.40.attn_v.weight",
+      "type": "Q4_0",
+      "dims": [
+        2048,
+        512
+      ]
+    },
+    {
+      "name": "blk.40.ffn_down_exps.weight",
+      "type": "Q4_0",
+      "dims": [
+        512,
+        2048,
+        256
+      ]
+    },
+    {
+      "name": "blk.40.ffn_down_shexp.weight",
+      "type": "Q4_0",
+      "dims": [
+        512,
+        2048
+      ]
+    },
+    {
+      "name": "blk.40.ffn_gate_exps.weight",
+      "type": "Q4_0",
+      "dims": [
+        2048,
+        512,
+        256
+      ]
+    },
+    {
+      "name": "blk.40.ffn_gate_inp.weight",
+      "type": "F32",
+      "dims": [
+        2048,
+        256
+      ]
+    },
+    {
+      "name": "blk.40.ffn_gate_inp_shexp.weight",
+      "type": "F32",
+      "dims": [
+        2048
+      ]
+    },
+    {
+      "name": "blk.40.ffn_gate_shexp.weight",
+      "type": "Q4_0",
+      "dims": [
+        2048,
+        512
+      ]
+    },
+    {
+      "name": "blk.40.ffn_up_exps.weight",
+      "type": "Q4_0",
+      "dims": [
+        2048,
+        512,
+        256
+      ]
+    },
+    {
+      "name": "blk.40.ffn_up_shexp.weight",
+      "type": "Q4_0",
+      "dims": [
+        2048,
+        512
+      ]
+    },
+    {
+      "name": "blk.40.nextn.eh_proj.weight",
+      "type": "Q4_0",
+      "dims": [
+        4096,
+        2048
+      ]
+    },
+    {
+      "name": "blk.40.nextn.enorm.weight",
+      "type": "F32",
+      "dims": [
+        2048
+      ]
+    },
+    {
+      "name": "blk.40.nextn.hnorm.weight",
+      "type": "F32",
+      "dims": [
+        2048
+      ]
+    },
+    {
+      "name": "blk.40.nextn.shared_head_norm.weight",
+      "type": "F32",
+      "dims": [
+        2048
+      ]
+    },
+    {
+      "name": "blk.40.post_attention_norm.weight",
+      "type": "F32",
+      "dims": [
+        2048
+      ]
+    }
+  ],
+  "mtp_worst_quant": "Q4_0",
+  "mtp_verdict": "MTP_UNQUALIFIED",
+  "quant_mix": {
+    "F32": 370,
+    "IQ4_XS": 263,
+    "Q8_0": 94,
+    "Q4_0": 11,
+    "Q5_K": 10,
+    "Q6_K": 5
+  },
+  "category_tensors": {
+    "attention": 44,
+    "embedding": 1,
+    "expert_ffn": 123,
+    "mtp": 4,
+    "norm": 134,
+    "output": 2,
+    "recurrent": 240,
+    "router": 82,
+    "shared_ffn": 123
+  },
+  "category_span_bytes": {
+    "attention": 203816960,
+    "embedding": 270172160,
+    "expert_ffn": 17565745152,
+    "mtp": 4743168,
+    "norm": 701440,
+    "output": 417185792,
+    "recurrent": 616832512,
+    "router": 86319104,
+    "shared_ffn": 102039552
+  },
+  "bytes_fetched": 12582912,
+  "range_requests": 3,
+  "source": "https://huggingface.co/bartowski/Ornith-1.5-35B-A3B-GGUF/resolve/64b0493d34a5ca4c1b4ad67bb99b41d74b4f07d6/Ornith-1.5-35B-A3B-IQ4_XS.gguf"
+}
