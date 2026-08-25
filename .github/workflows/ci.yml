@@ -190,8 +190,39 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Gitleaks exits non-zero on a finding and prints nothing a reader can act
+      # on: the console output is a count, and `--redact` blanks the one field
+      # that would say where. The 2026-08-25 failure reported twelve leaks with
+      # no rule, no file and no line, which is a gate that fails without
+      # accusing anything.
+      #
+      # So take the report as JSON and print only metadata. .Secret and .Match
+      # never leave the report file -- the whole point is to say WHERE to look,
+      # not to reprint the finding into a public build log. The report is written
+      # under RUNNER_TEMP rather than the workspace so no later step can pick it
+      # up as an artifact.
+      #
+      # The exit code is captured before printing and re-raised afterwards, so
+      # the summary is additive: a scan that finds something still fails.
       - name: Run Gitleaks
         shell: bash
         run: |
           go install github.com/zricethezav/gitleaks/v8@v8.30.1
-          "$(go env GOPATH)/bin/gitleaks" git --no-banner --redact
+
+          set +e
+          "$(go env GOPATH)/bin/gitleaks" git --no-banner --redact --report-format json --report-path "$RUNNER_TEMP/gitleaks.json"
+          status=$?
+          set -e
+
+          # A clean scan still writes the file, holding an empty array, so gate on
+          # the finding count rather than on the file existing.
+          if [ -s "$RUNNER_TEMP/gitleaks.json" ] && [ "$(jq 'length' "$RUNNER_TEMP/gitleaks.json")" -gt 0 ]; then
+            echo '::group::Gitleaks findings (rule / file / line / commit)'
+            jq -r '.[] | [.RuleID, .File, (.StartLine|tostring), .Commit] | @tsv' "$RUNNER_TEMP/gitleaks.json" | sort -u
+            echo '::endgroup::'
+            echo
+            echo 'Counts by rule:'
+            jq -r '.[].RuleID' "$RUNNER_TEMP/gitleaks.json" | sort | uniq -c | sort -rn
+          fi
+
+          exit "$status"
