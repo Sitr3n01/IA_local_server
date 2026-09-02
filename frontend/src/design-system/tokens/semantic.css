@@ -1,0 +1,180 @@
+/*
+ * Semantic tokens - Layer 2 of 3.
+ *
+ * This is the ONLY layer components may reference. Every name below is
+ * fixed by the design brief - no additions, no renames. Component tokens
+ * (Layer 3) are defined next to the one component that needs them, not
+ * here.
+ *
+ * Theme resolution happens entirely in this file, outside every component:
+ *
+ *   1. `:root` carries the complete LIGHT palette - the default, with no
+ *      media query and no data-attribute needed.
+ *   2. `@media (prefers-color-scheme: dark)`, guarded by
+ *      `:root:not([data-theme="light"])`, redefines the tokens for a dark
+ *      OS/browser preference - unless the operator has explicitly forced
+ *      light mode via `data-theme="light"`.
+ *   3. `:root[data-theme="dark"]` redefines the same tokens again, so an
+ *      explicit "dark" choice wins even on a light-preference system (media
+ *      queries can't be overridden by specificity, only by a rule that
+ *      doesn't depend on the media feature at all).
+ *
+ * No component in src/design-system/primitives, src/features, or src/pages
+ * may branch on theme - light/dark is resolved once, here.
+ *
+ * Contrast ratios below are WCAG 2.2 relative-luminance ratios, computed
+ * (not eyeballed) against all four backgrounds in the theme via a bisection
+ * script; "hardest ground" is whichever of canvas/surface/surface-subtle/
+ * surface-raised gives the lowest ratio for that foreground colour.
+ */
+
+:root {
+  /* ---- Backgrounds ---- */
+  --color-bg-canvas: var(--palette-neutral-50); /* #F7F7F9 */
+  --color-bg-surface: var(--palette-neutral-25); /* #FCFCFD */
+  --color-bg-surface-subtle: var(--palette-neutral-100); /* #F0F1F4 - hardest ground */
+  --color-bg-surface-raised: var(--palette-neutral-0); /* #FEFEFE */
+
+  /* ---- Text ---- (all >=4.5:1 against every background above) */
+  --color-text-primary: var(--palette-neutral-900); /* #1C1F27 - 14.59-16.34:1 */
+  --color-text-secondary: var(--palette-neutral-650); /* #495062 - 7.13-7.99:1 */
+  --color-text-muted: var(--palette-neutral-550); /* #636D86 - 4.55-5.13:1 */
+
+  /* ---- Borders ----
+   * border-subtle is intentionally decorative (hairline dividers whose
+   * absence loses no information - WCAG 1.4.11 doesn't apply). default and
+   * strong are load-bearing UI boundaries (input outlines, card edges) and
+   * both clear >=3:1 against every one of the four backgrounds. */
+  --color-border-subtle: var(--palette-neutral-200); /* #E2E4E9 - decorative */
+  --color-border-default: var(--palette-neutral-400); /* #818AA2 - 3.05-3.42:1 */
+  --color-border-strong: var(--palette-neutral-500); /* #626C85 - 4.64-5.20:1 */
+
+  /* ---- Action ---- */
+  --color-action-primary: var(--palette-blue-600); /* #2964E5 - 4.55-5.14:1 as text/icon */
+  --color-action-primary-hover: var(--palette-blue-700); /* #174BBC - darker: more emphasis */
+
+  /* ---- Status ---- (each >=4.5:1 against every background) */
+  --color-status-info: var(--palette-cyan-700); /* #1573AC */
+  --color-status-success: var(--palette-green-700); /* #107D4A */
+  --color-status-warning: var(--palette-amber-800); /* #986206 */
+  --color-status-danger: var(--palette-red-700); /* #D2291A */
+
+  /* ---- Identity accent ---- */
+  --color-accent-ai: var(--palette-violet-600); /* #8149E9 - never substitutes a status colour */
+
+  /* ---- Semantic spacing aliases ---- */
+  --space-xs: var(--space-4);
+  --space-sm: var(--space-8);
+  --space-md: var(--space-16);
+  --space-lg: var(--space-24);
+  --space-xl: var(--space-32);
+  --space-2xl: var(--space-48);
+
+  /* ---- Semantic radius aliases ---- */
+  --radius-control: var(--radius-sm); /* Button, IconButton, TextField */
+  --radius-surface: var(--radius-lg); /* Surface panels */
+  --radius-overlay: var(--radius-md); /* Tooltip bubbles */
+
+  /* ---- Semantic motion aliases ---- */
+  --motion-duration-fast: var(--duration-fast);
+  --motion-duration-standard: var(--duration-standard);
+  --motion-duration-slow: var(--duration-slow);
+  --motion-easing-standard: var(--easing-standard);
+  --motion-easing-decelerate: var(--easing-decelerate);
+  --motion-easing-accelerate: var(--easing-accelerate);
+
+  /* ---- Semantic typography roles ---- */
+  --text-display-size: var(--font-size-32);
+  --text-display-weight: var(--font-weight-semibold);
+  --text-display-line-height: var(--line-height-tight);
+  --text-display-tracking: var(--tracking-normal);
+
+  --text-headline-size: var(--font-size-24);
+  --text-headline-weight: var(--font-weight-semibold);
+  --text-headline-line-height: var(--line-height-snug);
+  --text-headline-tracking: var(--tracking-normal);
+
+  --text-title-size: var(--font-size-18);
+  --text-title-weight: var(--font-weight-semibold);
+  --text-title-line-height: var(--line-height-normal);
+  --text-title-tracking: var(--tracking-normal);
+
+  --text-body-size: var(--font-size-14);
+  --text-body-weight: var(--font-weight-regular);
+  --text-body-line-height: var(--line-height-relaxed);
+  --text-body-tracking: var(--tracking-normal);
+
+  --text-label-size: var(--font-size-12);
+  --text-label-weight: var(--font-weight-medium);
+  --text-label-line-height: var(--line-height-normal);
+  --text-label-tracking: var(--tracking-wide);
+
+  --text-code-size: var(--font-size-13);
+  --text-code-weight: var(--font-weight-regular);
+  --text-code-line-height: var(--line-height-relaxed);
+  --text-code-tracking: var(--tracking-normal);
+
+  /* Tells the UA to render native form controls / scrollbars using a light
+   * palette by default; flipped per-theme below. Improves default contrast
+   * of things this design system doesn't paint itself (native checkboxes,
+   * scrollbars) without branching component code on theme. */
+  color-scheme: light;
+}
+
+/* Dark: OS/browser preference, unless explicitly overridden to light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-bg-canvas: var(--palette-neutral-950); /* #1B1E25 */
+    --color-bg-surface: var(--palette-neutral-850); /* #262A33 */
+    --color-bg-surface-subtle: var(--palette-neutral-900-dark); /* #21242C */
+    --color-bg-surface-raised: var(--palette-neutral-800); /* #313642 - hardest ground */
+
+    --color-text-primary: var(--palette-neutral-50-dark); /* #F3F4F7 - 10.99-15.17:1 */
+    --color-text-secondary: var(--palette-neutral-300); /* #C2C7D2 - 7.14-9.84:1 */
+    --color-text-muted: var(--palette-neutral-450); /* #979FB2 - 4.55-6.29:1 */
+
+    --color-border-subtle: var(--palette-neutral-750); /* #3B414F - decorative */
+    --color-border-default: var(--palette-neutral-600); /* #758099 - 3.05-4.21:1 */
+    --color-border-strong: var(--palette-neutral-500-dark); /* #97A0B3 - 4.60-6.35:1 */
+
+    --color-action-primary: var(--palette-blue-300); /* #7D9EE6 - lighter: dark grounds need a lifted accent */
+    --color-action-primary-hover: var(--palette-blue-200); /* #A2BAED - lighter: more emphasis on dark */
+
+    --color-status-info: var(--palette-cyan-300); /* #4FA7DD */
+    --color-status-success: var(--palette-green-300); /* #22B570 */
+    --color-status-warning: var(--palette-amber-300); /* #D89012 */
+    --color-status-danger: var(--palette-red-300); /* #E6847B */
+
+    --color-accent-ai: var(--palette-violet-300); /* #AE8FEA */
+
+    color-scheme: dark;
+  }
+}
+
+/* Explicit choice always wins, in both directions, over the media query. */
+:root[data-theme='dark'] {
+  --color-bg-canvas: var(--palette-neutral-950);
+  --color-bg-surface: var(--palette-neutral-850);
+  --color-bg-surface-subtle: var(--palette-neutral-900-dark);
+  --color-bg-surface-raised: var(--palette-neutral-800);
+
+  --color-text-primary: var(--palette-neutral-50-dark);
+  --color-text-secondary: var(--palette-neutral-300);
+  --color-text-muted: var(--palette-neutral-450);
+
+  --color-border-subtle: var(--palette-neutral-750);
+  --color-border-default: var(--palette-neutral-600);
+  --color-border-strong: var(--palette-neutral-500-dark);
+
+  --color-action-primary: var(--palette-blue-300);
+  --color-action-primary-hover: var(--palette-blue-200);
+
+  --color-status-info: var(--palette-cyan-300);
+  --color-status-success: var(--palette-green-300);
+  --color-status-warning: var(--palette-amber-300);
+  --color-status-danger: var(--palette-red-300);
+
+  --color-accent-ai: var(--palette-violet-300);
+
+  color-scheme: dark;
+}

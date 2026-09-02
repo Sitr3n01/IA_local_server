@@ -9,6 +9,10 @@ Protect local source code, prompts, model artifacts, credentials, and machine in
 - Harness prompts, responses, tool schemas, file content, and repository metadata.
 - Inference, administration, router, Codex/OpenAI, and other application credentials.
 - Runtime executables, generated launchers, manifests, GGUF weights, logs, and scheduled tasks.
+- The operator console's served bundle (`frontend/dist`) and its host binary.
+  The bundle is script that runs in the operator's session and drives
+  administrative mutations, so its integrity matters the way a runtime
+  executable's does — not the way a static asset's does.
 - GPU/RAM/commit availability and the integrity of model output.
 
 ## Trust boundaries
@@ -27,6 +31,16 @@ Protect local source code, prompts, model artifacts, credentials, and machine in
 8. Candidate artifact tree to production artifact store: a copy-and-verify
    boundary. Production runs only from bytes inside the protected installation
    root; candidates stay user-writable and are never mutated by a deployment.
+9. Console page to console host: untrusted DOM to native process. The rendered
+   page is treated as hostile input, not as part of the host. It reaches the
+   host only through `window.chrome.webview.postMessage`, and the host accepts
+   exactly six operation kinds from a closed allowlist — one read (`status`)
+   and five mutations (`load`, `unload`, `switch`, `drain`, `resume`), matched
+   by whole-string lookup, never by prefix or substring. There is no operation
+   that writes configuration, and no field in the message that carries a value
+   to write. Every mutation stops at a native confirmation the page cannot
+   reach. This boundary is inside boundary 2, not beside it: what crosses it
+   ends up on the same DACL-protected pipe.
 
 Loopback is a routing constraint, not sufficient authentication. Other local processes and users are potential attackers.
 
@@ -34,7 +48,8 @@ Loopback is a routing constraint, not sufficient authentication. Other local pro
 
 | Threat | Required control | Verification |
 |---|---|---|
-| Remote access to inference/control | Bind every service to `127.0.0.1`; inspect listeners | `Test-V2Installation.ps1` |
+| Remote access to inference/control | Bind every service to `127.0.0.1`; assert the three configured ports (router, data, control) are loopback-bound. Note the scope: this checks the ports already in the configuration, so it confirms known ports are local — it is not an inventory and would not discover a fourth listener | `Test-V2Installation.ps1` |
+| A second operator surface opens a port | `cia-console.exe` opens no socket at all. It serves its bundle from disk through a WebView2 virtual-host mapping (`cia-console.invalid`, an RFC 2606 name chosen over `.localhost` because Chromium special-cases the latter with built-in loopback resolution), with host-resource access set to `DENY_CORS`. There is no HTTP server in the package; the page's only channel to the host is `postMessage` | The E2E enumerates every listening socket by owning PID and asserts the console process owns none, and separately asserts nothing listens on the debug port the hostile environment asked for |
 | Prompt/code exfiltration through fallback | No remote upstream; route/model allowlists; outbound firewall during cutover | Unknown-model contract test and firewall audit |
 | Repository config redirects an explicitly local harness session | Codex CLI-precedence endpoint/provider pins; OpenCode process-scoped inline override and explicit model; reject override arguments | Launcher/config static tests and manual canary session |
 | Client bearer forwarded upstream | Edge removes it and injects only router auth | Fake-upstream integration test |
@@ -52,7 +67,10 @@ Loopback is a routing constraint, not sufficient authentication. Other local pro
 | Credential leaks into MCP config or process arguments | Inference credential read directly from Windows Credential Manager only after request validation | Config/command-line inspection and secret scan |
 | Periodic admin-token capture by a loopback impostor | Status is public and sanitized; panel reads admin only on an explicit mutation, and prefers the credential-free pipe | Status-client test asserts no `Authorization` and panel review |
 | Release metadata discloses paths or secrets | The edge reads a strict subset of `release.json` — environment, release id, version, commit, previous release, status — and never its paths or hash inventory | Status sanitization and release-metadata tests |
-| Stored/browser XSS | No web UI in v2 | Listener/route inventory |
+| Script execution in the operator plane | A DOM-rendering surface now exists: `cia-console.exe` renders a React page in a WebView2 control. Four controls bound it. (a) Every mutation requires a native Win32 `MB_OKCANCEL` dialog owned by the host, naming the operation and its target; the page cannot forge, suppress, or answer it. (b) No HTML sink is reachable: `dangerouslySetInnerHTML`, `innerHTML`/`outerHTML` assignment and `insertAdjacentHTML` are lint errors. (c) `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'`, asserted against the built bundle. (d) The console holds no credential — `TokenProvider` is a stub returning an error, so the deprecated HTTP mutation path fails closed | `TestBridge*` approval-refusal tests; `npm run lint`; `npm run verify:prod-bundle`; ADR 0018 |
+| Egress from a compromised console page | `connect-src 'none'` closes fetch/XHR/WebSocket but not window opening. Two host-side guards fail closed on anything that is not `https://cia-console.invalid`: `NavigationStarting` cancels the navigation, `NewWindowRequested` marks it handled and opens nothing | `TestNavigationPolicyPermits` (attacker-shaped hosts and schemes); the E2E asserts both guards refuse a live attempt |
+| Substituted console frontend deceives the operator | `CIA_CONSOLE_FRONTEND_DIR` is read unvalidated, so a serving-user process can point the console at attacker-chosen HTML. This grants no new authority — that account can already open the pipe — but it can render a false operator view and solicit approval for an operation the operator did not initiate. The native dialog names the operation and its target for exactly this reason, and defaults focus to Cancel | Approval-dialog text names `kind` and `model_id`; no automated check covers the override — see residual risks |
+| Debugger attached to the console DOM | A serving-user process setting `WEBVIEW2_*` in the ambient environment would otherwise turn the next launch into a remotely debuggable Chromium. `webviewloader`'s `init()` neutralizes all five variables before any WebView2 environment is created, and the host asserts this at startup and refuses to run if it did not happen | `env_windows_test.go`; the E2E launches with `--remote-debugging-port` set and asserts nothing listens on it |
 | Model/runtime tampering | SHA-256, byte size, provenance revision, restricted ACL | `-VerifyHashes` and second-user ACL test |
 | Supply-chain substitution | Fixed releases/checksums, dependency scanning, SBOM and notices | CI/release checklist |
 | Malicious model metadata/template | Manifest review, explicit Jinja qualification, no unreviewed auto-download | Promotion checklist |
@@ -108,6 +126,22 @@ egress rules.
   Second, a process already running as the serving user can open the pipe — that
   account can already read Windows Credential Manager, so this is unchanged and
   not fixable at this layer.
+- The operator console runs on the machine's Evergreen WebView2 runtime, which
+  auto-updates outside the release transaction and is not hashed or inventoried.
+  ADR 0018 control 3 requires the pinned Fixed Version distribution instead;
+  that control is decided but **not implemented**, and this is the gap it
+  leaves. It is the one component executing operator-plane code that the
+  "production runs only from bytes we hashed" rule does not currently cover.
+- `CIA_CONSOLE_FRONTEND_DIR` selects the folder the console serves and is not
+  validated. A process running as the serving user can substitute the operator
+  console's content. It gains no authority by doing so — that account can open
+  the administrative pipe directly — but it can misrepresent provider state and
+  solicit approval for an operation the operator did not intend. The native
+  confirmation dialog names the operation and its target, and defaults to
+  Cancel, so the deception has to survive an operator reading it.
+- The console's frontend and host source are not tracked in git (see
+  `docs/reports/`), so nothing about them is covered by the branch protections,
+  review, or secret-scanning that apply to the rest of this repository.
 - Model output can be incorrect or adversarial even when artifact integrity is valid.
 - The AMD baseline is reproducible only by recorded binary hash, not by its misleading directory label.
 - Windows interactive-logon tasks provide availability only while the user

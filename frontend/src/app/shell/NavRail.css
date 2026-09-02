@@ -1,0 +1,137 @@
+.nav-rail {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: var(--app-shell-rail-width-expanded);
+  /* No `height: 100%` here. It looks like the obvious way to make the rail
+   * full-height and it does the opposite: a non-`auto` cross size makes the
+   * flex container skip `align-items: stretch` for this item, and the
+   * percentage then resolves against `.app-shell`'s own `auto` height, so
+   * the rail collapses to the height of its four nav buttons and the canvas
+   * shows through beneath it. Letting the cross size stay `auto` lets
+   * stretch do the job properly. */
+  background-color: var(--color-bg-surface);
+  border-right: 1px solid var(--color-border-subtle);
+  padding-block: var(--space-md);
+  overflow-x: hidden;
+  transition: width var(--motion-duration-standard) var(--motion-easing-standard);
+}
+
+.nav-rail--collapsed {
+  width: var(--app-shell-rail-width-collapsed);
+}
+
+.nav-rail__brand {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  color: var(--color-text-primary);
+  padding-inline: var(--space-md);
+  padding-block-end: var(--space-md);
+  white-space: nowrap;
+  /* Safety net: if the wordmark ever outgrows the rail again, degrade to an
+   * ellipsis rather than a hard slice mid-word. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-rail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  flex: 1;
+}
+
+.nav-rail__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 2.5rem;
+  padding-inline: var(--space-md);
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.nav-rail__item:hover {
+  background-color: var(--color-bg-surface-subtle);
+  color: var(--color-text-primary);
+}
+
+.nav-rail__item:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 2px;
+}
+
+/* Selected destination.
+ *
+ * Two things this rule has to get right, both found by measuring the rendered
+ * pixels rather than reading the stylesheet.
+ *
+ * 1. `:hover` must not erase it. `.nav-rail__item:hover` is (0,2,0) and a bare
+ *    `.nav-rail__item--active` is (0,1,0), so hovering the current destination
+ *    used to repaint it in the plain hover treatment - the one item whose
+ *    state matters lost its state exactly when the pointer was on it. Listing
+ *    the `:hover` form here ties the specificity and wins on order.
+ *
+ * 2. The state must not be carried by colour alone. The 14% tint measures
+ *    1.25:1 against the rail, which is doing almost nothing, and the rest of
+ *    the signal was hue: accent-blue text against grey text, 1.55:1 apart in
+ *    luminance. The inset bar adds a *shape* channel - present or absent,
+ *    legible without colour vision - and at full accent it is 5.35:1 against
+ *    the rail. The tint stays as a supporting cue, not the whole message. */
+.nav-rail__item--active,
+.nav-rail__item--active:hover {
+  background-color: color-mix(in srgb, var(--color-action-primary) 14%, var(--color-bg-surface));
+  color: var(--color-action-primary);
+  box-shadow: inset 3px 0 0 0 var(--color-action-primary);
+}
+
+.nav-rail__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+}
+
+.nav-rail__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* When collapsed, the label switches to `.ds-visually-hidden` (see
+ * src/design-system/styles/reset.css) instead of `display: none` - the
+ * button's accessible name must keep coming from this text either way. */
+
+.nav-rail__footer {
+  display: flex;
+  justify-content: center;
+  margin-block-start: var(--space-sm);
+  padding-block-start: var(--space-sm);
+  /* Anchors the control to a defined region of the rail's structure - a
+   * hairline boundary shared with `.model-card__details`'s section-divider
+   * pattern - rather than leaving it sitting in undifferentiated
+   * whitespace below the nav list. */
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.nav-rail__collapse-icon {
+  transition: transform var(--motion-duration-standard) var(--motion-easing-standard);
+}
+
+.nav-rail__collapse-icon--collapsed {
+  transform: rotate(180deg);
+}

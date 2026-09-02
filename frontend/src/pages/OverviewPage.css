@@ -1,0 +1,165 @@
+.overview-page {
+  /* Readable content width per the Sprint 3 brief (~800-960px) - centred
+   * within whatever the shell's content column gives it, never stretched
+   * edge-to-edge just because there is room. */
+  max-width: 60rem; /* 960px */
+  /* `width: 100%` is load-bearing next to `margin-inline: auto`. Auto
+   * cross-axis margins suppress a flex item's stretch, so without it this
+   * column shrink-wraps its content and never reaches the max-width above -
+   * the Overview measured 413px of an available 992px, with the remainder
+   * left as dead space. The auto margins still do the centring once the
+   * width is definite. */
+  width: 100%;
+  min-width: 0;
+  margin-inline: auto;
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  /* Fills `.app-shell__content`'s full available height so a sparse state's
+   * `.app-shell__sparse-state` wrapper (see AppShell.css) has a real region
+   * to centre within, rather than only being as tall as its own content. */
+  flex: 1;
+  min-height: 0;
+}
+
+.overview-page__title {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-headline-size);
+  font-weight: var(--text-headline-weight);
+  line-height: var(--text-headline-line-height);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.overview-page__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* The populated summary only. Readiness is the primary fact and keeps the full
+ * width; the three supporting facts are stat tiles - one short label and one
+ * short value each - and stacking them full-width produced four near-empty
+ * bars down a 960px column with the lower 40% of the window unused. Side by
+ * side they can be compared at a glance and the screen reads as a summary
+ * rather than a list.
+ *
+ * `auto-fit` + `minmax` rather than a fixed column count: the tiles reflow to
+ * two, then one, as the window narrows, with no extra breakpoint to maintain.
+ * The loading and error states keep the base class only - they are centred by
+ * `.app-shell__sparse-state` and must not be gridded. */
+.overview-page__body--summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  align-content: start;
+}
+
+.overview-page__body--summary .overview-readiness {
+  grid-column: 1 / -1;
+}
+
+.overview-section {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.overview-section__title {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.overview-section__value {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.overview-section__value--mono {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.overview-section__hint {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.overview-section--maintenance-abnormal {
+  border-color: var(--color-status-warning);
+}
+
+/* ---- Readiness (the most important thing on this screen) ---- */
+
+.overview-readiness__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.overview-readiness__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+}
+
+.overview-readiness__icon--ready {
+  color: var(--color-status-success);
+}
+
+.overview-readiness__icon--not-ready {
+  color: var(--color-status-danger);
+}
+
+.overview-readiness__title {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.overview-readiness--not-ready {
+  border-color: var(--color-status-danger);
+}
+
+.overview-readiness__explanation {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.overview-readiness__models {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ---- Error ---- */
+
+.overview-error {
+  align-items: flex-start;
+  gap: var(--space-md);
+  border-color: var(--color-status-danger);
+}
+
+.overview-error__message {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  color: var(--color-text-primary);
+  margin: 0;
+}

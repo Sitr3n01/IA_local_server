@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "scope": "frontend",
+  "metrics": {
+    "scope": "frontend",
+    "coverage": {
+      "available": true,
+      "lines": 93.19,
+      "statements": 91.01,
+      "functions": 92.26,
+      "branches": 87.45
+    },
+    "duplication": {
+      "available": true,
+      "percentage": 3.08,
+      "percentageTokens": 3.81,
+      "clones": 34,
+      "duplicatedLines": 415
+    },
+    "lint": {
+      "available": true,
+      "errors": 0,
+      "warnings": 0,
+      "filesLinted": 100
+    },
+    "complexity": {
+      "available": true,
+      "mode": "ast",
+      "violations": 8,
+      "complexityViolations": 6,
+      "lengthViolations": 2,
+      "worst": 22,
+      "detail": [
+        {
+          "file": "src/design-system/components/ResourceMeter/ResourceMeter.tsx",
+          "line": 47,
+          "rule": "max-lines-per-function",
+          "message": "Function 'ResourceMeter' has too many lines (135). Maximum allowed is 80."
+        },
+        {
+          "file": "src/design-system/primitives/Button/Button.tsx",
+          "line": 40,
+          "rule": "complexity",
+          "message": "Function 'Button' has a complexity of 16. Maximum allowed is 10."
+        },
+        {
+          "file": "src/design-system/primitives/IconButton/IconButton.tsx",
+          "line": 30,
+          "rule": "complexity",
+          "message": "Function 'IconButton' has a complexity of 11. Maximum allowed is 10."
+        },
+        {
+          "file": "src/design-system/primitives/TextField/TextField.tsx",
+          "line": 34,
+          "rule": "complexity",
+          "message": "Function 'TextField' has a complexity of 22. Maximum allowed is 10."
+        },
+        {
+          "file": "src/features/activity/deriveActivity.ts",
+          "line": 190,
+          "rule": "complexity",
+          "message": "Function 'deriveEvents' has a complexity of 11. Maximum allowed is 10."
+        },
+        {
+          "file": "src/features/system-status/useLiveAnnouncement.ts",
+          "line": 49,
+          "rule": "complexity",
+          "message": "Arrow function has a complexity of 11. Maximum allowed is 10."
+        },
+        {
+          "file": "src/pages/ModelsPage.tsx",
+          "line": 263,
+          "rule": "max-lines-per-function",
+          "message": "Function 'ModelCard' has too many lines (92). Maximum allowed is 80."
+        },
+        {
+          "file": "src/pages/ModelsPage.tsx",
+          "line": 263,
+          "rule": "complexity",
+          "message": "Function 'ModelCard' has a complexity of 12. Maximum allowed is 10."
+        }
+      ]
+    },
+    "audit": {
+      "available": true,
+      "critical": 0,
+      "high": 0,
+      "moderate": 0,
+      "low": 0
+    },
+    "fileSize": {
+      "available": true,
+      "cap": 300,
+      "total": 113,
+      "overCap": 4,
+      "largest": [
+        {
+          "file": "src/pages/ActivityPage.tsx",
+          "lines": 565
+        },
+        {
+          "file": "src/pages/ModelsPage.tsx",
+          "lines": 463
+        },
+        {
+          "file": "src/pages/ActivityPage.css",
+          "lines": 399
+        },
+        {
+          "file": "src/pages/ModelsPage.css",
+          "lines": 338
+        },
+        {
+          "file": "src/pages/ActivityPage.test.tsx",
+          "lines": 284
+        },
+        {
+          "file": "src/pages/ModelsPage.test.tsx",
+          "lines": 268
+        },
+        {
+          "file": "src/features/activity/deriveActivity.test.ts",
+          "lines": 263
+        },
+        {
+          "file": "src/api/transport/bridgeTransport.ts",
+          "lines": 259
+        },
+        {
+          "file": "src/api/schemas/status.ts",
+          "lines": 258
+        },
+        {
+          "file": "src/features/activity/deriveActivity.ts",
+          "lines": 258
+        }
+      ],
+      "byFile": {
+        "src/pages/ActivityPage.tsx": 565,
+        "src/pages/ModelsPage.tsx": 463,
+        "src/pages/ActivityPage.css": 399,
+        "src/pages/ModelsPage.css": 338,
+        "src/pages/ActivityPage.test.tsx": 284,
+        "src/pages/ModelsPage.test.tsx": 268,
+        "src/features/activity/deriveActivity.test.ts": 263,
+        "src/api/transport/bridgeTransport.ts": 259,
+        "src/api/schemas/status.ts": 258,
+        "src/features/activity/deriveActivity.ts": 258,
+        "src/app/shell/AppShell.test.tsx": 257,
+        "src/api/transport/bridgeTransport.test.ts": 223,
+        "src/dev/Gallery.tsx": 217,
+        "src/design-system/primitives/icons/icons.tsx": 197,
+        "src/design-system/components/ResourceMeter/ResourceMeter.tsx": 191,
+        "src/features/models/deriveModels.ts": 188,
+        "src/design-system/tokens/semantic.css": 181,
+        "src/features/models/deriveModels.test.ts": 179,
+        "src/pages/SystemPage.tsx": 175,
+        "src/pages/OverviewPage.css": 166,
+        "src/pages/OverviewPage.tsx": 164,
+        "src/app/shell/AppShell.css": 155,
+        "src/design-system/primitives/primitives.test.tsx": 153,
+        "src/design-system/components/ResourceMeter/ResourceMeter.css": 151,
+        "src/design-system/primitives/TextField/TextField.css": 142,
+        "src/design-system/tokens/foundation.css": 142,
+        "src/design-system/tokens/tokens.test.ts": 140,
+        "src/features/system-status/useLiveAnnouncement.test.ts": 140,
+        "src/app/shell/NavRail.css": 138,
+        "src/app/shell/layout.test.ts": 136,
+        "src/pages/SystemPage.css": 129,
+        "src/design-system/primitives/Button/Button.css": 124,
+        "src/pages/OverviewPage.test.tsx": 124,
+        "src/dev/Gallery.css": 115,
+        "src/features/system-status/reasonExplanations.ts": 112,
+        "src/design-system/primitives/TextField/TextField.tsx": 111,
+        "src/api/commands/models.test.ts": 110,
+        "src/app/shell/AppShell.tsx": 110,
+        "src/pages/SystemPage.test.tsx": 109,
+        "src/api/commands/maintenance.test.ts": 107,
+        "src/design-system/primitives/Button/Button.tsx": 106,
+        "src/features/system-status/shortfall.ts": 104,
+        "src/app/shell/useHashDestination.test.ts": 100,
+        "src/design-system/styles/reset.css": 96,
+        "src/design-system/primitives/Tooltip/Tooltip.tsx": 89,
+        "src/features/system-status/useLiveAnnouncement.ts": 88,
+        "src/api/commands/models.ts": 87,
+        "src/features/system-status/reasonExplanations.test.ts": 85,
+        "src/app/shell/TopBar.tsx": 83,
+        "src/design-system/primitives/focus-visible.test.ts": 82,
+        "src/api/commands/maintenance.ts": 80,
+        "src/app/shell/TopBar.css": 78,
+        "src/app/shell/NavRail.tsx": 77,
+        "src/design-system/primitives/IconButton/IconButton.css": 75,
+        "src/app/shell/useHashDestination.ts": 74,
+        "src/design-system/primitives/Tooltip/Tooltip.test.tsx": 70,
+        "src/features/activity/useMaintenanceAction.test.ts": 70,
+        "src/features/models/useModelAction.test.ts": 70,
+        "src/api/schemas/status.test.ts": 69,
+        "src/design-system/components/ResourceMeter/ResourceMeter.test.tsx": 69,
+        "src/design-system/primitives/IconButton/IconButton.tsx": 66,
+        "src/design-system/primitives/Skeleton/Skeleton.css": 64,
+        "src/features/models/useModelAction.ts": 64,
+        "src/app/shell/useRailCollapsed.test.ts": 59,
+        "src/features/activity/useMaintenanceAction.ts": 59,
+        "src/features/system-status/deriveOverview.ts": 59,
+        "src/features/system-status/shortfall.test.ts": 58,
+        "src/app/App.tsx": 57,
+        "src/design-system/components/FieldList/FieldList.tsx": 56,
+        "src/features/activity/useActivityViewModel.ts": 55,
+        "src/design-system/primitives/Skeleton/Skeleton.tsx": 54,
+        "src/features/system-status/useSystemViewModel.ts": 54,
+        "src/features/models/useModelsViewModel.ts": 51,
+        "src/design-system/primitives/Surface/Surface.tsx": 50,
+        "src/features/maintenanceState.ts": 48,
+        "src/main.tsx": 48,
+        "src/api/transport/httpTransport.dev.ts": 47,
+        "src/features/system-status/useOverviewViewModel.ts": 47,
+        "src/api/errors.ts": 46,
+        "src/app/shell/useRailCollapsed.ts": 45,
+        "src/design-system/primitives/Tooltip/Tooltip.css": 43,
+        "src/design-system/components/FieldList/FieldList.css": 42,
+        "src/design-system/primitives/index.ts": 42,
+        "src/features/system-status/describeError.test.ts": 41,
+        "src/features/system-status/deriveSystem.ts": 40,
+        "src/app/shell/navigation.ts": 38,
+        "src/design-system/styles/motion.test.ts": 38,
+        "src/features/maintenanceState.test.ts": 37,
+        "src/design-system/primitives/test-utils/readCss.ts": 36,
+        "src/features/models/format.ts": 36,
+        "src/features/system-status/describeError.ts": 34,
+        "src/api/commands/index.ts": 32,
+        "src/design-system/primitives/Divider/Divider.tsx": 32,
+        "src/features/system-status/format.test.ts": 31,
+        "src/api/queries/useStatus.ts": 30,
+        "src/api/transport/index.ts": 29,
+        "src/api/transport/Transport.ts": 28,
+        "src/design-system/primitives/Surface/Surface.css": 28,
+        "src/design-system/tokens/index.ts": 28,
+        "src/features/system-status/format.ts": 28,
+        "src/features/system-status/useDeploymentIdentity.ts": 26,
+        "src/design-system/styles/motion.css": 25,
+        "src/features/models/format.test.ts": 24,
+        "src/features/system-status/useHealthSummary.ts": 24,
+        "src/app/providers/QueryProvider.tsx": 20,
+        "src/setupTests.ts": 19,
+        "src/design-system/primitives/Divider/Divider.css": 18,
+        "src/design-system/primitives/icons/icons.css": 17,
+        "src/design-system/primitives/icons/index.ts": 15,
+        "src/features/system-status/types.ts": 14,
+        "src/design-system/components/index.ts": 12,
+        "src/lib/assertNever.ts": 11,
+        "src/vite-env.d.ts": 2
+      }
+    }
+  }
+}

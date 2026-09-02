@@ -1,0 +1,150 @@
+.ds-resource-meter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.ds-resource-meter__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.ds-resource-meter__title {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.ds-resource-meter__verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  font-weight: var(--text-label-weight);
+  flex: none;
+}
+
+.ds-resource-meter__verdict svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.ds-resource-meter__verdict--fits {
+  color: var(--color-status-success);
+}
+
+.ds-resource-meter__verdict--short {
+  color: var(--color-status-danger);
+}
+
+.ds-resource-meter__verdict--unmeasured {
+  color: var(--color-text-muted);
+}
+
+/* ---- The proportional bar (rendered as inline SVG - see the component's
+   doc comment for why geometry is set via SVG attributes, never inline
+   `style`, under this app's CSP). ---- */
+
+.ds-resource-meter__svg {
+  width: 100%;
+  height: 1.5rem;
+  display: block;
+}
+
+.ds-resource-meter__track-bg {
+  fill: var(--color-bg-surface-subtle);
+}
+
+.ds-resource-meter__required {
+  fill: var(--color-action-primary);
+}
+
+.ds-resource-meter__reserve {
+  fill: var(--color-status-warning);
+}
+
+.ds-resource-meter__overflow {
+  fill-opacity: 0.95;
+}
+
+.ds-resource-meter__hatch-bg {
+  fill: var(--color-status-danger);
+}
+
+.ds-resource-meter__hatch-line {
+  stroke: var(--color-bg-surface-raised);
+  stroke-width: 2;
+}
+
+/* The ceiling of what is actually available - a distinct shape (a thin
+ * vertical bar spanning the full track height), not only a colour change,
+ * so the boundary reads even without colour. */
+.ds-resource-meter__available-marker {
+  fill: var(--color-text-primary);
+}
+
+/* ---- Not-measured state: a dashed, non-proportional track - never an
+   empty/zero-width bar, which would silently imply a measured zero. ---- */
+
+.ds-resource-meter__track--unmeasured {
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  border: 1px dashed var(--color-border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--color-bg-surface-subtle),
+    var(--color-bg-surface-subtle) 4px,
+    var(--color-bg-surface) 4px,
+    var(--color-bg-surface) 8px
+  );
+}
+
+.ds-resource-meter__unmeasured-label {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  color: var(--color-text-muted);
+}
+
+/* ---- Figures (available / required / reserve / total needed) ---- */
+
+.ds-resource-meter__figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+}
+
+.ds-resource-meter__figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.ds-resource-meter__figure-label {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  color: var(--color-text-muted);
+}
+
+.ds-resource-meter__figure-label::after {
+  content: ':';
+}
+
+.ds-resource-meter__figure-value {
+  font-family: var(--font-family-mono);
+  font-size: var(--text-code-size);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}

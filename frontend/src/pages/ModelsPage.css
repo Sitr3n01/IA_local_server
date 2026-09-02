@@ -1,0 +1,337 @@
+.models-page {
+  max-width: 72rem; /* 1152px - same denser-tier width as System, this screen holds meters and tables too */
+  /* `width: 100%` is load-bearing next to `margin-inline: auto`. Auto
+   * cross-axis margins suppress a flex item's stretch, so without it this
+   * column shrink-wraps its content and never reaches the max-width above -
+   * the Overview measured 413px of an available 992px, with the remainder
+   * left as dead space. The auto margins still do the centring once the
+   * width is definite. */
+  width: 100%;
+  min-width: 0;
+  margin-inline: auto;
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  /* Fills `.app-shell__content`'s full available height so a sparse state's
+   * `.app-shell__sparse-state` wrapper (see AppShell.css) has a real region
+   * to centre within, rather than only being as tall as its own content. */
+  flex: 1;
+  min-height: 0;
+}
+
+.models-page__title {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-headline-size);
+  font-weight: var(--text-headline-weight);
+  line-height: var(--text-headline-line-height);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.models-page__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.models-page__gate-banner {
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  border-color: var(--color-status-warning);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  color: var(--color-text-primary);
+}
+
+.models-page__gate-banner svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  color: var(--color-status-warning);
+}
+
+.models-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.models-page__empty {
+  padding: var(--space-lg);
+  color: var(--color-text-muted);
+}
+
+/* ---- Model card ---- */
+
+.model-card {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.model-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.model-card__name {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  color: var(--color-text-primary);
+  margin: 0;
+  /* `flex: 1 1 0` rather than the default `0 1 auto`. A wrapping flex
+   * container breaks lines on each item's flex *base* size before any
+   * shrinking happens, so with an `auto` basis a long model name pushed the
+   * action block onto its own line - and because that block is right-aligned
+   * within its own 22rem box, the button then floated in the middle of the
+   * card. Four of six real models were long enough to trigger it, so the
+   * majority case was the broken one and two cards in the same list had
+   * structurally different layouts. A zero basis lets the name take the
+   * space that is left instead of demanding its intrinsic width. */
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* ---- Action: button + non-authorization caption + outcome ---- */
+
+.model-card__action {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  align-items: flex-end;
+  max-width: 22rem;
+}
+
+.model-card__action-caption {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  color: var(--color-text-muted);
+  text-align: right;
+  margin: 0;
+}
+
+.model-card__action-outcome {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  text-align: left;
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-xs);
+}
+
+.model-card__action-outcome svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.model-card__action-outcome--no-native-host {
+  color: var(--color-status-warning);
+  background-color: var(--color-bg-surface-subtle);
+  border: 1px solid var(--color-status-warning);
+}
+
+.model-card__action-outcome--error {
+  color: var(--color-status-danger);
+  background-color: var(--color-bg-surface-subtle);
+  border: 1px solid var(--color-status-danger);
+}
+
+/* ---- Badges (primary tier) - never colour alone, always icon + word ---- */
+
+.model-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.model-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  color: var(--color-text-secondary);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-xs);
+  background-color: var(--color-bg-surface-subtle);
+}
+
+.model-card__badge svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.model-card__badge--positive {
+  color: var(--color-status-success);
+}
+
+.model-card__badge--negative {
+  color: var(--color-status-danger);
+}
+
+.model-card__badge--context {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Disclosure toggles ---- */
+
+/* Size to the label, not to the card. A `<Button>` is a flex item inside the
+ * card's column, so the default `align-self: stretch` made this 848px wide in
+ * an 898px card - the widest, heaviest element on every card, with its label
+ * marooned in the centre, for the least important control on it. A disclosure
+ * is a tertiary affordance and should read as one. */
+.model-card__disclosure {
+  align-self: flex-start;
+}
+
+.model-card__disclosure-icon {
+  transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.model-card__disclosure-icon--open {
+  transform: rotate(180deg);
+}
+
+/* ---- Secondary tier ---- */
+
+.model-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.model-card__reason {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.model-card__meters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.model-card__capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.model-card__capabilities-label {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.model-card__capability-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.model-card__capability-chip {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-surface-subtle);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  padding: var(--space-xs) var(--space-12);
+}
+
+.model-card__capability-chip--none {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ---- Advanced tier ---- */
+
+.model-card__advanced {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px dashed var(--color-border-subtle);
+}
+
+.model-card__advanced-title {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ---- Field list (dt/dd) - same dense two-column pattern as System's ---- */
+
+/* ---- Error ---- */
+
+.models-error {
+  align-items: flex-start;
+  gap: var(--space-md);
+  border-color: var(--color-status-danger);
+}
+
+.models-error__message {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* Narrow viewports: the action column no longer sits to the right of the
+ * name - let it drop below and take full width rather than compressing. */
+@media (max-width: 640px) {
+  .model-card__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .model-card__action {
+    align-items: stretch;
+    max-width: none;
+  }
+
+  .model-card__action-caption {
+    text-align: left;
+  }
+}
+
+/* Stated once, above the list, instead of repeated under every button - see
+   ModelsPage.tsx's `actionCaption`. */
+.models-page__action-note {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  color: var(--color-text-secondary);
+  max-width: 68ch;
+  margin: 0;
+}

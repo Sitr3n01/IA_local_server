@@ -1,0 +1,77 @@
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 3.5rem;
+  padding-inline: var(--space-lg);
+  border-bottom: 1px solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+  flex-wrap: wrap;
+}
+
+/* Label above value, so the word "canary" is never mistaken for a page title
+ * or a status. The label is the quiet half; the environment name carries the
+ * weight, in the monospace face because it is an identifier the operator
+ * matches against a deployment, not prose. */
+.top-bar__environment {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.top-bar__environment-label {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.top-bar__environment-value {
+  font-family: var(--font-family-mono);
+  font-size: var(--text-body-size);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-bar__health {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  padding-block: var(--space-xs);
+  padding-inline: var(--space-sm);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.top-bar__health svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.top-bar__health--ready {
+  color: var(--color-status-success);
+}
+
+.top-bar__health--not-ready,
+.top-bar__health--error {
+  color: var(--color-status-danger);
+}
+
+.top-bar__health--loading {
+  color: var(--color-text-muted);
+}
+
+.top-bar__health-skeleton {
+  width: 4.5rem;
+}

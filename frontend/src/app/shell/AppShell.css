@@ -1,0 +1,154 @@
+/*
+ * AppShell component tokens (layer 3 - see src/design-system/tokens/index.ts's
+ * doc comment: "Component tokens live next to the one component that needs
+ * them, not [in tokens/]"). The Sprint 3 brief calls for the rail's two
+ * widths to be tokens, not literals, so a later redesign changes these two
+ * lines instead of hunting through NavRail.css for a magic number.
+ */
+:root {
+  --app-shell-rail-width-collapsed: 4.5rem; /* ~72px */
+  --app-shell-rail-width-expanded: 17rem; /* ~272px, within the 260-280px range */
+}
+
+.app-shell {
+  display: flex;
+  width: 100%;
+  /* A definite height, not `min-height`. `.app-shell__content` below asks for
+   * `overflow-y: auto`, and that only engages when an ancestor bounds its
+   * height - with `min-height` alone the shell grew to its content, the
+   * content pane never overflowed, and the *document* scrolled instead. The
+   * visible effect was that on every page taller than the viewport (System,
+   * Models and Activity all are) scrolling down carried the navigation rail
+   * and the top bar - including the readiness badge - off the top of the
+   * screen. An operator console must not lose its status indicator the
+   * moment the operator reads past the fold.
+   *
+   * `vh` is correct for the shipped target - a WebView2 window has no
+   * collapsing URL bar, so `dvh` and `vh` are identical there - and the
+   * `@supports` block below upgrades to `dvh` for any host where they differ.
+   * Written as `@supports` rather than two `height` declarations so
+   * `declaration-block-no-duplicate-properties` stays on for the whole
+   * codebase; that rule catches a real bug class and is not worth relaxing
+   * for one line. */
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--color-bg-canvas);
+}
+
+@supports (height: 100dvh) {
+  .app-shell {
+    height: 100dvh;
+  }
+}
+
+.app-shell__main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  /* Lets the content column shrink below its children's intrinsic width
+   * (e.g. the System page's events table) instead of forcing the whole
+   * shell to overflow horizontally in a narrow window. */
+  min-width: 0;
+}
+
+.app-shell__content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* A column so the one page element it wraps can stretch full height (see
+   * `.app-shell__sparse-state` below) - a page's own root class still owns
+   * its horizontal max-width/centring, this only ever affects the block
+   * axis. */
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Sparse-state composition ----
+ * A screen whose entire visible content is a single short state - a
+ * loading skeleton, an error card, an empty-state card - must not render
+ * top-anchored with a void beneath it just because the shell always gives
+ * a page a full-height column. A page opts a state's wrapper into this by
+ * adding this class alongside its own `*-page__body` class; it is never
+ * applied to a populated screen, which keeps reading top-down per the
+ * Sprint 3 brief. No magic pixel/vh guess: the region this centres within
+ * is whatever height the shell actually has available, via flex, using the
+ * same spacing tokens every other layout in this app already uses.
+ */
+.app-shell__sparse-state {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Few breakpoints, driven by a real composition change: below this width
+ * there isn't room for both an expanded rail and readable page content, so
+ * the rail collapses to icon-only regardless of the operator's persisted
+ * preference. The preference itself is untouched - widening the window
+ * back past this point restores whatever was persisted. */
+@media (max-width: 720px) {
+  .nav-rail:not(.nav-rail--collapsed) {
+    width: var(--app-shell-rail-width-collapsed);
+  }
+
+  /* The brand chooses between "IA" and "IA Local" from the `collapsed` *prop*
+   * in NavRail.tsx, but this breakpoint collapses the rail in CSS only - the
+   * prop is deliberately left alone so the operator's persisted preference
+   * survives a resize. The two disagreed here: at a 72px rail the full
+   * wordmark stayed in the DOM and `overflow-x: hidden` sliced it mid-word to
+   * "IA Loca". Swapping the glyphs in CSS is safe for this element and only
+   * this element, because the whole brand is `aria-hidden="true"` - it
+   * contributes nothing to the accessibility tree, so no name is being
+   * invented in a stylesheet. */
+  .nav-rail:not(.nav-rail--collapsed) .nav-rail__brand {
+    font-size: 0;
+    text-align: center;
+    padding-inline: 0;
+  }
+
+  .nav-rail:not(.nav-rail--collapsed) .nav-rail__brand::after {
+    content: 'IA';
+    font-size: var(--text-title-size);
+  }
+
+  .nav-rail:not(.nav-rail--collapsed) .nav-rail__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/*
+ * The stale-data banner (see AppShell.tsx). Sits between the top bar and the
+ * page content so it is impossible to read a figure without having passed it.
+ * Uses the warning semantic tokens, and pairs the colour with a glyph and a
+ * full sentence - the state is never carried by colour alone.
+ */
+.app-shell__stale {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  /* `--color-status-warning` is the design system's one warning colour and
+     is defined for both themes; there is no warning *surface* token, so the
+     ground stays the ordinary subtle surface and the warning is carried by
+     the text, the icon, and the border. Inventing three new tokens for one
+     banner would put a colour in the system that only one component uses. */
+  background: var(--color-bg-surface-subtle);
+  color: var(--color-status-warning);
+  border-bottom: 1px solid var(--color-status-warning);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+}
+
+.app-shell__stale-icon {
+  flex: none;
+  margin-top: 0.1em;
+}

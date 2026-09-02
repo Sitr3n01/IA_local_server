@@ -1,0 +1,398 @@
+.activity-page {
+  /* Same denser-tier width as System/Models - this screen holds a bar
+   * widget and a table too. */
+  max-width: 72rem; /* 1152px */
+  /* `width: 100%` is load-bearing next to `margin-inline: auto`. Auto
+   * cross-axis margins suppress a flex item's stretch, so without it this
+   * column shrink-wraps its content and never reaches the max-width above -
+   * the Overview measured 413px of an available 992px, with the remainder
+   * left as dead space. The auto margins still do the centring once the
+   * width is definite. */
+  width: 100%;
+  min-width: 0;
+  margin-inline: auto;
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  /* Fills `.app-shell__content`'s full available height so a sparse state's
+   * `.app-shell__sparse-state` wrapper (see AppShell.css) has a real region
+   * to centre within, rather than only being as tall as its own content. */
+  flex: 1;
+  min-height: 0;
+}
+
+.activity-page__title {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-headline-size);
+  font-weight: var(--text-headline-weight);
+  line-height: var(--text-headline-line-height);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.activity-page__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.activity-section {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.activity-section__title {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.activity-section__hint {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.activity-section__empty {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ---- Field list (dl) - same dense two-column pattern as System/Models ---- */
+
+/* ---- Admission gate: pressure badge - never colour alone, icon + label + sentence ---- */
+
+.activity-gate__pressure {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-control);
+  background-color: var(--color-bg-surface-subtle);
+}
+
+.activity-gate__pressure svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  margin-top: var(--space-xs);
+}
+
+.activity-gate__pressure-label {
+  display: block;
+  font-family: var(--font-family-sans);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  color: var(--color-text-primary);
+}
+
+.activity-gate__pressure-description {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.activity-gate__pressure--idle svg {
+  color: var(--color-status-success);
+}
+
+.activity-gate__pressure--working svg {
+  color: var(--color-status-info);
+}
+
+.activity-gate__pressure--saturated svg {
+  color: var(--color-status-warning);
+}
+
+/* ---- Admission gate: saturation bars (inline SVG, plain numeric attributes -
+   never an inline `style`, see ResourceMeter.tsx's doc comment for why). ---- */
+
+.activity-gate__bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.activity-gate__bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.activity-gate__bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.activity-gate__bar-label {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.activity-gate__bar-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-code-size);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.activity-gate__bar-verdict svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.activity-gate__bar-verdict--attention {
+  color: var(--color-status-warning);
+}
+
+.activity-gate__bar-svg {
+  width: 100%;
+  height: 1.5rem;
+  display: block;
+}
+
+.activity-gate__bar-track {
+  fill: var(--color-bg-surface-subtle);
+}
+
+.activity-gate__bar-fill {
+  fill: var(--color-action-primary);
+}
+
+.activity-gate__bar-fill--attention {
+  fill: var(--color-status-warning);
+}
+
+/* ---- Maintenance (Sprint 7): state badge - never colour alone ---- */
+
+.activity-maintenance__state {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.activity-maintenance__state-badge {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  color: var(--color-text-primary);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-xs);
+  background-color: var(--color-bg-surface-subtle);
+}
+
+.activity-maintenance__state-badge svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  color: var(--color-status-success);
+}
+
+.activity-maintenance__state-badge--attention svg {
+  color: var(--color-status-warning);
+}
+
+/* ---- Maintenance: action button + non-authorization caption + outcome -
+   same pattern as ModelsPage.css's .model-card__action* (see that file). ---- */
+
+.activity-maintenance__action {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  align-items: flex-start;
+  max-width: 32rem;
+}
+
+.activity-maintenance__action-caption {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.activity-maintenance__action-outcome {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  text-align: left;
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-xs);
+}
+
+.activity-maintenance__action-outcome svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.activity-maintenance__action-outcome--no-native-host {
+  color: var(--color-status-warning);
+  background-color: var(--color-bg-surface-subtle);
+  border: 1px solid var(--color-status-warning);
+}
+
+.activity-maintenance__action-outcome--error {
+  color: var(--color-status-danger);
+  background-color: var(--color-bg-surface-subtle);
+  border: 1px solid var(--color-status-danger);
+}
+
+/* ---- Maintenance: the three stated consequences - always visible next to
+   the control, never a footnote, never colour alone (icon + full sentence
+   on every one; the restart-survival warning additionally gets the danger
+   tone since it is the one an operator can be actively misled by). ---- */
+
+.activity-maintenance__consequences {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.activity-maintenance__consequence {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  color: var(--color-text-secondary);
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-control);
+  background-color: var(--color-bg-surface-subtle);
+}
+
+.activity-maintenance__consequence svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  margin-top: var(--space-xs);
+  color: var(--color-status-info);
+}
+
+.activity-maintenance__consequence--danger {
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-status-danger);
+}
+
+.activity-maintenance__consequence--danger svg {
+  color: var(--color-status-danger);
+}
+
+/* ---- Request timeline summary - always-visible calm tier ---- */
+
+.activity-timeline-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  margin: 0;
+}
+
+.activity-timeline-summary__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.activity-timeline-summary__item dt {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  letter-spacing: var(--text-label-tracking);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.activity-timeline-summary__item dd {
+  font-family: var(--font-family-mono);
+  font-size: var(--text-title-size);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* ---- Request timeline: disclosure toggle + full table (details on demand) ---- */
+
+.activity-disclosure-icon {
+  transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.activity-disclosure-icon--open {
+  transform: rotate(180deg);
+}
+
+.activity-events__scroll {
+  overflow-x: auto;
+}
+
+.activity-events__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-family-mono);
+  font-size: var(--text-code-size);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.activity-events__table th {
+  text-align: left;
+  font-family: var(--font-family-sans);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  color: var(--color-text-muted);
+  padding-block: var(--space-xs);
+  padding-inline-end: var(--space-md);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.activity-events__cell {
+  padding-block: var(--space-xs);
+  padding-inline-end: var(--space-md);
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+}
+
+/* ---- Error ---- */
+
+.activity-error {
+  align-items: flex-start;
+  gap: var(--space-md);
+  border-color: var(--color-status-danger);
+}
+
+.activity-error__message {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  color: var(--color-text-primary);
+  margin: 0;
+}

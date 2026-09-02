@@ -1,0 +1,141 @@
+/*
+ * Foundation tokens - Layer 1 of 3.
+ *
+ * Raw values only. No meaning is attached here: no token in this file is
+ * named after what it is *for* (no "background", "border", "danger" - those
+ * are semantic.css's job). This is the only CSS file in the whole console
+ * allowed to contain a literal hex colour - the Stylelint override in
+ * .stylelintrc.json enforces that everywhere else (design-system
+ * components/primitives, features, pages) a colour must come from a custom
+ * property.
+ *
+ * Every ramp below was generated and verified with a small WCAG
+ * contrast-ratio script (bisecting lightness to hit a target ratio against
+ * the hardest-case background in each theme) rather than picked by eye -
+ * see the contrast comments in semantic.css for the numbers that mattered.
+ *
+ * Neutral hue: 222deg (cool, blue-leaning) at low-to-moderate saturation.
+ * This is deliberate - "Neutrals must be cool-biased, not pure grey", and
+ * neither pure #000 nor pure #fff appears anywhere as a *ground* colour.
+ */
+
+:root {
+  /* ---- Neutral ramp (hue 222, light-context track, sat 15%) ----
+   * Lower number = lighter. This one ramp supplies every light-theme
+   * background, border, and text-on-light colour. */
+  --palette-neutral-0: #fefefe; /* lightest possible ground (light "raised") */
+  --palette-neutral-25: #fcfcfd; /* light "surface" */
+  --palette-neutral-50: #f7f7f9; /* light "canvas" */
+  --palette-neutral-100: #f0f1f4; /* light "surface-subtle" - darkest of the 4 grounds */
+  --palette-neutral-200: #e2e4e9; /* light decorative hairline (border-subtle) */
+  --palette-neutral-400: #818aa2; /* light border-default: >=3:1 vs every ground */
+  --palette-neutral-500: #626c85; /* light border-strong: >=4.6:1 vs every ground */
+  --palette-neutral-550: #636d86; /* light text-muted: >=4.5:1 vs every ground */
+  --palette-neutral-650: #495062; /* light text-secondary: >=7:1 vs every ground */
+  --palette-neutral-900: #1c1f27; /* light text-primary: >=14.5:1 vs every ground */
+
+  /* ---- Neutral ramp (hue 222, dark-context track, sat 15%) ----
+   * This is a SEPARATE ramp, not an inversion of the light one - dark
+   * grounds are deliberately lifted off black, and the lightness steps
+   * between them are tighter (softer borders, per the brief). */
+  --palette-neutral-950: #1b1e25; /* dark "canvas" */
+  --palette-neutral-900-dark: #21242c; /* dark "surface-subtle" */
+  --palette-neutral-850: #262a33; /* dark "surface" */
+  --palette-neutral-800: #313642; /* dark "surface-raised" - lightest of the 4 grounds */
+  --palette-neutral-750: #3b414f; /* dark decorative hairline (border-subtle) */
+  --palette-neutral-600: #758099; /* dark border-default: >=3:1 vs every ground */
+  --palette-neutral-500-dark: #97a0b3; /* dark border-strong: >=4.6:1 vs every ground */
+  --palette-neutral-450: #979fb2; /* dark text-muted: >=4.5:1 vs every ground */
+  --palette-neutral-300: #c2c7d2; /* dark text-secondary: >=7:1 vs every ground */
+  --palette-neutral-50-dark: #f3f4f7; /* dark text-primary - softened off pure white */
+
+  /* ---- Accent / status hues ----
+   * One hue per meaning, each solved to clear 4.5:1 against the hardest
+   * ground in its theme (light: surface-subtle: dark: surface-raised) so it
+   * remains legible as small text/icon colour, not just as a fill. */
+  --palette-blue-600: #2964e5; /* light action-primary */
+  --palette-blue-700: #174bbc; /* light action-primary hover/pressed (darker = more emphasis) */
+  --palette-blue-300: #7d9ee6; /* dark action-primary */
+  --palette-blue-200: #a2baed; /* dark action-primary hover/pressed (lighter = more emphasis) */
+
+  --palette-violet-600: #8149e9; /* light accent-ai */
+  --palette-violet-300: #ae8fea; /* dark accent-ai */
+
+  --palette-cyan-700: #1573ac; /* light status-info */
+  --palette-cyan-300: #4fa7dd; /* dark status-info */
+
+  --palette-green-700: #107d4a; /* light status-success */
+  --palette-green-300: #22b570; /* dark status-success */
+
+  --palette-amber-800: #986206; /* light status-warning */
+  --palette-amber-300: #d89012; /* dark status-warning */
+
+  --palette-red-700: #d2291a; /* light status-danger */
+  --palette-red-300: #e6847b; /* dark status-danger */
+
+  /* ---- Spacing scale (base 4px, dominant rhythm 8px) ---- */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+
+  /* ---- Radii ---- */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* ---- Typography: families ----
+   * Roboto Flex is the identity face: a variable font shipped by
+   * @fontsource-variable/roboto-flex (SIL OFL-1.1), bundled locally and
+   * emitted into dist/assets by Vite. Nothing is fetched at runtime, so
+   * font-src 'self' holds and scripts/verify-prod-bundle.mjs's external
+   * origin check still passes. The system stack behind it is a real
+   * fallback for first paint, not decoration.
+   *
+   * Monospace stays a system stack on purpose: it carries hashes, paths and
+   * GiB figures, where the operating system's own mono face is already
+   * well hinted at small sizes and costs no bytes. */
+  --font-family-sans:
+    'Roboto Flex Variable', system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono:
+    ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+
+  /* ---- Typography: raw size/weight/line-height/tracking steps ---- */
+  --font-size-32: 2rem;
+  --font-size-24: 1.5rem;
+  --font-size-18: 1.125rem;
+  --font-size-14: 0.875rem;
+  --font-size-13: 0.8125rem;
+  --font-size-12: 0.75rem;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.3;
+  --line-height-normal: 1.4;
+  --line-height-relaxed: 1.5;
+
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+
+  /* ---- Motion: durations and easings ---- */
+  --duration-fast: 130ms;
+  --duration-standard: 200ms;
+  --duration-slow: 300ms;
+
+  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --easing-decelerate: cubic-bezier(0, 0, 0, 1);
+  --easing-accelerate: cubic-bezier(0.3, 0, 1, 1);
+}
