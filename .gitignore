@@ -1,6 +1,14 @@
-# Runtime binaries and caches - not source, do not track
-amd/
-models/
+# Runtime binaries and caches - not source, do not track.
+#
+# Anchored with a leading slash. Unanchored, `models/` matches a directory of
+# that name at ANY depth, and it silently swallowed the console's entire
+# `frontend/src/features/models/` feature module - seven source files - out of
+# the commit that first brought the frontend under version control. `git add`
+# skips ignored paths without a word, so nothing surfaced until CI failed to
+# resolve the imports. These rules describe specific directories at the
+# repository root; say so.
+/amd/
+/models/
 unsloth_compiled_cache/
 __pycache__/
 *.pyc
