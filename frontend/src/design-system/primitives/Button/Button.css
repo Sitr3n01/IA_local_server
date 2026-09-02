@@ -1,0 +1,123 @@
+.ds-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--text-body-line-height);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+  /* Target size: comfortably above the 24x24 CSS-px AA minimum even at
+   * 200% browser zoom, since this is set in rem and scales with the root. */
+  min-height: 2.5rem;
+  padding-inline: var(--space-md);
+}
+
+.ds-button--sm {
+  min-height: 2rem;
+  padding-inline: var(--space-12);
+  font-size: var(--text-label-size);
+  gap: var(--space-xs);
+}
+
+.ds-button__icon {
+  display: inline-flex;
+  width: 1.125em;
+  height: 1.125em;
+  flex: none;
+}
+
+.ds-button__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Primary: filled with --color-action-primary ----
+ * Label colour is --color-bg-canvas deliberately, not a hardcoded white: in
+ * light theme canvas is near-white (contrast ~5.1:1 on the fill), in dark
+ * theme canvas is near-black (contrast ~7.9:1 on the fill, since dark
+ * theme's action-primary is a lifted, lighter blue) - one semantic token
+ * gives the correct "opposite-of-fill" ink colour in both themes without
+ * the component ever branching on theme. */
+.ds-button--primary {
+  background-color: var(--color-action-primary);
+  color: var(--color-bg-canvas);
+  border-color: transparent;
+}
+
+.ds-button--primary:hover:not(:disabled) {
+  background-color: var(--color-action-primary-hover);
+}
+
+.ds-button--primary:active:not(:disabled) {
+  background-color: var(--color-action-primary-hover);
+  transform: translateY(0.5px);
+}
+
+/* ---- Secondary: outlined, tonal on hover ---- */
+.ds-button--secondary {
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-default);
+}
+
+.ds-button--secondary:hover:not(:disabled) {
+  background-color: var(--color-bg-surface-subtle);
+  border-color: var(--color-border-strong);
+}
+
+.ds-button--secondary:active:not(:disabled) {
+  background-color: var(--color-bg-surface-subtle);
+  border-color: var(--color-border-strong);
+  transform: translateY(0.5px);
+}
+
+.ds-button--secondary.ds-button--selected {
+  background-color: color-mix(in srgb, var(--color-action-primary) 14%, var(--color-bg-surface));
+  border-color: var(--color-action-primary);
+  color: var(--color-action-primary);
+}
+
+/* ---- Focus-visible: an actual offset ring, not merely a colour swap ---- */
+.ds-button:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 2px;
+}
+
+/* ---- Disabled ---- */
+.ds-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ds-button--primary:disabled {
+  background-color: var(--color-border-default);
+  color: var(--color-bg-surface);
+}
+
+.ds-button--secondary:disabled {
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-muted);
+}
+
+/* ---- Loading: dimensions stay put, only the leading slot changes ---- */
+.ds-button--loading {
+  cursor: progress;
+}
+
+/*
+ * A busy button stays in the tab order (see Button.tsx for why) but must not
+ * be activatable by pointer either. `aria-disabled` is advisory to the
+ * platform - it changes what assistive technology announces, not what a click
+ * does - so the refusal is made real here and in the click handler.
+ */
+.ds-button[aria-disabled='true'] {
+  pointer-events: none;
+}

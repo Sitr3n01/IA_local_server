@@ -1,0 +1,74 @@
+.ds-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.ds-icon-button--sm {
+  width: 2rem;
+  height: 2rem;
+}
+
+.ds-icon-button__icon {
+  display: inline-flex;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.ds-icon-button--sm .ds-icon-button__icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.ds-icon-button--secondary {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border-color: transparent;
+}
+
+.ds-icon-button--secondary:hover:not(:disabled) {
+  background-color: var(--color-bg-surface-subtle);
+  color: var(--color-text-primary);
+}
+
+.ds-icon-button--secondary:active:not(:disabled) {
+  background-color: var(--color-bg-surface-subtle);
+  border-color: var(--color-border-default);
+}
+
+.ds-icon-button--secondary.ds-icon-button--selected {
+  background-color: color-mix(in srgb, var(--color-action-primary) 14%, var(--color-bg-surface));
+  color: var(--color-action-primary);
+}
+
+.ds-icon-button--primary {
+  background-color: var(--color-action-primary);
+  color: var(--color-bg-canvas);
+}
+
+.ds-icon-button--primary:hover:not(:disabled) {
+  background-color: var(--color-action-primary-hover);
+}
+
+.ds-icon-button--primary:active:not(:disabled) {
+  background-color: var(--color-action-primary-hover);
+}
+
+.ds-icon-button:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 2px;
+}
+
+.ds-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}

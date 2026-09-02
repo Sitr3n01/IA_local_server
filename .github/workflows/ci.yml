@@ -240,3 +240,127 @@ jobs:
           fi
 
           exit "$status"
+
+  frontend:
+    name: Frontend console
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        shell: bash
+        working-directory: frontend
+        run: npm ci
+
+      - name: Typecheck
+        shell: bash
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Lint (ESLint + Stylelint)
+        shell: bash
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Unit and component tests
+        shell: bash
+        working-directory: frontend
+        run: npm test
+
+      - name: Build production bundle
+        shell: bash
+        working-directory: frontend
+        run: npm run build
+
+      # Sprint 1's architecture rule: production has no network access at
+      # all, and reaches the operator's machine only through the native
+      # WebView2 bridge. This asserts the dev-only HTTP transport (and its
+      # 127.0.0.1 base URL) did not leak into the bundle vite build just
+      # produced, and that neither index.html nor any built CSS references
+      # an external origin. See frontend/scripts/verify-prod-bundle.mjs.
+      - name: Assert production bundle has no dev transport and no external origin
+        shell: bash
+        working-directory: frontend
+        run: npm run verify:prod-bundle
+
+      - name: Generate npm CycloneDX SBOM
+        shell: bash
+        working-directory: frontend
+        run: npm sbom --sbom-format cyclonedx --package-lock-only > sbom.cdx.json
+
+      - name: Upload frontend SBOM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: cia-console-frontend-sbom
+          path: frontend/sbom.cdx.json
+          if-no-files-found: error
+
+      - name: Vulnerability scan (npm audit)
+        shell: bash
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
+  frontend-quality:
+    name: Frontend quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Its own job, not extra steps on `frontend`. The two answer different
+    # questions: `frontend` asks "does this build and pass its tests", this
+    # asks "is this change worse than what is already on main". A red gate
+    # should read as a quality regression at a glance, not be buried in a
+    # build log. Scoped entirely to frontend/ - the Go control plane is graded
+    # by the `go`, `race` and `validate` jobs and shares nothing with this one.
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        shell: bash
+        working-directory: frontend
+        run: npm ci
+
+      - name: Collect deterministic metrics
+        shell: bash
+        working-directory: frontend
+        run: npm run quality:collect
+
+      - name: Render report
+        shell: bash
+        working-directory: frontend
+        run: npm run quality:report
+
+      - name: Upload quality report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cia-console-frontend-quality
+          path: |
+            frontend/reports/quality-gate.json
+            frontend/reports/quality-gate.md
+
+      # Blocking, and deliberately last. No continue-on-error: a quality
+      # regression that does not fail the build is a report nobody reads.
+      #
+      # This job never writes quality/baseline.json. Re-recording the baseline
+      # is a human act on main, in its own commit - if CI could do it, the
+      # ratchet would reset itself every time it caught something.
+      - name: Quality gate
+        shell: bash
+        working-directory: frontend
+        run: npm run quality:check

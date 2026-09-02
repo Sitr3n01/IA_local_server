@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stylelint/stylelint/main/docs/user-guide/schema.json",
+  "rules": {
+    "block-no-empty": true,
+    "color-no-invalid-hex": true,
+    "declaration-block-no-duplicate-properties": true,
+    "no-duplicate-selectors": true,
+    "no-empty-source": true,
+    "unit-no-unknown": true,
+    "property-no-unknown": true,
+    "selector-type-no-unknown": true
+  },
+  "overrides": [
+    {
+      "comment": "DS 0.1 token architecture (three layers - see src/design-system/tokens/foundation.css's own doc comment): a component must never reference a foundation token or a raw colour literal directly, only the fixed semantic --color-* custom properties in semantic.css. foundation.css itself is exempt below - it's the one file allowed to hold the literal palette. src/app/**/*.css added in Sprint 3 alongside the first real app-shell stylesheets (AppShell/NavRail/TopBar).",
+      "files": [
+        "src/design-system/components/**/*.css",
+        "src/design-system/primitives/**/*.css",
+        "src/features/**/*.css",
+        "src/pages/**/*.css",
+        "src/app/**/*.css"
+      ],
+      "rules": {
+        "color-no-hex": true,
+        "function-disallowed-list": ["rgb", "rgba", "hsl", "hsla"]
+      }
+    },
+    {
+      "files": ["src/design-system/tokens/foundation.css"],
+      "rules": {
+        "color-no-hex": null,
+        "function-disallowed-list": null
+      }
+    }
+  ]
+}
