@@ -788,9 +788,22 @@ func TestConsoleE2E(t *testing.T) {
 func buildConsoleBinary(t *testing.T, pkgDir string) string {
 	t.Helper()
 
+	// PATH first, then $GOROOT - deliberately not `runtime.GOROOT()`, which is
+	// deprecated as of Go 1.24 and which staticcheck flags (SA1019). The
+	// deprecation's reasoning applies exactly here: `runtime.GOROOT()` returns
+	// the path baked in when *this test binary* was built, which says nothing
+	// about where a toolchain lives on the machine now running it. The
+	// environment variable is the live answer, and it is what `go test` sets
+	// for the binary it spawns - so the fallback keeps working for someone who
+	// invoked an absolute `go.exe` that is not on PATH, which is the only case
+	// it was ever there for.
 	goBin, err := exec.LookPath("go")
 	if err != nil {
-		candidate := filepath.Join(runtime.GOROOT(), "bin", "go.exe")
+		goroot := os.Getenv("GOROOT")
+		if goroot == "" {
+			t.Fatalf("locate a go toolchain: PATH lookup failed (%v) and GOROOT is unset", err)
+		}
+		candidate := filepath.Join(goroot, "bin", "go.exe")
 		if _, statErr := os.Stat(candidate); statErr != nil {
 			t.Fatalf("locate a go toolchain: PATH lookup failed (%v) and GOROOT candidate %s "+
 				"does not exist either (%v)", err, candidate, statErr)
