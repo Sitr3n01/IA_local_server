@@ -12,10 +12,10 @@
     },
     "duplication": {
       "available": true,
-      "percentage": 3.08,
-      "percentageTokens": 3.81,
-      "clones": 34,
-      "duplicatedLines": 415
+      "percentage": 3.61,
+      "percentageTokens": 4.48,
+      "clones": 42,
+      "duplicatedLines": 508
     },
     "lint": {
       "available": true,
