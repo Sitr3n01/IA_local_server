@@ -89,6 +89,15 @@ foreach ($definition in $definitions) {
         -Settings $settingsSet `
         -Description "Local-only CIA AI v2 $($definition.Name.Split(' ')[-1]); started and ended by IA Local (cia-tray.exe)." `
         -Force:$Replace | Out-Null
+
+    # Replacing a task that had the logon trigger of earlier releases must
+    # leave it with none. Read the registered XML: Get-ScheduledTask reports a
+    # trigger-less task's Triggers as $null, and @($null).Count is 1.
+    $registered = [xml](Export-ScheduledTask -TaskName $definition.Name)
+    $triggers = $registered.Task.SelectSingleNode("*[local-name()='Triggers']")
+    if ($null -ne $triggers -and $triggers.ChildNodes.Count -gt 0) {
+        throw "Task $($definition.Name) still has a trigger after registration."
+    }
 }
 
-Write-Host 'Tasks registered. They were not started by this script.'
+Write-Host 'Tasks registered without a trigger. They were not started by this script.'
