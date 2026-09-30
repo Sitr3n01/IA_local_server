@@ -27,9 +27,11 @@ $repoRoot = Get-V2RepoRoot
 $stagingRoot = Join-Path $resolvedRoot 'state\staging'
 $components = @(
     [pscustomobject]@{ Name = 'edge'; Package = '.\cmd\cia-edge'; Binary = 'cia-edge.exe'; WindowsGUI = $false },
+	[pscustomobject]@{ Name = 'credential'; Package = '.\cmd\cia-credential'; Binary = 'cia-credential.exe'; WindowsGUI = $false },
     [pscustomobject]@{ Name = 'mcp'; Package = '.\cmd\cia-mcp'; Binary = 'cia-mcp.exe'; WindowsGUI = $false },
     [pscustomobject]@{ Name = 'mcp-admin'; Package = '.\cmd\cia-mcp-admin'; Binary = 'cia-mcp-admin.exe'; WindowsGUI = $false },
     [pscustomobject]@{ Name = 'mcp-inference'; Package = '.\cmd\cia-mcp-inference'; Binary = 'cia-mcp-inference.exe'; WindowsGUI = $false },
+    [pscustomobject]@{ Name = 'monitor'; Package = '.\cmd\cia-monitor'; Binary = 'cia-monitor.exe'; WindowsGUI = $false },
 	[pscustomobject]@{ Name = 'supervisor'; Package = '.\cmd\cia-supervisor'; Binary = 'cia-supervisor.exe'; WindowsGUI = $true },
     [pscustomobject]@{ Name = 'tray'; Package = '.\cmd\cia-tray'; Binary = 'cia-tray.exe'; WindowsGUI = $true }
 )

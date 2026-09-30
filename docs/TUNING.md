@@ -157,6 +157,10 @@ allocations so they remain evictable. So:
 commit_delta ≈ VRAM + W_cpu + cache_ram_mib + ~1.4 GiB
 ```
 
+`cache_ram_mib` is the effective value, not the declared one: a profile that
+leaves it undeclared runs with the runtime's default, 8192 MiB on b10549 (§1.4),
+and admission does not see it.
+
 The practical consequence is severe and easy to miss: **a 27B costs ~16 GiB of
 commit even with no offload and no prompt cache**, purely because it fills the
 card. Eliminating offload solves throughput, not commit.
@@ -289,37 +293,73 @@ real byte count after download and recompute rather than trusting the card.
   at the exact `context_tokens` you ship, and if it is poor, try ±256 and ±2048
   before concluding MTP does not work.
 
-## 1.4 Context checkpoints do not currently work on this architecture
+## 1.4 Context checkpoints on hybrid models: measured working on b10549
 
-Upstream status, **unverified here**, and it invalidates the obvious use of the
-host-RAM budget:
+**Measured 2026-09-28: on `amd-rocm-qwen38` (b10549, `b2e5e9b28`) a live session
+reuses its context across agentic turns.** The multi-turn scenario in
+`BENCHMARKS.md` passed Gate B (~55-63k) and Gate C (~119-191k) on
+`qwen38-27b-agent-128k` and `qwen36-35b-a3b-huge-256k`, and Gate D (~249-257k,
+98% of the window) on the Huge profile, each cell started from its manifest
+entry: six cells, zero full re-prefills. After the cold prefill (170 s at 55k up
+to 1,359 s at 249k), every turn processed only its increment (~3.8k tokens) or,
+on a tool turn, 11-287 tokens, and took 4.5-67 s instead of the cold figure. The
+Gate D cell ran after the defaults below were declared explicitly, so it also
+shows the declared flags behave like the inherited ones. Evidence, exact command lines and per-turn tables:
+`benchmarks/agentic-reuse-b10549-20260928/`.
 
-- llama.cpp **#24055** — context checkpoints are created and then immediately
-  invalidated on hybrid/recurrent models, with the server logging *"forcing full
-  prompt re-processing due to lack of cache data (likely due to SWA or
-  hybrid/recurrent memory)"*. `--checkpoint-min-step` has no effect on such
-  models; `--cache-ram` allocates but nothing persists.
-- llama.cpp **#22384** — root cause: the checkpoint search tests
-  `cur.pos_min < pos_min_thold`, but on a recurrent model `pos_min` always equals
-  the full sequence length, so the test can never pass. A fix exists in a fork
-  and is **not merged**.
+It is restoration, not only prefix extension. A harness that drops reasoning
+from history shrinks the conversation on tool turns, so the new prompt diverges
+inside the cached sequence — and a recurrent state cannot be rewound without a
+checkpoint. The server resumed one `ubatch` (288) before the previous prompt's
+end at 55k, 119k, 183k and 249k alike, so a divergence at the last assistant turn
+costs about one micro-batch, not the conversation.
 
-Reported consequence: a 15K-token conversation reprocesses everything per turn,
-seconds instead of milliseconds, which the reporter describes as making agentic
-workflows unusable.
+The upstream history this section used to state as current, kept because it is
+why ADRs 0009 and 0010 exist:
 
-**What this means for configuration.** Until a build demonstrably restores
-checkpoints on this architecture, `cache_ram_mib` buys nothing on Qwen3.8 and
-should be left unset. That is not merely neutral: the gate charges it to commit
-in full, and commit is the binding constraint on this machine (§1.2), so an
-inert cache actively costs admission headroom.
+- llama.cpp **#24055** — checkpoints created and then immediately invalidated on
+  hybrid/recurrent models, the server logging *"forcing full prompt re-processing
+  due to lack of cache data (likely due to SWA or hybrid/recurrent memory)"*.
+  Still open upstream; not reproduced on b10549.
+- llama.cpp **#22384** — root cause: the checkpoint search tested
+  `cur.pos_min < pos_min_thold`, which a recurrent model can never satisfy.
+  Closed as completed on 2026-04-26.
 
-The multi-turn scenario in `BENCHMARKS.md` is the acceptance test for this. Run
-it against any candidate runtime before setting `cache_ram_mib`; if the second
-turn reprocesses the whole context, the feature is still broken in that build
-regardless of what the flags accept.
+**What this means for configuration.**
+
+- **No flag has to be declared for reuse to work.** b10549's own defaults are
+  live on every profile that leaves them silent: `--ctx-checkpoints 32`,
+  `--checkpoint-min-step 8192`, `--cache-ram 8192`, `--cache-idle-slots` on.
+- **Unset is not off.** `cache_ram_mib` was left undeclared on the premise that
+  the cache would be inert. On b10549 it is enabled by default, and admission
+  charges only a declared value, so an 8 GiB host prompt cache has been live and
+  uncounted on every profile of this runtime. It did not fill in one continuing
+  session — process private memory moved +0.13 to +0.30 GiB over six turns,
+  because the live slot is reused — but alternating conversations save idle
+  slots into it, and that is not measured. Declare the values rather than inherit
+  them: the rule ADR 0010 applies to the fork's defaults applies here too.
+  Since 2026-09-28 the manifest declares exactly these defaults — behaviour
+  unchanged, and admission now charges the 8 GiB — on every active profile but
+  one. `gemma4-12b-qat-ud-q4xl` stays undeclared by operator decision — it is
+  no longer the public model, which moved to the 256k profile the same day —
+  and its runtime (10225) has the same defaults, so its cache is still live
+  and uncounted.
+- **Read the counters, not the log.** b10549 records neither checkpoint creation
+  nor restoration at default verbosity. `timings.cache_n` and `timings.prompt_n`
+  are the evidence.
+
+**Not established:** history rewrites deeper than one `ubatch`
+(harness compaction, an edited earlier message), which depend on checkpoint
+spacing; reuse across alternating conversations; the Fast profile; and every
+runtime other than b10549. The scenario stays the acceptance test — run it
+against any new build before relying on this section.
 
 ## 1.5 The buun-llama-cpp runtime, and what it does not change
+
+> **2026-09-28:** the defect this runtime was adopted to fix is not reproduced
+> on upstream b10549 at Gates B, C and D (§1.4). Nothing in this section is
+> needed for in-session reuse up to ~257k; it stays as the procedure for the fork
+> in case deep history rewrites or a later upstream build show a failure.
 
 `spiritbuun/buun-llama-cpp` carries a correction for §1.4. ADR 0010 adopts a
 pinned commit of it as a **separate, experimental runtime**; the upstream build
@@ -328,9 +368,11 @@ about it change how you tune against it.
 
 **Its defaults are not upstream's.** The fork ships `cache_ram_mib = 8192`,
 `cache_idle_slots = true`, and dynamic variable-bitrate KV on both cache sides.
-Omitting a manifest field therefore does not mean "behave like upstream" — it
-enables a fork behaviour, and the result gets attributed to whatever you were
-actually testing. `Assert-V2ManifestSemantics` refuses a model on a fork runtime
+Only the last is the fork's own: b10549's `--help` shows the same 8192 MiB cache
+and idle-slot saving on by default, which is how undeclared upstream profiles
+came to run them unnoticed (§1.4). Omitting a manifest field therefore does not
+mean "behave like upstream" — it enables a fork behaviour, and the result gets
+attributed to whatever you were actually testing. `Assert-V2ManifestSemantics` refuses a model on a fork runtime
 that leaves `context_shift`, `kv_unified`, `cache_ram_mib`, `cache_idle_slots`,
 `ctx_checkpoints` or `checkpoint_min_step` undeclared, and an explicit
 `--cache-type-k q4_0` is what turns the variable-bitrate cache off.
@@ -650,10 +692,12 @@ with context; decode is bandwidth-bound and does not.
 
 - A cold ~90k-token prompt is *expected* to take minutes. That is what the prompt
   cache exists to avoid — see section 3.
-- If the *second* identical prompt is also slow, checkpoints are not being
-  restored. Confirm `--cache-ram`, `--ctx-checkpoints`, and
-  `--checkpoint-min-step` are actually in the generated `cmd:`, and that
-  the harness prefix did not change between turns.
+- If the *second* identical prompt is also slow, context is not being reused.
+  On b10549 the checkpoint flags need not appear in the generated `cmd:` — the
+  runtime's defaults are live (§1.4) — so read `timings.cache_n` and
+  `timings.prompt_n` on the second request instead of the log, which records no
+  checkpoint events at default verbosity, and confirm the harness prefix did not
+  change between turns.
 - `--cache-reuse` will not help here and is not a fix to reach for: it cannot
   work on a model with recurrent state.
 
@@ -679,7 +723,7 @@ not preference.
 |---|---|---|
 | Eliminate offload — pick a quant that fits entirely in VRAM | up to ~4.7x, and it raises the ceiling MTP then multiplies | quantization quality |
 | MTP speculative decoding (`spec_decoding`) | ~2x fully resident at depth 7; ~1.8–3x offloaded but only at depth 2–3, see 1.1 | stability; needs a `-nomtp` control |
-| Prompt cache / context checkpoints | prefill only, but can be orders of magnitude | host RAM, charged to commit in full |
+| Prompt cache / context checkpoints | prefill only, but orders of magnitude: measured 170-1,359 s cold turns becoming 4.5-67 s (§1.4) | host RAM — charged to commit only when `cache_ram_mib` is declared (five of six active profiles since 2026-09-28); undeclared, the runtime's 8 GiB default is live and uncounted |
 | Reduce KV cache (`q8_0` → `q4_0`, or less context) | frees VRAM → *less offload* → compounds with lever 1 | long-context recall |
 | `ubatch` sweep {288, 512, 1024, 2048} | single-digit %, occasionally large on hybrids | none |
 | `ROCBLAS_USE_HIPBLASLT` A/B | unmeasured on gfx1201 | none |

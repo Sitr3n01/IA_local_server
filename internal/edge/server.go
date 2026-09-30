@@ -3,7 +3,9 @@ package edge
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -37,6 +40,9 @@ type Server struct {
 	// without a GPU, exactly as memoryStatus does.
 	gpuMemory func() (gpuMemorySnapshot, error)
 	gpuCache  gpuMemoryCache
+	// inference holds numbers about admitted requests for /api/v1/inference:
+	// token counts, timings, status. Never a prompt, a completion or a header.
+	inference *inferenceLog
 }
 
 func New(cfg Config) (*Server, error) {
@@ -81,6 +87,7 @@ func New(cfg Config) (*Server, error) {
 		startedAt:    time.Now(),
 		memoryStatus: systemMemoryStatus,
 		gpuMemory:    gpuMemoryStatus,
+		inference:    newInferenceLog(time.Now),
 	}, nil
 }
 
@@ -214,6 +221,12 @@ func (s *Server) observe(next http.Handler) http.Handler {
 		if status == 0 {
 			status = http.StatusOK
 		}
+		// Reading the telemetry must not write to the event log: the monitor
+		// polls it every second, which would evict every real request from the
+		// hundred-entry ring within two minutes. Failures are still recorded.
+		if r.URL.Path == inferenceTelemetryPath && status < http.StatusBadRequest {
+			return
+		}
 		s.events.add(event{
 			Time:       time.Now().UTC().Format(time.RFC3339Nano),
 			RequestID:  id,
@@ -230,20 +243,27 @@ func (s *Server) serveData(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusForbidden, "invalid_host", "request Host must be loopback", "")
 		return
 	}
-	if !s.authorized(r, s.cfg.InferenceToken) {
-		s.metrics.authFailures.Add(1)
-		w.Header().Set("WWW-Authenticate", `Bearer realm="cia-edge"`)
-		s.writeError(w, http.StatusUnauthorized, "invalid_api_key", "invalid inference credential", "")
-		return
-	}
-	if r.URL.RawQuery != "" {
-		s.writeError(w, http.StatusBadRequest, "invalid_request", "query parameters are not supported", "")
-		return
-	}
 
 	switch r.URL.Path {
 	case "/v1/models":
+		inferenceAuthorized := s.authorized(r, s.cfg.InferenceToken)
+		claudeAuthorized := s.authorized(r, s.cfg.ClaudeGatewayToken)
+		if !inferenceAuthorized && !claudeAuthorized {
+			s.writeInferenceAuthError(w)
+			return
+		}
 		if !requireMethod(w, r, http.MethodGet) {
+			return
+		}
+		if err := validateModelsQuery(r.URL.Query()); err != nil {
+			s.writeError(w, http.StatusBadRequest, "invalid_request", err.Error(), "")
+			return
+		}
+		if claudeAuthorized {
+			s.writeJSON(w, http.StatusOK, struct {
+				Object string               `json:"object"`
+				Data   []claudeCatalogModel `json:"data"`
+			}{Object: "list", Data: claudeCatalogModels(s.cfg.Models)})
 			return
 		}
 		s.writeJSON(w, http.StatusOK, struct {
@@ -251,13 +271,140 @@ func (s *Server) serveData(w http.ResponseWriter, r *http.Request) {
 			Data   []Model `json:"data"`
 		}{Object: "list", Data: append([]Model(nil), s.cfg.Models...)})
 	case "/v1/responses", "/v1/chat/completions":
+		if r.URL.RawQuery != "" {
+			s.writeError(w, http.StatusBadRequest, "invalid_request", "query parameters are not supported", "")
+			return
+		}
+		if !s.authorized(r, s.cfg.InferenceToken) {
+			s.writeInferenceAuthError(w)
+			return
+		}
 		if !requireMethod(w, r, http.MethodPost) {
 			return
 		}
 		s.handleInference(w, r)
+	case "/v1/messages":
+		if err := validateMessagesQuery(r.URL.Query()); err != nil {
+			s.writeAnthropicError(w, http.StatusBadRequest, "invalid_request_error", err.Error())
+			return
+		}
+		if !s.authorized(r, s.cfg.ClaudeGatewayToken) {
+			s.metrics.authFailures.Add(1)
+			w.Header().Set("WWW-Authenticate", `Bearer realm="cia-claude-gateway"`)
+			s.writeAnthropicError(w, http.StatusUnauthorized, "authentication_error", "invalid Claude gateway credential")
+			return
+		}
+		if !requireMethod(w, r, http.MethodPost) {
+			return
+		}
+		s.handleAnthropicMessages(w, r)
 	default:
 		s.writeError(w, http.StatusNotFound, "unknown_path", "route not found", "")
 	}
+}
+
+// validateModelsQuery accepts the one pagination parameter used by Claude
+// Desktop's gateway discovery request. The catalog is deliberately small and
+// static, so the value does not change the response; validating it rather than
+// silently ignoring arbitrary parameters keeps the rest of the data plane
+// fail-closed.
+func validateModelsQuery(values url.Values) error {
+	if len(values) == 0 {
+		return nil
+	}
+	limits, ok := values["limit"]
+	if !ok || len(values) != 1 || len(limits) != 1 {
+		return errors.New("only one models limit parameter is supported")
+	}
+	limit, err := strconv.Atoi(limits[0])
+	if err != nil || limit < 1 || limit > 1000 {
+		return errors.New("models limit must be an integer from 1 through 1000")
+	}
+	return nil
+}
+
+// validateMessagesQuery accepts the beta transport flag used by Claude
+// Desktop's third-party Cowork client. Beta features themselves remain
+// expressed in the anthropic-beta header; the query flag only selects the
+// client's beta Messages transport. All other query shapes fail closed.
+func validateMessagesQuery(values url.Values) error {
+	if len(values) == 0 {
+		return nil
+	}
+	betas, ok := values["beta"]
+	if !ok || len(values) != 1 || len(betas) != 1 || betas[0] != "true" {
+		return errors.New("only beta=true is supported for messages")
+	}
+	return nil
+}
+
+const claudeDesktopCompatibilityTier = "sonnet"
+
+// claudeCatalogModel is a Claude Desktop compatibility projection of a CIA
+// model. Desktop 1.37937 accepts anthropic_family_tier during discovery but
+// later drops gateway IDs containing known non-Anthropic family names. The
+// opaque, deterministic ID is therefore a wire alias only. The real identity
+// remains visible in DisplayName and CIARealModelID and is restored before
+// admission, logging, and routing.
+type claudeCatalogModel struct {
+	ID                    string       `json:"id"`
+	CIARealModelID        string       `json:"cia_real_model_id"`
+	Object                string       `json:"object"`
+	OwnedBy               string       `json:"owned_by"`
+	DisplayName           string       `json:"display_name,omitempty"`
+	Capabilities          Capabilities `json:"capabilities,omitempty"`
+	AnthropicFamilyTier   string       `json:"anthropic_family_tier"`
+	MaximumInputTokenHint *int         `json:"max_input_tokens,omitempty"`
+}
+
+func claudeCatalogModels(models []Model) []claudeCatalogModel {
+	result := make([]claudeCatalogModel, 0, len(models))
+	for _, model := range models {
+		result = append(result, claudeCatalogModel{
+			ID:                    claudeExternalModelID(model.ID),
+			CIARealModelID:        model.ID,
+			Object:                model.Object,
+			OwnedBy:               model.OwnedBy,
+			DisplayName:           model.DisplayName,
+			Capabilities:          model.Capabilities,
+			AnthropicFamilyTier:   claudeDesktopCompatibilityTier,
+			MaximumInputTokenHint: model.ContextTokens,
+		})
+	}
+	return result
+}
+
+func claudeExternalModelID(realModelID string) string {
+	digest := sha256.Sum256([]byte(realModelID))
+	return "claude-local-" + hex.EncodeToString(digest[:])
+}
+
+// claudeRealModelID accepts direct real IDs for non-Desktop Anthropic clients
+// and the generated Desktop wire alias. It detects any theoretical alias
+// collision and fails closed instead of selecting an arbitrary model.
+func claudeRealModelID(models []Model, requested string) (string, bool) {
+	for _, model := range models {
+		if model.ID == requested {
+			return model.ID, true
+		}
+	}
+	matched := ""
+	for _, model := range models {
+		if claudeExternalModelID(model.ID) != requested {
+			continue
+		}
+		if matched != "" && matched != model.ID {
+			return "", false
+		}
+		matched = model.ID
+	}
+	return matched, matched != ""
+}
+
+func (s *Server) writeInferenceAuthError(w http.ResponseWriter) {
+	s.metrics.authFailures.Add(1)
+	w.Header().Set("WWW-Authenticate", `Bearer realm="cia-edge"`)
+	s.writeError(w, http.StatusUnauthorized, "invalid_api_key", "invalid inference credential", "")
 }
 
 func (s *Server) handleInference(w http.ResponseWriter, r *http.Request) {
@@ -338,9 +485,13 @@ func (s *Server) handleInference(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusNotFound, "model_not_found", "requested model is not available", "model")
 		return
 	}
-	if !s.requireCapacity(w, r.Context(), modelConfig) {
+	capacity, ok := s.requireCapacity(w, r.Context(), modelConfig)
+	if !ok {
 		return
 	}
+	track := s.inference.begin(modelConfig, r.URL.Path, requestStreams(body), !capacity.ModelRunning)
+	r = r.WithContext(withInferenceTrack(r.Context(), track))
+	defer func() { track.end(responseStatus(w), r.Context().Err() != nil) }()
 
 	if err := s.proxy(w, r, body, namespaceRewrite); err != nil {
 		s.metrics.upstreamFailures.Add(1)
@@ -374,11 +525,12 @@ func (s *Server) proxy(w http.ResponseWriter, incoming *http.Request, body []byt
 		return err
 	}
 	defer response.Body.Close()
+	upstreamBody := observeInferenceBody(incoming.Context(), response)
 
 	contentType := strings.ToLower(response.Header.Get("Content-Type"))
 	isSSE := strings.HasPrefix(contentType, "text/event-stream")
 	if namespaceRewrite != nil && response.StatusCode >= 200 && response.StatusCode < 300 && !isSSE {
-		translated, err := translateBufferedResponse(response.Body, namespaceRewrite)
+		translated, err := translateBufferedResponse(upstreamBody, namespaceRewrite)
 		if err != nil {
 			return err
 		}
@@ -395,12 +547,12 @@ func (s *Server) proxy(w http.ResponseWriter, incoming *http.Request, body []byt
 	copyResponseHeader(w.Header(), response.Header, "X-Accel-Buffering")
 	w.WriteHeader(response.StatusCode)
 	if namespaceRewrite != nil && response.StatusCode >= 200 && response.StatusCode < 300 && isSSE {
-		return copyTranslatedSSE(w, response.Body, namespaceRewrite)
+		return copyTranslatedSSE(w, upstreamBody, namespaceRewrite)
 	}
 
 	buffer := make([]byte, 32<<10)
 	for {
-		read, readErr := response.Body.Read(buffer)
+		read, readErr := upstreamBody.Read(buffer)
 		if read > 0 {
 			if _, writeErr := w.Write(buffer[:read]); writeErr != nil {
 				return writeErr
@@ -492,6 +644,11 @@ func (s *Server) serveControl(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.writeStatus(w, r)
+	case inferenceTelemetryPath:
+		if !requireMethod(w, r, http.MethodGet) {
+			return
+		}
+		s.writeInferenceTelemetry(w)
 	default:
 		s.writeError(w, http.StatusNotFound, "unknown_path", "route not found", "")
 	}
@@ -506,10 +663,18 @@ func (s *Server) writeStatus(w http.ResponseWriter, r *http.Request) {
 	seenRuntimes := make(map[string]struct{}, len(s.cfg.Models))
 	for _, model := range s.cfg.Models {
 		modelCapacity := capacityFrom(model, s.cfg.Models, running, runningErr, memory, metricErr)
-		_, active := running[model.ID]
+		routerState, active := running[model.ID]
+		// A weights file that is gone or the wrong size outranks a memory
+		// verdict: no amount of headroom serves a model that is not on disk.
+		artifact := checkArtifact(model.ArtifactPath, model.ArtifactBytes)
+		available, reason := modelCapacity.Available, modelCapacity.Reason
+		if refused := artifact.refuse(); refused != "" {
+			available, reason = false, refused
+		}
 		modelStatuses = append(modelStatuses, map[string]any{
-			"id": model.ID, "available": modelCapacity.Available,
-			"active": active, "reason": modelCapacity.Reason, "capacity": modelCapacity,
+			"id": model.ID, "available": available,
+			"active": active, "process_state": processState(routerState, active),
+			"reason": reason, "capacity": modelCapacity, "artifact": artifact,
 			"runtime": model.Runtime, "context_tokens": model.ContextTokens,
 			"profile": model.Profile,
 			// Reported together on purpose: a checkpoint configuration is only
@@ -654,6 +819,9 @@ func (s *Server) requireAdmin(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func (s *Server) authorized(r *http.Request, expected string) bool {
+	if expected == "" {
+		return false
+	}
 	value := r.Header.Get("Authorization")
 	if !strings.HasPrefix(value, "Bearer ") {
 		return false
@@ -663,6 +831,22 @@ func (s *Server) authorized(r *http.Request, expected string) bool {
 		return false
 	}
 	return subtle.ConstantTimeCompare([]byte(provided), []byte(expected)) == 1
+}
+
+// processState reports where the router's process for a model is in its life:
+// "starting" is a model being loaded, which is otherwise indistinguishable from
+// a slow prompt. The router's word is passed through only when it is one of
+// its known states, so the status never carries text the edge did not vet.
+func processState(routerState string, running bool) string {
+	if !running {
+		return "stopped"
+	}
+	switch routerState {
+	case "starting", "ready", "stopping", "shutdown", "stopped":
+		return routerState
+	default:
+		return "unknown"
+	}
 }
 
 func validRequestHost(hostport string) bool {

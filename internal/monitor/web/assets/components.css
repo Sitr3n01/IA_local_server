@@ -1,0 +1,530 @@
+/* Components: the pieces every panel is built from. Nothing here knows which
+   metric it shows; tone is chosen by a data-tone attribute from the tokens. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--text-base);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p,
+dl,
+dd,
+ol,
+ul {
+  margin: 0;
+}
+
+ol,
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.num {
+  font-family: var(--font-number);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+/* ---------------------------------------------------------------- card */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink-muted);
+  margin-bottom: var(--space-4);
+}
+
+.card-head h2 {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.card-hint {
+  margin-left: auto;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------------------------------------------------------------- badge, chip */
+
+.badge,
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 26px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--tone-tint, var(--muted-tint));
+  color: var(--tone-ink, var(--ink-soft));
+}
+
+.chip {
+  height: 24px;
+  padding: 0 var(--space-2);
+  font-weight: 600;
+}
+
+.chip .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---------------------------------------------------------------- pill */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--tone-ink, var(--ink-soft));
+  white-space: nowrap;
+}
+
+.pill-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tone, var(--ink-muted));
+  box-shadow: 0 0 0 4px var(--tone-tint, var(--muted-tint));
+}
+
+.pill[data-live="true"] .pill-dot {
+  animation: halo 2s var(--ease) infinite;
+}
+
+@keyframes halo {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px var(--tone-tint);
+  }
+  50% {
+    box-shadow: 0 0 0 6px var(--tone-tint);
+  }
+}
+
+/* ---------------------------------------------------------------- buttons */
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background-color 120ms var(--ease), color 120ms var(--ease);
+}
+
+.icon-button:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.icon-button .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 36px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--text-md);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 120ms var(--ease), border-color 120ms var(--ease), color 120ms var(--ease),
+    opacity 120ms var(--ease);
+}
+
+.button .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.button[data-variant="primary"] {
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
+  color: var(--on-accent-fill);
+}
+
+.button[data-variant="primary"]:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-fill) 88%, var(--ink));
+}
+
+.button[data-variant="danger"] {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--line));
+  color: var(--danger-ink);
+}
+
+.button[data-variant="danger"]:hover:not(:disabled) {
+  background: var(--danger-tint);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.select-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.select {
+  width: 100%;
+  height: 36px;
+  padding: 0 36px 0 var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-md);
+  appearance: none;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.select-wrap .icon {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- tabs */
+
+.tabs {
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: var(--text-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms var(--ease), color 120ms var(--ease);
+}
+
+.tab .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.tab:hover {
+  color: var(--ink);
+}
+
+.tab[aria-selected="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+}
+
+/* ---------------------------------------------------------------- progress */
+
+.progress-track,
+.bar-track {
+  position: relative;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  overflow: hidden;
+}
+
+.progress-bar,
+.bar-fill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--tone, var(--accent));
+  transition: width 400ms var(--ease);
+}
+
+.progress[data-mode="indeterminate"] .progress-bar {
+  width: 38%;
+  animation: sweep 1.4s var(--ease) infinite;
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(270%);
+  }
+}
+
+/* ---------------------------------------------------------------- sparkline */
+
+.spark {
+  display: block;
+  width: 100%;
+  height: 44px;
+  overflow: visible;
+}
+
+.spark-area {
+  fill: var(--tone, var(--accent));
+  opacity: 0.12;
+}
+
+.spark-line {
+  fill: none;
+  stroke: var(--tone, var(--accent));
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------------------------------------------------------------- gauge */
+
+.gauge-track,
+.gauge-value {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.gauge-track {
+  stroke: var(--surface-2);
+  stroke-dasharray: 235.6 314.2;
+}
+
+.gauge-value {
+  stroke: var(--tone, var(--accent));
+  stroke-dasharray: 0 314.2;
+  transition: stroke-dasharray 500ms var(--ease);
+}
+
+.gauge-tick {
+  stroke: var(--ink-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* ---------------------------------------------------------------- facts */
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--text-md);
+}
+
+.facts dt {
+  color: var(--ink-muted);
+}
+
+.facts dd {
+  color: var(--ink);
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------- notice */
+
+.notice {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--tone-tint, var(--info-tint));
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+  border-left: 3px solid var(--tone, var(--info));
+}
+
+.notices {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.notices:empty {
+  display: none;
+}
+
+.num[data-empty="true"] {
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+  }
+
+  .progress[data-mode="indeterminate"] .progress-bar {
+    width: 100%;
+    animation: none;
+    opacity: 0.45;
+  }
+
+  .pill[data-live="true"] .pill-dot {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------- tone
+   Last on purpose: a component may set a default tone on its own class, and
+   an explicit data-tone of equal specificity must win over it. */
+
+
+[data-tone="accent"] {
+  --tone: var(--accent);
+  --tone-ink: var(--accent-ink);
+  --tone-tint: var(--accent-tint);
+}
+
+[data-tone="info"] {
+  --tone: var(--info);
+  --tone-ink: var(--info-ink);
+  --tone-tint: var(--info-tint);
+}
+
+[data-tone="warn"] {
+  --tone: var(--warn);
+  --tone-ink: var(--warn-ink);
+  --tone-tint: var(--warn-tint);
+}
+
+[data-tone="danger"] {
+  --tone: var(--danger);
+  --tone-ink: var(--danger-ink);
+  --tone-tint: var(--danger-tint);
+}
+
+[data-tone="muted"] {
+  --tone: var(--ink-muted);
+  --tone-ink: var(--ink-muted);
+  --tone-tint: var(--muted-tint);
+}
+

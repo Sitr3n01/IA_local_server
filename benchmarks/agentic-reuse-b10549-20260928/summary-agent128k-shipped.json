@@ -1,0 +1,99 @@
+﻿{
+    "label":  "agent128k-shipped",
+    "model":  "qwen38-27b-agent-128k",
+    "runtime":  {
+                    "id":  "amd-rocm-qwen38",
+                    "version_label":  "b10549",
+                    "build_commit":  "b2e5e9b28",
+                    "sha256":  "C8B1E5A66E1BB45854BED3DAAAB116C37E74526E30143D737C67557BAB822359"
+                },
+    "extra_arguments":  [
+
+                        ],
+    "summarize_only":  true,
+    "started_utc":  "2026-09-28T14:15:21.7625724Z",
+    "load_seconds":  null,
+    "idle_before":  null,
+    "verdict":  "incremental_reuse_pass",
+    "measure_exit":  null,
+    "measure_error":  null,
+    "log_counts":  {
+                       "checkpoint_lines":  0,
+                       "forced_full_reprefill":  0,
+                       "slot_selected_by_lcp":  5
+                   },
+    "turns":  [
+                  {
+                      "turn":  1,
+                      "kind":  "cold-prefill",
+                      "context":  55189,
+                      "processed":  55189,
+                      "cached":  0,
+                      "prompt_ms":  293122.324,
+                      "turn_latency_ms":  302691.5,
+                      "decode_tps":  9.468345060580049,
+                      "private_gib":  12.33,
+                      "physical_free_gib":  2.788
+                  },
+                  {
+                      "turn":  2,
+                      "kind":  "tool-result",
+                      "context":  55196,
+                      "processed":  11,
+                      "cached":  55185,
+                      "prompt_ms":  1086.885,
+                      "turn_latency_ms":  4019.6,
+                      "decode_tps":  9.036400009453466,
+                      "private_gib":  12.478,
+                      "physical_free_gib":  2.642
+                  },
+                  {
+                      "turn":  3,
+                      "kind":  "user-increment",
+                      "context":  58915,
+                      "processed":  3723,
+                      "cached":  55192,
+                      "prompt_ms":  28131.644,
+                      "turn_latency_ms":  42527.7,
+                      "decode_tps":  8.856043890832455,
+                      "private_gib":  12.628,
+                      "physical_free_gib":  2.433
+                  },
+                  {
+                      "turn":  4,
+                      "kind":  "tool-result",
+                      "context":  58910,
+                      "processed":  287,
+                      "cached":  58623,
+                      "prompt_ms":  2714.654,
+                      "turn_latency_ms":  17710.3,
+                      "decode_tps":  8.49997523629262,
+                      "private_gib":  12.482,
+                      "physical_free_gib":  2.323
+                  },
+                  {
+                      "turn":  5,
+                      "kind":  "user-increment",
+                      "context":  62722,
+                      "processed":  3816,
+                      "cached":  58906,
+                      "prompt_ms":  28663.737,
+                      "turn_latency_ms":  38921.6,
+                      "decode_tps":  8.726362832361668,
+                      "private_gib":  12.632,
+                      "physical_free_gib":  2.231
+                  },
+                  {
+                      "turn":  6,
+                      "kind":  "tool-result",
+                      "context":  62748,
+                      "processed":  30,
+                      "cached":  62718,
+                      "prompt_ms":  1157.161,
+                      "turn_latency_ms":  16136.4,
+                      "decode_tps":  8.510985068113346,
+                      "private_gib":  12.492,
+                      "physical_free_gib":  2.373
+                  }
+              ]
+}

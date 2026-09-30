@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sitr3n/local-ai-provider/internal/claudedesktop"
 	"github.com/sitr3n/local-ai-provider/internal/credential"
 	"github.com/sitr3n/local-ai-provider/internal/mcpadmin"
 	"github.com/sitr3n/local-ai-provider/internal/mcpserver"
@@ -32,9 +33,38 @@ type appController struct {
 	rootStore       *panel.ModelRootStore
 	validationStore *panel.ValidationStore
 	hashCache       *panel.HashCache
+	claude          claudeDesktopService
+	readCredential  func(string) (string, error)
+	probeGateway    func(context.Context, claudedesktop.Gateway) error
+	claudeDetail    string
 
 	mu       sync.RWMutex
 	selected string
+}
+
+// claudeDesktopService keeps tray actions testable as one end-to-end unit:
+// mode selection and launch go through the same discovered Desktop identity.
+type claudeDesktopService interface {
+	CurrentMode() (claudedesktop.Mode, error)
+	Apply(context.Context, claudedesktop.Mode, claudedesktop.Gateway) error
+	Launch(context.Context) error
+}
+
+type windowsClaudeDesktopService struct {
+	manager  *claudedesktop.Manager
+	identity claudedesktop.Identity
+}
+
+func (s windowsClaudeDesktopService) CurrentMode() (claudedesktop.Mode, error) {
+	return s.manager.CurrentMode()
+}
+
+func (s windowsClaudeDesktopService) Apply(ctx context.Context, mode claudedesktop.Mode, gateway claudedesktop.Gateway) error {
+	return s.manager.Apply(ctx, mode, gateway)
+}
+
+func (s windowsClaudeDesktopService) Launch(ctx context.Context) error {
+	return claudedesktop.LaunchWindows(ctx, s.identity)
 }
 
 func newAppController(config panel.Config, appVersion string) (*appController, error) {
@@ -105,7 +135,7 @@ func newAppController(config panel.Config, appVersion string) (*appController, e
 		return nil, err
 	}
 
-	return &appController{
+	controller := &appController{
 		config:          config,
 		catalog:         catalog,
 		selection:       selection,
@@ -116,7 +146,28 @@ func newAppController(config panel.Config, appVersion string) (*appController, e
 		validationStore: validationStore,
 		hashCache:       hashCache,
 		selected:        selected.Model,
-	}, nil
+		readCredential:  credential.Read,
+		probeGateway:    claudedesktop.ProbeGateway,
+	}
+	backupDir := filepath.Join(filepath.Dir(config.ValidationPath), "claude-desktop")
+	identity, claudePaths, discoverErr := claudedesktop.DiscoverWindows(context.Background(), backupDir)
+	if discoverErr != nil {
+		controller.claudeDetail = "Claude Desktop indisponível: " + sanitizeClaudeDetail(discoverErr)
+		return controller, nil
+	}
+	verifier, verifyErr := claudedesktop.NewGatewayVerifier(claudePaths, identity)
+	if verifyErr != nil {
+		controller.claudeDetail = "Configuração Claude inválida: " + sanitizeClaudeDetail(verifyErr)
+		return controller, nil
+	}
+	manager, managerErr := claudedesktop.NewManager(claudePaths, identity, claudedesktop.NewWindowsPolicyReader(), claudedesktop.NewWindowsRestarter(), verifier, claudedesktop.NewDPAPIProtector())
+	if managerErr != nil {
+		controller.claudeDetail = "Gerenciador Claude indisponível: " + sanitizeClaudeDetail(managerErr)
+		return controller, nil
+	}
+	controller.claude = windowsClaudeDesktopService{manager: manager, identity: identity}
+	controller.claudeDetail = "Prévia segura — Aplicar muda somente o estado 3P isolado"
+	return controller, nil
 }
 
 func (c *appController) Snapshot(ctx context.Context) (trayui.Snapshot, error) {
@@ -129,6 +180,16 @@ func (c *appController) Snapshot(ctx context.Context) (trayui.Snapshot, error) {
 		SelectedModel: selected,
 		Models:        make([]trayui.Model, 0, len(c.catalog.AllModels())),
 		UpdatedAt:     time.Now().UTC(),
+	}
+	if c.claude != nil {
+		snapshot.ClaudeAvailable = true
+		if mode, modeErr := c.claude.CurrentMode(); modeErr == nil {
+			snapshot.ClaudeMode = trayui.ClaudeMode(mode)
+		}
+		snapshot.ClaudeDetail = c.claudeDetail
+		snapshot.ClaudeLastModel = selected
+	} else {
+		snapshot.ClaudeDetail = c.claudeDetail
 	}
 	registeredPaths := make(map[string]struct{}, len(c.catalog.AllModels()))
 	validations, _ := c.validationStore.Load()
@@ -210,6 +271,16 @@ func (c *appController) Snapshot(ctx context.Context) (trayui.Snapshot, error) {
 		for _, event := range status.RecentEvents {
 			snapshot.RecentEvents = append(snapshot.RecentEvents, trayui.Event{Time: event.Time, Method: event.Method, Path: event.Path, Status: event.Status, DurationMS: event.DurationMS})
 		}
+		if snapshot.ClaudeAvailable && status.Ready && status.Upstream.Reachable {
+			token, credentialErr := c.readCredential("claude-gateway")
+			if credentialErr != nil {
+				snapshot.ClaudeDetail = "Gateway Claude indisponível: " + sanitizeClaudeDetail(credentialErr)
+			} else if probeErr := c.probeGateway(ctx, claudedesktop.Gateway{BaseURL: c.config.DataURL, APIKey: token}); probeErr != nil {
+				snapshot.ClaudeDetail = "Gateway Claude indisponível: " + sanitizeClaudeDetail(probeErr)
+			} else {
+				snapshot.ClaudeGatewayOK = true
+			}
+		}
 		return snapshot, nil
 	}
 
@@ -223,6 +294,44 @@ func (c *appController) Snapshot(ctx context.Context) (trayui.Snapshot, error) {
 		}
 	}
 	return snapshot, statusErr
+}
+
+func (c *appController) SetClaudeMode(ctx context.Context, mode trayui.ClaudeMode) error {
+	if c.claude == nil {
+		return errors.New("claude Desktop não está disponível para configuração")
+	}
+	var gateway claudedesktop.Gateway
+	switch mode {
+	case trayui.ClaudeModeAnthropic:
+		return c.claude.Apply(ctx, claudedesktop.ModeAnthropic, gateway)
+	case trayui.ClaudeModeLocal:
+		token, err := c.readCredential("claude-gateway")
+		if err != nil {
+			return fmt.Errorf("ler credencial exclusiva do gateway Claude: %w", err)
+		}
+		gateway = claudedesktop.Gateway{BaseURL: c.config.DataURL, APIKey: token}
+		if err := c.probeGateway(ctx, gateway); err != nil {
+			return fmt.Errorf("precheck do gateway Claude: %w", err)
+		}
+		return c.claude.Apply(ctx, claudedesktop.ModeLocal, gateway)
+	default:
+		return errors.New("modo Claude Desktop inválido")
+	}
+}
+
+func (c *appController) LaunchClaudeDesktop(ctx context.Context) error {
+	if c.claude == nil {
+		return errors.New("o Claude Desktop não está disponível para abertura")
+	}
+	return c.claude.Launch(ctx)
+}
+
+func sanitizeClaudeDetail(err error) string {
+	text := strings.TrimSpace(err.Error())
+	if len(text) > 180 {
+		return text[:180]
+	}
+	return text
 }
 
 func (c *appController) SelectModel(_ context.Context, modelID string) error {

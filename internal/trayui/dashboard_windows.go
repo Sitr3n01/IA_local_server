@@ -41,21 +41,23 @@ const (
 	enChange       = 0x0300
 	emSetCueBanner = 0x1501
 
-	idStatus     = 2001
-	idSearch     = 2002
-	idModels     = 2003
-	idDetails    = 2004
-	idEvents     = 2005
-	idRoots      = 2006
-	idSelect     = 2010
-	idLoad       = 2011
-	idUnload     = 2012
-	idValidate   = 2013
-	idCodex      = 2014
-	idOpenCode   = 2015
-	idRefresh    = 2016
-	idAddRoot    = 2017
-	idRemoveRoot = 2018
+	idStatus          = 2001
+	idSearch          = 2002
+	idModels          = 2003
+	idDetails         = 2004
+	idEvents          = 2005
+	idRoots           = 2006
+	idSelect          = 2010
+	idLoad            = 2011
+	idUnload          = 2012
+	idValidate        = 2013
+	idCodex           = 2014
+	idOpenCode        = 2015
+	idRefresh         = 2016
+	idAddRoot         = 2017
+	idRemoveRoot      = 2018
+	idClaudeAnthropic = 2019
+	idClaudeLocal     = 2020
 
 	defaultGUIFont      = 17
 	bifReturnOnlyFSDirs = 0x0001
@@ -110,6 +112,8 @@ func (a *app) createDashboardControls() error {
 		{idRefresh, "BUTTON", "Atualizar", wsChild | wsVisible | wsTabStop | bsPushButton},
 		{idAddRoot, "BUTTON", "Adicionar pasta", wsChild | wsVisible | wsTabStop | bsPushButton},
 		{idRemoveRoot, "BUTTON", "Remover pasta", wsChild | wsVisible | wsTabStop | bsPushButton},
+		{idClaudeAnthropic, "BUTTON", "Claude: Anthropic", wsChild | wsVisible | wsTabStop | bsPushButton},
+		{idClaudeLocal, "BUTTON", "Claude: Local", wsChild | wsVisible | wsTabStop | bsPushButton},
 	}
 	instance, _, _ := procGetModuleHandleW.Call(0)
 	font, _, _ := procGetStockObject.Call(defaultGUIFont)
@@ -144,18 +148,18 @@ func (a *app) layoutDashboard(width, height int32) {
 			_, _, _ = procMoveWindow.Call(uintptr(handle), uintptr(x), uintptr(y), uintptr(w), uintptr(h), 1)
 		}
 	}
-	move(idStatus, margin, 14, width-2*margin, 48)
-	move(idSearch, margin, 70, left, 26)
-	move(idModels, margin, 102, left, height-322)
+	move(idStatus, margin, 14, width-2*margin, 64)
+	move(idSearch, margin, 86, left, 26)
+	move(idModels, margin, 118, left, height-338)
 	move(idRoots, margin, height-210, left, 92)
 	move(idAddRoot, margin, height-110, 130, 28)
 	move(idRemoveRoot, margin+138, height-110, 130, 28)
 	rightX := margin + left + 16
 	rightW := width - rightX - margin
-	move(idDetails, rightX, 70, rightW, 285)
+	move(idDetails, rightX, 86, rightW, 269)
 	move(idEvents, rightX, 365, rightW, height-485)
 	buttonY := height - 110
-	buttons := []uint32{idSelect, idLoad, idUnload, idValidate, idOpenCode, idRefresh}
+	buttons := []uint32{idSelect, idLoad, idUnload, idValidate, idOpenCode, idRefresh, idClaudeAnthropic, idClaudeLocal}
 	buttonW := (rightW - 12) / 4
 	for index, id := range buttons {
 		row := int32(index / 4)
@@ -237,6 +241,14 @@ func (a *app) handleDashboardCommand(id, notification uint32) {
 		if root, ok := a.selectedRoot(); ok {
 			a.startAction("Remover pasta", false, func(ctx context.Context) error { return a.controller.RemoveModelRoot(ctx, root) })
 		}
+	case idClaudeAnthropic:
+		a.startAction("Restaurar Claude Anthropic", false, func(ctx context.Context) error {
+			return a.controller.SetClaudeMode(ctx, ClaudeModeAnthropic)
+		})
+	case idClaudeLocal:
+		a.startAction("Aplicar Claude Local", false, func(ctx context.Context) error {
+			return a.controller.SetClaudeMode(ctx, ClaudeModeLocal)
+		})
 	}
 }
 
@@ -258,7 +270,22 @@ func (a *app) refreshDashboard() {
 	if active == "" {
 		active = "nenhum (lazy load)"
 	}
-	status := fmt.Sprintf("Servidor: %s    Selecionado: %s    Carregado: %s\r\nFila: %d/%d    GPU: AMD Radeon RX 9070 XT    Capacidade: %s", server, snapshot.SelectedModel, active, snapshot.Queued, snapshot.MaxQueue, snapshot.CapacityNote)
+	claude := "indisponível"
+	if snapshot.ClaudeAvailable {
+		claude = "Anthropic"
+		if snapshot.ClaudeMode == ClaudeModeLocal {
+			claude = "Local"
+		}
+		if snapshot.ClaudeGatewayOK {
+			claude += " (gateway pronto)"
+		} else {
+			claude += " (gateway não verificado)"
+		}
+	}
+	status := fmt.Sprintf("Servidor: %s    Selecionado: %s    Carregado: %s\r\nFila: %d/%d    GPU: AMD Radeon RX 9070 XT    Capacidade: %s\r\nClaude: %s    Último modelo local: %s", server, snapshot.SelectedModel, active, snapshot.Queued, snapshot.MaxQueue, snapshot.CapacityNote, claude, snapshot.ClaudeLastModel)
+	if snapshot.ClaudeDetail != "" {
+		status += "    " + snapshot.ClaudeDetail
+	}
 	if lastErr != nil {
 		status += "    Último erro: " + friendlyError(lastErr)
 	}
@@ -352,6 +379,9 @@ func (a *app) updateDetails() {
 	a.enable(idUnload, snapshot.ActiveModel != "" && !busy && snapshot.Active == 0 && snapshot.Queued == 0)
 	a.enable(idValidate, (model.Discovered || model.Available) && !busy)
 	a.enable(idOpenCode, model.OpenCode && snapshot.ProviderReady && !busy)
+	canSwitchClaude := snapshot.ClaudeAvailable && !busy && snapshot.Active == 0 && snapshot.Queued == 0
+	a.enable(idClaudeAnthropic, canSwitchClaude && snapshot.ClaudeMode != ClaudeModeAnthropic)
+	a.enable(idClaudeLocal, canSwitchClaude && snapshot.ClaudeGatewayOK && snapshot.ClaudeMode != ClaudeModeLocal)
 }
 
 func (a *app) populateRoots() {

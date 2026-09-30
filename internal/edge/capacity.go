@@ -308,13 +308,16 @@ func exceedsVRAMBudget(model Model) bool {
 	return *model.PeakVRAMGiB+vramReserveGiB > *model.DeviceVRAMGiB
 }
 
-func (s *Server) requireCapacity(w http.ResponseWriter, ctx context.Context, model Model) bool {
+// requireCapacity refuses a model that cannot be admitted and otherwise returns
+// the verdict it admitted on; ModelRunning in it is what tells a cold load from
+// a warm request without a second router query.
+func (s *Server) requireCapacity(w http.ResponseWriter, ctx context.Context, model Model) (capacityStatus, bool) {
 	capacity, _ := s.capacityFor(ctx, model)
 	if capacity.Available {
-		return true
+		return capacity, true
 	}
 	s.writeError(w, http.StatusServiceUnavailable, "insufficient_capacity", capacityMessage(capacity.Reason), "model")
-	return false
+	return capacity, false
 }
 
 func (s *Server) runningModels(ctx context.Context) (map[string]string, error) {

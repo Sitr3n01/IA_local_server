@@ -36,6 +36,39 @@ models:
 	}
 }
 
+func TestLoadModelsPreservesQualifiedCapabilities(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "models.yaml")
+	data := []byte(`provider:
+  public_model: local-coding
+models:
+  - id: local-coding
+    state: candidate
+    deployments: [canary]
+    capabilities:
+      responses: false
+      chat_completions: true
+      streaming: true
+      function_calling: true
+      structured_output: false
+      reasoning: true
+`)
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	models, _, err := LoadModels(path, "canary")
+	if err != nil {
+		t.Fatalf("LoadModels: %v", err)
+	}
+	if len(models) != 1 {
+		t.Fatalf("models = %+v", models)
+	}
+	got := models[0].Capabilities
+	if got.Responses || !got.ChatCompletions || !got.Streaming || !got.FunctionCalling || got.StructuredOutput || !got.Reasoning {
+		t.Fatalf("capabilities were not preserved from the YAML manifest: %+v", got)
+	}
+}
+
 func TestRepositoryManifestExposesCanaryModels(t *testing.T) {
 	path := filepath.Join("..", "..", "config", "models.yaml")
 	models, _, err := LoadModels(path, "canary")
@@ -51,10 +84,10 @@ func TestRepositoryManifestExposesCanaryModels(t *testing.T) {
 	// benchmark references can remain elsewhere, but the runtime allowlist is the
 	// current inventory only.
 	want := []string{
-		"gemma4-12b-qat-ud-q4xl",
+		"gemma4-12b-qat-ud-q4xl-256k",
 		"qwen38-27b-deep-32k",
 		"qwen38-27b-agent-128k",
-		"qwen38-27b-huge-256k",
+		"qwen36-35b-a3b-huge-256k",
 	}
 	if len(models) != len(want) {
 		t.Fatalf("repository allowlist = %+v, want %d canary models", models, len(want))

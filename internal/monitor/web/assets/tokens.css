@@ -1,0 +1,151 @@
+/* Design tokens. Every color, radius and step of spacing on the page comes
+   from here, so the dark theme is a second set of values and not a second
+   stylesheet. Light is the default; dark follows the system unless the
+   viewer chose light, and a chosen dark wins either way. */
+
+:root {
+  color-scheme: light;
+
+  --bg: #f9fafb;
+  --surface: #ffffff;
+  --surface-2: #f5f6f8;
+  --line: #dee5ee;
+  --line-soft: #ebeff4;
+  --ink: #221e1f;
+  --ink-soft: #4a4546;
+  --ink-muted: #6b6b6b;
+
+  --accent: #10b981;
+  --accent-ink: #047857;
+  --accent-tint: rgba(16, 185, 129, 0.12);
+  /* A filled button needs its label to stay legible: white on the bright
+     accent is 2.5:1, so light fills with the deep green and dark with the
+     bright one under dark text. */
+  --accent-fill: #047857;
+  --on-accent-fill: #ffffff;
+  --info: #0f97ff;
+  --info-ink: #0a67be;
+  --info-tint: rgba(15, 151, 255, 0.12);
+  --warn: #e39b0b;
+  --warn-ink: #9a5b05;
+  --warn-tint: rgba(227, 155, 11, 0.14);
+  --danger: #e0283f;
+  --danger-ink: #bf1d33;
+  --danger-tint: rgba(224, 40, 63, 0.12);
+  --muted-tint: rgba(107, 107, 107, 0.12);
+
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05);
+  --focus: 0 0 0 3px rgba(15, 151, 255, 0.35);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-number: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 22px;
+  --text-stat: 32px;
+
+  --page-width: 1240px;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* A 16:9 desktop gives the page far more room than a laptop does, and the cards
+   are laid out to use it: the content widens in two steps, and the metric grid
+   takes five columns from the first of them (app.css). */
+@media (min-width: 1600px) {
+  :root {
+    --page-width: 1560px;
+  }
+}
+
+@media (min-width: 2200px) {
+  :root {
+    --page-width: 1800px;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0e1113;
+  --surface: #161a1d;
+  --surface-2: #1d2226;
+  --line: #2a3036;
+  --line-soft: #22272c;
+  --ink: #eef1f3;
+  --ink-soft: #c7cdd3;
+  --ink-muted: #8e979f;
+
+  --accent: #34d399;
+  --accent-ink: #34d399;
+  --accent-tint: rgba(52, 211, 153, 0.12);
+  --accent-fill: #34d399;
+  --on-accent-fill: #052e22;
+  --info: #3aa9ff;
+  --info-ink: #3aa9ff;
+  --info-tint: rgba(58, 169, 255, 0.12);
+  --warn: #f5b53d;
+  --warn-ink: #f5b53d;
+  --warn-tint: rgba(245, 181, 61, 0.12);
+  --danger: #ff5a6e;
+  --danger-ink: #ff5a6e;
+  --danger-tint: rgba(255, 90, 110, 0.12);
+  --muted-tint: rgba(142, 151, 159, 0.14);
+
+  --shadow: none;
+  --focus: 0 0 0 3px rgba(58, 169, 255, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg: #0e1113;
+    --surface: #161a1d;
+    --surface-2: #1d2226;
+    --line: #2a3036;
+    --line-soft: #22272c;
+    --ink: #eef1f3;
+    --ink-soft: #c7cdd3;
+    --ink-muted: #8e979f;
+
+    --accent: #34d399;
+    --accent-ink: #34d399;
+    --accent-tint: rgba(52, 211, 153, 0.12);
+    --accent-fill: #34d399;
+    --on-accent-fill: #052e22;
+    --info: #3aa9ff;
+    --info-ink: #3aa9ff;
+    --info-tint: rgba(58, 169, 255, 0.12);
+    --warn: #f5b53d;
+    --warn-ink: #f5b53d;
+    --warn-tint: rgba(245, 181, 61, 0.12);
+    --danger: #ff5a6e;
+    --danger-ink: #ff5a6e;
+    --danger-tint: rgba(255, 90, 110, 0.12);
+    --muted-tint: rgba(142, 151, 159, 0.14);
+
+    --shadow: none;
+    --focus: 0 0 0 3px rgba(58, 169, 255, 0.4);
+  }
+}

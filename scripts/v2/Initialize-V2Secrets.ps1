@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
     mode = $(if ($Apply) { 'apply' } else { 'preview' })
     helper = $CredentialHelper
     operation = 'init'
-    credentials = @('inference', 'admin', 'router')
+    credentials = @('inference', 'admin', 'router', 'claude-gateway')
     behavior = 'create missing credentials only; never print values'
 } | ConvertTo-Json -Depth 3
 

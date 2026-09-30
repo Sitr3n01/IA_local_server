@@ -165,3 +165,27 @@ for reversing that: it measures prompt tokens reprocessed per turn across a
 multi-turn agentic pattern, and passing it on a candidate runtime is what
 demonstrates the feature works there.
 
+## Addendum 2: measured on b10549 (2026-09-28)
+
+The first addendum rested on upstream reports and was never measured here.
+Measured now, it does not hold for the pinned `amd-rocm-qwen38` runtime
+(b10549): in-session context reuse works on both hybrid profiles at Gates B and
+C, and on the Huge profile at Gate D up to ~257k tokens, with zero full
+re-prefills (`docs/TUNING.md` §1.4,
+`benchmarks/agentic-reuse-b10549-20260928/`). The scenario
+`qwen38-27b-iq4xs-agentic-restore` describes passed on the shipped Q3_K_XL
+Agent profile, without MTP, rather than on the IQ4_XS artifact that entry names.
+
+The measurement also showed that leaving `cache_ram_mib` unset did not do what
+the first addendum intended. The generator emits `--cache-ram` only for a
+declared value, and b10549 defaults to `--cache-ram 8192` with
+`--cache-idle-slots` on, `--ctx-checkpoints 32` and `--checkpoint-min-step 8192`.
+Every profile on this runtime has therefore been running an 8 GiB host prompt
+cache that decision 4 never counted, because admission charges only what the
+manifest declares. It did not fill in one continuing session (+0.13 to
++0.30 GiB private over six turns); alternating conversations, which would fill
+it, were not measured. Until the fields are declared, decision 4's commit
+accounting is incomplete for this runtime. They were declared the same day, at
+the default values, on five of the six active profiles; `gemma4-12b-qat-ud-q4xl`
+remains undeclared (`docs/TUNING.md` §1.4 gives the reason).
+

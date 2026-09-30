@@ -57,7 +57,7 @@ No v2 listener may bind to `0.0.0.0`, `::`, a LAN address, or a public interface
 - Allows only `GET /v1/models`, `POST /v1/responses`, and `POST /v1/chat/completions` on the data plane.
 - Decodes `identity`, `gzip`, and `zstd` within fixed compressed, decoded, and expansion-ratio limits.
 - Streams upstream bytes as they arrive and propagates client cancellation.
-- Applies narrow, route-specific compatibility adapters required by the verified clients/runtime: Responses accepts its flat function shape and flattens/restores Codex namespace tools only on the internal hop; Chat Completions validates and preserves the standard wrapped `tools[].function` shape used by OpenCode. Initial contiguous authority messages are coalesced for the Ornith template. Interleaved authority messages, hybrid tool shapes, unsupported tool types, and non-text authority content fail closed.
+- Applies narrow, route-specific compatibility adapters required by the verified clients/runtime: Responses accepts its flat function shape and flattens/restores Codex namespace tools only on the internal hop; Chat Completions validates and preserves the standard wrapped `tools[].function` shape used by OpenCode; Anthropic Messages accepts Claude Desktop's exact beta transport query, maps mid-conversation system messages, and omits Cowork's always-present tool definitions only for a text-only model with no tool history. Initial contiguous authority messages are coalesced, because llama.cpp maps `system` and `developer` to `system` and several chat templates accept only one initial system message. Interleaved authority messages on OpenAI routes, hybrid tool shapes, unsupported tool types, and non-text authority content fail closed.
 - Removes the client `Authorization` header and authenticates to the router with `CIA_ROUTER_TOKEN`.
 - Uses distinct `CIA_INFERENCE_TOKEN` and `CIA_ADMIN_TOKEN` credentials.
 - Fails closed for unknown routes, models, encodings, and unsupported stateful behavior.
@@ -361,4 +361,3 @@ Device selection is `--device ROCm0` with `--split-mode none`, and the VRAM
 budget in the manifest is a single `runtimes[].device.vram_mib`. Multi-GPU is
 out of scope and no speculative abstraction exists for it; extending later means
 making the budget and the device selector plural, which is a contained change.
-

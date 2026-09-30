@@ -1,0 +1,160 @@
+/*
+ * Overview's personality: editorial. One verdict, set large on open canvas,
+ * with prose under it and everything else deliberately quieter. It is the
+ * only screen in the console that uses the display type role, and the only
+ * one whose measure is set for reading rather than for comparing.
+ *
+ * What is NOT here any more, and is worth naming because the file it
+ * replaces was mostly this: four `.overview-section` rules, a
+ * `repeat(auto-fit, minmax(15rem, 1fr))` tile grid, and per-panel border
+ * colours for the not-ready and abnormal-maintenance states. The states
+ * survive; the panels do not.
+ */
+.overview-page {
+  /* The shell's one column (see AppShell.css). Overview reads calmly because
+   * its paragraphs are capped at a reading measure and because of the space
+   * around them - not because this page is narrower than the header above
+   * it, which is what it used to be and what stopped the two ever sharing a
+   * left edge. */
+  max-width: var(--app-shell-content-max-width);
+  /* `width: 100%` is load-bearing next to `margin-inline: auto`. Auto
+   * cross-axis margins suppress a flex item's stretch, so without it this
+   * column shrink-wraps its content and never reaches the max-width above -
+   * the Overview measured 413px of an available 992px, with the remainder
+   * left as dead space. The auto margins still do the centring once the
+   * width is definite. */
+  width: 100%;
+  min-width: 0;
+  margin-inline: auto;
+  padding-inline: var(--app-shell-content-padding-inline);
+  padding-block: var(--space-lg) var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+  /* Fills `.app-shell__content`'s full available height so a sparse state's
+   * `.app-shell__sparse-state` wrapper (see AppShell.css) has a real region
+   * to centre within, rather than only being as tall as its own content. */
+  flex: 1;
+  min-height: 0;
+}
+
+.overview-page__body {
+  min-width: 0;
+}
+
+/* ---- The verdict ---- */
+
+.overview-readiness {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+/*
+ * The one display-sized element in the console. `align-items: baseline`
+ * rather than `center`: at 32px the glyph would otherwise float visibly
+ * above the cap height of the words beside it.
+ */
+.overview-readiness__statement {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-12);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-display-size);
+  font-weight: var(--text-display-weight);
+  line-height: var(--text-display-line-height);
+  letter-spacing: var(--text-display-tracking);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.overview-readiness__icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  /* Nudged onto the baseline of the text it sits beside - a glyph box has no
+   * baseline of its own to align on. */
+  align-self: center;
+  color: var(--color-status-success);
+}
+
+.overview-readiness__statement--not-ready .overview-readiness__icon {
+  color: var(--color-status-danger);
+}
+
+/*
+ * The failure explanation, at a reading measure and in full-strength
+ * foreground. It is deliberately not tinted with the danger colour: this is
+ * the arithmetic an operator has to read and act on, and red prose is
+ * harder to read for exactly the audience most likely to be reading it
+ * under pressure. The glyph above already carries the alarm.
+ */
+.overview-readiness__explanation {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  color: var(--color-text-primary);
+  max-width: 64ch;
+  margin: 0;
+}
+
+.overview-readiness__models {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* ---- Active model + the two operational figures ---- */
+
+.overview-detail__model {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.overview-detail__model-name {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  line-height: var(--text-title-line-height);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* "None loaded" is an ordinary condition on this provider, not a fault -
+ * one step quieter, and no status colour. */
+.overview-detail__model-name--none {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-regular);
+}
+
+.overview-detail__model-detail {
+  font-family: var(--font-family-mono);
+  font-size: var(--text-code-size);
+  color: var(--color-text-muted);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Loading ---- */
+
+.overview-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  max-width: 44rem;
+}
+
+.overview-skeleton__statement {
+  height: var(--text-display-size);
+  max-width: 22rem;
+}
+
+.overview-skeleton__detail {
+  height: var(--text-title-size);
+  max-width: 30rem;
+}

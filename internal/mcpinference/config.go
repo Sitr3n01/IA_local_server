@@ -15,7 +15,6 @@ import (
 
 const (
 	defaultDataURL         = "http://127.0.0.1:8090"
-	defaultModelID         = "local-coding"
 	defaultTimeout         = 5 * time.Minute
 	maximumTimeout         = 40 * time.Minute
 	defaultOutputTokens    = 2048
@@ -52,13 +51,21 @@ type Config struct {
 func ConfigFromEnv() (Config, error) {
 	cfg := Config{
 		DataURL:          envOr("CIA_MCP_INFERENCE_DATA_URL", defaultDataURL),
-		Model:            envOr("CIA_MCP_INFERENCE_MODEL", defaultModelID),
+		Model:            strings.TrimSpace(os.Getenv("CIA_MCP_INFERENCE_MODEL")),
 		Timeout:          defaultTimeout,
 		MaxOutputTokens:  defaultOutputTokens,
 		Temperature:      defaultTemperature,
 		MaxPromptBytes:   defaultPromptBytes,
 		MaxContextBytes:  defaultContextBytes,
 		MaxCombinedBytes: defaultCombinedBytes,
+	}
+
+	// There is deliberately no built-in model. The pin is operator-generated
+	// process configuration (ADR 0006), and a compiled fallback outlives the
+	// roster it was chosen from: this one named a removed profile, so every
+	// delegated call was refused by the edge.
+	if cfg.Model == "" {
+		return Config{}, errors.New("CIA_MCP_INFERENCE_MODEL is required: the inference MCP has no built-in model; pin one with scripts/v2/Install-V2McpInferenceIntegrations.ps1")
 	}
 
 	if raw := strings.TrimSpace(os.Getenv("CIA_MCP_INFERENCE_TIMEOUT")); raw != "" {

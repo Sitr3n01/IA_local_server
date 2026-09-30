@@ -1,0 +1,61 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "throughput-sweep",
+    "label":  "perf-qwen36-q2kxl-ctx262144-d240000",
+    "started_utc":  "2026-08-25T14:19:22.3018312Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\Qwen3.6-35B-A3B-GGUF\\Qwen3.6-35B-A3B-UD-Q2_K_XL.gguf",
+                          "model_bytes":  12290628576,
+                          "runtime_root":  "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+                          "context_tokens":  262144,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "tensor_override":  "",
+                          "ubatch_size":  288,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "repetitions":  3,
+                          "device_vram_mib":  16304,
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  8
+                      },
+    "results":  [
+                    {
+                        "tag":  "perf-qwen36-q2kxl-ctx262144-d240000-pp8192",
+                        "kind":  "pp",
+                        "n":  8192,
+                        "depth":  0,
+                        "tokens_per_second":  855.37,
+                        "stddev":  2.82,
+                        "relative_stddev_percent":  0.33,
+                        "timed_out":  false,
+                        "wall_s":  47.4,
+                        "peak":  {
+                                     "vram_dedicated_mib":  10209.7,
+                                     "vram_shared_mib":  603.4,
+                                     "process_ws_gib":  11.482,
+                                     "physical_used_gib":  20.865
+                                 },
+                        "failure":  null
+                    },
+                    {
+                        "tag":  "perf-qwen36-q2kxl-ctx262144-d240000-tg128-d240000",
+                        "kind":  "tg",
+                        "n":  128,
+                        "depth":  240000,
+                        "tokens_per_second":  32.92,
+                        "stddev":  0.11,
+                        "relative_stddev_percent":  0.33,
+                        "timed_out":  false,
+                        "wall_s":  668.2,
+                        "peak":  {
+                                     "vram_dedicated_mib":  11922,
+                                     "vram_shared_mib":  728.9,
+                                     "process_ws_gib":  13.012,
+                                     "physical_used_gib":  22.144
+                                 },
+                        "failure":  null
+                    }
+                ]
+}

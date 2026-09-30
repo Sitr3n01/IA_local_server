@@ -9,8 +9,8 @@
     "MTP draft depth is set for an offloaded split: speculation amortizes weight reads but not arithmetic, so on a CPU-resident portion the optimum is shallow (2-3) and depth 7 can be slower than no speculation. Sweep {0,2,3,5,7} and re-sweep after any change to the -ot pattern. See docs/TUNING.md section 1.1.",
     "Qwen/Qwen3.8-27B (Alibaba, Apache-2.0) is the authoritative reference for this family; every GGUF is a derived artifact and its publisher and revision must be recorded and verified separately.",
     "The MTP head is blk.64. A GGUF that quantizes it to Q4_K measures 0% draft acceptance and speculation fails silently; Q5_K-Q8_0 reaches 73-74%. Verify with gguf-dump before benchmarking any qwen38 profile - the nominal quant label does not tell you.",
-    "cache_ram_mib is intentionally unset on the qwen38 profiles: context checkpoints are upstream-reported non-functional on hybrid/recurrent models, and the admission gate charges the cache to commit in full, so an inert cache costs headroom. Set it only after qwen38-27b-iq4xs-agentic-restore passes on the candidate runtime.",
-    "The qwen38-27b-buun-* profiles run on the pinned spiritbuun/buun-llama-cpp fork, which implements the hybrid/recurrent checkpoint correction the upstream profiles above cannot get. They are a candidate runtime under docs/adr/0010, not a replacement: the upstream baseline stays exactly as it is and remains the fallback.",
+    "cache_ram_mib is unset on the qwen38 profiles, but unset is not off: b10549 defaults to --cache-ram 8192 with --cache-idle-slots on, --ctx-checkpoints 32 and --checkpoint-min-step 8192, and admission charges only a declared value. In-session checkpoint reuse was measured working on b10549 on 2026-09-28 (benchmarks/agentic-reuse-b10549-20260928/, docs/TUNING.md section 1.4), so the manifest now declares these defaults on every active profile except gemma4-12b-qat-ud-q4xl, left undeclared by operator decision (the public model is the 256k profile since 2026-09-28); admission charges the declared cache.",
+    "The qwen38-27b-buun-* profiles run on the pinned spiritbuun/buun-llama-cpp fork, which carries the hybrid/recurrent checkpoint correction. Upstream b10549 passed the same agentic-reuse scenario on its own on 2026-09-28 (Gates B, C and D), so these profiles matter only if upstream regresses or for history rewrites deeper than one ubatch. They are a candidate runtime under docs/adr/0010, not a replacement: the upstream baseline stays exactly as it is and remains the fallback.",
     "cache_ram_mib is 0 and cache_idle_slots is false on every buun profile, stated rather than omitted. The fork ships cache_ram_mib=8192 and cache_idle_slots=true, so omitting either enables a host prompt cache the manifest never declared and admission never charged. This is a context-checkpoint experiment, not a prompt-cache experiment; the two are different mechanisms.",
     "VBR, TurboQuant, TCQ and the fork's own KV types stay off for the first qualification. An explicit -ctk/-ctv q4_0 clears the fork's variable-bitrate alias, which is what keeps the KV format identical to the upstream control. Evaluate them later as a separate experiment against this configuration, never by editing it.",
     "The buun profiles must be run against an upstream control at the same context, fixture and settings. Measure both with scripts/v2/Measure-V2AgenticReuse.ps1 and diff them with Compare-V2Runtimes.ps1, which refuses two reports whose control variables differ. A decode benchmark is not evidence for this question.",
@@ -148,21 +148,6 @@
       "alias": "gemma4-12b-qat-q4_0-kv-q4-128k"
     },
     {
-      "id": "ornith10-9b-q5km-kv-q8-128k",
-      "display_name": "Ornith 1.0 9B | AMD ROCm | Q5_K_M | kv q8_0 | 128k ctx",
-      "catalog_folder": "03 AMD ROCm - Ornith 1.0 9B",
-      "catalog_filename": "AMD--Ornith-1.0-9B--Q5_K_M--ctx-128k--kv-q8_0.gguf",
-      "family": "Ornith 1.0 9B",
-      "source_model": "deepreinforce-ai/Ornith-1.0-9B",
-      "repo": "deepreinforce-ai/Ornith-1.0-9B-GGUF",
-      "filename": "ornith-1.0-9b-Q5_K_M.gguf",
-      "local_path": "C:\\IA\\models\\Ornith-1.0-9B-GGUF\\ornith-1.0-9b-Q5_K_M.gguf",
-      "context_size": 131072,
-      "cache_type_k": "q8_0",
-      "cache_type_v": "q8_0",
-      "alias": "ornith10-9b-q5km-kv-q8-128k"
-    },
-    {
       "id": "qwen38-27b-iq4xs-sanity",
       "display_name": "Qwen 3.8 27B | AMD ROCm | IQ4_XS | 8k ctx | GDN kernel go/no-go",
       "catalog_folder": "05 AMD ROCm - Qwen 3.8 27B - hybrid GDN",
@@ -298,7 +283,7 @@
         "type": "draft-mtp",
         "draft_n_max": 3
       },
-      "note": "Multi-turn checkpoint regression: 60k base, then repeated +2k increments interleaved with tool calls. Records prompt tokens processed vs new per turn; fails when a turn after the first reprocesses near the full context. Context checkpoints are upstream-reported broken on hybrid/recurrent models (llama.cpp #24055, #22384), so this profile doubles as the acceptance test for whether a given build fixed it.",
+      "note": "Multi-turn checkpoint regression: 60k base, then repeated +2k increments interleaved with tool calls. Records prompt tokens processed vs new per turn; fails when a turn after the first reprocesses near the full context. Context checkpoints were upstream-reported broken on hybrid/recurrent models (llama.cpp #24055, #22384), so this profile doubles as the acceptance test for whether a given build fixed it. On 2026-09-28 the same scenario passed on b10549 with the shipped qwen38-27b-agent-128k (Q3_K_XL, no MTP) and qwen36-35b-a3b-huge-256k, at Gates B and C, and at Gate D (~257k) for the Huge profile; this IQ4_XS profile itself has not been run (benchmarks/agentic-reuse-b10549-20260928/).",
       "threads": "TBD - sweep {8, 16}; promote the winner to the manifest"
     },
     {

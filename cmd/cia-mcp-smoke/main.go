@@ -34,7 +34,7 @@ type report struct {
 func main() {
 	server := flag.String("server", `C:\IA\local-ai-v2\bin\cia-mcp-inference.exe`, "installed MCP inference server")
 	dataURL := flag.String("data-url", "http://127.0.0.1:18090", "literal-loopback edge origin")
-	model := flag.String("model", "local-coding", "pinned local model")
+	model := flag.String("model", "", "pinned local model (required): the id the installed integration pins")
 	expected := flag.String("expected", "CIA_LOCAL_MCP_SMOKE_OK_42", "exact synthetic response expected from the local model")
 	timeout := flag.Duration("timeout", 6*time.Minute, "whole MCP smoke-test timeout")
 	flag.Parse()
@@ -54,6 +54,9 @@ func run(server, dataURL, model, expected string, timeout time.Duration) (report
 	rep := report{Status: "failed", Server: server, Tool: toolName}
 	if strings.TrimSpace(server) == "" || strings.TrimSpace(expected) == "" {
 		return rep, errors.New("server and expected marker are required")
+	}
+	if strings.TrimSpace(model) == "" {
+		return rep, errors.New("model is required: pass -model with the id the installed integration pins")
 	}
 	if timeout <= 0 || timeout > 15*time.Minute {
 		return rep, errors.New("timeout must be greater than zero and at most 15 minutes")

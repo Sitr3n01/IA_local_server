@@ -1,0 +1,189 @@
+/*
+ * The sidebar draws no boundary.
+ *
+ * `border-right: 1px solid var(--color-border-subtle)` used to run the full
+ * height of the window here. Removing it is the single largest change in
+ * the Sprint 10 shell, and it only works because the grounds were
+ * compressed at the same time (foundation.css): sidebar and canvas are now
+ * about 1.03:1 apart in light and 1.11:1 in dark, which is enough to feel
+ * as two regions and not enough to read as two panels. A drawn line plus a
+ * tonal step was saying the same thing twice, in the loudest available way,
+ * on the tallest element of the window.
+ *
+ * The inline padding is on the sidebar rather than on the items, so the
+ * selected item's pill is inset from the edge instead of running into it.
+ */
+.nav-rail {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: var(--app-shell-rail-width-expanded);
+  /* No `height: 100%` here. It looks like the obvious way to make the
+   * sidebar full-height and it does the opposite: a non-`auto` cross size
+   * makes the flex container skip `align-items: stretch` for this item, and
+   * the percentage then resolves against `.app-shell`'s own `auto` height,
+   * so the sidebar collapses to the height of its four nav buttons and the
+   * canvas shows through beneath it. Letting the cross size stay `auto`
+   * lets stretch do the job properly. */
+  background-color: var(--color-bg-surface);
+  padding-block: var(--space-lg) var(--space-md);
+  padding-inline: var(--space-12);
+  overflow-x: hidden;
+  transition: width var(--motion-duration-standard) var(--motion-easing-standard);
+}
+
+.nav-rail--collapsed {
+  width: var(--app-shell-rail-width-collapsed);
+  padding-inline: var(--space-sm);
+}
+
+.nav-rail__brand {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  letter-spacing: var(--text-title-tracking);
+  color: var(--color-text-primary);
+  padding-inline: var(--space-sm);
+  /* The wordmark and the first destination are the two things at the top of
+   * this column, and they are not peers - a full `--space-xl` between them
+   * is what says so without a rule being drawn to say it. */
+  padding-block-end: var(--space-xl);
+  white-space: nowrap;
+  /* Safety net: if the wordmark ever outgrows the sidebar, degrade to an
+   * ellipsis rather than a hard slice mid-word. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* `flex: 1` is load-bearing composition, not filler: it pushes the collapse
+ * control to the bottom edge and leaves the space between the fourth
+ * destination and it deliberately empty. That emptiness is the sidebar's
+ * main visual statement, and it is where a contextual area (a conversation
+ * list, a pinned model) would go when there is one to show. */
+.nav-rail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  flex: 1;
+}
+
+.nav-rail__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  width: 100%;
+  min-height: 2.5rem;
+  padding-inline: var(--space-sm);
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+/* `--color-state-hover` rather than `--color-bg-surface-subtle` (see
+ * semantic.css): subtle is *darker* than the sidebar's ground in both
+ * themes, so on dark the old rule made hover read as a pressed state. This
+ * one composites over whatever ground it lands on and always moves away
+ * from it. */
+.nav-rail__item:hover {
+  background-color: var(--color-state-hover);
+  color: var(--color-text-primary);
+}
+
+.nav-rail__item:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 2px;
+}
+
+/* Selected destination.
+ *
+ * Four channels, none of them sufficient alone and none of them accent
+ * blue any more:
+ *
+ *   1. a neutral tonal pill (`--color-state-selected`, a percentage of
+ *      text-primary, so it darkens in light and lightens in dark);
+ *   2. the foreground stepping from secondary to primary;
+ *   3. the weight stepping from medium to semibold;
+ *   4. an inset marker on the leading edge - a *shape*, present or absent,
+ *      legible with no colour vision at all.
+ *
+ * Two things this rule has to get right, both originally found by measuring
+ * rendered pixels rather than by reading the stylesheet.
+ *
+ * (a) `:hover` must not erase it. `.nav-rail__item:hover` is (0,2,0) and a
+ *     bare `.nav-rail__item--active` is (0,1,0), so hovering the current
+ *     destination used to repaint it in the plain hover treatment - the one
+ *     item whose state matters lost its state exactly when the pointer was
+ *     on it. Listing the `:hover` form here ties the specificity and wins
+ *     on order.
+ *
+ * (b) The state must not be carried by colour alone. Sprint 3 measured the
+ *     old accent tint at 1.25:1 against the sidebar and accent-vs-muted
+ *     text at 1.55:1 apart in luminance, and added channel 4 for exactly
+ *     that reason. Sprint 10 kept the channel and changed its colour: the
+ *     marker is `--color-text-secondary`, which is 6.9:1 against the pill
+ *     it sits on, so the shape is unmistakable while the *loudness* that
+ *     made this read as an enterprise control panel is gone. Accent blue in
+ *     this console now means "an action you can take", not "where you are".
+ */
+.nav-rail__item--active,
+.nav-rail__item--active:hover {
+  background-color: var(--color-state-selected);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: inset 3px 0 0 0 var(--color-text-secondary);
+}
+
+.nav-rail__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+}
+
+.nav-rail__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* When collapsed, the label switches to `.ds-visually-hidden` (see
+ * src/design-system/styles/reset.css) instead of `display: none` - the
+ * button's accessible name must keep coming from this text either way. */
+
+/*
+ * The collapse control sits on the bottom edge with nothing drawn above it.
+ * There used to be a hairline here, on the reasoning that the control would
+ * otherwise "sit in undifferentiated whitespace". That reasoning is exactly
+ * what Sprint 10 reversed: the whitespace *is* the differentiation, the
+ * control is bottom-aligned against a column of top-aligned items, and one
+ * more structural line in the shell was one more thing drawing a diagram
+ * over a workspace.
+ */
+.nav-rail__footer {
+  display: flex;
+  justify-content: flex-start;
+  margin-block-start: var(--space-md);
+}
+
+.nav-rail--collapsed .nav-rail__footer {
+  justify-content: center;
+}
+
+.nav-rail__collapse-icon {
+  transition: transform var(--motion-duration-standard) var(--motion-easing-standard);
+}
+
+.nav-rail__collapse-icon--collapsed {
+  transform: rotate(180deg);
+}

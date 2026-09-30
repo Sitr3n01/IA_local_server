@@ -16,9 +16,11 @@ as a refusal so the caller can abort before a single binary is replaced.
 function Get-V2DeploymentComponents {
     return @(
         [pscustomobject]@{ Component = 'Edge'; Binary = 'cia-edge.exe' },
+		[pscustomobject]@{ Component = 'Credential'; Binary = 'cia-credential.exe' },
         [pscustomobject]@{ Component = 'Mcp'; Binary = 'cia-mcp.exe' },
         [pscustomobject]@{ Component = 'McpAdmin'; Binary = 'cia-mcp-admin.exe' },
         [pscustomobject]@{ Component = 'McpInference'; Binary = 'cia-mcp-inference.exe' },
+        [pscustomobject]@{ Component = 'Monitor'; Binary = 'cia-monitor.exe' },
         [pscustomobject]@{ Component = 'Supervisor'; Binary = 'cia-supervisor.exe' },
         [pscustomobject]@{ Component = 'Tray'; Binary = 'cia-tray.exe' }
     )

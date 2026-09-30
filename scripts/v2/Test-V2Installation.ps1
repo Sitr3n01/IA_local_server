@@ -29,7 +29,11 @@ foreach ($runtime in @($manifest.runtimes)) {
     }
     catch { Add-Check "runtime:$($runtime.id)" $false $_.Exception.Message }
 }
-foreach ($model in @($manifest.models)) {
+# Retired entries remain in the manifest as provenance/history, but their bytes
+# are intentionally allowed to leave the machine. Every non-retired artifact
+# is still required here; deployed production artifacts receive the stronger
+# protected-tree check below as well.
+foreach ($model in @($manifest.models | Where-Object { $_.state -ne 'retired' })) {
     try {
         Assert-V2Artifact -Artifact $model.artifact -Label "Model '$($model.id)'" -VerifyHash:$VerifyHashes
         Add-Check "model:$($model.id)" $true $(if ($VerifyHashes) { 'size and SHA-256 match' } else { 'path and size match' })
@@ -45,6 +49,7 @@ $expectedFiles = @(
     (Join-Path $InstallRoot 'bin\cia-mcp-inference.exe'),
     (Join-Path $InstallRoot 'bin\cia-credential.exe'),
     (Join-Path $InstallRoot 'bin\cia-supervisor.exe'),
+    (Join-Path $InstallRoot 'bin\cia-monitor.exe'),
     (Join-Path $InstallRoot 'bin\cia-manifest.exe'),
     (Join-Path $InstallRoot ("config\llama-swap.{0}.yaml" -f $settings.Name)),
     (Join-Path $InstallRoot ("config\deployment.{0}.json" -f $settings.Name)),

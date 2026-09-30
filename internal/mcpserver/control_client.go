@@ -1,6 +1,7 @@
 package mcpserver
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -243,6 +244,41 @@ func (c *ControlClient) Status(ctx context.Context) (Status, error) {
 		status.ModelStatuses = []ModelStatus{}
 	}
 	return status, nil
+}
+
+// StatusRaw reads the same side-effect-free snapshot Status reads, but hands
+// back the response body verbatim instead of projecting it onto the Status
+// struct above.
+//
+// Status exists for this package's own MCP tools, which need typed field
+// access and therefore declare only the fields they use. That projection is
+// lossy by construction: encoding/json silently discards every key the struct
+// does not declare, so anything re-marshalled from a Status is a strict subset
+// of what cia-edge actually sent. For a typed tool reading two fields that is
+// exactly right. For a caller whose job is to *carry* the snapshot to another
+// consumer that does its own validation, it is a silent data loss that only
+// surfaces as a schema failure at the far end - which is precisely how it was
+// found: the operator console's Zod schema requires fields (uptime_seconds,
+// runtimes, gpu_memory, maintenance, per-model display_name/capabilities/
+// profile/runtime/checkpoints, and the physical/VRAM capacity figures) that
+// cia-edge does send and this struct does not declare.
+//
+// So a transport gets bytes, not a re-model. The bound and the loopback,
+// no-redirect, no-proxy discipline are getJSON's and apply unchanged; the
+// unmarshal into json.RawMessage still rejects a syntactically invalid body,
+// and the object check below rejects a well-formed but wrongly-shaped one
+// (an array or a bare scalar) rather than passing it on for someone else to
+// trip over.
+func (c *ControlClient) StatusRaw(ctx context.Context) (json.RawMessage, error) {
+	var raw json.RawMessage
+	if err := c.getJSON(ctx, "/api/v1/status", map[int]bool{http.StatusOK: true}, &raw); err != nil {
+		return nil, err
+	}
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || trimmed[0] != '{' {
+		return nil, errors.New("control API status response is not a JSON object")
+	}
+	return trimmed, nil
 }
 
 func (c *ControlClient) getJSON(ctx context.Context, path string, allowed map[int]bool, dst any) error {

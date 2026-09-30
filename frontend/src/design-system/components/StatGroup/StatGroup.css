@@ -1,0 +1,58 @@
+/*
+ * A wrapping row of columns, with the gap doing the grouping. No borders,
+ * no fills, no dividers between items: at this size the alignment of the
+ * caption row and the figure row is already unambiguous, and anything
+ * drawn between them would be the box this component exists to avoid.
+ *
+ * The gap is `--space-2xl` horizontally against `--space-lg` vertically on
+ * purpose. Items wrap into rows, and if the two gaps matched, a wrapped
+ * second row would sit as close to the first row as its neighbours are to
+ * each other - so the reading order would stop being obvious. A wide
+ * horizontal gap also keeps two adjacent figures from reading as one
+ * phrase.
+ */
+.ds-stat-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg) var(--space-2xl);
+  margin: 0;
+}
+
+.ds-stat-group__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.ds-stat-group__label {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-weight);
+  line-height: var(--text-caption-line-height);
+  color: var(--color-text-muted);
+}
+
+.ds-stat-group__value {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  line-height: var(--text-title-line-height);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.ds-stat-group__value--mono {
+  font-family: var(--font-family-mono);
+  font-weight: var(--font-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-stat-group__hint {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  color: var(--color-text-secondary);
+  margin: 0;
+  max-width: 44ch;
+}

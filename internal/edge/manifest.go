@@ -40,6 +40,7 @@ type manifestRuntime struct {
 
 type manifestModel struct {
 	ID               string   `yaml:"id"`
+	DisplayName      string   `yaml:"display_name"`
 	State            string   `yaml:"state"`
 	Status           string   `yaml:"status"`
 	Enabled          *bool    `yaml:"enabled"`
@@ -55,7 +56,8 @@ type manifestModel struct {
 	CacheTypeK       string   `yaml:"cache_type_k"`
 	CacheTypeV       string   `yaml:"cache_type_v"`
 	Artifact         struct {
-		Path string `yaml:"path"`
+		Path  string `yaml:"path"`
+		Bytes *int64 `yaml:"bytes"`
 	} `yaml:"artifact"`
 	CtxCheckpoints    *int `yaml:"ctx_checkpoints"`
 	CheckpointMinStep *int `yaml:"checkpoint_min_step"`
@@ -73,6 +75,7 @@ type manifestModel struct {
 		PeakVRAMGiB   *float64 `yaml:"peak_vram_gib"`
 		PeakRAMGiB    *float64 `yaml:"peak_ram_gib"`
 	} `yaml:"resources"`
+	Capabilities Capabilities `yaml:"capabilities"`
 }
 
 // weightsName reduces a GGUF path to the filename an operator recognises. The
@@ -168,6 +171,8 @@ func LoadModels(path, environment string) ([]Model, string, error) {
 			ID:              id,
 			Object:          "model",
 			OwnedBy:         ownedBy,
+			DisplayName:     strings.TrimSpace(entry.DisplayName),
+			Capabilities:    entry.Capabilities,
 			State:           state,
 			Deployments:     append([]string(nil), entry.Deployments...),
 			PeakCommitGiB:   entry.Resources.PeakCommitGiB,
@@ -176,6 +181,8 @@ func LoadModels(path, environment string) ([]Model, string, error) {
 			DeviceVRAMGiB:   deviceVRAM[strings.TrimSpace(entry.Runtime)],
 			CacheRAMMiB:     entry.CacheRAMMiB,
 			OffloadsTensors: len(entry.TensorOverrides) > 0 || moeOffload.Offloads(),
+			ArtifactPath:    strings.TrimSpace(entry.Artifact.Path),
+			ArtifactBytes:   entry.Artifact.Bytes,
 			Runtime:         runtimes[strings.TrimSpace(entry.Runtime)],
 			ContextTokens:   entry.ContextTokens,
 			Profile: ProfileSummary{

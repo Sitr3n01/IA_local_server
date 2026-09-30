@@ -20,6 +20,9 @@ param(
     [string]$ExpectedEdgeSha256,
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^[A-Fa-f0-9]{64}$')]
+    [string]$ExpectedCredentialSha256,
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern('^[A-Fa-f0-9]{64}$')]
     [string]$ExpectedMcpSha256,
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^[A-Fa-f0-9]{64}$')]
@@ -27,6 +30,9 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^[A-Fa-f0-9]{64}$')]
     [string]$ExpectedMcpInferenceSha256,
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern('^[A-Fa-f0-9]{64}$')]
+    [string]$ExpectedMonitorSha256,
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^[A-Fa-f0-9]{64}$')]
     [string]$ExpectedSupervisorSha256,
@@ -53,9 +59,11 @@ Set-StrictMode -Version Latest
     -TargetCodexHome $TargetCodexHome `
     -ExpectedHarnessPlanSha256 $ExpectedHarnessPlanSha256 `
     -ExpectedEdgeSha256 $ExpectedEdgeSha256 `
+	-ExpectedCredentialSha256 $ExpectedCredentialSha256 `
     -ExpectedMcpSha256 $ExpectedMcpSha256 `
     -ExpectedMcpAdminSha256 $ExpectedMcpAdminSha256 `
     -ExpectedMcpInferenceSha256 $ExpectedMcpInferenceSha256 `
+    -ExpectedMonitorSha256 $ExpectedMonitorSha256 `
     -ExpectedSupervisorSha256 $ExpectedSupervisorSha256 `
     -ExpectedTraySha256 $ExpectedTraySha256 `
     -Version $Version `

@@ -95,6 +95,15 @@ Adding such a model touches four files that CI checks against each other, and th
 
 Declare `capabilities.function_calling` and `capabilities.responses` as `false` until the stress evaluation demonstrates a valid forced tool call through `internal/edge/namespace.go`. A model family's tool-call serialization is not evidence for a specific quantization of it.
 
+### `capabilities.reasoning` is an observation, not a guarantee
+
+Unlike `function_calling`, `responses` and `structured_output`, `reasoning`
+promises nothing and gates nothing: it says that the served artifact emits
+`reasoning_content` before its answer. Declare it `true` only from a
+qualification run against that artifact in which the field was present; the
+2026-08-23 and 2026-08-25 campaigns are the evidence for the four active
+models. It is optional and absent means `false`.
+
 ### What `capabilities.function_calling` does and does not mean
 
 The flag is a **deployment guarantee for one artifact**, not a description of what a chat template is capable of. Reading it the other way is easy and has happened: the 2026-08-23 campaign scored `gemma4-12b-qat-ud-q4xl` at 6/7 on the tool suite while its manifest declares `function_calling: false`, and the campaign report recorded the flag as looking over-conservative. It was not wrong — the two are measuring different things.
@@ -159,11 +168,10 @@ runtime — or it measures nothing.
 
 ## Current status
 
-- `local-coding` / Ornith 1.0 9B Q4_K_M: canary candidate. Direct Responses and a function call were observed, but the complete gates and soak remain outstanding.
 - `local-fast` / Qwen 3.5 4B Q4_K_M and the four additional Qwen/Gemma
   quantizations are canary candidates. They are generated independently and
   remain client-gated until their declared contracts pass.
-- Unsloth runtime `10068 (87d9271bd)`: candidate only; it can replace the AMD baseline only after an independent full comparison.
+- Unsloth runtime `10225 (d2a74a4a3)`: candidate only; it can replace the AMD baseline only after an independent full comparison.
 - `spiritbuun/buun-llama-cpp` (ADR 0010): the qualification path exists and the
   provenance gate passes on commit `799e3995cd4f19aa9f6a3fa9fb5b4674422bf0ee` at
   source level. No runtime entry is in the manifest, because the artifact has not

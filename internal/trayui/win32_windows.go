@@ -55,16 +55,19 @@ const (
 	mbIconInformation  = 0x00000040
 	notifyIconVersion4 = 4
 
-	commandPanel   = 99
-	commandRefresh = 100
-	commandLoad    = 101
-	commandSwitch  = 102
-	commandUnload  = 103
-	commandCodex   = 110
-	commandOpen    = 111
-	commandStatus  = 120
-	commandExit    = 199
-	commandModel   = 1000
+	commandPanel           = 99
+	commandRefresh         = 100
+	commandLoad            = 101
+	commandSwitch          = 102
+	commandUnload          = 103
+	commandCodex           = 110
+	commandOpen            = 111
+	commandClaudeOpen      = 112
+	commandClaudeAnthropic = 113
+	commandClaudeLocal     = 114
+	commandStatus          = 120
+	commandExit            = 199
+	commandModel           = 1000
 )
 
 type point struct {
@@ -558,6 +561,16 @@ func (a *app) showMenu() {
 	a.separator(menu)
 	a.append(menu, commandOpen, "Abrir no OpenCode", policy.LaunchOpenCode, false)
 	a.separator(menu)
+	canOpenClaude := snapshot.ClaudeAvailable && !busy
+	canSwitchClaude := canOpenClaude && snapshot.Active == 0 && snapshot.Queued == 0
+	a.append(menu, commandClaudeOpen, "Abrir Claude Desktop", canOpenClaude, false)
+	a.append(menu, commandClaudeAnthropic, "Claude: Anthropic", canSwitchClaude, snapshot.ClaudeMode == ClaudeModeAnthropic)
+	localLabel := "Claude: Local"
+	if !snapshot.ClaudeGatewayOK {
+		localLabel += " — gateway indisponível"
+	}
+	a.append(menu, commandClaudeLocal, localLabel, canSwitchClaude && snapshot.ClaudeGatewayOK, snapshot.ClaudeMode == ClaudeModeLocal)
+	a.separator(menu)
 	a.append(menu, commandRefresh, "Atualizar", !busy, false)
 	a.append(menu, commandStatus, "Detalhes do status", true, false)
 	a.append(menu, commandExit, "Fechar painel", policy.Exit, false)
@@ -613,6 +626,16 @@ func (a *app) dispatch(command uint32) {
 			modelID := a.snapshot.SelectedModel
 			a.mu.RUnlock()
 			return a.controller.Launch(ctx, ClientOpenCode, modelID)
+		})
+	case commandClaudeOpen:
+		a.startAction("Abrir Claude Desktop", true, a.controller.LaunchClaudeDesktop)
+	case commandClaudeAnthropic:
+		a.startAction("Restaurar Claude Anthropic", false, func(ctx context.Context) error {
+			return a.controller.SetClaudeMode(ctx, ClaudeModeAnthropic)
+		})
+	case commandClaudeLocal:
+		a.startAction("Aplicar Claude Local", false, func(ctx context.Context) error {
+			return a.controller.SetClaudeMode(ctx, ClaudeModeLocal)
 		})
 	case commandStatus:
 		a.showStatus()

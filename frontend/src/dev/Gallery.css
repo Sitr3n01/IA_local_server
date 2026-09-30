@@ -1,0 +1,124 @@
+.gallery {
+  min-height: 100vh;
+  padding: var(--space-32);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-32);
+}
+
+.gallery-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.gallery-title {
+  font-size: var(--text-headline-size);
+  font-weight: var(--text-headline-weight);
+  line-height: var(--text-headline-line-height);
+  margin: 0;
+}
+
+.gallery-subtitle {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-body-size);
+}
+
+.gallery-theme-toggle {
+  display: flex;
+  gap: var(--space-8);
+}
+
+.gallery-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding-block: var(--space-16);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.gallery-section__title {
+  font-size: var(--text-title-size);
+  font-weight: var(--text-title-weight);
+  line-height: var(--text-title-line-height);
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.gallery-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.gallery-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.gallery-row__label {
+  font-family: var(--font-family-mono);
+  font-size: var(--text-code-size);
+  color: var(--color-text-muted);
+}
+
+.gallery-row__content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.gallery-swatch-row {
+  display: flex;
+  gap: var(--space-12);
+}
+
+.gallery-swatch {
+  padding: var(--space-16);
+  font-size: var(--text-label-size);
+  color: var(--color-text-secondary);
+}
+
+.gallery-divider-demo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  width: 12rem;
+  color: var(--color-text-secondary);
+  font-size: var(--text-body-size);
+}
+
+.gallery-divider-demo--row {
+  flex-direction: row;
+  align-items: center;
+  height: 2rem;
+}
+
+.gallery-skeleton-demo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-24);
+  width: 100%;
+}
+
+.gallery-skeleton-demo__col {
+  width: 10rem;
+}
+
+.gallery-skeleton-demo__block {
+  width: 6rem;
+  height: 4rem;
+}
+
+/* Sprint 10: the Notice row needs its bands stacked full-width rather than
+   sitting side by side in the row's default inline flow. */
+.gallery-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+  min-width: 0;
+}

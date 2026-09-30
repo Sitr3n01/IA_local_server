@@ -20,8 +20,31 @@ software and model artifacts. They are not relicensed by this repository:
   https://gopkg.in/yaml.v3
 - jsonschema-go, Copyright The JSON Schema Go Project Authors, MIT-style License.
   https://github.com/google/jsonschema-go
-- Ornith 1.0 9B GGUF artifact, model repository license recorded as MIT.
-  https://huggingface.co/deepreinforce-ai/Ornith-1.0-9B-GGUF
+- go-webview2, Copyright 2020 John Chadwick, MIT License. The WebView2 binding
+  used by the operator console host.
+  https://github.com/wailsapp/go-webview2
+- go-winloader, Copyright its contributors. Present in go.sum and therefore in
+  SBOM and vulnerability scope, but reachable only under the
+  `native_webview2loader` build tag, which this project never sets - so it is
+  not linked into any shipped binary.
+  https://github.com/jchv/go-winloader
+- Microsoft Edge WebView2 Runtime, Copyright Microsoft Corporation. Proprietary,
+  installed on the workstation and distributed separately by Microsoft; not
+  included in this repository or in any release artifact it produces.
+
+The operator console's browser bundle (`frontend/`) links the following, all
+bundled into the shipped `dist/` output:
+
+- React and React DOM, Copyright Meta Platforms, Inc. and affiliates, MIT License.
+  https://github.com/facebook/react
+- TanStack Query, Copyright Tanner Linsley, MIT License.
+  https://github.com/TanStack/query
+- Zod, Copyright Colin McDonnell, MIT License.
+  https://github.com/colinhacks/zod
+- Roboto Flex, Copyright The Roboto Project Authors, SIL Open Font License 1.1,
+  packaged by @fontsource-variable/roboto-flex. The font file itself is emitted
+  into `dist/assets`.
+  https://github.com/google/fonts/tree/main/ofl/robotoflex
 - Qwen 3.5 4B GGUF artifact, model repository license recorded as Apache-2.0.
   https://huggingface.co/unsloth/Qwen3.5-4B-GGUF
 

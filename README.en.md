@@ -46,6 +46,7 @@ The deliberate scope limit is the point: this is an **inference and admission-co
 ```mermaid
 flowchart LR
     T["cia-tray<br/>operator panel"] --> P
+    W["cia-monitor<br/>browser monitor"] --> P
     C["Codex profile"] --> E
     O["OpenCode provider"] --> E
     E["cia-edge<br/>data :8090"] --> S
@@ -89,6 +90,7 @@ The privilege split is deliberate at every layer: the control plane is a separat
 | `cia-edge` | Data + control plane: auth, validation, queue, streaming | `127.0.0.1:8090` / `:8091` |
 | `cia-supervisor` | Job Object containment, 1–15 min exponential restart backoff | Scheduled-task action |
 | `cia-tray` | Native Win32 operator panel — status, lifecycle, model validation | Notification area |
+| `cia-monitor` | Browser monitor — request phase, tokens/s, GPU, RAM, commit; load/unload a model behind a native confirmation | `127.0.0.1:18095` (canary) / `:8095` (final) |
 | `cia-credential` | Windows Credential Manager helper | Local process only |
 | `cia-mcp` | Read-only operational MCP (5 side-effect-free tools) | Harness stdio |
 | `cia-mcp-inference` | One stateless, text-only delegation tool for SOTA harnesses | Harness stdio |
@@ -161,6 +163,20 @@ Scripts preview by default; mutation is always a separate, explicit invocation.
 .\scripts\v2\New-V2Config.ps1 -Environment Canary
 .\scripts\v2\New-V2Config.ps1 -Environment Canary -Apply
 ```
+
+## Browser monitor
+
+`cia-monitor` serves a page on loopback that shows, every second, what the server is doing: the request's phase (queued, loading the model, reading the prompt, generating), tokens per second, time to first token, cache reuse and context fill, alongside GPU, VRAM, shared memory, CPU, RAM, commit and disk.
+
+The page can also load a chosen model and unload the loaded one — and nothing else. Each request goes over the edge's administrative pipe, with no credential, and runs only after you confirm it in a Windows dialog the page cannot reach (Cancel is the default; with no answer in 45 s, nothing happens). The monitor accepts these requests only from its own page, from a process of the same user that runs the server. `-admin-pipe off` removes the buttons. Drain, resume and the rest of the lifecycle stay with `cia-tray`.
+
+```powershell
+go build -trimpath -o bin/cia-monitor.exe ./cmd/cia-monitor
+.\bin\cia-monitor.exe -open                      # canary: http://127.0.0.1:18095
+.\bin\cia-monitor.exe -environment final -open   # final:  http://127.0.0.1:8095
+```
+
+Per-request numbers come from the edge's `/api/v1/inference`; against an edge that predates the route the page keeps working and says telemetry is unavailable. Running `-open` while a monitor is already up just opens the existing page. Decision and controls: [ADR 0019](docs/adr/0019-browser-monitor.md).
 
 Harness integration templates live under [`integrations/`](integrations/) and contain no secrets. Codex keeps its normal OpenAI login untouched — local access is an explicitly selected profile, with endpoint and model pinned at CLI precedence so a repository-level config cannot silently redirect a session that the user asked to keep local.
 

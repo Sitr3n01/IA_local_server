@@ -1,0 +1,347 @@
+/*
+ * Activity's personality: temporal and linear.
+ *
+ * Four sections read top to bottom as one column, separated by the
+ * `.page-section--ruled` hairline and by `--space-2xl`, rather than as four
+ * bordered `Surface` panels stacked on a canvas. The gone-for-good list
+ * from the previous file: `.activity-section` (padding + border via a
+ * rounded Surface), the filled `.activity-gate__pressure` panel, the filled
+ * `.activity-maintenance__state-badge` pill, three boxed
+ * `.activity-maintenance__consequence` panels, and every uppercase section
+ * title.
+ *
+ * The one thing that got *more* prominent is time: `.activity-latest` is a
+ * new always-visible list of the last few requests, which is what makes
+ * this screen read as a flow of events rather than as an inventory.
+ */
+.activity-page {
+  max-width: var(--app-shell-content-max-width);
+  /* `width: 100%` is load-bearing next to `margin-inline: auto`. Auto
+   * cross-axis margins suppress a flex item's stretch, so without it this
+   * column shrink-wraps its content and never reaches the max-width above -
+   * the Overview measured 413px of an available 992px, with the remainder
+   * left as dead space. The auto margins still do the centring once the
+   * width is definite. */
+  width: 100%;
+  min-width: 0;
+  margin-inline: auto;
+  padding-inline: var(--app-shell-content-padding-inline);
+  padding-block: var(--space-lg) var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  /* Fills `.app-shell__content`'s full available height so a sparse state's
+   * `.app-shell__sparse-state` wrapper (see AppShell.css) has a real region
+   * to centre within, rather than only being as tall as its own content. */
+  flex: 1;
+  min-height: 0;
+}
+
+.activity-page__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.activity-page__body {
+  min-width: 0;
+}
+
+/* Label/value lists on this screen are supporting detail under a heading,
+ * not the subject of it - held to a measure so the value column stays
+ * beside its label instead of drifting to the far edge of a 1152px page. */
+.activity-section__fields {
+  max-width: 34rem;
+}
+
+/* ---- Admission gate ---- */
+
+.activity-gate__pressure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.activity-gate__pressure-label {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-section-size);
+  font-weight: var(--text-section-weight);
+  line-height: var(--text-section-line-height);
+  margin: 0;
+}
+
+.activity-gate__bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-width: 34rem;
+}
+
+.activity-gate__bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.activity-gate__bar-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+/* Sentence case. This was `text-transform: uppercase` with wide tracking -
+ * "ACTIVE" and "QUEUED" shouting above two 8px rules. */
+.activity-gate__bar-label {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-weight);
+  color: var(--color-text-secondary);
+}
+
+.activity-gate__bar-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-code-size);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.activity-gate__bar-verdict svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
+}
+
+.activity-gate__bar-verdict--attention {
+  color: var(--color-status-warning);
+}
+
+.activity-gate__bar-svg {
+  width: 100%;
+  height: 0.75rem;
+  display: block;
+}
+
+.activity-gate__bar-track {
+  fill: var(--color-bg-surface-subtle);
+}
+
+.activity-gate__bar-fill {
+  fill: var(--color-action-primary);
+}
+
+.activity-gate__bar-fill--attention {
+  fill: var(--color-status-warning);
+}
+
+/* ---- Maintenance ---- */
+
+.activity-maintenance__state {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.activity-maintenance__state-label {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-section-size);
+  font-weight: var(--text-section-weight);
+  line-height: var(--text-section-line-height);
+  margin: 0;
+}
+
+.activity-maintenance__action {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: flex-start;
+  max-width: 34rem;
+}
+
+.activity-maintenance__action-caption {
+  font-family: var(--font-family-sans);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line-height);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.activity-maintenance__action-outcome {
+  align-self: stretch;
+  font-size: var(--text-caption-size);
+}
+
+/*
+ * The three stated consequences of draining - always visible next to the
+ * control, never a footnote, never colour alone (a glyph and a full
+ * sentence on every one).
+ *
+ * Two are plain rows on the canvas now. Only the third keeps a band, and
+ * only because of what it says: a drain silently does not survive a
+ * restart, so an operator who half-remembers this one is left believing a
+ * provider is offline when it is serving. That is a different class of
+ * consequence from the other two, and the band is what says so.
+ */
+.activity-maintenance__consequences {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-width: 72ch;
+}
+
+.activity-maintenance__consequence {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.activity-maintenance__consequence svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+  margin-block-start: 0.15em;
+  color: var(--color-status-info);
+}
+
+.activity-maintenance__consequence code {
+  font-size: var(--text-code-size);
+}
+
+/* ---- Request timeline ---- */
+
+/*
+ * The screen's pulse: one line per request, newest first, columns aligned
+ * so the eye can run down the clock without reading any of it. Grid rather
+ * than flex precisely for that alignment - a flex row would let each line
+ * size its own columns and the times would step raggedly down the page.
+ */
+.activity-latest {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-width: 44rem;
+}
+
+.activity-latest__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr max-content max-content;
+  column-gap: var(--space-md);
+  row-gap: var(--space-xs);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-code-size);
+  font-variant-numeric: tabular-nums;
+}
+
+/* `display: contents` so each row's four spans join the list's own grid and
+ * share its columns - the same technique, for the same reason, as
+ * FieldList's rows. */
+.activity-latest__row {
+  display: contents;
+}
+
+.activity-latest__time {
+  color: var(--color-text-muted);
+}
+
+.activity-latest__route {
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.activity-latest__status {
+  color: var(--color-text-secondary);
+  text-align: end;
+}
+
+/* The code itself is the information - `503` says what happened whether or
+ * not this tint is perceivable. */
+.activity-latest__status--error {
+  color: var(--color-status-danger);
+}
+
+.activity-latest__duration {
+  color: var(--color-text-muted);
+  text-align: end;
+}
+
+/* Pulled back by the button's own inline padding so the label lines up with
+ * the text above it rather than being indented by a box that is no longer
+ * drawn. */
+.activity-timeline__disclosure {
+  align-self: flex-start;
+  margin-inline-start: calc(var(--space-12) * -1);
+}
+
+.activity-events__scroll {
+  overflow-x: auto;
+}
+
+.activity-events__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-family-mono);
+  font-size: var(--text-code-size);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.activity-events__table th {
+  text-align: left;
+  font-family: var(--font-family-sans);
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-weight);
+  color: var(--color-text-muted);
+  padding-block: var(--space-xs);
+  padding-inline-end: var(--space-lg);
+  border-block-end: 1px solid var(--color-border-default);
+}
+
+.activity-events__cell {
+  padding-block: var(--space-xs);
+  padding-inline-end: var(--space-lg);
+  border-block-end: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+}
+
+/* ---- Loading ---- */
+
+.activity-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+  max-width: 40rem;
+}
+
+.activity-skeleton__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.activity-skeleton__heading {
+  height: var(--text-section-size);
+  max-width: 14rem;
+}
+
+/* Narrow viewports: the four-column request line has nowhere left to go, so
+ * it becomes two rows of two rather than overflowing the page. */
+@media (max-width: 560px) {
+  .activity-latest__list {
+    grid-template-columns: max-content 1fr;
+  }
+}

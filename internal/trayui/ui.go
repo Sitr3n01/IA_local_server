@@ -19,6 +19,15 @@ const (
 	ClientOpenCode Client = "opencode"
 )
 
+// ClaudeMode selects the Desktop deployment without modifying the first-party
+// Claude profile. Local always means the CIA loopback gateway.
+type ClaudeMode string
+
+const (
+	ClaudeModeAnthropic ClaudeMode = "anthropic"
+	ClaudeModeLocal     ClaudeMode = "local"
+)
+
 // Model is the operator-facing projection of one manifest entry. Available
 // means the model is allowed in this deployment; capability flags decide which
 // launch actions the menu may offer.
@@ -64,6 +73,11 @@ type Snapshot struct {
 	MaxQueue        int
 	CapacityOK      bool
 	CapacityNote    string
+	ClaudeAvailable bool
+	ClaudeMode      ClaudeMode
+	ClaudeDetail    string
+	ClaudeGatewayOK bool
+	ClaudeLastModel string
 	Models          []Model
 	ModelRoots      []string
 	RecentEvents    []Event
@@ -82,6 +96,8 @@ type Controller interface {
 	AddModelRoot(context.Context, string) error
 	RemoveModelRoot(context.Context, string) error
 	ValidateModel(context.Context, string) error
+	SetClaudeMode(context.Context, ClaudeMode) error
+	LaunchClaudeDesktop(context.Context) error
 }
 
 // Options controls presentation only. Security-sensitive endpoints and paths

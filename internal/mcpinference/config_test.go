@@ -49,7 +49,9 @@ func TestConfigFromEnvRejectsInvalidValuesWithoutEchoingThem(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Setenv("CIA_MCP_INFERENCE_DATA_URL", "")
-			t.Setenv("CIA_MCP_INFERENCE_MODEL", "")
+			// A valid pin, so each case fails for its own value rather than
+			// for the missing model.
+			t.Setenv("CIA_MCP_INFERENCE_MODEL", "pinned-test-model")
 			t.Setenv("CIA_MCP_INFERENCE_TIMEOUT", "")
 			t.Setenv("CIA_MCP_INFERENCE_MAX_OUTPUT_TOKENS", "")
 			t.Setenv("CIA_MCP_INFERENCE_TEMPERATURE", "")
@@ -60,6 +62,22 @@ func TestConfigFromEnvRejectsInvalidValuesWithoutEchoingThem(t *testing.T) {
 				t.Fatalf("configuration error echoed environment value: %q", err)
 			}
 		})
+	}
+}
+
+func TestConfigFromEnvRequiresAPinnedModel(t *testing.T) {
+	t.Setenv("CIA_MCP_INFERENCE_DATA_URL", "")
+	t.Setenv("CIA_MCP_INFERENCE_MODEL", "   ")
+	t.Setenv("CIA_MCP_INFERENCE_TIMEOUT", "")
+	t.Setenv("CIA_MCP_INFERENCE_MAX_OUTPUT_TOKENS", "")
+	t.Setenv("CIA_MCP_INFERENCE_TEMPERATURE", "")
+
+	_, err := ConfigFromEnv()
+	if err == nil {
+		t.Fatal("ConfigFromEnv succeeded without a pinned model")
+	}
+	if !strings.Contains(err.Error(), "CIA_MCP_INFERENCE_MODEL") {
+		t.Fatalf("error does not name the missing variable: %v", err)
 	}
 }
 

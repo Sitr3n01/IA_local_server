@@ -1,0 +1,10 @@
+﻿done=1 skipped=5 failed=0 elapsed=0,23 h
+completed:
+  quality-qwen36-q2kxl-ctx131072-seed20260821
+skipped:
+  quality-ornith15-iq2m-ctx131072-seed20260821
+  quality-qwen36-q2kxl-ctx131072-seed20260825
+  quality-ornith15-iq2m-ctx131072-seed20260825
+  quality-qwen36-q2kxl-ctx131072-seed20260826
+  quality-ornith15-iq2m-ctx131072-seed20260826
+failed:

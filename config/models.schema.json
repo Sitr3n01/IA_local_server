@@ -486,6 +486,11 @@
         },
         "structured_output": {
           "type": "boolean"
+        },
+        "reasoning": {
+          "type": "boolean",
+          "$comment": "The model emits reasoning (reasoning_content) before its answer. Unlike function_calling this is an observation and not a deployment guarantee, and consumers only display it: it gates nothing. It is declared from qualification runs against the served artifact, in which reasoning_content was present in nearly every case (2026-08-23 campaign for the Qwen3.8 profiles, 2026-08-25 for Gemma and Qwen3.6). Optional so that manifests that predate it stay valid; absent means false.",
+          "default": false
         }
       }
     },
@@ -650,6 +655,10 @@
         },
         "context_shift": {
           "type": "boolean"
+        },
+        "chat_template_file": {
+          "type": "string",
+          "$comment": "Path to a Jinja chat template that overrides the one inside the GGUF, emitted as --chat-template-file. It exists for an artifact whose embedded template is wrong for the OpenAI-shaped contract this server serves rather than wrong in general. The corrected template and the verbatim upstream copy it was derived from live in config/chat-templates/, so the patch is a reviewable diff. Requires jinja: true."
         },
         "kv_unified": {
           "type": "boolean"

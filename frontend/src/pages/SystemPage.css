@@ -1,0 +1,105 @@
+/*
+ * System's personality: dense and technical. A reference page.
+ *
+ * It is the one screen that deliberately runs tighter than the shared page
+ * rhythm - `--space-xl` between sections instead of `--space-2xl`, and the
+ * same step above each hairline. Density is the point here: an operator
+ * reading this screen is comparing a commit hash against a deployment or
+ * checking which backend a runtime is on, and air between the rows makes
+ * that job slower, not calmer. Overview earns its space; this page earns
+ * its compression.
+ *
+ * What is gone from the previous file: `.system-section` (a bordered,
+ * rounded `Surface` per section), `.system-section__title`'s 12px uppercase
+ * tracked treatment, and a fourth section that existed to hold one uptime
+ * figure.
+ */
+.system-page {
+  max-width: var(--app-shell-content-max-width);
+  /* `width: 100%` is load-bearing next to `margin-inline: auto`. Auto
+   * cross-axis margins suppress a flex item's stretch, so without it this
+   * column shrink-wraps its content and never reaches the max-width above -
+   * the Overview measured 413px of an available 992px, with the remainder
+   * left as dead space. The auto margins still do the centring once the
+   * width is definite. */
+  width: 100%;
+  min-width: 0;
+  margin-inline: auto;
+  padding-inline: var(--app-shell-content-padding-inline);
+  padding-block: var(--space-lg) var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  /* Fills `.app-shell__content`'s full available height so a sparse state's
+   * `.app-shell__sparse-state` wrapper (see AppShell.css) has a real region
+   * to centre within, rather than only being as tall as its own content. */
+  flex: 1;
+  min-height: 0;
+}
+
+.system-page__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.system-page__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  min-width: 0;
+}
+
+/* This page's own step above each hairline, one notch tighter than the
+ * shared `.page-section--ruled`. Scoped to `.system-page` so it changes
+ * this screen's density and nothing else's. */
+.system-page .page-section--ruled {
+  padding-block-start: var(--space-xl);
+}
+
+/* Held to a measure: a release id or a 40-character commit hash needs the
+ * value column to sit next to its label, not at the far edge of a 1152px
+ * page with a hand-span of white between them. */
+.system-fields {
+  max-width: 48rem;
+}
+
+/* ---- Runtimes ---- */
+
+.system-runtimes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.system-runtimes__item {
+  padding-block-end: var(--space-md);
+}
+
+.system-runtimes__item:not(:last-child) {
+  border-block-end: 1px solid var(--color-border-subtle);
+}
+
+.system-runtimes__item:last-child {
+  padding-block-end: 0;
+}
+
+/* ---- Loading ---- */
+
+.system-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  max-width: 40rem;
+}
+
+.system-skeleton__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.system-skeleton__heading {
+  height: var(--text-section-size);
+  max-width: 16rem;
+}

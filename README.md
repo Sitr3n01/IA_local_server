@@ -46,6 +46,7 @@ O limite de escopo é deliberado e é justamente o ponto: isto é um **plano de 
 ```mermaid
 flowchart LR
     T["cia-tray<br/>painel do operador"] --> P
+    W["cia-monitor<br/>monitor no navegador"] --> P
     C["Perfil Codex"] --> E
     O["Provider OpenCode"] --> E
     E["cia-edge<br/>dados :8090"] --> S
@@ -89,6 +90,7 @@ A separação de privilégio é deliberada em todas as camadas: o control plane 
 | `cia-edge` | Data e control plane: auth, validação, fila, streaming | `127.0.0.1:8090` / `:8091` |
 | `cia-supervisor` | Contenção em Job Object, backoff exponencial de reinício de 1 a 15 min | Ação de tarefa agendada |
 | `cia-tray` | Painel de operador Win32 nativo — status, ciclo de vida, validação de modelo | Área de notificação |
+| `cia-monitor` | Monitor no navegador — fase da requisição, tokens/s, GPU, RAM, commit; carregar/descarregar modelo com confirmação nativa | `127.0.0.1:18095` (canary) / `:8095` (final) |
 | `cia-credential` | Auxiliar do Windows Credential Manager | Somente processo local |
 | `cia-mcp` | MCP operacional somente leitura (5 ferramentas sem efeito colateral) | stdio do harness |
 | `cia-mcp-inference` | Uma ferramenta de delegação sem estado, só texto, para harnesses SOTA | stdio do harness |
@@ -137,13 +139,26 @@ uma troca de modelo no llama-swap, não uma reconfiguração.
 
 | Perfil | Pesos | KV | Contexto | Saída | Quando usar |
 |---|---|---|---:|---:|---|
-| `qwen38-27b-deep-32k` | UD-IQ4_XS | `q8_0`/`q8_0` | 32k | 8k | Tarefas difíceis e localizadas: algoritmos, arquitetura, bug complexo em poucos arquivos |
-| **`qwen38-27b-agent-128k`** | UD-Q3_K_XL | `q4_0`/`q4_0` | 128k | 8k | **Padrão diário.** Codex, Claude Code, OpenCode, Unity, refactors, investigação de repositório |
-| `qwen38-27b-huge-256k` | UD-Q2_K_XL | `q4_0`/`q4_0` | 256k | 32k | Contexto ativo enorme. Perfil de **contexto gigante / orçamento alto de raciocínio**, não de qualidade máxima |
+| `qwen38-27b-deep-32k` | Qwen3.8 27B UD-IQ4_XS | `q8_0`/`q8_0` | 32k | 8k | Tarefas difíceis e localizadas: algoritmos, arquitetura, bug complexo em poucos arquivos |
+| **`qwen38-27b-agent-128k`** | Qwen3.8 27B UD-Q3_K_XL | `q4_0`/`q4_0` | 128k | 8k | **Padrão diário.** Codex, Claude Code, OpenCode, Unity, refactors, investigação de repositório |
+| `qwen36-35b-a3b-huge-256k` | Qwen3.6 35B-A3B UD-Q2_K_XL | `q4_0`/`q4_0` | 256k | 16k | Contexto ativo enorme. MoE esparso: 35B de parâmetros, 3B ativos por token |
 
 Regra de seleção: **confiabilidade de raciocínio → Deep. Trabalho normal de agente
-→ Agent. Contexto ativo enorme → Huge.** Escolha Huge quando o *working set*
-excede o do Agent, não quando a tarefa é apenas difícil.
+→ Agent. Contexto ativo enorme → Huge.** Escolha Huge
+quando o *working set* excede o do Agent, não quando a tarefa é apenas difícil.
+
+O perfil Huge deixou de ser um Qwen3.8 denso a 2 bits e passou a ser um MoE em
+2026-08-25. Um modelo que ativa 3B de 35B parâmetros segura a mesma janela com
+mais throughput em profundidade, que é exatamente para o que um perfil de
+contexto gigante existe. A decisão, o confronto que a produziu e o que foi
+apagado do disco estão em
+[FINAL-ROSTER-20260825](docs/reports/FINAL-ROSTER-20260825.md) e na
+[ADR 0016](docs/adr/0016-one-moe-and-the-four-function-roster.md).
+
+O Huge carrega `reasoning_budget: 6144` sob um teto `n_predict: 16384`. Isso não
+é enfeite: sem o orçamento, este modelo gasta 8.192 tokens inteiros pensando e
+devolve resposta vazia nas tarefas de coding mais difíceis — três casos em
+trinta e quatro, medidos.
 
 O padrão diário é o Agent, não o Deep: um harness de coding gasta dezenas de
 milhares de tokens em system prompt, definições de ferramentas, arquivos, logs e
@@ -184,6 +199,24 @@ Os scripts fazem preview por padrão; mutação é sempre uma invocação separa
 .\scripts\v2\New-V2Config.ps1 -Environment Canary
 .\scripts\v2\New-V2Config.ps1 -Environment Canary -Apply
 ```
+
+## Monitor no navegador
+
+O `cia-monitor` serve uma página em loopback que mostra, a cada segundo, o que o servidor está fazendo: a fase da requisição (na fila, carregando o modelo, lendo o prompt, gerando), tokens por segundo, tempo até o primeiro token, reaproveitamento de cache e ocupação do contexto, além de GPU, VRAM, memória compartilhada, CPU, RAM, commit e disco.
+
+Não depende do edge para enxergar a máquina: mostra a energia que a GPU consome (watts, temperatura, clocks e energia acumulada na sessão), quais processos usam a GPU e quais outras ferramentas estão servindo um modelo — LM Studio / Bionic, Ollama, llama.cpp avulso e servidores compatíveis com OpenAI —, com modelo, quantização e janela de contexto quando a API da ferramenta informa, e sinaliza atividade mesmo que o edge esteja fora do ar (ADR 0020). Para o tráfego que passa pelo edge a velocidade por requisição vem da telemetria dele; para servidores llama.cpp de outras ferramentas (LM Studio / Bionic, ou um `llama-server` iniciado com `--log-file`) o monitor lê os contadores que o próprio servidor escreve no log — prompt, cache, saída, tokens por segundo, tempo até o primeiro token — sem ler texto, e mostra tudo na mesma tabela, com a coluna "via" dizendo quem atendeu. Ferramentas sem log por requisição (Ollama, por exemplo) aparecem como "externa" (duração, pico de GPU e de potência, energia da placa) e o cartão da fonte explica por quê. Para um modelo que outra ferramenta carregou, cada fonte tem um botão "Encerrar processo do modelo", que pede confirmação numa janela do Windows.
+
+`/api/snapshot` inclui `requests[]`, uma lista limitada aos registros recentes com métricas por requisição de ambas as origens, e `coverage`, que distingue fontes externas medidas das que mostram apenas atividade. Cada registro indica de onde veio cada número em `measurements`; prompt e cache calculados do log e velocidades estimadas são identificados, e valores ausentes continuam `null`. Essa cobertura se refere às fontes detectadas: uma ferramenta que não passa pelo edge nem publica métricas por resposta ou log não permite contagem exata apenas pela GPU.
+
+A página também carrega o modelo escolhido e descarrega o carregado — e só isso. Cada pedido segue pelo pipe administrativo do edge, sem credencial, e só é executado depois que você confirma numa janela do Windows que a página não alcança (Cancelar é o padrão; sem resposta em 45 s, nada acontece). O monitor aceita esses pedidos apenas da própria página, vindos de um processo do mesmo usuário que roda o servidor. `-admin-pipe off` desliga os botões. Drenagem, retomada e o resto do ciclo de vida continuam no `cia-tray`.
+
+```powershell
+go build -trimpath -o bin/cia-monitor.exe ./cmd/cia-monitor
+.\bin\cia-monitor.exe -open                      # canary: http://127.0.0.1:18095
+.\bin\cia-monitor.exe -environment final -open   # final:  http://127.0.0.1:8095
+```
+
+Os números por requisição vêm de `/api/v1/inference`, publicado pelo edge; com um edge anterior a essa rota a página continua funcionando e avisa que a telemetria está indisponível. Rodar `-open` com o monitor já aberto apenas abre a página existente. Decisão e controles: [ADR 0019](docs/adr/0019-browser-monitor.md).
 
 Os templates de integração de harness ficam em [`integrations/`](integrations/) e não contêm segredos. O Codex mantém seu login normal da OpenAI intocado — o acesso local é um perfil selecionado explicitamente, com endpoint e modelo pinados na precedência de CLI, de modo que uma configuração no nível do repositório não consiga redirecionar silenciosamente uma sessão que o usuário pediu para manter local.
 

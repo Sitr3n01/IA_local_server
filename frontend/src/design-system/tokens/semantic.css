@@ -1,0 +1,257 @@
+/*
+ * Semantic tokens - Layer 2 of 3.
+ *
+ * This is the ONLY layer components may reference. Component tokens
+ * (Layer 3) are defined next to the one component that needs them, not
+ * here.
+ *
+ * Theme resolution happens entirely in this file, outside every component:
+ *
+ *   1. `:root` carries the complete LIGHT palette - the default, with no
+ *      media query and no data-attribute needed.
+ *   2. `@media (prefers-color-scheme: dark)`, guarded by
+ *      `:root:not([data-theme="light"])`, redefines the tokens for a dark
+ *      OS/browser preference - unless the operator has explicitly forced
+ *      light mode via `data-theme="light"`.
+ *   3. `:root[data-theme="dark"]` redefines the same tokens again, so an
+ *      explicit "dark" choice wins even on a light-preference system (media
+ *      queries can't be overridden by specificity, only by a rule that
+ *      doesn't depend on the media feature at all).
+ *
+ * No component in src/design-system/primitives, src/features, or src/pages
+ * may branch on theme - light/dark is resolved once, here.
+ *
+ * The colour vocabulary is closed: the seventeen `--color-bg/text/border/
+ * action/status/accent-*` names below are fixed, and no eighteenth is
+ * added. Sprint 10 (visual foundation) made two additions *outside* that
+ * closed set, both documented at their definitions below:
+ *
+ *   - three `--color-state-*` interaction tints, which are not new colours
+ *     at all: each is a percentage of `--color-text-primary` over
+ *     transparent, so they resolve per theme automatically and always
+ *     move *away* from the ground they sit on (darker in light, lighter in
+ *     dark). Before them, tonal hover reached for `--color-bg-surface-subtle`,
+ *     which is darker than its neighbours in both themes - so in dark mode
+ *     every hover read as a pressed state.
+ *   - two type roles (`--text-section-*`, `--text-caption-*`), which fill
+ *     the two gaps that were pushing headings into the uppercase label
+ *     role. See the typography block for the reasoning.
+ *
+ * Contrast ratios below are WCAG 2.2 relative-luminance ratios, computed
+ * (not eyeballed) against all four backgrounds in the theme; "hardest
+ * ground" is whichever of canvas/surface/surface-subtle/surface-raised
+ * gives the lowest ratio for that foreground colour. Every figure was
+ * re-measured after the Sprint 10 ground compression - see foundation.css.
+ */
+
+:root {
+  /* ---- Backgrounds ----
+   * Four grounds, deliberately close together (see foundation.css). The
+   * usage rule that goes with them, and the one Sprint 10 exists to
+   * correct:
+   *
+   *   canvas  - the continuous ground almost everything sits directly on.
+   *   surface - the sidebar, and the rare region that genuinely has to be
+   *             told apart from the canvas. NOT the default wrapper for a
+   *             page section.
+   *   subtle  - a quiet tonal grouping *inside* a region.
+   *   raised  - only what physically floats: tooltip, popover, menu, modal.
+   *             Nothing that sits in the page flow belongs here. */
+  --color-bg-canvas: var(--palette-neutral-50); /* #F7F7F4 */
+  --color-bg-surface: var(--palette-neutral-25); /* #FBFBF8 */
+  --color-bg-surface-subtle: var(--palette-neutral-100); /* #F1F1ED - hardest ground */
+  --color-bg-surface-raised: var(--palette-neutral-0); /* #FEFEFC */
+
+  /* ---- Text ---- (all >=4.5:1 against every background above) */
+  --color-text-primary: var(--palette-neutral-900); /* #1D1F24 - 14.56-16.33:1 */
+  --color-text-secondary: var(--palette-neutral-650); /* #4C4F56 - 7.24-8.12:1 */
+  --color-text-muted: var(--palette-neutral-550); /* #686C74 - 4.65-5.22:1 */
+
+  /* ---- Borders ----
+   * border-subtle is intentionally decorative (hairline dividers whose
+   * absence loses no information - WCAG 1.4.11 doesn't apply). default and
+   * strong are load-bearing UI boundaries (input outlines, the few real
+   * panel edges left) and both clear >=3:1 against every one of the four
+   * backgrounds. */
+  --color-border-subtle: var(--palette-neutral-200); /* #E6E6E1 - decorative */
+  --color-border-default: var(--palette-neutral-400); /* #888A90 - 3.05-3.42:1 */
+  --color-border-strong: var(--palette-neutral-500); /* #686B73 - 4.71-5.28:1 */
+
+  /* ---- Action ---- */
+  --color-action-primary: var(--palette-blue-600); /* #2964E5 - 4.58-5.14:1 as text/icon */
+  --color-action-primary-hover: var(--palette-blue-700); /* #174BBC - darker: more emphasis */
+
+  /* ---- Status ---- (each >=4.5:1 against every background) */
+  --color-status-info: var(--palette-cyan-700); /* #1573AC */
+  --color-status-success: var(--palette-green-700); /* #107D4A */
+  --color-status-warning: var(--palette-amber-800); /* #986206 */
+  --color-status-danger: var(--palette-red-700); /* #D2291A */
+
+  /* ---- Identity accent ---- */
+  --color-accent-ai: var(--palette-violet-600); /* #8149E9 - never substitutes a status colour */
+
+  /* ---- Interaction tints (Sprint 10) ----
+   * Defined once, in `:root` only, and deliberately NOT repeated in the two
+   * dark blocks: each is a percentage of `--color-text-primary`, which the
+   * dark blocks already redefine, so these re-resolve per theme on their
+   * own. Composited over whatever ground the element happens to sit on,
+   * they always increase local contrast - in light they darken, in dark
+   * they lighten - which is exactly what a hover/pressed tint has to do and
+   * what a fixed background token cannot do in both themes at once.
+   *
+   * They are tints, not state *indicators*: nothing in this console relies
+   * on one of these alone to say that a control is selected. See
+   * NavRail.css for the selected-destination treatment, where the tint is
+   * one of four channels. */
+  --color-state-hover: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  --color-state-pressed: color-mix(in srgb, var(--color-text-primary) 11%, transparent);
+  --color-state-selected: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+
+  /* ---- Semantic spacing aliases ---- */
+  --space-xs: var(--space-4);
+  --space-sm: var(--space-8);
+  --space-md: var(--space-16);
+  --space-lg: var(--space-24);
+  --space-xl: var(--space-32);
+  --space-2xl: var(--space-48);
+
+  /* ---- Semantic radius aliases ----
+   * `--radius-surface` was 20px, which is a card radius: at that curvature a
+   * region reads as a physical tile whether or not it has a border, which
+   * worked against Sprint 10's whole direction. 14px still reads as a
+   * deliberate shape on the few regions that remain bounded, without
+   * announcing itself as a card. */
+  --radius-control: var(--radius-sm); /* Button, IconButton, TextField */
+  --radius-surface: var(--radius-md); /* the regions that genuinely stay bounded */
+  --radius-overlay: var(--radius-md); /* Tooltip bubbles and anything else that floats */
+
+  /* ---- Semantic motion aliases ---- */
+  --motion-duration-fast: var(--duration-fast);
+  --motion-duration-standard: var(--duration-standard);
+  --motion-duration-slow: var(--duration-slow);
+  --motion-easing-standard: var(--easing-standard);
+  --motion-easing-decelerate: var(--easing-decelerate);
+  --motion-easing-accelerate: var(--easing-accelerate);
+
+  /* ---- Semantic typography roles ----
+   * Seven roles, and the distance between them is the point. Before Sprint
+   * 10 there were five usable ones and the gap between `title` (18) and
+   * `body` (14) was filled by `label` - 12px, uppercase, tracked - so every
+   * section heading in the console shouted a technical abbreviation's
+   * treatment at ordinary prose ("ACTIVE MODEL", "CAPABILITIES",
+   * "MAINTENANCE"). Two roles were added to close that gap:
+   *
+   *   section - 16px semibold, sentence case. The default heading for a
+   *             region of a page. This is what replaced the uppercase
+   *             labels.
+   *   caption - 13px medium, sentence case, normally rendered muted. The
+   *             quiet name *above* a value, and the quiet note *below* one.
+   *
+   * `label` survives unchanged and is now reserved for what its treatment
+   * actually suits: short technical metadata rendered in caps (VRAM, GPU,
+   * PID, CTX, API) and small control text. If a heading reads as a phrase,
+   * it is a `section`, not a `label`. */
+  --text-display-size: var(--font-size-32);
+  --text-display-weight: var(--font-weight-semibold);
+  --text-display-line-height: var(--line-height-tight);
+  --text-display-tracking: var(--tracking-tight);
+
+  --text-headline-size: var(--font-size-24);
+  --text-headline-weight: var(--font-weight-semibold);
+  --text-headline-line-height: var(--line-height-snug);
+  --text-headline-tracking: var(--tracking-tight);
+
+  --text-title-size: var(--font-size-18);
+  --text-title-weight: var(--font-weight-semibold);
+  --text-title-line-height: var(--line-height-normal);
+  --text-title-tracking: var(--tracking-normal);
+
+  --text-section-size: var(--font-size-16);
+  --text-section-weight: var(--font-weight-semibold);
+  --text-section-line-height: var(--line-height-snug);
+  --text-section-tracking: var(--tracking-normal);
+
+  --text-body-size: var(--font-size-14);
+  --text-body-weight: var(--font-weight-regular);
+  --text-body-line-height: var(--line-height-relaxed);
+  --text-body-tracking: var(--tracking-normal);
+
+  --text-caption-size: var(--font-size-13);
+  --text-caption-weight: var(--font-weight-medium);
+  --text-caption-line-height: var(--line-height-normal);
+  --text-caption-tracking: var(--tracking-normal);
+
+  --text-label-size: var(--font-size-12);
+  --text-label-weight: var(--font-weight-medium);
+  --text-label-line-height: var(--line-height-normal);
+  --text-label-tracking: var(--tracking-wide);
+
+  --text-code-size: var(--font-size-13);
+  --text-code-weight: var(--font-weight-regular);
+  --text-code-line-height: var(--line-height-relaxed);
+  --text-code-tracking: var(--tracking-normal);
+
+  /* Tells the UA to render native form controls / scrollbars using a light
+   * palette by default; flipped per-theme below. Improves default contrast
+   * of things this design system doesn't paint itself (native checkboxes,
+   * scrollbars) without branching component code on theme. */
+  color-scheme: light;
+}
+
+/* Dark: OS/browser preference, unless explicitly overridden to light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-bg-canvas: var(--palette-neutral-950); /* #1A1B1E */
+    --color-bg-surface: var(--palette-neutral-850); /* #232428 */
+    --color-bg-surface-subtle: var(--palette-neutral-900-dark); /* #1F2023 */
+    --color-bg-surface-raised: var(--palette-neutral-800); /* #2C2E33 - hardest ground */
+
+    --color-text-primary: var(--palette-neutral-50-dark); /* #F2F3F4 - 12.23-15.50:1 */
+    --color-text-secondary: var(--palette-neutral-300); /* #C7C8CC - 8.13-10.30:1 */
+    --color-text-muted: var(--palette-neutral-450); /* #9A9CA3 - 4.95-6.28:1 */
+
+    --color-border-subtle: var(--palette-neutral-750); /* #34363C - decorative */
+    --color-border-default: var(--palette-neutral-600); /* #7A7C84 - 3.26-4.14:1 */
+    --color-border-strong: var(--palette-neutral-500-dark); /* #9B9DA5 - 5.02-6.36:1 */
+
+    --color-action-primary: var(--palette-blue-300); /* #7D9EE6 - lighter: dark grounds need a lifted accent */
+    --color-action-primary-hover: var(--palette-blue-200); /* #A2BAED - lighter: more emphasis on dark */
+
+    --color-status-info: var(--palette-cyan-300); /* #4FA7DD */
+    --color-status-success: var(--palette-green-300); /* #22B570 */
+    --color-status-warning: var(--palette-amber-300); /* #D89012 */
+    --color-status-danger: var(--palette-red-300); /* #E6847B */
+
+    --color-accent-ai: var(--palette-violet-300); /* #AE8FEA */
+
+    color-scheme: dark;
+  }
+}
+
+/* Explicit choice always wins, in both directions, over the media query. */
+:root[data-theme='dark'] {
+  --color-bg-canvas: var(--palette-neutral-950);
+  --color-bg-surface: var(--palette-neutral-850);
+  --color-bg-surface-subtle: var(--palette-neutral-900-dark);
+  --color-bg-surface-raised: var(--palette-neutral-800);
+
+  --color-text-primary: var(--palette-neutral-50-dark);
+  --color-text-secondary: var(--palette-neutral-300);
+  --color-text-muted: var(--palette-neutral-450);
+
+  --color-border-subtle: var(--palette-neutral-750);
+  --color-border-default: var(--palette-neutral-600);
+  --color-border-strong: var(--palette-neutral-500-dark);
+
+  --color-action-primary: var(--palette-blue-300);
+  --color-action-primary-hover: var(--palette-blue-200);
+
+  --color-status-info: var(--palette-cyan-300);
+  --color-status-success: var(--palette-green-300);
+  --color-status-warning: var(--palette-amber-300);
+  --color-status-danger: var(--palette-red-300);
+
+  --color-accent-ai: var(--palette-violet-300);
+
+  color-scheme: dark;
+}

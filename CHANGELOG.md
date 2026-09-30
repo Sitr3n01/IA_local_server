@@ -4,8 +4,152 @@ All notable changes are documented here. This project follows Keep a Changelog c
 
 ## [Unreleased]
 
+### Fixed
+
+- The browser monitor uses the context window recorded with each historical
+  request, so changing or unloading an external model cannot change an old
+  request's occupancy. An unknown historical window stays unknown.
+- A monitor restart clears the page's old operation state; a late POST reply
+  from the previous instance cannot restore it. Action receipt, including the
+  response body, has a three-second deadline. After an uncertain result the
+  page waits for a fresh snapshot before admitting another action and never
+  retries a mutation automatically.
+- Removed the unused log-selection expression and console command reexport
+  module, and corrected error-string capitalization flagged by Staticcheck.
+
 ### Added
 
+- Browser-monitor lint and DOM regression tests run in CI using the console's
+  existing development dependencies, without contacting a real service.
+- The monitor now publishes a bounded `requests[]` feed that combines measured
+  edge requests and external llama.cpp log requests without treating GPU bursts
+  as requests. Each count or rate carries its source (`runtime-usage`,
+  `runtime-timings`, `server-log`, derived log value, or estimate); absent values
+  remain null. `coverage` reports separately how many detected external sources
+  have per-request measurements and how many have activity only. The page marks
+  estimated rates and explains derived cache counts. When an external model is
+  loaded while admission lacks physical memory, it points to the existing
+  confirmed stop action instead of acting automatically. Stream events counted
+  without runtime usage are kept separate from exact output-token totals.
+- The monitor measures requests of tools that bypass the edge. A llama.cpp
+  server - the engine under LM Studio and Bionic, or one started by hand with
+  `--log-file` - writes each request's counts to its log, and the monitor now
+  reads them: prompt, cached tokens, output, prompt-processing and generation
+  speed, time to first token, context in use and the board's energy in the
+  period. Prompt and cache are derived from the counts the server itself logs;
+  they matched its `usage` and `timings` in the measured sample, and only numbers
+  are read, never text
+  (ADR 0020, section 9). The requests table now lists the edge's requests and
+  these together, each with a "via" line, and the speed, context, cache and
+  totals figures follow the newest measured request from either. Servers with no
+  request log (Ollama and others) still show activity, GPU and energy, with a
+  note that says why there are no counts.
+- A protected server's refusal is remembered (60 s for 401/403, 30 s otherwise)
+  instead of being asked again every two seconds, which had filled Bionic's own
+  log with a 401 per pass.
+- The monitor shows more of what other tools do and can unload their models. For
+  LM Studio / Bionic's own llama-server, whose API is behind a key of its own,
+  the model, quantization, window and slots come from the process's launch
+  arguments (an allowlist of six flags; the rest of the line, key included, is
+  never kept or used), beside its RAM, its start time and the GPU it holds.
+  Stretches of activity of tools the edge cannot see - duration, peak GPU and
+  power, the board's energy in the period - are listed in the requests table as
+  "externa". A "Encerrar processo do modelo" button on each source ends the
+  process that holds its model after a native confirmation that defaults to
+  Cancel; the page names a source and never a pid, the process is re-identified
+  by name and creation time before it is ended, and a fixed list of system,
+  desktop and deployment programs is never ended (ADR 0020, sections 6 to 8).
+- The models list follows the disk and the tools, not only the manifest. The
+  edge's `/api/v1/status` now reports, for each model, `artifact.present` and
+  `artifact.size_matches` - from the weights file's metadata, never its path -
+  and a model whose file is gone or the wrong size is `available: false` with
+  the reason `artifact_missing` or `artifact_size_mismatch`; a file the edge is
+  not permitted to stat is "unknown", not missing. The monitor shows it as
+  "Arquivo ausente" and disables loading. Its Modelos tab also lists what the
+  other tools on the machine hold - for LM Studio / Bionic and Ollama, the
+  installed library as well as the loaded models - read from each tool's own
+  API.
+- `capabilities.reasoning` is a declared, optional capability in the manifest
+  schema (it existed in the edge's types but not in the schema, so the monitor's
+  "Raciocínio" tag could never light). It is `true` for the four active models,
+  on the evidence of the qualification runs, where `reasoning_content` was
+  present in 31 of 33 cases for Gemma, 32 of 33 for Qwen3.6 and 37 of 37 for
+  each Qwen3.8 profile. It gates nothing. The monitor's capability tags now say
+  in their tooltips that a struck-through Ferramentas, Responses or JSON
+  estruturado means "not guaranteed", not "incapable" (docs/MODEL_PROMOTION.md).
+- The monitor describes the machine, not only the edge (ADR 0020). New cards
+  report the GPU's power draw, the energy accumulated since the monitor started
+  and its temperatures and clocks, read from AMD's driver library; index 73 of
+  its power-management log was identified by measurement (70 W at the desktop,
+  about 280 W while a model generated). A list shows which processes hold the
+  GPU, whatever program they are. A discovery pass finds other inference tools
+  on loopback - LM Studio / Bionic, Ollama, a stand-alone llama.cpp server and
+  OpenAI-compatible servers - with GET only and no credential, and reports the
+  models they have loaded, their quantization and window, and whether they are
+  working; llama.cpp's slots also give a live token rate. When another tool is
+  using the GPU the page says so (phases `external` and `external_ready`)
+  instead of "Ocioso", and it keeps describing the machine when the edge does
+  not answer. Off AMD hardware the power cards read as unavailable.
+- Evaluated and rejected on 2026-09-29: yuxinlu1's agentic fine-tune of Gemma 4
+  12B (Q4_K_M, Apache-2.0) at 262144 tokens. Admissible at 256k, retention 0.96
+  to 196k and 0.875 at 240k, 27/33 on the quality suites in a third of the time
+  because it reasons far less, but it rewrites literal tool arguments (3 of 3
+  failures) and its lead over the QAT does not survive the QAT's reasoning
+  budget. The manifest entry and the GGUF were removed; the campaign evidence
+  and `docs/reports/GEMMA4-AGENTIC-QUALIFICATION-20260929.md` stay.
+- `cia-monitor` (`cmd/cia-monitor`, `internal/monitor`): a read-only browser
+  monitor in the spirit of Strata's Monitor tab (ADR 0019). One page, refreshed
+  every second: the request's phase (queued, loading the model, reading the
+  prompt, generating) with live output, tokens per second, time to first token
+  and progress against the output ceiling; GPU utilization, VRAM, shared memory
+  with the edge's paging verdict, CPU, RAM, commit and disk with two-minute
+  sparklines; a context gauge with cache reuse and the compaction threshold;
+  the recent requests with totals; the model roster; and the client base URLs.
+  It listens on a literal loopback address (`127.0.0.1:18095` canary, `:8095`
+  final), answers only its own Host names, emits a strict
+  Content-Security-Policy and holds no credential.
+- Model controls in the monitor: load the chosen model (the pipe's `switch`)
+  and unload the loaded one, from the Monitor tab or a model's card. Requests go
+  over the ADR 0015 administrative pipe, answered only by the installed
+  `cia-edge.exe`, and only after four checks: the request comes from the
+  monitor's own page (exact `Origin`, `Sec-Fetch-Site`, custom header, JSON);
+  the connection's owning process runs as the monitor's user, read from the
+  kernel's TCP table; the operator approves a native dialog that names the
+  operation and model, defaults to Cancel and expires after 45 s; and the model
+  is one the edge lists, with one operation at a time and none while inference
+  holds the gate. `-admin-pipe off` removes the buttons. Exercised on the
+  reference workstation: a load confirmed in the dialog had the model serving
+  in five seconds.
+- `Build-V2Binaries.ps1` builds, tests and stages `cia-monitor.exe` with the
+  other components. It is not yet part of the approved release set, so
+  `Complete-V2Deployment.ps1` does not install it.
+  The page is hand-written HTML, CSS and JavaScript compiled in with
+  `go:embed`, with no framework or npm tree; tests fail on any HTML sink in the
+  script or inline script and style in the page. Machine counters come from PDH
+  through `PdhAddEnglishCounterW` (GPU utilization as Task Manager defines it),
+  `GlobalMemoryStatusEx`, the llama-server process, and D3DKMT for the
+  adapter's name and size. Measured cost: about 0.5% of one core and 28 MiB.
+- `GET /api/v1/inference` on the edge's control listener: the requests holding
+  an admission slot and the last 64 finished ones, as numbers only — prompt,
+  cached and output tokens, prompt and decode rates, time to first token,
+  duration, status and finish class — plus totals since start. The counts are
+  llama-server's own `usage` or `timings`, read from the response on its way to
+  the client without altering a byte; a streamed answer with neither is counted
+  by token events and marked `output_estimated`. Successful reads are not
+  recorded in `recent_events`, so polling does not evict the event log.
+- `model_statuses[].process_state` in `/api/v1/status`: the router's state for
+  each model's process, restricted to its known words, so a model being loaded
+  can be told from a long prompt.
+- `benchmarks/agentic-reuse-b10549-20260928/`: the agentic incremental-reuse
+  gate run against the pinned upstream runtime (b10549) with the
+  `qwen38-27b-agent-128k` and `qwen36-35b-a3b-huge-256k` manifest entries. All
+  six cells pass Gates B, C and D (~55k to ~257k tokens, 98% of the Huge
+  window) with zero full re-prefills: a turn processes its increment, or about one `ubatch` when the
+  harness rewrites the last assistant turn — the result ADR 0010 assumed
+  upstream could not produce. `Run-AgenticReuse.ps1` in the same directory
+  starts a manifest profile through the production argument builder, refuses to
+  run beside any existing `llama-server`, stops only the process it started,
+  and rebuilds a summary from saved evidence with `-SummarizeOnly`.
 - Second llama.cpp runtime for Qwen3.8 agentic long context, built from a pinned
   `spiritbuun/buun-llama-cpp` commit (ADR 0010). The upstream build is untouched
   and remains the baseline and the fallback; the fork is a `candidate`,
@@ -126,6 +270,68 @@ All notable changes are documented here. This project follows Keep a Changelog c
 
 ### Changed
 
+- The v1 Python stack is removed: `control/` (the HTTP panel), `mcp/` (the
+  Python MCP server and its client registrations) and the scripts that started
+  or registered them (`local-llama-tray`, `start-local-llama-panel`,
+  `install-`/`uninstall-local-llama-startup`, `register-unsloth-mcp`). It was
+  already stopped, its Startup shortcut disabled and no client registered it;
+  `cia-tray`, `cia-monitor` and `cia-mcp` replace it. The profile benchmark
+  scripts and `model-test-matrix.json` stay: they are independent of the panel.
+- The roster shown by the monitor, Codex and OpenCode is four models. The
+  Ornith 1.5 35B-A3B profile is removed from `config/models.yaml` together with
+  its chat templates, their CI contract test and its weights; its campaign
+  evidence under `benchmarks/` stays as history. The 128k
+  `gemma4-12b-qat-ud-q4xl` alias (the same GGUF as the 256k entry) is `retired`
+  with no deployments. Display names now state the model, its
+  weights quantization and its context window
+  (`Qwen 3.8 27B | UD-Q3_K_XL | 128k context`) instead of role slogans and
+  "candidate". The first manifest entry is the 256k Gemma so the semantic tests,
+  which mutate `models[0]`, keep exercising an active model. Client catalogs
+  were regenerated; an installed edge shows the change after the next release.
+- ADR 0019 supersedes the direction of ADR 0018. `cia-console.exe` and
+  `frontend/` are frozen: not developed, not deployed, and not deleted, which
+  remains the operator's decision. `cia-tray.exe` stays the only surface that
+  changes anything; the browser monitor only reads.
+- `config/models.yaml` declares `cache_ram_mib: 8192`, `ctx_checkpoints: 32`,
+  `checkpoint_min_step: 8192` and `cache_idle_slots: true` on five of the six
+  active profiles. These are the runtimes' own defaults, so the served
+  behaviour is unchanged, but admission now charges the 8 GiB host prompt cache
+  it previously never saw: the Huge profile needs 32.6 GiB of available commit
+  instead of 24.6. `gemma4-12b-qat-ud-q4xl` stays undeclared by operator
+  decision.
+- `provider.public_model` is `gemma4-12b-qat-ud-q4xl-256k`: the same GGUF with
+  a 262,144-token window and the reasoning budget that took it from 26/34 to
+  31/34 (ADR 0016, addendum). Both Codex profile TOMLs pin the new id and
+  `New-V2ClientCatalogs.ps1` regenerated both OpenCode providers; the Codex
+  catalog did not change. The public model now needs 26.9 GiB of available
+  commit at admission (17.5 before), and a prompt that fills its window pays up
+  to 12.7 minutes to first token.
+- `cia-mcp-inference` no longer has a built-in model: without
+  `CIA_MCP_INFERENCE_MODEL` it fails at startup and names the installer. The
+  compiled fallback was `local-coding`, removed from the roster on 2026-08-22,
+  and the Codex, Claude Code and OpenCode registrations still pinned it — a
+  model the edge's allowlist no longer admits. `Install-V2McpInferenceIntegrations.ps1`
+  now pins the installed manifest's `provider.public_model` when `-Model` is
+  omitted and refuses any model that manifest does not list as active; it can
+  restate the delegate's limits (`-MaxOutputTokens`, `-Timeout`,
+  `-Temperature`) instead of resetting them to 4096 tokens and the defaults;
+  and it accepts a Codex config whose END marker Codex itself dropped on
+  rewrite, while duplicate markers still fail. `cia-mcp-smoke` requires
+  `-model`. The integration README states the new pin and marks its
+  measurements as taken on the removed model.
+- `Test-V2ConfigGeneration.ps1` proves byte stability on a copy of every
+  manifest entry stripped of its tuning fields, instead of requiring an untuned
+  real entry, and derives its cases from a stripped template.
+  `Test-V2Manifest.ps1`'s semantic cases start from a copy whose `models[0]`
+  carries no tuning fields. Both used to break as soon as the first entry
+  declared a field a case adds (`MemberAlreadyExists`), or every entry declared
+  one; verified against a scratch manifest in which all twelve entries do.
+- `TUNING.md` §1.4 no longer states that context checkpoints fail on hybrid
+  models: it carries the b10549 measurement, keeps #24055/#22384 as history,
+  and records that leaving `cache_ram_mib` undeclared does not disable b10549's
+  default 8 GiB host prompt cache, which admission therefore never charged.
+  §1.2, §1.5, §2 and §3, `BENCHMARKS.md`, ADRs 0009 and 0010 (addenda; statuses
+  unchanged) and the `model-test-matrix.json` notes follow it.
 - Tool-argument strings are compared byte-for-byte instead of through `norm()`,
   which folded case and stripped whitespace. `Vendor/**` matched `vendor/**` and
   `FOO[0-9]+` matched `foo[0-9]+`, so `literal_identifier` could not see the case

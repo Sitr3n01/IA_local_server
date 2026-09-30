@@ -1,0 +1,88 @@
+/*
+ * A band, not a card. The tone is carried by the icon and by a rule down
+ * the leading edge; the ground is the ordinary subtle surface and the text
+ * is ordinary body colour, so the notice reads at full legibility instead
+ * of as tinted prose.
+ *
+ * `border-inline-start` rather than `border-left`: this rule is the visual
+ * anchor of the component, and it belongs on whichever side the text starts
+ * on.
+ */
+.ds-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-bg-surface-subtle);
+  border-inline-start: 3px solid var(--color-border-default);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-family-sans);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line-height);
+  color: var(--color-text-primary);
+  min-width: 0;
+}
+
+.ds-notice__icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+  /* Optically centres the glyph on the first line of text rather than on the
+   * box, which matters as soon as the sentence wraps to two lines. */
+  margin-block-start: 0.15em;
+}
+
+.ds-notice__body {
+  min-width: 0;
+  flex: 1;
+}
+
+/* Paragraphs inside a notice inherit the band's own type; they carry no
+ * margins of their own, so a one-sentence notice is exactly one line tall. */
+.ds-notice__body > p {
+  margin: 0;
+}
+
+.ds-notice__body > p + p {
+  margin-block-start: var(--space-sm);
+}
+
+.ds-notice__action {
+  flex: none;
+  align-self: center;
+}
+
+.ds-notice--info {
+  border-inline-start-color: var(--color-status-info);
+}
+
+.ds-notice--info .ds-notice__icon {
+  color: var(--color-status-info);
+}
+
+.ds-notice--warning {
+  border-inline-start-color: var(--color-status-warning);
+}
+
+.ds-notice--warning .ds-notice__icon {
+  color: var(--color-status-warning);
+}
+
+.ds-notice--danger {
+  border-inline-start-color: var(--color-status-danger);
+}
+
+.ds-notice--danger .ds-notice__icon {
+  color: var(--color-status-danger);
+}
+
+/* Narrow: the action drops below the sentence rather than squeezing it. */
+@media (max-width: 560px) {
+  .ds-notice {
+    flex-wrap: wrap;
+  }
+
+  .ds-notice__action {
+    align-self: flex-start;
+  }
+}

@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Edge', 'Mcp', 'McpAdmin', 'McpInference', 'Supervisor')]
+    [ValidateSet('Edge', 'Credential', 'Mcp', 'McpAdmin', 'McpInference', 'Monitor', 'Supervisor')]
     [string]$Component,
     [ValidateSet('Canary', 'Final')]
     [string]$Environment = 'Canary',
@@ -28,9 +28,11 @@ if ($Apply -and -not (Test-V2IsAdministrator)) {
 $componentName = $Component.ToLowerInvariant()
 $binaryName = switch ($Component) {
     'Edge' { 'cia-edge.exe' }
+	'Credential' { 'cia-credential.exe' }
     'Mcp' { 'cia-mcp.exe' }
     'McpAdmin' { 'cia-mcp-admin.exe' }
     'McpInference' { 'cia-mcp-inference.exe' }
+    'Monitor' { 'cia-monitor.exe' }
     'Supervisor' { 'cia-supervisor.exe' }
 }
 if ([string]::IsNullOrWhiteSpace($SourceBinary)) {

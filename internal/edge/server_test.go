@@ -17,9 +17,10 @@ import (
 )
 
 const (
-	testInferenceToken = "inference-test-token-000000000000"
-	testAdminToken     = "admin-test-token-00000000000000000"
-	testRouterToken    = "router-test-token-0000000000000000"
+	testInferenceToken     = "inference-test-token-000000000000"
+	testAdminToken         = "admin-test-token-00000000000000000"
+	testRouterToken        = "router-test-token-0000000000000000"
+	testClaudeGatewayToken = "claude-gateway-test-token-000000000"
 )
 
 func testConfig(upstream string) Config {
@@ -28,6 +29,7 @@ func testConfig(upstream string) Config {
 	cfg.InferenceToken = testInferenceToken
 	cfg.AdminToken = testAdminToken
 	cfg.RouterToken = testRouterToken
+	cfg.ClaudeGatewayToken = testClaudeGatewayToken
 	cfg.LogOutput = io.Discard
 	cfg.QueueWait = 100 * time.Millisecond
 	return cfg
@@ -90,6 +92,86 @@ func TestModelsIsStaticAndSideEffectFree(t *testing.T) {
 	}
 	if recorder.Header().Get("Access-Control-Allow-Origin") != "" {
 		t.Fatal("data plane unexpectedly enabled CORS")
+	}
+}
+
+func TestClaudeDesktopModelsDiscoveryUsesDynamicAliasesAndPreservesRealIdentity(t *testing.T) {
+	server, _ := newTestServer(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		t.Fatal("GET /v1/models reached upstream")
+	}))
+	models := []Model{
+		{ID: "gemma4-12b-qat-ud-q4xl", Object: "model", OwnedBy: "cia", DisplayName: "Gemma 4 12B QAT UD-Q4XL"},
+		{ID: "qwen38-27b-agent-128k", Object: "model", OwnedBy: "cia", DisplayName: "Qwen3.8 27B Agent 128K"},
+		{ID: "qwen36-35b-a3b-huge-256k", Object: "model", OwnedBy: "cia", DisplayName: "Qwen 3.6 35B A3B 256K"},
+		{ID: "my-future-model", Object: "model", OwnedBy: "cia", DisplayName: "My Future Model"},
+	}
+	server.cfg.Models = models
+
+	request := httptest.NewRequest(http.MethodGet, "http://127.0.0.1:8090/v1/models?limit=1000", nil)
+	request.Host = "127.0.0.1:8090"
+	request.Header.Set("Authorization", "Bearer "+testClaudeGatewayToken)
+	recorder := httptest.NewRecorder()
+	server.DataHandler().ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	var payload struct {
+		Data []struct {
+			ID                  string `json:"id"`
+			CIARealModelID      string `json:"cia_real_model_id"`
+			DisplayName         string `json:"display_name"`
+			AnthropicFamilyTier string `json:"anthropic_family_tier"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Data) != len(models) {
+		t.Fatalf("models=%d, want %d", len(payload.Data), len(models))
+	}
+	for index, got := range payload.Data {
+		if got.ID != claudeExternalModelID(models[index].ID) || got.CIARealModelID != models[index].ID || got.DisplayName != models[index].DisplayName {
+			t.Errorf("model[%d]=%+v, want dynamic alias plus real identity from %+v", index, got, models[index])
+		}
+		if got.AnthropicFamilyTier != claudeDesktopCompatibilityTier {
+			t.Errorf("model[%d] compatibility tier=%q", index, got.AnthropicFamilyTier)
+		}
+		if !strings.HasPrefix(got.ID, "claude-local-") || strings.Contains(got.ID, models[index].ID) {
+			t.Errorf("local model wire alias is not opaque/Claude-shaped: %q", got.ID)
+		}
+	}
+}
+
+func TestModelsQueryValidationFailsClosed(t *testing.T) {
+	server, _ := newTestServer(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		t.Fatal("invalid discovery reached upstream")
+	}))
+	for _, path := range []string{
+		"/v1/models?cursor=secret",
+		"/v1/models?limit=0",
+		"/v1/models?limit=1001",
+		"/v1/models?limit=10&limit=11",
+		"/v1/models?limit=10&cursor=secret",
+	} {
+		request := httptest.NewRequest(http.MethodGet, "http://127.0.0.1:8090"+path, nil)
+		request.Host = "127.0.0.1:8090"
+		request.Header.Set("Authorization", "Bearer "+testClaudeGatewayToken)
+		recorder := httptest.NewRecorder()
+		server.DataHandler().ServeHTTP(recorder, request)
+		if recorder.Code != http.StatusBadRequest || errorCode(t, recorder) != "invalid_request" {
+			t.Errorf("%s: status=%d body=%s", path, recorder.Code, recorder.Body.String())
+		}
+	}
+}
+
+func TestInferenceModelsResponseDoesNotGainClaudeCompatibilityMetadata(t *testing.T) {
+	server, _ := newTestServer(t, http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	recorder := dataRequest(t, server.DataHandler(), http.MethodGet, "/v1/models?limit=1000", nil)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if strings.Contains(recorder.Body.String(), "anthropic_family_tier") {
+		t.Fatalf("OpenAI-compatible catalog leaked Claude-only metadata: %s", recorder.Body.String())
 	}
 }
 
