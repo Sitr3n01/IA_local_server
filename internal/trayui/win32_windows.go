@@ -18,62 +18,66 @@ import (
 )
 
 const (
-	wmDestroy       = 0x0002
-	wmSize          = 0x0005
-	wmClose         = 0x0010
-	wmCommand       = 0x0111
-	wmTimer         = 0x0113
-	wmLButtonUp     = 0x0202
-	wmLButtonDblClk = 0x0203
-	wmRButtonUp     = 0x0205
-	wmContextMenu   = 0x007B
-	wmApp           = 0x8000
-	wmTray          = wmApp + 1
-	wmResult        = wmApp + 2
+	wmDestroy        = 0x0002
+	wmActivate       = 0x0006
+	wmPaint          = 0x000F
+	wmClose          = 0x0010
+	wmQueryEndSess   = 0x0011
+	wmEraseBkgnd     = 0x0014
+	wmEndSession     = 0x0016
+	wmSettingChange  = 0x001A
+	wmSetCursor      = 0x0020
+	wmContextMenu    = 0x007B
+	wmKeyDown        = 0x0100
+	wmTimer          = 0x0113
+	wmMouseMove      = 0x0200
+	wmLButtonDown    = 0x0201
+	wmLButtonUp      = 0x0202
+	wmMouseWheel     = 0x020A
+	wmMouseLeave     = 0x02A3
+	wmDPIChanged     = 0x02E0
+	wmUser           = 0x0400
+	wmApp            = 0x8000
+	wmTray           = wmApp + 1
+	wmResult         = wmApp + 2
+	ninSelect        = wmUser + 0
+	ninKeySelect     = wmUser + 1
+	ninBalloonUserCl = wmUser + 5
 
 	nimAdd    = 0x00000000
 	nimModify = 0x00000001
 	nimDelete = 0x00000002
 	nimSetVer = 0x00000004
 
-	nifMessage = 0x00000001
-	nifIcon    = 0x00000002
-	nifTip     = 0x00000004
+	nifMessage  = 0x00000001
+	nifIcon     = 0x00000002
+	nifTip      = 0x00000004
+	nifInfo     = 0x00000010
+	nifShowTip  = 0x00000080
+	niifInfo    = 0x00000001
+	niifError   = 0x00000003
+	niifNoSound = 0x00000010
+	niifQuiet   = 0x00000080
 
-	mfString    = 0x00000000
-	mfGray      = 0x00000001
-	mfDisabled  = 0x00000002
-	mfChecked   = 0x00000008
-	mfSeparator = 0x00000800
-
-	tpmRightButton = 0x0002
-	tpmNonotify    = 0x0080
-	tpmReturnCmd   = 0x0100
-
-	mbOK               = 0x00000000
-	mbIconError        = 0x00000010
-	mbIconInformation  = 0x00000040
 	notifyIconVersion4 = 4
 
-	commandPanel           = 99
-	commandRefresh         = 100
-	commandLoad            = 101
-	commandSwitch          = 102
-	commandUnload          = 103
-	commandCodex           = 110
-	commandOpen            = 111
-	commandClaudeOpen      = 112
-	commandClaudeAnthropic = 113
-	commandClaudeLocal     = 114
-	commandStatus          = 120
-	commandExit            = 199
-	commandModel           = 1000
+	wsPopup         = 0x80000000
+	wsExToolWindow  = 0x00000080
+	wsExTopmost     = 0x00000008
+	csDropShadow    = 0x00020000
+	swHide          = 0
+	asfwAny         = ^uintptr(0)
+	timerRefresh    = 1
+	fastRefresh     = 2 * time.Second
+	startingTimeout = 2 * time.Minute
 )
 
 type point struct {
 	X int32
 	Y int32
 }
+
+type rect struct{ Left, Top, Right, Bottom int32 }
 
 type message struct {
 	Window  windows.Handle
@@ -118,36 +122,46 @@ type notifyIconData struct {
 	BalloonIcon     windows.Handle
 }
 
+// actionResult reports one finished background action to the UI thread.
 type actionResult struct {
-	title   string
-	message string
+	title   string // the notification title when the flyout is closed
+	done    string // the notification text on success; empty keeps success quiet
 	err     error
-	quiet   bool
+	refresh bool // a snapshot refresh, not an action
+	exit    bool // the tray exits after a successful action
+	launch  bool // a launch never held the busy flag
+	started bool // the server was asked to start
 }
 
 type app struct {
 	controller Controller
 	options    Options
 	window     windows.Handle
-	icon       windows.Handle
+	flyout     *flyout
+	icons      map[Tone]windows.Handle
+	iconSize   int32
 	iconAdded  bool
 	taskbarMsg uint32
+	showMsg    uint32
+	interval   time.Duration
 	ctx        context.Context
 	cancel     context.CancelFunc
 
-	mu       sync.RWMutex
-	windowMu sync.RWMutex
-	workers  sync.WaitGroup
-	closed   bool
-	quitting bool
-	snapshot Snapshot
-	lastErr  error
-	commands map[uint32]string
-	results  chan actionResult
-	busy     atomic.Bool
-	refresh  atomic.Bool
-	controls map[uint32]windows.Handle
-	filtered []int
+	mu        sync.RWMutex
+	windowMu  sync.RWMutex
+	workers   sync.WaitGroup
+	closed    bool
+	quitting  bool
+	snapshot  Snapshot
+	loaded    bool // the first snapshot arrived
+	lastErr   error
+	activity  string
+	actionErr error
+	startedAt time.Time
+	results   chan actionResult
+	busy      atomic.Bool
+	refresh   atomic.Bool
+	autoStart atomic.Bool
 }
 
 var (
@@ -155,44 +169,42 @@ var (
 	shell32  = windows.NewLazySystemDLL("shell32.dll")
 	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
 
-	procAppendMenuW        = user32.NewProc("AppendMenuW")
-	procCreateIcon         = user32.NewProc("CreateIcon")
-	procCreatePopupMenu    = user32.NewProc("CreatePopupMenu")
-	procCreateWindowExW    = user32.NewProc("CreateWindowExW")
-	procDefWindowProcW     = user32.NewProc("DefWindowProcW")
-	procDestroyIcon        = user32.NewProc("DestroyIcon")
-	procDestroyMenu        = user32.NewProc("DestroyMenu")
-	procDestroyWindow      = user32.NewProc("DestroyWindow")
-	procDispatchMessageW   = user32.NewProc("DispatchMessageW")
-	procGetCursorPos       = user32.NewProc("GetCursorPos")
-	procGetMessageW        = user32.NewProc("GetMessageW")
-	procMessageBoxW        = user32.NewProc("MessageBoxW")
-	procPostMessageW       = user32.NewProc("PostMessageW")
-	procPostQuitMessage    = user32.NewProc("PostQuitMessage")
-	procRegisterClassExW   = user32.NewProc("RegisterClassExW")
-	procRegisterWindowMsgW = user32.NewProc("RegisterWindowMessageW")
-	procSetForegroundWind  = user32.NewProc("SetForegroundWindow")
-	procShowWindow         = user32.NewProc("ShowWindow")
-	procSetProcessDPIAware = user32.NewProc("SetProcessDPIAware")
-	procSetTimer           = user32.NewProc("SetTimer")
-	procShellNotifyIconW   = shell32.NewProc("Shell_NotifyIconW")
-	procTrackPopupMenu     = user32.NewProc("TrackPopupMenu")
-	procTranslateMessage   = user32.NewProc("TranslateMessage")
-	procGetModuleHandleW   = kernel32.NewProc("GetModuleHandleW")
-	procCreateMutexW       = kernel32.NewProc("CreateMutexW")
+	procCreateWindowExW       = user32.NewProc("CreateWindowExW")
+	procDefWindowProcW        = user32.NewProc("DefWindowProcW")
+	procDestroyIcon           = user32.NewProc("DestroyIcon")
+	procDestroyWindow         = user32.NewProc("DestroyWindow")
+	procDispatchMessageW      = user32.NewProc("DispatchMessageW")
+	procFindWindowW           = user32.NewProc("FindWindowW")
+	procAllowSetForegroundWnd = user32.NewProc("AllowSetForegroundWindow")
+	procGetMessageW           = user32.NewProc("GetMessageW")
+	procPostMessageW          = user32.NewProc("PostMessageW")
+	procPostQuitMessage       = user32.NewProc("PostQuitMessage")
+	procRegisterClassExW      = user32.NewProc("RegisterClassExW")
+	procRegisterWindowMsgW    = user32.NewProc("RegisterWindowMessageW")
+	procSetTimer              = user32.NewProc("SetTimer")
+	procKillTimer             = user32.NewProc("KillTimer")
+	procTranslateMessage      = user32.NewProc("TranslateMessage")
+	procSetProcessDPIAware    = user32.NewProc("SetProcessDPIAware")
+	procSetProcessDPICtx      = user32.NewProc("SetProcessDpiAwarenessContext")
+	procGetSystemMetricsDPI   = user32.NewProc("GetSystemMetricsForDpi")
+	procGetDpiForSystem       = user32.NewProc("GetDpiForSystem")
+	procCreateIconIndirect    = user32.NewProc("CreateIconIndirect")
+	procShellNotifyIconW      = shell32.NewProc("Shell_NotifyIconW")
+	procGetModuleHandleW      = kernel32.NewProc("GetModuleHandleW")
+	procCreateMutexW          = kernel32.NewProc("CreateMutexW")
 
 	apps sync.Map
 )
 
-// Run owns the Win32 message loop on the calling goroutine. Network and model
-// operations are always performed on workers and report completion through a
+// dpiAwarenessPerMonitorV2 is DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2.
+const dpiAwarenessPerMonitorV2 = ^uintptr(3)
+
+// Run owns the Win32 message loop on the calling goroutine. Network, model and
+// process operations always run on workers and report completion through a
 // private window message, so a cold model load cannot freeze Explorer's tray.
 func Run(ctx context.Context, controller Controller, options Options) error {
 	if controller == nil {
 		return errors.New("tray controller is required")
-	}
-	if strings.TrimSpace(options.Title) == "" {
-		options.Title = "CIA Local AI"
 	}
 	if options.RefreshInterval <= 0 {
 		options.RefreshInterval = 10 * time.Second
@@ -203,64 +215,77 @@ func Run(ctx context.Context, controller Controller, options Options) error {
 	if strings.TrimSpace(options.InstanceID) == "" {
 		options.InstanceID = "default"
 	}
+	if len(options.InstanceID) > 100 || strings.ContainsAny(options.InstanceID, "\\/\x00\r\n") {
+		return errors.New("tray instance ID is invalid")
+	}
+	className := "CIA.LocalAI.Tray." + options.InstanceID
+	showMsg, err := registerMessage("CIA.LocalAI.Tray.Show")
+	if err != nil {
+		return err
+	}
 	instanceMutex, err := acquireInstanceMutex(options.InstanceID)
 	if err != nil {
+		if errors.Is(err, ErrAlreadyRunning) {
+			showRunningInstance(className, showMsg)
+		}
 		return err
 	}
 	defer windows.CloseHandle(instanceMutex)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	_, _, _ = procSetProcessDPIAware.Call()
+	// DPI awareness is also declared in the executable's manifest; the call
+	// covers builds without it and fails harmlessly when the manifest won.
+	if result, _, _ := procSetProcessDPICtx.Call(dpiAwarenessPerMonitorV2); result == 0 {
+		_, _, _ = procSetProcessDPIAware.Call()
+	}
+	if err := startGDIPlus(); err != nil {
+		return err
+	}
 
 	appCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	a := &app{
 		controller: controller,
 		options:    options,
-		commands:   make(map[uint32]string),
-		results:    make(chan actionResult, 8),
+		showMsg:    showMsg,
+		icons:      make(map[Tone]windows.Handle),
+		results:    make(chan actionResult, 16),
 		ctx:        appCtx,
 		cancel:     cancel,
 	}
-	if snapshot, err := snapshotWithTimeout(ctx, controller, 4*time.Second); err == nil {
-		a.snapshot = snapshot
-	} else {
-		if len(snapshot.Models) != 0 {
-			a.snapshot = snapshot
-		}
-		a.lastErr = err
-	}
-
-	if err := a.createWindow(); err != nil {
-		cancel()
+	a.snapshot.Environment = options.Environment
+	if err := a.createWindow(className); err != nil {
 		return err
 	}
-	// A VBS launcher supplies STARTF_USESHOWWINDOW=SW_HIDE. Windows applies
-	// that startup state to the first ShowWindow call regardless of its
-	// argument, so consume it here while the panel is intentionally hidden.
-	// The first tray double-click can then show the dashboard immediately.
-	_, _, _ = procShowWindow.Call(uintptr(a.window), swHide)
 	defer a.destroy()
 	defer a.stopWorkers()
 	apps.Store(a.window, a)
 	defer apps.Delete(a.window)
-	if err := a.createDashboardControls(); err != nil {
-		return err
-	}
 
-	if err := a.initializeTaskbarIntegration(); err != nil {
+	flyout, err := newFlyout(a)
+	if err != nil {
 		return err
 	}
+	a.flyout = flyout
+	defer flyout.destroy()
+
+	taskbarCreated, err := registerMessage("TaskbarCreated")
+	if err != nil {
+		return err
+	}
+	a.taskbarMsg = taskbarCreated
 	if err := a.registerIcon(); err != nil {
 		a.mu.Lock()
 		a.lastErr = err
 		a.mu.Unlock()
 	}
-	a.updateTooltip()
-	intervalMS := uintptr(options.RefreshInterval / time.Millisecond)
-	if result, _, callErr := procSetTimer.Call(uintptr(a.window), 1, intervalMS, 0); result == 0 {
-		return fmt.Errorf("create tray refresh timer: %w", callErr)
-	}
+	a.setRefreshInterval(fastRefresh)
+
+	// Opening the tray means running the system: the first snapshot decides
+	// whether the server has to be started.
+	a.autoStart.Store(true)
+	a.startRefresh()
 
 	a.workers.Add(1)
 	go func() {
@@ -284,6 +309,15 @@ func Run(ctx context.Context, controller Controller, options Options) error {
 	}
 }
 
+func registerMessage(name string) (uint32, error) {
+	value, _ := windows.UTF16PtrFromString(name)
+	id, _, err := procRegisterWindowMsgW.Call(uintptr(unsafe.Pointer(value)))
+	if id == 0 {
+		return 0, fmt.Errorf("register window message %s: %w", name, err)
+	}
+	return uint32(id), nil
+}
+
 func snapshotWithTimeout(parent context.Context, controller Controller, timeout time.Duration) (Snapshot, error) {
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
@@ -291,9 +325,6 @@ func snapshotWithTimeout(parent context.Context, controller Controller, timeout 
 }
 
 func acquireInstanceMutex(instanceID string) (windows.Handle, error) {
-	if len(instanceID) > 100 || strings.ContainsAny(instanceID, "\\/\x00\r\n") {
-		return 0, errors.New("tray instance ID is invalid")
-	}
 	name, _ := windows.UTF16PtrFromString("Local\\CIA.LocalAI.Tray." + instanceID)
 	handle, _, callErr := procCreateMutexW.Call(0, 0, uintptr(unsafe.Pointer(name)))
 	if handle == 0 {
@@ -301,72 +332,108 @@ func acquireInstanceMutex(instanceID string) (windows.Handle, error) {
 	}
 	if errors.Is(callErr, windows.ERROR_ALREADY_EXISTS) {
 		_ = windows.CloseHandle(windows.Handle(handle))
-		return 0, fmt.Errorf("%w: CIA Local AI panel %q", ErrAlreadyRunning, instanceID)
+		return 0, fmt.Errorf("%w: IA Local %q", ErrAlreadyRunning, instanceID)
 	}
 	return windows.Handle(handle), nil
 }
 
-func (a *app) createWindow() error {
+// showRunningInstance asks the tray that already runs to open its flyout, so
+// starting IA Local a second time answers instead of doing nothing. This
+// process was started by the user and may hand its foreground right over.
+func showRunningInstance(className string, showMsg uint32) {
+	name, _ := windows.UTF16PtrFromString(className)
+	window, _, _ := procFindWindowW.Call(uintptr(unsafe.Pointer(name)), 0)
+	if window == 0 {
+		return
+	}
+	_, _, _ = procAllowSetForegroundWnd.Call(asfwAny)
+	_, _, _ = procPostMessageW.Call(window, uintptr(showMsg), 0, 0)
+}
+
+// createWindow creates the hidden top-level window that owns the icon. It is
+// top-level, not message-only, because Explorer's TaskbarCreated broadcast
+// reaches only top-level windows.
+func (a *app) createWindow(className string) error {
 	instance, _, callErr := procGetModuleHandleW.Call(0)
 	if instance == 0 {
 		return fmt.Errorf("get process module: %w", callErr)
 	}
-	className, _ := windows.UTF16PtrFromString(fmt.Sprintf("CIA.LocalAI.Tray.%d", windows.GetCurrentProcessId()))
-	title, _ := windows.UTF16PtrFromString("")
+	name, _ := windows.UTF16PtrFromString(className)
+	title, _ := windows.UTF16PtrFromString("IA Local")
 	class := windowClass{
 		Size:       uint32(unsafe.Sizeof(windowClass{})),
 		WindowProc: windows.NewCallback(windowProc),
 		Instance:   windows.Handle(instance),
-		ClassName:  className,
+		ClassName:  name,
 	}
-	atom, _, registerErr := procRegisterClassExW.Call(uintptr(unsafe.Pointer(&class)))
-	if atom == 0 {
+	if atom, _, registerErr := procRegisterClassExW.Call(uintptr(unsafe.Pointer(&class))); atom == 0 {
 		return fmt.Errorf("register tray window class: %w", registerErr)
 	}
-	window, _, createErr := procCreateWindowExW.Call(
-		0,
-		uintptr(unsafe.Pointer(className)),
-		uintptr(unsafe.Pointer(title)),
-		wsOverlappedWindow,
-		100, 100, 1040, 720,
-		0, 0, instance, 0,
-	)
+	window, _, createErr := procCreateWindowExW.Call(wsExToolWindow, uintptr(unsafe.Pointer(name)), uintptr(unsafe.Pointer(title)),
+		wsPopup, 0, 0, 0, 0, 0, 0, instance, 0)
 	if window == 0 {
-		return fmt.Errorf("create tray message window: %w", createErr)
+		return fmt.Errorf("create tray window: %w", createErr)
 	}
 	a.window = windows.Handle(window)
 	return nil
 }
 
-func (a *app) initializeTaskbarIntegration() error {
-	taskbarCreated, _ := windows.UTF16PtrFromString("TaskbarCreated")
-	messageID, _, registerErr := procRegisterWindowMsgW.Call(uintptr(unsafe.Pointer(taskbarCreated)))
-	if messageID == 0 {
-		return fmt.Errorf("register Explorer restart message: %w", registerErr)
+// trayIcon returns the icon for a tone at the notification area's current
+// size, drawing it on first use.
+func (a *app) trayIcon(tone Tone) (windows.Handle, error) {
+	size := smallIconSize()
+	if size != a.iconSize {
+		a.releaseIcons()
+		a.iconSize = size
 	}
-	a.taskbarMsg = uint32(messageID)
-
-	icon, err := createProviderIcon()
+	if icon, ok := a.icons[tone]; ok {
+		return icon, nil
+	}
+	pixels, err := RenderMark(int(size), IconColor(tone), 0xffffffff)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	a.icon = icon
-	return nil
+	icon, err := iconFromPixels(pixels, int(size))
+	if err != nil {
+		return 0, err
+	}
+	a.icons[tone] = icon
+	return icon, nil
+}
+
+func (a *app) releaseIcons() {
+	for tone, icon := range a.icons {
+		_, _, _ = procDestroyIcon.Call(uintptr(icon))
+		delete(a.icons, tone)
+	}
+}
+
+func smallIconSize() int32 {
+	dpi, _, _ := procGetDpiForSystem.Call()
+	if dpi == 0 {
+		dpi = 96
+	}
+	const smCxSmIcon = 49
+	if size, _, _ := procGetSystemMetricsDPI.Call(smCxSmIcon, dpi); size != 0 {
+		return int32(size)
+	}
+	return int32(16 * dpi / 96)
 }
 
 func (a *app) registerIcon() error {
-	if a.window == 0 || a.icon == 0 {
-		return errors.New("notification-area icon is not initialized")
+	if a.window == 0 {
+		return errors.New("notification-area window is not initialized")
 	}
-	data := a.iconData()
-	result, _, callErr := procShellNotifyIconW.Call(nimAdd, uintptr(unsafe.Pointer(&data)))
-	if result == 0 {
+	data, err := a.iconData()
+	if err != nil {
+		return err
+	}
+	if result, _, callErr := procShellNotifyIconW.Call(nimAdd, uintptr(unsafe.Pointer(&data))); result == 0 {
 		return fmt.Errorf("add notification-area icon: %w", callErr)
 	}
 	a.iconAdded = true
 	data.Version = notifyIconVersion4
-	result, _, callErr = procShellNotifyIconW.Call(nimSetVer, uintptr(unsafe.Pointer(&data)))
-	if result == 0 {
+	if result, _, callErr := procShellNotifyIconW.Call(nimSetVer, uintptr(unsafe.Pointer(&data))); result == 0 {
 		_, _, _ = procShellNotifyIconW.Call(nimDelete, uintptr(unsafe.Pointer(&data)))
 		a.iconAdded = false
 		return fmt.Errorf("set notification-area icon version: %w", callErr)
@@ -374,20 +441,55 @@ func (a *app) registerIcon() error {
 	return nil
 }
 
-func (a *app) iconData() notifyIconData {
+func (a *app) iconData() (notifyIconData, error) {
+	view := BuildView(a.viewState())
+	icon, err := a.trayIcon(view.IconTone)
+	if err != nil {
+		return notifyIconData{}, err
+	}
 	data := notifyIconData{
 		Size:            uint32(unsafe.Sizeof(notifyIconData{})),
 		Window:          a.window,
 		ID:              1,
-		Flags:           nifMessage | nifIcon | nifTip,
+		Flags:           nifMessage | nifIcon | nifTip | nifShowTip,
 		CallbackMessage: wmTray,
-		Icon:            a.icon,
+		Icon:            icon,
 	}
-	a.mu.RLock()
-	tip := a.tooltipLocked()
-	a.mu.RUnlock()
-	copyUTF16(data.Tip[:], tip)
-	return data
+	copyUTF16(data.Tip[:], view.Tooltip)
+	return data, nil
+}
+
+// updateIcon refreshes the icon's colour and tooltip after a state change.
+func (a *app) updateIcon() {
+	if a.window == 0 || !a.iconAdded {
+		return
+	}
+	data, err := a.iconData()
+	if err != nil {
+		return
+	}
+	_, _, _ = procShellNotifyIconW.Call(nimModify, uintptr(unsafe.Pointer(&data)))
+}
+
+// notify shows a Windows notification from the icon. The tray uses it only
+// when the flyout is closed, to report how an action it started ended.
+func (a *app) notify(title, text string, isError bool) {
+	if !a.iconAdded || a.window == 0 {
+		return
+	}
+	data := notifyIconData{
+		Size:      uint32(unsafe.Sizeof(notifyIconData{})),
+		Window:    a.window,
+		ID:        1,
+		Flags:     nifInfo,
+		InfoFlags: niifInfo | niifNoSound | niifQuiet,
+	}
+	if isError {
+		data.InfoFlags = niifError | niifQuiet
+	}
+	copyUTF16(data.InfoTitle[:], title)
+	copyUTF16(data.Info[:], text)
+	_, _, _ = procShellNotifyIconW.Call(nimModify, uintptr(unsafe.Pointer(&data)))
 }
 
 func (a *app) destroy() {
@@ -398,18 +500,20 @@ func (a *app) destroy() {
 		a.cancel()
 	}
 	if a.window != 0 {
-		data := a.iconData()
-		if a.iconAdded {
-			_, _, _ = procShellNotifyIconW.Call(nimDelete, uintptr(unsafe.Pointer(&data)))
-			a.iconAdded = false
-		}
+		a.removeIcon()
 		_, _, _ = procDestroyWindow.Call(uintptr(a.window))
 		a.window = 0
 	}
-	if a.icon != 0 {
-		_, _, _ = procDestroyIcon.Call(uintptr(a.icon))
-		a.icon = 0
+	a.releaseIcons()
+}
+
+func (a *app) removeIcon() {
+	if !a.iconAdded {
+		return
 	}
+	data := notifyIconData{Size: uint32(unsafe.Sizeof(notifyIconData{})), Window: a.window, ID: 1}
+	_, _, _ = procShellNotifyIconW.Call(nimDelete, uintptr(unsafe.Pointer(&data)))
+	a.iconAdded = false
 }
 
 func (a *app) stopWorkers() {
@@ -428,16 +532,33 @@ func (a *app) postMessage(message uint32) {
 	_, _, _ = procPostMessageW.Call(uintptr(a.window), uintptr(message), 0, 0)
 }
 
-func (a *app) beginClose(window uintptr) {
+func (a *app) requestExit() {
 	a.windowMu.Lock()
-	if !a.closed {
-		a.closed = true
-		if a.cancel != nil {
-			a.cancel()
-		}
-	}
+	a.quitting = true
 	a.windowMu.Unlock()
-	_, _, _ = procDestroyWindow.Call(window)
+	a.postMessage(wmClose)
+}
+
+func (a *app) setRefreshInterval(interval time.Duration) {
+	if interval == a.interval || a.window == 0 {
+		return
+	}
+	if result, _, _ := procSetTimer.Call(uintptr(a.window), timerRefresh, uintptr(interval/time.Millisecond), 0); result != 0 {
+		a.interval = interval
+	}
+}
+
+// adjustRefresh polls fast while someone is looking or something is moving,
+// and at the configured pace otherwise.
+func (a *app) adjustRefresh() {
+	a.mu.RLock()
+	starting := !a.startedAt.IsZero()
+	a.mu.RUnlock()
+	if starting || a.busy.Load() || (a.flyout != nil && a.flyout.visible) {
+		a.setRefreshInterval(fastRefresh)
+		return
+	}
+	a.setRefreshInterval(a.options.RefreshInterval)
 }
 
 func windowProc(window uintptr, message uint32, wParam, lParam uintptr) uintptr {
@@ -447,33 +568,35 @@ func windowProc(window uintptr, message uint32, wParam, lParam uintptr) uintptr 
 		return result
 	}
 	a := value.(*app)
-	if message == a.taskbarMsg {
+	// Registered message IDs are compared only once they exist: before that
+	// they are zero, which is WM_NULL.
+	if a.taskbarMsg != 0 && message == a.taskbarMsg {
+		// Explorer restarted and forgot every icon.
 		a.iconAdded = false
 		if err := a.registerIcon(); err != nil {
 			a.mu.Lock()
 			a.lastErr = err
 			a.mu.Unlock()
-		} else {
-			a.updateTooltip()
+		}
+		return 0
+	}
+	if a.showMsg != 0 && message == a.showMsg {
+		if a.flyout != nil {
+			a.flyout.show()
 		}
 		return 0
 	}
 	switch message {
 	case wmTray:
-		event := uint32(lParam) & 0xffff
-		if event == wmLButtonUp || event == wmLButtonDblClk {
-			a.showDashboard()
+		if a.flyout == nil {
 			return 0
 		}
-		if event == wmRButtonUp || event == wmContextMenu {
-			a.showMenu()
-			return 0
+		switch uint32(lParam) & 0xffff {
+		case ninSelect, ninKeySelect, wmContextMenu:
+			a.flyout.toggle()
+		case ninBalloonUserCl:
+			a.flyout.show()
 		}
-	case wmCommand:
-		a.handleDashboardCommand(uint32(wParam&0xffff), uint32((wParam>>16)&0xffff))
-		return 0
-	case wmSize:
-		a.layoutDashboard(int32(lParam&0xffff), int32((lParam>>16)&0xffff))
 		return 0
 	case wmTimer:
 		if !a.iconAdded {
@@ -488,171 +611,79 @@ func windowProc(window uintptr, message uint32, wParam, lParam uintptr) uintptr 
 	case wmResult:
 		a.handleResults()
 		return 0
+	case wmSettingChange:
+		// The notification area's icon size follows the system DPI.
+		if smallIconSize() != a.iconSize {
+			a.updateIcon()
+		}
+	case wmQueryEndSess:
+		return 1
+	case wmEndSession:
+		if wParam != 0 {
+			a.removeIcon()
+		}
+		return 0
 	case wmClose:
 		a.windowMu.RLock()
 		quitting := a.quitting
 		a.windowMu.RUnlock()
 		if quitting {
 			a.beginClose(window)
-		} else {
-			a.hideDashboard()
 		}
 		return 0
 	case wmDestroy:
-		data := a.iconData()
-		if a.iconAdded {
-			_, _, _ = procShellNotifyIconW.Call(nimDelete, uintptr(unsafe.Pointer(&data)))
-			a.iconAdded = false
-		}
+		a.removeIcon()
 		a.windowMu.Lock()
 		if a.window == windows.Handle(window) {
 			a.window = 0
 		}
 		a.windowMu.Unlock()
-		procPostQuitMessage.Call(0)
+		_, _, _ = procPostQuitMessage.Call(0)
 		return 0
 	}
 	result, _, _ := procDefWindowProcW.Call(window, uintptr(message), wParam, lParam)
 	return result
 }
 
-func (a *app) showMenu() {
-	a.startRefresh()
-	menu, _, err := procCreatePopupMenu.Call()
-	if menu == 0 {
-		a.showMessage("CIA Local AI", fmt.Sprintf("Não foi possível abrir o menu: %v", err), true)
-		return
-	}
-	defer procDestroyMenu.Call(menu)
-
-	a.mu.RLock()
-	snapshot := a.snapshot
-	lastErr := a.lastErr
-	a.mu.RUnlock()
-	busy := a.busy.Load()
-
-	provider := "Servidor: offline"
-	if snapshot.ProviderReady {
-		provider = "Servidor: pronto"
-	} else if snapshot.UpstreamReady {
-		provider = "Servidor: degradado"
-	}
-	if lastErr != nil && !snapshot.ProviderReady {
-		provider = "Servidor: indisponível"
-	}
-	a.append(menu, commandPanel, "Abrir painel", true, false)
-	a.separator(menu)
-	a.append(menu, 0, provider, false, false)
-	active := snapshot.ActiveModel
-	if active == "" {
-		active = "nenhum (lazy load)"
-	}
-	a.append(menu, 0, "Carregado: "+active, false, false)
-	a.append(menu, 0, fmt.Sprintf("Fila: %d/%d", snapshot.Queued, snapshot.MaxQueue), false, false)
-	a.separator(menu)
-	policy := EvaluateActions(snapshot, busy)
-	a.append(menu, commandLoad, "Carregar modelo selecionado", policy.Load, false)
-	if policy.AvailableModels > 1 {
-		a.append(menu, commandSwitch, "Trocar para o modelo selecionado", policy.Switch, false)
-	} else {
-		a.append(menu, commandSwitch, "Troca indisponível — apenas um modelo qualificado", false, false)
-	}
-	a.append(menu, commandUnload, "Descarregar modelo ativo", policy.Unload, false)
-	a.separator(menu)
-	a.append(menu, commandOpen, "Abrir no OpenCode", policy.LaunchOpenCode, false)
-	a.separator(menu)
-	canOpenClaude := snapshot.ClaudeAvailable && !busy
-	canSwitchClaude := canOpenClaude && snapshot.Active == 0 && snapshot.Queued == 0
-	a.append(menu, commandClaudeOpen, "Abrir Claude Desktop", canOpenClaude, false)
-	a.append(menu, commandClaudeAnthropic, "Claude: Anthropic", canSwitchClaude, snapshot.ClaudeMode == ClaudeModeAnthropic)
-	localLabel := "Claude: Local"
-	if !snapshot.ClaudeGatewayOK {
-		localLabel += " — gateway indisponível"
-	}
-	a.append(menu, commandClaudeLocal, localLabel, canSwitchClaude && snapshot.ClaudeGatewayOK, snapshot.ClaudeMode == ClaudeModeLocal)
-	a.separator(menu)
-	a.append(menu, commandRefresh, "Atualizar", !busy, false)
-	a.append(menu, commandStatus, "Detalhes do status", true, false)
-	a.append(menu, commandExit, "Fechar painel", policy.Exit, false)
-
-	var cursor point
-	if ok, _, _ := procGetCursorPos.Call(uintptr(unsafe.Pointer(&cursor))); ok == 0 {
-		return
-	}
-	_, _, _ = procSetForegroundWind.Call(uintptr(a.window))
-	command, _, _ := procTrackPopupMenu.Call(menu, tpmRightButton|tpmNonotify|tpmReturnCmd, uintptr(cursor.X), uintptr(cursor.Y), 0, uintptr(a.window), 0)
-	if command != 0 {
-		a.dispatch(uint32(command))
-	}
-}
-
-func (a *app) append(menu uintptr, id uint32, label string, enabled, checked bool) {
-	flags := uintptr(mfString)
-	if !enabled {
-		flags |= mfGray | mfDisabled
-	}
-	if checked {
-		flags |= mfChecked
-	}
-	text, _ := windows.UTF16PtrFromString(label)
-	_, _, _ = procAppendMenuW.Call(menu, flags, uintptr(id), uintptr(unsafe.Pointer(text)))
-}
-
-func (a *app) separator(menu uintptr) {
-	_, _, _ = procAppendMenuW.Call(menu, mfSeparator, 0, 0)
-}
-
-func (a *app) dispatch(command uint32) {
-	if modelID, ok := a.commands[command]; ok {
-		a.startAction("Selecionar modelo", true, func(ctx context.Context) error {
-			return a.controller.SelectModel(ctx, modelID)
-		})
-		return
-	}
-	switch command {
-	case commandPanel:
-		a.showDashboard()
-	case commandRefresh:
-		a.startRefresh()
-	case commandLoad:
-		a.startAction("Carregar modelo", false, a.controller.LoadSelected)
-	case commandSwitch:
-		a.startAction("Trocar modelo", false, a.controller.SwitchSelected)
-	case commandUnload:
-		a.startAction("Descarregar modelo", false, a.controller.UnloadActive)
-	case commandOpen:
-		a.startAction("Abrir OpenCode", true, func(ctx context.Context) error {
-			a.mu.RLock()
-			modelID := a.snapshot.SelectedModel
-			a.mu.RUnlock()
-			return a.controller.Launch(ctx, ClientOpenCode, modelID)
-		})
-	case commandClaudeOpen:
-		a.startAction("Abrir Claude Desktop", true, a.controller.LaunchClaudeDesktop)
-	case commandClaudeAnthropic:
-		a.startAction("Restaurar Claude Anthropic", false, func(ctx context.Context) error {
-			return a.controller.SetClaudeMode(ctx, ClaudeModeAnthropic)
-		})
-	case commandClaudeLocal:
-		a.startAction("Aplicar Claude Local", false, func(ctx context.Context) error {
-			return a.controller.SetClaudeMode(ctx, ClaudeModeLocal)
-		})
-	case commandStatus:
-		a.showStatus()
-	case commandExit:
-		if !a.busy.Load() {
-			a.requestExit()
+func (a *app) beginClose(window uintptr) {
+	a.windowMu.Lock()
+	if !a.closed {
+		a.closed = true
+		if a.cancel != nil {
+			a.cancel()
 		}
 	}
+	a.windowMu.Unlock()
+	if a.flyout != nil {
+		a.flyout.hide()
+	}
+	_, _, _ = procDestroyWindow.Call(window)
 }
 
-func (a *app) startAction(title string, quiet bool, action func(context.Context) error) {
-	if a.ctx.Err() != nil {
+// viewState collects what BuildView needs under the state lock.
+func (a *app) viewState() ViewState {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return ViewState{
+		Snapshot:  a.snapshot,
+		Loaded:    a.loaded,
+		Activity:  a.activity,
+		Starting:  !a.startedAt.IsZero(),
+		ActionErr: a.actionErr,
+	}
+}
+
+// startAction runs one lifecycle action. Only one runs at a time; activity is
+// what the flyout shows while it runs.
+func (a *app) startAction(activity, title, done string, action func(context.Context) error, exit bool) {
+	if a.ctx.Err() != nil || !a.busy.CompareAndSwap(false, true) {
 		return
 	}
-	if !a.busy.CompareAndSwap(false, true) {
-		return
-	}
+	a.mu.Lock()
+	a.activity = activity
+	a.actionErr = nil
+	a.mu.Unlock()
+	a.changed()
 	a.workers.Add(1)
 	go func() {
 		defer a.workers.Done()
@@ -662,16 +693,58 @@ func (a *app) startAction(title string, quiet bool, action func(context.Context)
 		if a.ctx.Err() != nil {
 			return
 		}
-		a.results <- actionResult{title: title, message: "Operação concluída.", err: err, quiet: quiet}
+		a.results <- actionResult{title: title, done: done, err: err, exit: exit}
+		a.postMessage(wmResult)
+	}()
+}
+
+// startLaunch opens another program. Launches do not hold the busy flag: they
+// return as soon as the program starts and change nothing in the server.
+func (a *app) startLaunch(title string, action func(context.Context) error) {
+	if a.ctx.Err() != nil {
+		return
+	}
+	a.workers.Add(1)
+	go func() {
+		defer a.workers.Done()
+		ctx, cancel := context.WithTimeout(a.ctx, time.Minute)
+		defer cancel()
+		err := action(ctx)
+		if a.ctx.Err() != nil {
+			return
+		}
+		a.results <- actionResult{title: title, err: err, launch: true}
+		a.postMessage(wmResult)
+	}()
+}
+
+// startServer asks the controller to start the router and edge; the ordinary
+// refreshes then follow the edge until it answers.
+func (a *app) startServer() {
+	if a.ctx.Err() != nil || !a.busy.CompareAndSwap(false, true) {
+		return
+	}
+	a.mu.Lock()
+	a.activity = "Iniciando o servidor"
+	a.actionErr = nil
+	a.mu.Unlock()
+	a.changed()
+	a.workers.Add(1)
+	go func() {
+		defer a.workers.Done()
+		ctx, cancel := context.WithTimeout(a.ctx, time.Minute)
+		defer cancel()
+		err := a.controller.StartServer(ctx)
+		if a.ctx.Err() != nil {
+			return
+		}
+		a.results <- actionResult{title: "Iniciar o servidor", err: err, started: err == nil}
 		a.postMessage(wmResult)
 	}()
 }
 
 func (a *app) startRefresh() {
-	if a.ctx.Err() != nil {
-		return
-	}
-	if !a.refresh.CompareAndSwap(false, true) {
+	if a.ctx.Err() != nil || !a.refresh.CompareAndSwap(false, true) {
 		return
 	}
 	a.workers.Add(1)
@@ -686,9 +759,16 @@ func (a *app) startRefresh() {
 		if err == nil || len(snapshot.Models) != 0 {
 			a.snapshot = snapshot
 		}
+		if a.snapshot.Environment == "" {
+			a.snapshot.Environment = a.options.Environment
+		}
 		a.lastErr = err
+		a.loaded = true
+		if !a.startedAt.IsZero() && (a.snapshot.EdgeReachable || time.Since(a.startedAt) > startingTimeout) {
+			a.startedAt = time.Time{}
+		}
 		a.mu.Unlock()
-		a.results <- actionResult{quiet: true}
+		a.results <- actionResult{refresh: true}
 		a.postMessage(wmResult)
 	}()
 }
@@ -697,119 +777,156 @@ func (a *app) handleResults() {
 	for {
 		select {
 		case result := <-a.results:
-			if result.title != "" {
-				a.busy.Store(false)
-				if result.err != nil {
-					a.showMessage(result.title, friendlyError(result.err), true)
-				} else if !result.quiet {
-					a.showMessage(result.title, result.message, false)
-				}
-				a.startRefresh()
-			}
+			a.handleResult(result)
 		default:
-			a.updateTooltip()
-			a.refreshDashboard()
+			a.changed()
 			return
 		}
 	}
 }
 
-func (a *app) updateTooltip() {
-	if a.window == 0 || a.icon == 0 || !a.iconAdded {
+func (a *app) handleResult(result actionResult) {
+	if result.refresh {
+		if a.autoStart.CompareAndSwap(true, false) {
+			a.mu.RLock()
+			reachable := a.snapshot.EdgeReachable
+			a.mu.RUnlock()
+			if !reachable {
+				a.startServer()
+			}
+		}
 		return
 	}
-	data := a.iconData()
-	_, _, _ = procShellNotifyIconW.Call(nimModify, uintptr(unsafe.Pointer(&data)))
-}
-
-func (a *app) tooltipLocked() string {
-	state := "offline"
-	if a.snapshot.ProviderReady {
-		state = "pronto"
-	} else if a.snapshot.UpstreamReady {
-		state = "degradado"
-	}
-	selected := a.snapshot.SelectedModel
-	if selected == "" {
-		selected = "nenhum"
-	}
-	active := a.snapshot.ActiveModel
-	if active == "" {
-		active = "lazy"
-	}
-	return fmt.Sprintf("CIA Local AI: %s | selecionado %s | carregado %s", state, selected, active)
-}
-
-func (a *app) showStatus() {
-	a.mu.RLock()
-	s := a.snapshot
-	err := a.lastErr
-	a.mu.RUnlock()
-	provider := "não pronto"
-	if s.ProviderReady {
-		provider = "pronto"
-	}
-	active := s.ActiveModel
-	if active == "" {
-		active = "nenhum (carregamento sob demanda)"
-	}
-	capacity := "indisponível"
-	if s.CapacityOK {
-		capacity = "disponível"
-	}
-	lines := []string{
-		"Ambiente: " + s.Environment,
-		"Servidor: " + provider,
-		"Modelo selecionado: " + s.SelectedModel,
-		"Modelo carregado: " + active,
-		fmt.Sprintf("Inferências: %d/%d", s.Active, s.MaxActive),
-		fmt.Sprintf("Fila: %d/%d", s.Queued, s.MaxQueue),
-		"Capacidade: " + capacity,
-	}
-	if !s.StatusAvailable {
-		lines = append(lines, "Status operacional: indisponível; controles administrativos bloqueados")
-	}
-	if s.CapacityNote != "" {
-		lines = append(lines, "Motivo: "+s.CapacityNote)
-	}
-	if err != nil {
-		lines = append(lines, "Última atualização: "+friendlyError(err))
-	}
-	a.showMessage("Status — CIA Local AI", strings.Join(lines, "\r\n"), false)
-}
-
-func (a *app) showMessage(title, message string, isError bool) {
-	flags := uintptr(mbOK | mbIconInformation)
-	if isError {
-		flags = mbOK | mbIconError
-	}
-	titlePtr, _ := windows.UTF16PtrFromString(title)
-	messagePtr, _ := windows.UTF16PtrFromString(message)
-	_, _, _ = procMessageBoxW.Call(uintptr(a.window), uintptr(unsafe.Pointer(messagePtr)), uintptr(unsafe.Pointer(titlePtr)), flags)
-}
-
-func friendlyError(err error) string {
-	if err == nil {
-		return ""
-	}
-	text := err.Error()
-	switch {
-	case strings.Contains(text, "inference_busy"):
-		return "Há uma inferência ativa ou aguardando. Tente novamente quando a fila estiver vazia."
-	case strings.Contains(text, "insufficient_capacity"):
-		return "O modelo não cabe com as margens de segurança atuais."
-	case strings.Contains(text, "invalid_api_key"), strings.Contains(text, "credential"):
-		return "A credencial administrativa está ausente ou inválida."
-	case strings.Contains(text, "model_not_found"):
-		return "O modelo não está autorizado neste ambiente."
-	case strings.Contains(text, "connection refused"), strings.Contains(text, "unavailable"):
-		return "O provedor local não está disponível."
-	default:
-		if len(text) > 400 {
-			text = text[:400]
+	a.mu.Lock()
+	if !result.launch {
+		a.busy.Store(false)
+		a.activity = ""
+		a.actionErr = result.err
+		if result.started {
+			a.startedAt = time.Now()
 		}
-		return text
+	} else if result.err != nil {
+		a.actionErr = result.err
 	}
+	a.mu.Unlock()
+	if result.err == nil && result.exit {
+		a.requestExit()
+		return
+	}
+	if !a.flyout.visible {
+		switch {
+		case result.err != nil:
+			a.notify(result.title+" falhou", FriendlyError(result.err), true)
+		case result.done != "":
+			a.notify("IA Local", result.done, false)
+		}
+	}
+	a.startRefresh()
+}
+
+// changed pushes the current state to the icon and, if open, the flyout.
+func (a *app) changed() {
+	a.updateIcon()
+	a.adjustRefresh()
+	if a.flyout != nil {
+		a.flyout.refresh()
+	}
+}
+
+// activate runs the control the operator clicked. The policy is evaluated
+// again from the current state, so a control that was live when the flyout
+// was painted cannot act on a state that changed since.
+func (a *app) activate(id zoneID) {
+	view := BuildView(a.viewState())
+	policy := view.Policy
+	a.mu.RLock()
+	selected := a.snapshot.SelectedModel
+	a.mu.RUnlock()
+
+	if id >= zoneModelBase {
+		// The row is identified by what was painted under the pointer, then
+		// checked against the current list, which may have changed since.
+		painted := a.flyout.view.Models
+		index := int(id - zoneModelBase)
+		if !policy.Select || index >= len(painted) {
+			return
+		}
+		for _, row := range view.Models {
+			if row.ID == painted[index].ID && !row.Selected {
+				a.selectModel(row.ID)
+				return
+			}
+		}
+		return
+	}
+	switch id {
+	case zoneStartServer:
+		if policy.StartServer {
+			a.startServer()
+		}
+	case zoneModelAction:
+		switch {
+		case view.ModelAction == ModelActionLoad && policy.Load:
+			a.startAction("Carregando o modelo", "Carregar o modelo", "Modelo carregado.", a.controller.LoadSelected, false)
+		case view.ModelAction == ModelActionSwitch && policy.Switch:
+			a.startAction("Trocando de modelo", "Trocar de modelo", "Modelo trocado.", a.controller.SwitchSelected, false)
+		}
+	case zoneUnload:
+		if policy.Unload {
+			a.startAction("Descarregando o modelo", "Descarregar o modelo", "Modelo descarregado.", a.controller.UnloadActive, false)
+		}
+	case zoneCodex:
+		if policy.LaunchCodex {
+			a.flyout.hide()
+			a.startLaunch("Abrir o Codex", func(ctx context.Context) error { return a.controller.Launch(ctx, ClientCodex, selected) })
+		}
+	case zoneOpenCode:
+		if policy.LaunchOpenCode {
+			a.flyout.hide()
+			a.startLaunch("Abrir o OpenCode", func(ctx context.Context) error { return a.controller.Launch(ctx, ClientOpenCode, selected) })
+		}
+	case zoneClaudeOpen:
+		if policy.ClaudeOpen {
+			a.flyout.hide()
+			a.startLaunch("Abrir o Claude Desktop", a.controller.LaunchClaudeDesktop)
+		}
+	case zoneClaudeAnthropic:
+		if policy.ClaudeAnthropic {
+			a.startAction("Mudando o Claude para a Anthropic", "Mudar o Claude Desktop", "Claude Desktop usa a Anthropic.", func(ctx context.Context) error {
+				return a.controller.SetClaudeMode(ctx, ClaudeModeAnthropic)
+			}, false)
+		}
+	case zoneClaudeLocal:
+		if policy.ClaudeLocal {
+			a.startAction("Mudando o Claude para este servidor", "Mudar o Claude Desktop", "Claude Desktop usa este servidor.", func(ctx context.Context) error {
+				return a.controller.SetClaudeMode(ctx, ClaudeModeLocal)
+			}, false)
+		}
+	case zonePanel:
+		a.flyout.hide()
+		a.startLaunch("Abrir o painel", a.controller.OpenPanel)
+	case zoneShutdownConfirm:
+		if policy.Shutdown {
+			a.startAction("Encerrando o IA Local", "Encerrar o IA Local", "", a.controller.StopServer, true)
+		}
+	}
+}
+
+// selectModel saves the choice at once: it is a small file write, and the
+// radio should move under the pointer rather than after a background round.
+func (a *app) selectModel(modelID string) {
+	ctx, cancel := context.WithTimeout(a.ctx, 5*time.Second)
+	defer cancel()
+	err := a.controller.SelectModel(ctx, modelID)
+	a.mu.Lock()
+	a.actionErr = err
+	if err == nil {
+		a.snapshot.SelectedModel = modelID
+		a.snapshot.SelectionNote = ""
+	}
+	a.mu.Unlock()
+	a.changed()
+	a.startRefresh()
 }
 
 func copyUTF16(destination []uint16, value string) {
@@ -819,66 +936,4 @@ func copyUTF16(destination []uint16, value string) {
 	}
 	copy(destination, encoded)
 	destination[len(encoded)] = 0
-}
-
-// createProviderIcon builds an original icon in memory so the executable does
-// not depend on the undocumented legacy tray artwork.
-func createProviderIcon() (windows.Handle, error) {
-	const size = 32
-	andMask := make([]byte, size*size/8)
-	color := make([]byte, size*size*4)
-	for y := 0; y < size; y++ {
-		for x := 0; x < size; x++ {
-			dx, dy := x-15, y-15
-			distance := dx*dx + dy*dy
-			outside := distance > 15*15
-			if outside {
-				andMask[y*4+x/8] |= 1 << (7 - uint(x%8))
-				continue
-			}
-			b, g, r := byte(32), byte(32), byte(32)
-			if distance >= 12*12 {
-				b, g, r = 0, 122, 255
-			}
-			if iconNode(x, y) {
-				b, g, r = 245, 245, 245
-			}
-			// CreateIcon expects bottom-up BGRA scanlines for a 32-bit XOR mask.
-			index := ((size-1-y)*size + x) * 4
-			color[index], color[index+1], color[index+2], color[index+3] = b, g, r, 255
-		}
-	}
-	instance, _, _ := procGetModuleHandleW.Call(0)
-	result, _, callErr := procCreateIcon.Call(
-		instance,
-		size,
-		size,
-		1,
-		32,
-		uintptr(unsafe.Pointer(&andMask[0])),
-		uintptr(unsafe.Pointer(&color[0])),
-	)
-	if result == 0 {
-		return 0, fmt.Errorf("create provider tray icon: %w", callErr)
-	}
-	return windows.Handle(result), nil
-}
-
-func iconNode(x, y int) bool {
-	nodes := [][2]int{{10, 11}, {21, 9}, {19, 21}}
-	for _, node := range nodes {
-		if abs(x-node[0]) <= 2 && abs(y-node[1]) <= 2 {
-			return true
-		}
-	}
-	// Two thin links make a stable network/provider glyph at 16-32 px.
-	return (x >= 12 && x <= 19 && abs((20-x)/2+9-y) <= 1) ||
-		(x >= 12 && x <= 18 && abs((x-12)*2/3+12-y) <= 1)
-}
-
-func abs(value int) int {
-	if value < 0 {
-		return -value
-	}
-	return value
 }

@@ -4,7 +4,50 @@ All notable changes are documented here. This project follows Keep a Changelog c
 
 ## [Unreleased]
 
+### Changed
+
+- IA Local (`cia-tray`) is the deployment's one startup entry (ADR 0021).
+  `Install-V2PanelStartup.ps1` registers a current-user `Run` value that Task
+  Manager lists as "IA Local" with its icon, adds an "IA Local" Start-menu
+  shortcut, and removes the legacy Startup shortcut that ran the tray through
+  `wscript.exe` and showed as "Windows Script Host". `Install-V2ScheduledTasks.ps1`
+  registers Router and Edge without a logon trigger; the tray starts them when
+  it opens, through the Task Scheduler COM API, and "Encerrar" ends them after a
+  confirmation. Disabling IA Local in Task Manager disables the whole system at
+  logon.
+- The tray's native menu and Win32 control window are replaced by one flyout
+  drawn from the browser monitor's design tokens: status pill, state card,
+  model radio list with load/switch/unload, Codex/OpenCode/Claude buttons,
+  Claude Desktop mode switch, "Abrir painel" and "Encerrar". It follows the
+  Windows app theme, scales per monitor, works from the keyboard, and the icon
+  takes the monitor's mark coloured by state. `cia-tray.exe` now carries an
+  icon, a version resource and a per-monitor-v2 DPI manifest.
+- "Abrir painel" starts `cia-monitor` on demand in a job that ends with the
+  tray. A second start of IA Local opens the running tray's flyout.
+
+### Removed
+
+- Tray model folders, GGUF detection, hash validation and `-validate-model`
+  (a detected GGUF could never be loaded without a manifest profile), the
+  "Atualizar" and "Detalhes do status" entries, and the unused model-submenu
+  map. `model_roots_path` and `validation_path` are still accepted in the panel
+  configuration and ignored; `New-V2Config.ps1` stops writing them.
+
 ### Fixed
+
+- The tray no longer fails to start when the saved selection names a model the
+  deployment stopped serving: it falls back to the public model and says so.
+  A missing launcher script now fails only its own button.
+- The Codex launch the tray implemented but never offered is a flyout button.
+- The icon's tooltip is shown (NOTIFYICON_VERSION_4 needs `NIF_SHOWTIP`), and
+  the Claude gateway check runs at most once a minute instead of on every
+  refresh.
+- A reachable edge that is not ready because its default model does not fit is
+  reported as such, with the reason, instead of "not ready"; the
+  `insufficient_physical_memory`, `insufficient_vram_budget` and
+  `resource_profile_incomplete` capacity reasons are translated.
+- The README no longer says the tray drains and resumes the provider; that is
+  `cia-mcp-admin` and the release transaction.
 
 - The browser monitor uses the context window recorded with each historical
   request, so changing or unloading an external model cannot change an old

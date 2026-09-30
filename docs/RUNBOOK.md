@@ -291,28 +291,36 @@ With Router and Edge canary already healthy, test in this order:
 .\integrations\codex\Start-CodexLocalCanary.ps1
 ```
 
-After the installed hashes and ACL audit pass, launch the canary panel manually:
+After the installed hashes and ACL audit pass, open IA Local (the tray)
+manually:
 
 ```powershell
-wscript.exe C:\IA\local-ai-v2\launchers\tray-canary.vbs
+C:\IA\local-ai-v2\bin\cia-tray.exe -config C:\IA\local-ai-v2\config\panel.canary.json
 ```
 
-Double-click the icon and confirm that all registered and detected GGUFs are
-visible, search and details update asynchronously, the loaded state is
-independent from the selection, closing returns to the tray, and `Sair` leaves
-Router and Edge running. Confirm that no Unsloth action or label is present. Do
-not add the panel to logon until this smoke test passes. Afterwards, install the separate
-current-user Startup shortcut; this does not create a third scheduled task,
-start a process, or load a model:
+It starts the Router and Edge tasks if they are not running (ADR 0021). Click
+the icon and confirm that the flyout lists exactly the models the edge
+publishes, that selecting a row moves the radio without loading anything, that
+the loaded state is independent from the selection, that "Abrir painel" opens
+the monitor, and that Esc or a click elsewhere closes the flyout. "Encerrar"
+asks first and then stops the monitor, Edge, Router and the tray; `Cancelar`
+changes nothing. Confirm that no Unsloth action or label is present.
+
+Do not make IA Local start at logon until this smoke test passes. Then register
+it; this writes one current-user `Run` value and an "IA Local" Start-menu
+shortcut, removes the legacy wscript Startup shortcut, and starts nothing:
 
 ```powershell
 .\scripts\v2\Install-V2PanelStartup.ps1
 .\scripts\v2\Install-V2PanelStartup.ps1 -Apply
 ```
 
-If preview reports `blocked-existing`, inspect the existing shortcut and use
-`-Replace` only for the reviewed conflict. A second preview must report
-`unchanged`.
+Task Manager's Startup apps tab then lists "IA Local" with its icon; disabling
+it there means nothing of IA Local starts at logon, because the Router and Edge
+tasks have no trigger of their own. The preview reports that choice as
+`task_manager` and never changes it. If preview reports `blocked-existing`,
+inspect the existing value or shortcut and use `-Replace` only for the reviewed
+conflict. A second preview must report `unchanged`.
 
 Unsloth is intentionally absent from the v2 panel and startup policy. Use it
 manually outside CIA Local AI when training or export is intended; do not

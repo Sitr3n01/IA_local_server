@@ -89,7 +89,7 @@ A separação de privilégio é deliberada em todas as camadas: o control plane 
 |---|---|---|
 | `cia-edge` | Data e control plane: auth, validação, fila, streaming | `127.0.0.1:8090` / `:8091` |
 | `cia-supervisor` | Contenção em Job Object, backoff exponencial de reinício de 1 a 15 min | Ação de tarefa agendada |
-| `cia-tray` | Painel de operador Win32 nativo — status, ciclo de vida, validação de modelo | Área de notificação |
+| `cia-tray` | IA Local: ícone e flyout nativos no design do monitor — inicia e encerra o servidor, status, carregar/trocar/descarregar, abre o painel e os clientes | Área de notificação; única entrada de inicialização |
 | `cia-monitor` | Monitor no navegador — fase da requisição, tokens/s, GPU, RAM, commit; carregar/descarregar modelo com confirmação nativa | `127.0.0.1:18095` (canary) / `:8095` (final) |
 | `cia-credential` | Auxiliar do Windows Credential Manager | Somente processo local |
 | `cia-mcp` | MCP operacional somente leitura (5 ferramentas sem efeito colateral) | stdio do harness |
@@ -208,7 +208,7 @@ Não depende do edge para enxergar a máquina: mostra a energia que a GPU consom
 
 `/api/snapshot` inclui `requests[]`, uma lista limitada aos registros recentes com métricas por requisição de ambas as origens, e `coverage`, que distingue fontes externas medidas das que mostram apenas atividade. Cada registro indica de onde veio cada número em `measurements`; prompt e cache calculados do log e velocidades estimadas são identificados, e valores ausentes continuam `null`. Essa cobertura se refere às fontes detectadas: uma ferramenta que não passa pelo edge nem publica métricas por resposta ou log não permite contagem exata apenas pela GPU.
 
-A página também carrega o modelo escolhido e descarrega o carregado — e só isso. Cada pedido segue pelo pipe administrativo do edge, sem credencial, e só é executado depois que você confirma numa janela do Windows que a página não alcança (Cancelar é o padrão; sem resposta em 45 s, nada acontece). O monitor aceita esses pedidos apenas da própria página, vindos de um processo do mesmo usuário que roda o servidor. `-admin-pipe off` desliga os botões. Drenagem, retomada e o resto do ciclo de vida continuam no `cia-tray`.
+A página também carrega o modelo escolhido e descarrega o carregado — e só isso. Cada pedido segue pelo pipe administrativo do edge, sem credencial, e só é executado depois que você confirma numa janela do Windows que a página não alcança (Cancelar é o padrão; sem resposta em 45 s, nada acontece). O monitor aceita esses pedidos apenas da própria página, vindos de um processo do mesmo usuário que roda o servidor. `-admin-pipe off` desliga os botões. Iniciar e encerrar o servidor ficam com o `cia-tray` (IA Local); drenagem e retomada ficam com o `cia-mcp-admin` e com a transação de release.
 
 ```powershell
 go build -trimpath -o bin/cia-monitor.exe ./cmd/cia-monitor

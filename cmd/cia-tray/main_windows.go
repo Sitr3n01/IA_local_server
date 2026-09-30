@@ -1,5 +1,12 @@
 //go:build windows
 
+// The icon, the version resource ("IA Local", the name Task Manager lists on
+// its Startup apps tab) and the per-monitor DPI manifest are linked in from
+// rsrc_windows_amd64.syso. Regenerate it after changing the mark or winres:
+//
+//go:generate go run ./icongen -out winres
+//go:generate go run github.com/tc-hib/go-winres@v0.3.3 make --in winres/winres.json --out rsrc --arch amd64
+
 package main
 
 import (

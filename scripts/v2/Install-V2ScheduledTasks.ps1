@@ -9,6 +9,12 @@ param(
     [switch]$Replace
 )
 
+# The tasks have no trigger of their own. IA Local (cia-tray.exe) starts them
+# when it opens and ends them on "Encerrar"; its single current-user startup
+# entry (Install-V2PanelStartup.ps1), which Task Manager lists, therefore
+# decides whether the server starts at logon. Stopping a task still ends its
+# whole process tree through cia-supervisor's job (ADR 0004).
+
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Common.ps1')
 $settings = Get-V2DeploymentSettings -Environment $Environment
@@ -40,6 +46,7 @@ foreach ($definition in $definitions) {
     launchers = @($definitions.Launcher)
     executable = $supervisor
     containment = 'windows-job-object-kill-on-close'
+    trigger = 'none: started by IA Local (cia-tray)'
     existing = $existing
 } | ConvertTo-Json -Depth 4
 
@@ -61,7 +68,6 @@ if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
     throw "Model manifest is missing: $ManifestPath"
 }
 
-$trigger = New-ScheduledTaskTrigger -AtLogOn -User $UserId
 $principal = New-ScheduledTaskPrincipal -UserId $UserId -LogonType Interactive -RunLevel Limited
 $settingsSet = New-ScheduledTaskSettingsSet `
     -Hidden `
@@ -79,10 +85,9 @@ foreach ($definition in $definitions) {
     Register-ScheduledTask `
         -TaskName $definition.Name `
         -Action $action `
-        -Trigger $trigger `
         -Principal $principal `
         -Settings $settingsSet `
-        -Description "Local-only CIA AI v2 $($definition.Name.Split(' ')[-1]); generated from C:\IA\local-llama." `
+        -Description "Local-only CIA AI v2 $($definition.Name.Split(' ')[-1]); started and ended by IA Local (cia-tray.exe)." `
         -Force:$Replace | Out-Null
 }
 

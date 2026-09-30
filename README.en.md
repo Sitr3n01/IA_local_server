@@ -89,7 +89,7 @@ The privilege split is deliberate at every layer: the control plane is a separat
 |---|---|---|
 | `cia-edge` | Data + control plane: auth, validation, queue, streaming | `127.0.0.1:8090` / `:8091` |
 | `cia-supervisor` | Job Object containment, 1–15 min exponential restart backoff | Scheduled-task action |
-| `cia-tray` | Native Win32 operator panel — status, lifecycle, model validation | Notification area |
+| `cia-tray` | IA Local: native icon and flyout in the monitor's design — starts and stops the server, status, load/switch/unload, opens the monitor and the clients | Notification area; the only startup entry |
 | `cia-monitor` | Browser monitor — request phase, tokens/s, GPU, RAM, commit; load/unload a model behind a native confirmation | `127.0.0.1:18095` (canary) / `:8095` (final) |
 | `cia-credential` | Windows Credential Manager helper | Local process only |
 | `cia-mcp` | Read-only operational MCP (5 side-effect-free tools) | Harness stdio |
@@ -168,7 +168,7 @@ Scripts preview by default; mutation is always a separate, explicit invocation.
 
 `cia-monitor` serves a page on loopback that shows, every second, what the server is doing: the request's phase (queued, loading the model, reading the prompt, generating), tokens per second, time to first token, cache reuse and context fill, alongside GPU, VRAM, shared memory, CPU, RAM, commit and disk.
 
-The page can also load a chosen model and unload the loaded one — and nothing else. Each request goes over the edge's administrative pipe, with no credential, and runs only after you confirm it in a Windows dialog the page cannot reach (Cancel is the default; with no answer in 45 s, nothing happens). The monitor accepts these requests only from its own page, from a process of the same user that runs the server. `-admin-pipe off` removes the buttons. Drain, resume and the rest of the lifecycle stay with `cia-tray`.
+The page can also load a chosen model and unload the loaded one — and nothing else. Each request goes over the edge's administrative pipe, with no credential, and runs only after you confirm it in a Windows dialog the page cannot reach (Cancel is the default; with no answer in 45 s, nothing happens). The monitor accepts these requests only from its own page, from a process of the same user that runs the server. `-admin-pipe off` removes the buttons. Starting and stopping the server belong to `cia-tray` (IA Local); drain and resume belong to `cia-mcp-admin` and the release transaction.
 
 ```powershell
 go build -trimpath -o bin/cia-monitor.exe ./cmd/cia-monitor

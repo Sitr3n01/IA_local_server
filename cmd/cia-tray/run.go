@@ -20,7 +20,6 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	flags.SetOutput(stderr)
 	configPath := flags.String("config", `C:\IA\local-ai-v2\config\panel.canary.json`, "path to the generated panel configuration")
 	diagnose := flags.Bool("diagnose", false, "print one sanitized status snapshot and exit")
-	validateModel := flags.String("validate-model", "", "validate one registered model, persist the sanitized result, and exit")
 	claudeMode := flags.String("claude-mode", "", "Claude Desktop mode to preview or apply: anthropic or local")
 	openClaude := flags.Bool("claude-open", false, "open or foreground the installed Claude Desktop in its current mode")
 	applyClaude := flags.Bool("apply", false, "apply the requested Claude Desktop mode; otherwise preview only")
@@ -31,13 +30,13 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("unexpected positional arguments: %v", flags.Args())
 	}
 	actions := 0
-	for _, selected := range []bool{*diagnose, strings.TrimSpace(*validateModel) != "", strings.TrimSpace(*claudeMode) != "", *openClaude} {
+	for _, selected := range []bool{*diagnose, strings.TrimSpace(*claudeMode) != "", *openClaude} {
 		if selected {
 			actions++
 		}
 	}
 	if actions > 1 {
-		return errors.New("diagnose, model validation, Claude mode, and Claude open actions are mutually exclusive")
+		return errors.New("diagnose, Claude mode, and Claude open actions are mutually exclusive")
 	}
 	if *applyClaude && strings.TrimSpace(*claudeMode) == "" {
 		return errors.New("-apply requires -claude-mode")
@@ -129,22 +128,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		}
 		return nil
 	}
-	if modelID := strings.TrimSpace(*validateModel); modelID != "" {
-		result := struct {
-			Model  string `json:"model"`
-			Status string `json:"status"`
-			Error  string `json:"error,omitempty"`
-		}{Model: modelID, Status: "validated"}
-		if err := controller.ValidateModel(ctx, modelID); err != nil {
-			result.Status = "failed"
-			result.Error = sanitizeDiagnosticError(err)
-		}
-		encoder := json.NewEncoder(stdout)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(result)
-	}
 	return trayui.Run(ctx, controller, trayui.Options{
-		Title:           "CIA Local AI — " + strings.ToUpper(string(config.Environment)),
+		Environment:     string(config.Environment),
 		InstanceID:      string(config.Environment),
 		RefreshInterval: config.RefreshInterval(),
 	})
@@ -164,7 +149,7 @@ func sanitizeDiagnosticError(err error) string {
 func headlessInvocation(args []string) bool {
 	for _, arg := range args {
 		switch arg {
-		case "-diagnose", "--diagnose", "-validate-model", "--validate-model", "-claude-mode", "--claude-mode", "-claude-open", "--claude-open":
+		case "-diagnose", "--diagnose", "-claude-mode", "--claude-mode", "-claude-open", "--claude-open":
 			return true
 		}
 	}

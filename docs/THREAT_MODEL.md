@@ -207,8 +207,8 @@ egress rules.
   Cancel for this reason. `-admin-pipe off` removes the controls entirely.
 - Model output can be incorrect or adversarial even when artifact integrity is valid.
 - The AMD baseline is reproducible only by recorded binary hash, not by its misleading directory label.
-- Windows interactive-logon tasks provide availability only while the user
-  session exists: nothing serves before first logon and everything stops at
+- The serving tasks, started by the IA Local tray in the interactive session,
+  provide availability only while the user session exists: nothing serves before first logon and everything stops at
   logoff. A Windows Service migration is an explicit non-goal for a workstation
   deployment. `state\supervisor-<component>.json` records restart count,
   consecutive unstable exits, and current backoff so a crash loop is diagnosable

@@ -40,14 +40,17 @@ type LauncherPaths struct {
 // represented as integer seconds in JSON so configuration stays portable and
 // unambiguous.
 type Config struct {
-	SchemaVersion           int           `json:"schema_version"`
-	Environment             Environment   `json:"environment"`
-	DataURL                 string        `json:"data_url"`
-	ControlURL              string        `json:"control_url"`
-	ManifestPath            string        `json:"manifest_path"`
-	SelectionPath           string        `json:"selection_path"`
-	ModelRootsPath          string        `json:"model_roots_path"`
-	ValidationPath          string        `json:"validation_path"`
+	SchemaVersion int         `json:"schema_version"`
+	Environment   Environment `json:"environment"`
+	DataURL       string      `json:"data_url"`
+	ControlURL    string      `json:"control_url"`
+	ManifestPath  string      `json:"manifest_path"`
+	SelectionPath string      `json:"selection_path"`
+	// ModelRootsPath and ValidationPath belonged to the tray's model-folder
+	// scan and GGUF validation, removed on 2026-09-30. They are still read so
+	// configurations generated before then load, and nothing uses them.
+	ModelRootsPath          string        `json:"model_roots_path,omitempty"`
+	ValidationPath          string        `json:"validation_path,omitempty"`
 	LogsPath                string        `json:"logs_path"`
 	Launchers               LauncherPaths `json:"launchers"`
 	RefreshSeconds          int           `json:"refresh_seconds"`
@@ -96,12 +99,6 @@ func (c Config) Validate() error {
 		return err
 	}
 	if err := validateAbsolutePath("selection_path", c.SelectionPath); err != nil {
-		return err
-	}
-	if err := validateAbsolutePath("model_roots_path", c.ModelRootsPath); err != nil {
-		return err
-	}
-	if err := validateAbsolutePath("validation_path", c.ValidationPath); err != nil {
 		return err
 	}
 	if err := validateAbsolutePath("logs_path", c.LogsPath); err != nil {

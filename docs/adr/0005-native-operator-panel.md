@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted for v2 canary.
+Accepted for v2 canary. Amended by ADR 0021 (2026-09-30): the menu and the
+control window became one flyout drawn in the browser monitor's design, model
+folders and validation were removed, and the tray now starts the server when
+it opens and stops it on "Encerrar", so the last consequence below no longer
+holds.
 
 ## Decision
 
