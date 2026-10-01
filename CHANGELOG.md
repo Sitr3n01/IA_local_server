@@ -24,7 +24,8 @@ All notable changes are documented here. This project follows Keep a Changelog c
 - A model that admission refuses gets an explanation in Portuguese: the
   shortfall in GiB, the headroom already counting what unloading the current
   model frees, and, for a memory shortfall, the three applications holding the
-  most RAM. `/v1/messages` answers it as `400 invalid_request_error`, because
+  most memory - resident for a RAM refusal, reserved (commit) for a commit
+  refusal, with Cowork's `vmmem` virtual machine named as such. `/v1/messages` answers it as `400 invalid_request_error`, because
   Claude Desktop retried the former `503` ten times and showed only
   "Solicitação falhou"; the OpenAI routes keep `503 insufficient_capacity`.
 - The `local_ai_delegate` tool description no longer calls the pinned model a

@@ -4,27 +4,13 @@ package edge
 
 import (
 	"errors"
+	"runtime"
 	"sort"
 	"strings"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
-
-var getProcessMemoryInfo = windows.NewLazySystemDLL("kernel32.dll").NewProc("K32GetProcessMemoryInfo")
-
-type processMemoryCounters struct {
-	CB                         uint32
-	PageFaultCount             uint32
-	PeakWorkingSetSize         uintptr
-	WorkingSetSize             uintptr
-	QuotaPeakPagedPoolUsage    uintptr
-	QuotaPagedPoolUsage        uintptr
-	QuotaPeakNonPagedPoolUsage uintptr
-	QuotaNonPagedPoolUsage     uintptr
-	PagefileUsage              uintptr
-	PeakPagefileUsage          uintptr
-}
 
 // unclosable lists processes a person cannot close to free memory: the
 // kernel's own accounting entries, Windows services, and this deployment,
@@ -36,31 +22,36 @@ var unclosable = map[string]bool{
 	"llama-server": true, "llama-swap": true,
 }
 
-// topMemoryConsumers sums resident memory by executable name and returns the
-// largest groups a person could close. A process that exits or denies access
-// while it is read is skipped; the list is a hint, not an accounting.
-func topMemoryConsumers(limit int) []memoryConsumer {
-	snapshot, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
+// topMemoryConsumers sums memory by executable name and returns the largest
+// groups a person could close: resident memory for a physical-memory refusal,
+// private commit for a commit refusal. It reads the whole process table in
+// one NtQuerySystemInformation call and opens no process, so a process this
+// account may not open - a virtual machine's vmmem, notably - is still
+// counted; opening each process skipped exactly those. The list is a hint,
+// not an accounting.
+func topMemoryConsumers(limit int, byCommit bool) []memoryConsumer {
+	buffer, err := systemProcessInformation()
 	if err != nil {
 		return nil
 	}
-	defer windows.CloseHandle(snapshot)
-
 	totals := map[string]float64{}
-	entry := windows.ProcessEntry32{Size: uint32(unsafe.Sizeof(windows.ProcessEntry32{}))}
-	for err = windows.Process32First(snapshot, &entry); err == nil; err = windows.Process32Next(snapshot, &entry) {
-		name := strings.TrimSuffix(windows.UTF16ToString(entry.ExeFile[:]), ".exe")
+	for offset := 0; offset+int(unsafe.Sizeof(windows.SYSTEM_PROCESS_INFORMATION{})) <= len(buffer); {
+		entry := (*windows.SYSTEM_PROCESS_INFORMATION)(unsafe.Pointer(&buffer[offset]))
+		name := strings.TrimSuffix(entry.ImageName.String(), ".exe")
 		lower := strings.ToLower(name)
-		if unclosable[lower] || strings.HasPrefix(lower, "cia-") {
-			continue
+		if name != "" && !unclosable[lower] && !strings.HasPrefix(lower, "cia-") {
+			size := entry.WorkingSetSize
+			if byCommit {
+				size = entry.PagefileUsage
+			}
+			totals[name] += float64(size) / float64(uint64(1)<<30)
 		}
-		if resident, ok := residentBytes(entry.ProcessID); ok {
-			totals[name] += float64(resident) / float64(uint64(1)<<30)
+		if entry.NextEntryOffset == 0 {
+			break
 		}
+		offset += int(entry.NextEntryOffset)
 	}
-	if !errors.Is(err, windows.ERROR_NO_MORE_FILES) {
-		return nil
-	}
+	runtime.KeepAlive(buffer)
 
 	consumers := make([]memoryConsumer, 0, len(totals))
 	for name, size := range totals {
@@ -75,16 +66,25 @@ func topMemoryConsumers(limit int) []memoryConsumer {
 	return consumers
 }
 
-func residentBytes(pid uint32) (uintptr, bool) {
-	process, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
-	if err != nil {
-		return 0, false
+// systemProcessInformation returns the SystemProcessInformation table. The
+// table grows between the sizing call and the read when processes start, so
+// the buffer gets headroom and a few attempts.
+func systemProcessInformation() ([]byte, error) {
+	size := uint32(1 << 20)
+	for attempt := 0; attempt < 4; attempt++ {
+		buffer := make([]byte, size)
+		var needed uint32
+		err := windows.NtQuerySystemInformation(windows.SystemProcessInformation, unsafe.Pointer(&buffer[0]), size, &needed)
+		if err == nil {
+			if needed == 0 || needed > size {
+				return buffer, nil
+			}
+			return buffer[:needed], nil
+		}
+		if !errors.Is(err, windows.STATUS_INFO_LENGTH_MISMATCH) || needed > 64<<20 {
+			return nil, err
+		}
+		size = needed + 64<<10
 	}
-	defer windows.CloseHandle(process)
-	counters := processMemoryCounters{CB: uint32(unsafe.Sizeof(processMemoryCounters{}))}
-	result, _, _ := getProcessMemoryInfo.Call(uintptr(process), uintptr(unsafe.Pointer(&counters)), uintptr(counters.CB))
-	if result == 0 {
-		return 0, false
-	}
-	return counters.WorkingSetSize, true
+	return nil, errors.New("the process table kept growing while it was read")
 }

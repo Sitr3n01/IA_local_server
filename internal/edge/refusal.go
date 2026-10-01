@@ -10,8 +10,9 @@ import (
 // into a process list.
 const refusalConsumerLimit = 3
 
-// memoryConsumer is one application's resident memory, summed over all of its
-// processes. A refusal names it so the operator knows what to close: only an
+// memoryConsumer is one application's memory, summed over all of its
+// processes: resident memory or private commit, whichever the refusal is
+// about. A refusal names it so the operator knows what to close: only an
 // executable name and a size, never a path, a command line or a window title.
 type memoryConsumer struct {
 	Name string
@@ -30,14 +31,14 @@ func capacityRefusal(capacity capacityStatus, consumers []memoryConsumer) string
 		}
 		return fmt.Sprintf("Não há RAM livre para o modelo %s agora: ele precisa de %s GiB (com %s GiB de reserva) e há %s GiB%s. Faltam %s GiB. Feche programas que estejam usando RAM%s ou escolha um modelo menor.",
 			capacity.Model, gib(*capacity.RequiredPhysicalGiB), gib(capacity.ReservePhysicalGiB), gib(*capacity.PhysicalHeadroomGiB),
-			reclaimClause(capacity.ReclaimablePhysicalGiB), gib(*capacity.RequiredPhysicalGiB-*capacity.PhysicalHeadroomGiB), consumerClause(consumers))
+			reclaimClause(capacity.ReclaimablePhysicalGiB), gib(*capacity.RequiredPhysicalGiB-*capacity.PhysicalHeadroomGiB), consumerClause(consumers, "usam RAM"))
 	case "insufficient_commit_headroom":
 		if capacity.RequiredCommitGiB == nil || capacity.CommitHeadroomGiB == nil {
 			break
 		}
 		return fmt.Sprintf("Não há memória reservável (commit) para o modelo %s agora: ele precisa de %s GiB (com %s GiB de reserva) e há %s GiB%s. Faltam %s GiB. Feche programas%s ou aumente o arquivo de paginação.",
 			capacity.Model, gib(*capacity.RequiredCommitGiB), gib(capacity.ReserveCommitGiB), gib(*capacity.CommitHeadroomGiB),
-			reclaimClause(capacity.ReclaimableCommitGiB), gib(*capacity.RequiredCommitGiB-*capacity.CommitHeadroomGiB), consumerClause(consumers))
+			reclaimClause(capacity.ReclaimableCommitGiB), gib(*capacity.RequiredCommitGiB-*capacity.CommitHeadroomGiB), consumerClause(consumers, "reservam memória"))
 	case "insufficient_vram_budget":
 		if capacity.RequiredVRAMGiB == nil || capacity.DeviceVRAMGiB == nil {
 			break
@@ -49,9 +50,19 @@ func capacityRefusal(capacity capacityStatus, consumers []memoryConsumer) string
 }
 
 // needsConsumers reports whether a refusal for this reason names the
-// applications holding memory, so the process table is read only then.
-func needsConsumers(reason string) bool {
-	return reason == "insufficient_physical_memory" || reason == "insufficient_commit_headroom"
+// applications holding memory, so the process table is read only then, and
+// whether they are ranked by private commit rather than resident memory. A
+// virtual machine is the case that tells the two apart: Cowork's VM reserved
+// 4.0 GiB of commit while 1.3 GiB of it was resident (2026-10-01).
+func needsConsumers(reason string) (needed, byCommit bool) {
+	switch reason {
+	case "insufficient_physical_memory":
+		return true, false
+	case "insufficient_commit_headroom":
+		return true, true
+	default:
+		return false, false
+	}
 }
 
 func reclaimClause(reclaimable *float64) string {
@@ -61,19 +72,28 @@ func reclaimClause(reclaimable *float64) string {
 	return fmt.Sprintf(", já contando os %s GiB que descarregar o modelo atual libera", gib(*reclaimable))
 }
 
-func consumerClause(consumers []memoryConsumer) string {
+func consumerClause(consumers []memoryConsumer, verb string) string {
 	if len(consumers) == 0 {
 		return ""
 	}
 	parts := make([]string, 0, len(consumers))
 	for _, consumer := range consumers {
-		parts = append(parts, fmt.Sprintf("%s %s GiB", consumer.Name, gib(consumer.GiB)))
+		parts = append(parts, fmt.Sprintf("%s %s GiB", consumerLabel(consumer.Name), gib(consumer.GiB)))
 	}
 	list := parts[0]
 	if len(parts) > 1 {
 		list = strings.Join(parts[:len(parts)-1], ", ") + " e " + parts[len(parts)-1]
 	}
-	return " (agora os que mais usam são " + list + ")"
+	return " (agora os que mais " + verb + " são " + list + ")"
+}
+
+// consumerLabel says what an executable is when its name does not: vmmem is
+// the memory of a virtual machine, which closes with the VM's own client.
+func consumerLabel(name string) string {
+	if strings.HasPrefix(strings.ToLower(name), "vmmem") {
+		return name + " (máquina virtual do Cowork/WSL)"
+	}
+	return name
 }
 
 // gib formats a size with one decimal and a decimal comma, as the operator's

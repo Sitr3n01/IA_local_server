@@ -42,7 +42,7 @@ type Server struct {
 	gpuCache  gpuMemoryCache
 	// memoryConsumers names the applications holding host memory in a
 	// capacity refusal. Like gpuMemory it never decides admission.
-	memoryConsumers func(limit int) []memoryConsumer
+	memoryConsumers func(limit int, byCommit bool) []memoryConsumer
 	// inference holds numbers about admitted requests for /api/v1/inference:
 	// token counts, timings, status. Never a prompt, a completion or a header.
 	inference *inferenceLog

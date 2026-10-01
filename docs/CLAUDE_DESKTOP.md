@@ -194,6 +194,11 @@ libera. Faltam 2,3 GiB. Feche programas que estejam usando RAM (agora os que
 mais usam são claude 3,8 GiB, firefox 2,1 GiB e RazerAppEngine 1,2 GiB) ou
 escolha um modelo menor." The applications are summed by executable name, only
 for a memory refusal, and never include Windows services or this deployment.
+They are ranked by resident memory for a physical-memory refusal and by private
+commit for a commit refusal: Cowork's virtual machine (`vmmem`, named as such)
+reserved 4.0 GiB of commit while only 1.3 GiB of it was resident. The table is
+read in one `NtQuerySystemInformation` call, which also counts processes this
+account cannot open; opening each process had silently skipped that VM.
 The OpenAI routes keep `503 insufficient_capacity` with the same text.
 
 The probe is intentionally not part of tray refresh: it can load a multi-GiB

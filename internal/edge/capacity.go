@@ -324,8 +324,8 @@ func (s *Server) requireCapacity(w http.ResponseWriter, ctx context.Context, mod
 // is read only for a memory refusal, and only once the refusal is certain.
 func (s *Server) refusalText(capacity capacityStatus) string {
 	var consumers []memoryConsumer
-	if needsConsumers(capacity.Reason) && s.memoryConsumers != nil {
-		consumers = s.memoryConsumers(refusalConsumerLimit)
+	if needed, byCommit := needsConsumers(capacity.Reason); needed && s.memoryConsumers != nil {
+		consumers = s.memoryConsumers(refusalConsumerLimit, byCommit)
 	}
 	return capacityRefusal(capacity, consumers)
 }
