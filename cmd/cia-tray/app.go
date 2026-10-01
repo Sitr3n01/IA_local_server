@@ -37,12 +37,18 @@ type appController struct {
 	claudeDetail string
 	now          func() time.Time
 
-	mu            sync.RWMutex
+	mu sync.RWMutex
+	// selected is the model the radio shows and Carregar/Trocar act on; saved
+	// is the operator's own choice, persisted by SelectModel. They differ
+	// while a model another client loaded is in memory.
 	selected      string
+	saved         string
 	selectionNote string
-	gatewayOK     bool
-	gatewayNote   string
-	gatewayAt     time.Time
+	// lastActive is the loaded model the previous snapshot saw.
+	lastActive  string
+	gatewayOK   bool
+	gatewayNote string
+	gatewayAt   time.Time
 }
 
 // serverControl starts and stops the processes that make up one deployment
@@ -112,6 +118,7 @@ func newAppController(config panel.Config, appVersion string) (*appController, e
 		adminClient:    adminClient,
 		server:         server,
 		selected:       selected,
+		saved:          selected,
 		selectionNote:  selectionNote,
 		readCredential: credential.Read,
 		probeGateway:   claudedesktop.ProbeGateway,
@@ -161,6 +168,9 @@ func (c *appController) Snapshot(ctx context.Context) (trayui.Snapshot, error) {
 
 	status, statusErr := c.statusClient.Status(ctx)
 	if statusErr == nil {
+		c.followActiveModel(strings.TrimSpace(status.ActiveModel))
+		selected = c.selectedModel()
+		snapshot.SelectedModel = selected
 		snapshot.EdgeReachable = true
 		snapshot.StatusAvailable = true
 		snapshot.ProviderReady = status.Ready
@@ -309,6 +319,7 @@ func (c *appController) SelectModel(_ context.Context, modelID string) error {
 	}
 	c.mu.Lock()
 	c.selected = selection.Model
+	c.saved = selection.Model
 	c.selectionNote = ""
 	c.mu.Unlock()
 	return nil
@@ -342,6 +353,28 @@ func (c *appController) StartServer(ctx context.Context) error { return c.server
 func (c *appController) StopServer(ctx context.Context) error { return c.server.Stop(ctx) }
 
 func (c *appController) OpenPanel(ctx context.Context) error { return c.server.OpenPanel(ctx) }
+
+// followActiveModel moves the radio to the model in memory whenever the loaded
+// model changes - loaded by this tray, Claude Local, /local or any other
+// client - and back to the saved choice when it unloads. Only a change moves
+// it, so a model the operator picks while another one is loaded stays picked
+// for "Trocar de modelo". The saved choice is never rewritten here: a model
+// another client loaded for a while does not become the default.
+func (c *appController) followActiveModel(active string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if active == c.lastActive {
+		return
+	}
+	c.lastActive = active
+	if active == "" {
+		c.selected = c.saved
+		return
+	}
+	if model, ok := c.catalog.Model(active); ok && model.Available {
+		c.selected = active
+	}
+}
 
 func (c *appController) selectedModel() string {
 	c.mu.RLock()

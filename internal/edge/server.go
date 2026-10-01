@@ -40,6 +40,9 @@ type Server struct {
 	// without a GPU, exactly as memoryStatus does.
 	gpuMemory func() (gpuMemorySnapshot, error)
 	gpuCache  gpuMemoryCache
+	// memoryConsumers names the applications holding host memory in a
+	// capacity refusal. Like gpuMemory it never decides admission.
+	memoryConsumers func(limit int) []memoryConsumer
 	// inference holds numbers about admitted requests for /api/v1/inference:
 	// token counts, timings, status. Never a prompt, a completion or a header.
 	inference *inferenceLog
@@ -77,17 +80,18 @@ func New(cfg Config) (*Server, error) {
 		},
 	}
 	return &Server{
-		cfg:          cfg,
-		upstream:     upstream,
-		client:       client,
-		allowed:      allowed,
-		gate:         newGate(cfg.MaxActive, cfg.MaxQueue, cfg.QueueWait),
-		events:       newEventStore(cfg.LogOutput),
-		metrics:      newMetrics(),
-		startedAt:    time.Now(),
-		memoryStatus: systemMemoryStatus,
-		gpuMemory:    gpuMemoryStatus,
-		inference:    newInferenceLog(time.Now),
+		cfg:             cfg,
+		upstream:        upstream,
+		client:          client,
+		allowed:         allowed,
+		gate:            newGate(cfg.MaxActive, cfg.MaxQueue, cfg.QueueWait),
+		events:          newEventStore(cfg.LogOutput),
+		metrics:         newMetrics(),
+		startedAt:       time.Now(),
+		memoryStatus:    systemMemoryStatus,
+		gpuMemory:       gpuMemoryStatus,
+		memoryConsumers: topMemoryConsumers,
+		inference:       newInferenceLog(time.Now),
 	}, nil
 }
 

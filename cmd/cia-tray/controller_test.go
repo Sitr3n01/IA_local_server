@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -118,6 +119,7 @@ func statusController(t *testing.T, controlURL string) *appController {
 		catalog:      testCatalog(t),
 		statusClient: client,
 		selected:     "public",
+		saved:        "public",
 		now:          time.Now,
 	}
 }
@@ -179,5 +181,53 @@ func TestLoadClaudeProbeModelLeavesALoadedModelAlone(t *testing.T) {
 	// loaded model was not replaced for the sake of Desktop's health check.
 	if err := statusController(t, server.URL).loadClaudeProbeModel(context.Background()); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestTheRadioFollowsTheModelInMemory(t *testing.T) {
+	var active atomic.Value
+	active.Store("")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprintf(w, `{"service": "cia-edge", "ready": true, "upstream": {"reachable": true},
+			"models": [{"id": "public"}, {"id": "second"}], "active_model": %q,
+			"gate": {"active": 0, "queued": 0, "max_active": 1, "max_queue": 16},
+			"capacity": {"available": true, "reason": "commit_headroom_available"}}`, active.Load().(string))
+	}))
+	defer server.Close()
+	controller := statusController(t, server.URL)
+	selectionPath := filepath.Join(t.TempDir(), "selection.json")
+	store, err := panel.NewSelectionStore(selectionPath, controller.catalog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	controller.selection = store
+	ctx := context.Background()
+	radio := func(want, step string) {
+		t.Helper()
+		snapshot, err := controller.Snapshot(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if snapshot.SelectedModel != want {
+			t.Fatalf("%s: radio on %q, want %q", step, snapshot.SelectedModel, want)
+		}
+	}
+
+	radio("public", "nothing loaded")
+	active.Store("second")
+	radio("second", "another client loaded second")
+	if err := controller.SelectModel(ctx, "public"); err != nil {
+		t.Fatal(err)
+	}
+	radio("public", "operator picked public to switch to, second still loaded")
+	active.Store("")
+	radio("public", "second unloaded")
+	active.Store("second")
+	radio("second", "second loaded again")
+	active.Store("")
+	radio("public", "unloaded again: back to the saved choice")
+	if saved, err := store.Load(); err != nil || saved.Model != "public" {
+		t.Fatalf("the saved choice became %+v (err=%v); a model in memory must not rewrite it", saved, err)
 	}
 }

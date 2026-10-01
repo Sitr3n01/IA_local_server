@@ -57,11 +57,8 @@ type Controller interface {
 	LoadSelected(context.Context) error
 	SwitchSelected(context.Context) error
 	UnloadActive(context.Context) error
-	// LaunchClaudeDesktop shows the signed-in Claude Desktop instance.
-	LaunchClaudeDesktop(context.Context) error
 	// OpenClaudeLocal shows the Claude Desktop instance that uses this
-	// server's gateway, beside the signed-in one. Neither call stops a
-	// Desktop process.
+	// server's gateway, beside the signed-in one. It stops no Desktop process.
 	OpenClaudeLocal(context.Context) error
 	// StartServer starts the router and edge. It is idempotent: a running
 	// server is left alone.

@@ -757,6 +757,7 @@ point the fork stops being worth its maintenance.
 | `/livez` passes, `/readyz` fails | Router/config/model admission unavailable | Check router task, hashes, credentials, capacity |
 | `429` | Queue or wait policy intentionally enforced | Harness retries with backoff or operator reduces load |
 | `503` | Local provider cannot serve safely | Fix local dependency; do not enable fallback |
+| `400 invalid_request_error` on `/v1/messages` naming GiB | Admission refused the model (memory, commit or VRAM) | Close what the message names or choose a smaller model; do not bypass admission |
 | Model process absent while idle | Expected lazy state | No action |
 | Model starts after `/v1/models` | Contract regression | Stop cutover and file a blocking defect |
 

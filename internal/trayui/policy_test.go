@@ -90,24 +90,24 @@ func TestEvaluateActionsClaudeLocalFollowsTheGatewayNotTheQueue(t *testing.T) {
 	snapshot := policySnapshot()
 	snapshot.ClaudeAvailable = true
 	policy := EvaluateActions(snapshot, false)
-	if policy.ClaudeLocal || !policy.ClaudeOpen {
+	if policy.ClaudeLocal {
 		t.Fatalf("gateway down: %+v", policy)
 	}
 	snapshot.ClaudeGatewayOK = true
-	if policy := EvaluateActions(snapshot, false); !policy.ClaudeLocal || !policy.ClaudeOpen {
+	if policy := EvaluateActions(snapshot, false); !policy.ClaudeLocal {
 		t.Fatalf("gateway up: %+v", policy)
 	}
 	// Opening the local instance stops nothing, so a busy queue must not
 	// hold it back the way the old restart-based switch had to.
 	snapshot.Active, snapshot.Queued = 1, 3
-	if policy := EvaluateActions(snapshot, false); !policy.ClaudeLocal || !policy.ClaudeOpen {
+	if policy := EvaluateActions(snapshot, false); !policy.ClaudeLocal {
 		t.Fatalf("queued requests blocked opening Claude: %+v", policy)
 	}
-	if policy := EvaluateActions(snapshot, true); policy.ClaudeLocal || policy.ClaudeOpen {
+	if policy := EvaluateActions(snapshot, true); policy.ClaudeLocal {
 		t.Fatalf("Claude actions offered while another action runs: %+v", policy)
 	}
 	snapshot.ClaudeAvailable = false
-	if policy := EvaluateActions(snapshot, false); policy.ClaudeOpen || policy.ClaudeLocal {
+	if policy := EvaluateActions(snapshot, false); policy.ClaudeLocal {
 		t.Fatalf("Claude actions without Claude Desktop: %+v", policy)
 	}
 }

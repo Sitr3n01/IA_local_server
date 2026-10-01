@@ -47,8 +47,9 @@ lock, so a 1P and a 3P instance hold different locks and coexist. Measured on
 while a 3P instance started next to it, discovered the gateway's models and
 selected the public model through its opaque alias.
 
-The tray's flyout has two buttons, `Claude` and `Claude Local`. `Claude Local`
-is live when Desktop was discovered and an authenticated `GET /v1/models` with
+The tray's flyout has one Claude button, `Claude Local`; the signed-in
+instance opens from the Start menu as always (`cia-tray -claude-open` still
+foregrounds it from a script). `Claude Local` is live when Desktop was discovered and an authenticated `GET /v1/models` with
 the `claude-gateway` credential succeeds. It does not wait for the queue to
 drain, because it interrupts nothing.
 
@@ -105,7 +106,7 @@ two icons apart for the operator.
 | Route | Credential | Notes |
 | --- | --- | --- |
 | `GET /v1/models[?limit=1..1000]` | inference or `claude-gateway` | normal clients receive real IDs; Claude receives opaque wire aliases plus real IDs/names |
-| `POST /v1/messages[?beta=true]` | `claude-gateway` only | native incremental Anthropic SSE adapter; all other query shapes fail closed |
+| `POST /v1/messages[?beta=true]` | `claude-gateway` only | native incremental Anthropic SSE adapter; all other query shapes fail closed. A model capacity refuses is answered `400 invalid_request_error` with an explanation in Portuguese (see below) |
 | OpenAI routes | inference only | existing behavior remains isolated |
 
 The adapter sends one direct request to llama-swap; it never loopbacks to the
@@ -181,6 +182,19 @@ block kinds and the stop reason (never the generated text or a credential):
 ```powershell
 C:\IA\local-ai-v2\bin\cia-credential.exe probe-claude qwen38-27b-agent-128k
 ```
+
+When admission refuses a model, `/v1/messages` answers `400
+invalid_request_error`, not `503`. Desktop's agent retries a 5xx ten times and
+shows only "Solicitação falhou. Tentando novamente…", hiding the reason; memory
+does not free itself in seconds, so the refusal is final for that request and
+its message says why, for example: "Não há RAM livre para o modelo
+qwen36-35b-a3b-huge-256k agora: ele precisa de 20,2 GiB (com 2,0 GiB de
+reserva) e há 17,9 GiB, já contando os 9,9 GiB que descarregar o modelo atual
+libera. Faltam 2,3 GiB. Feche programas que estejam usando RAM (agora os que
+mais usam são claude 3,8 GiB, firefox 2,1 GiB e RazerAppEngine 1,2 GiB) ou
+escolha um modelo menor." The applications are summed by executable name, only
+for a memory refusal, and never include Windows services or this deployment.
+The OpenAI routes keep `503 insufficient_capacity` with the same text.
 
 The probe is intentionally not part of tray refresh: it can load a multi-GiB
 model and run real inference. A `503 Service Unavailable` must be checked

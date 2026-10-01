@@ -130,8 +130,8 @@ func TestFlyoutRendersEveryStateInsideItsBounds(t *testing.T) {
 func checkZones(t *testing.T, f *flyout, width, height int32) {
 	t.Helper()
 	labels := map[zoneID]string{
-		zoneClaudeOpen: "Claude", zoneClaudeLocal: "Claude Local",
-		zonePanel: "Abrir painel", zoneShutdown: "Encerrar", zoneUnload: "Descarregar",
+		zoneClaudeLocal: "Claude Local",
+		zonePanel:       "Abrir painel", zoneShutdown: "Encerrar", zoneUnload: "Descarregar",
 		zoneStartServer: "Iniciar o servidor", zoneShutdownConfirm: "Encerrar",
 	}
 	if f.view.ModelAction == ModelActionSwitch {

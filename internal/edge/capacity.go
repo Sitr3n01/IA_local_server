@@ -316,8 +316,18 @@ func (s *Server) requireCapacity(w http.ResponseWriter, ctx context.Context, mod
 	if capacity.Available {
 		return capacity, true
 	}
-	s.writeError(w, http.StatusServiceUnavailable, "insufficient_capacity", capacityMessage(capacity.Reason), "model")
+	s.writeError(w, http.StatusServiceUnavailable, "insufficient_capacity", s.refusalText(capacity), "model")
 	return capacity, false
+}
+
+// refusalText is what a client shows for a refused model. The process table
+// is read only for a memory refusal, and only once the refusal is certain.
+func (s *Server) refusalText(capacity capacityStatus) string {
+	var consumers []memoryConsumer
+	if needsConsumers(capacity.Reason) && s.memoryConsumers != nil {
+		consumers = s.memoryConsumers(refusalConsumerLimit)
+	}
+	return capacityRefusal(capacity, consumers)
 }
 
 func (s *Server) runningModels(ctx context.Context) (map[string]string, error) {

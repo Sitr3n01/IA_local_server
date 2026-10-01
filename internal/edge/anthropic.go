@@ -98,7 +98,10 @@ func (s *Server) handleAnthropicMessages(w http.ResponseWriter, r *http.Request)
 	})
 	capacity, _ := s.capacityFor(r.Context(), model)
 	if !capacity.Available {
-		s.writeAnthropicError(w, http.StatusServiceUnavailable, "api_error", capacityMessage(capacity.Reason))
+		// 400, not 503. Claude Desktop's agent retries a 5xx ten times and
+		// shows only "Solicitação falhou"; memory does not free itself in
+		// seconds, and an invalid_request_error shows the explanation at once.
+		s.writeAnthropicError(w, http.StatusBadRequest, "invalid_request_error", s.refusalText(capacity))
 		return
 	}
 	track := s.inference.begin(model, "/v1/messages", converted.stream, !capacity.ModelRunning)

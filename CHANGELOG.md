@@ -7,7 +7,7 @@ All notable changes are documented here. This project follows Keep a Changelog c
 ### Changed
 
 - Claude Local opens beside the signed-in Claude Desktop instead of replacing
-  it (ADR 0022). The flyout's `Claude` and `Claude Local` buttons replace the
+  it (ADR 0022). The flyout's `Claude Local` button replaces the
   Anthropic/Local switch, which closed every Claude Desktop process to change
   mode. The 3P selector is held at `3p` only while one launch reads it and
   rests at `1p`; instances are told apart by their helpers'
@@ -17,6 +17,19 @@ All notable changes are documented here. This project follows Keep a Changelog c
   With no model loaded, `Claude Local` first loads the model Desktop's
   ten-second start-up health check asks for, so the instance no longer opens
   on "Não foi possível alcançar 127.0.0.1:18090".
+- The flyout's model radio follows the model in memory: when the loaded model
+  changes, whoever loaded it (the tray, Claude Local, `/local`), the radio
+  moves to it, and it returns to the saved choice when the model unloads. The
+  saved choice is only changed by a click.
+- A model that admission refuses gets an explanation in Portuguese: the
+  shortfall in GiB, the headroom already counting what unloading the current
+  model frees, and, for a memory shortfall, the three applications holding the
+  most RAM. `/v1/messages` answers it as `400 invalid_request_error`, because
+  Claude Desktop retried the former `503` ten times and showed only
+  "Solicitação falhou"; the OpenAI routes keep `503 insufficient_capacity`.
+- The `local_ai_delegate` tool description no longer calls the pinned model a
+  9B executor, and says to leave `max_output_tokens` unset: a reasoning model
+  can spend a small cap entirely before it answers.
 - IA Local (`cia-tray`) is the deployment's one startup entry (ADR 0021).
   `Install-V2PanelStartup.ps1` registers a current-user `Run` value that Task
   Manager lists as "IA Local" with its icon, adds an "IA Local" Start-menu
@@ -28,8 +41,8 @@ All notable changes are documented here. This project follows Keep a Changelog c
   logon.
 - The tray's native menu and Win32 control window are replaced by one flyout
   drawn from the browser monitor's design tokens: status pill, state card,
-  model radio list with load/switch/unload, `Claude` and `Claude Local`
-  buttons, "Abrir painel" and "Encerrar". It follows the
+  model radio list with load/switch/unload, a `Claude Local` button,
+  "Abrir painel" and "Encerrar". It follows the
   Windows app theme, scales per monitor, works from the keyboard, and the icon
   takes the monitor's mark coloured by state. `cia-tray.exe` now carries an
   icon, a version resource and a per-monitor-v2 DPI manifest.

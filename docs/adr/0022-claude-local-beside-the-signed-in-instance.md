@@ -37,7 +37,9 @@ own providers, reaching this server only when asked through `/local`.
 
 ## Decision
 
-- The tray offers `Claude` and `Claude Local`. `Claude Local` writes the CIA
+- The tray offers `Claude Local` (amended the same day: the `Claude` button
+  that foregrounded the signed-in instance was removed; the Start menu does
+  that, and `cia-tray -claude-open` remains for scripts). `Claude Local` writes the CIA
   gateway profile when it differs, holds the selector at `3p` for one launch,
   waits for the 3P instance's window and returns the selector to `1p`, whatever
   happened. When a 3P instance already runs, it only foregrounds it. `Claude`
@@ -72,6 +74,9 @@ own providers, reaching this server only when asked through `/local`.
   gateway credential applies from its next start.
 - Both instances show the same Desktop icon in the notification area; quitting
   from the wrong one ends that instance.
+- On the gateway, a capacity refusal is `400 invalid_request_error` with the
+  shortfall and the largest memory holders, because Desktop retries a `503`
+  ten times without showing why. The OpenAI routes keep their `503` contract.
 - The coexistence depends on Desktop's startup order (selector, user-data
   directory, lock). A Desktop release that changes it would make the 3P
   launch hand its activation to the signed-in instance, which is visible and

@@ -26,7 +26,6 @@ const (
 	zoneStartServer
 	zoneModelAction
 	zoneUnload
-	zoneClaudeOpen
 	zoneClaudeLocal
 	zonePanel
 	zoneShutdown
@@ -1244,11 +1243,11 @@ func (f *flyout) layout(p *painter) float32 {
 	}
 	y += 20
 
-	// Claude Desktop: the signed-in instance and the local one beside it.
+	// Claude Desktop: only the local instance. The signed-in one opens from
+	// the Start menu as always.
 	p.text("Claude Desktop", x0, y, iw, 18, textStrong, pal.InkSoft, dtLeft|dtVCenter|dtSingleLine)
 	y += 18 + 8
 	f.buttonRow(p, x0, y, iw, []rowButton{
-		{zoneClaudeOpen, "Claude", glyphChat, buttonSecondary, v.Policy.ClaudeOpen},
 		{zoneClaudeLocal, "Claude Local", glyphChat, buttonSecondary, v.Policy.ClaudeLocal},
 	})
 	y += 36 + 4

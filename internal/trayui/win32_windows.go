@@ -872,11 +872,6 @@ func (a *app) activate(id zoneID) {
 		if policy.Unload {
 			a.startAction("Descarregando o modelo", "Descarregar o modelo", "Modelo descarregado.", a.controller.UnloadActive, false)
 		}
-	case zoneClaudeOpen:
-		if policy.ClaudeOpen {
-			a.flyout.hide()
-			a.startLaunch("Abrir o Claude Desktop", a.controller.LaunchClaudeDesktop)
-		}
 	case zoneClaudeLocal:
 		// An action, not a launch: it may load the model Claude Local's
 		// health check needs first, which takes a while to show.
