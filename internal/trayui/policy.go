@@ -11,10 +11,7 @@ type ActionPolicy struct {
 	Load            bool
 	Switch          bool
 	Unload          bool
-	LaunchCodex     bool
-	LaunchOpenCode  bool
 	ClaudeOpen      bool
-	ClaudeAnthropic bool
 	ClaudeLocal     bool
 	StartServer     bool
 	OpenPanel       bool
@@ -46,13 +43,11 @@ func EvaluateActions(snapshot Snapshot, busy bool) ActionPolicy {
 	policy.Load = lifecycle && snapshot.ActiveModel == ""
 	policy.Switch = lifecycle && policy.AvailableModels > 1 && snapshot.ActiveModel != "" && snapshot.ActiveModel != snapshot.SelectedModel
 	policy.Unload = !busy && snapshot.StatusAvailable && snapshot.ActiveModel != "" && idle
-	policy.LaunchCodex = !busy && snapshot.ProviderReady && selectedOK && selected.Available && selected.Codex
-	policy.LaunchOpenCode = !busy && snapshot.ProviderReady && selectedOK && selected.Available && selected.OpenCode
 
+	// Opening either Claude instance stops no process and interrupts no
+	// request, so neither waits for the queue to drain.
 	policy.ClaudeOpen = snapshot.ClaudeAvailable && !busy
-	claudeSwitch := policy.ClaudeOpen && idle
-	policy.ClaudeAnthropic = claudeSwitch && snapshot.ClaudeMode != ClaudeModeAnthropic
-	policy.ClaudeLocal = claudeSwitch && snapshot.ClaudeGatewayOK && snapshot.ClaudeMode != ClaudeModeLocal
+	policy.ClaudeLocal = policy.ClaudeOpen && snapshot.ClaudeGatewayOK
 
 	policy.StartServer = !busy && !snapshot.EdgeReachable
 	return policy

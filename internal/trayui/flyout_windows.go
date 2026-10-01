@@ -26,10 +26,7 @@ const (
 	zoneStartServer
 	zoneModelAction
 	zoneUnload
-	zoneCodex
-	zoneOpenCode
 	zoneClaudeOpen
-	zoneClaudeAnthropic
 	zoneClaudeLocal
 	zonePanel
 	zoneShutdown
@@ -57,8 +54,6 @@ const (
 	glyphPlay    = ''
 	glyphStop    = ''
 	glyphSwitch  = ''
-	glyphConsole = ''
-	glyphCode    = ''
 	glyphChat    = ''
 	glyphOpenNew = ''
 	glyphPower   = ''
@@ -1249,20 +1244,13 @@ func (f *flyout) layout(p *painter) float32 {
 	}
 	y += 20
 
-	// Clients.
-	p.text("Clientes", x0, y, iw/2, 18, textStrong, pal.InkSoft, dtLeft|dtVCenter|dtSingleLine)
-	p.text("com o modelo selecionado", x0+iw/3, y, iw*2/3, 18, textSmall, pal.InkMuted, dtRight|dtVCenter|dtSingleLine)
+	// Claude Desktop: the signed-in instance and the local one beside it.
+	p.text("Claude Desktop", x0, y, iw, 18, textStrong, pal.InkSoft, dtLeft|dtVCenter|dtSingleLine)
 	y += 18 + 8
 	f.buttonRow(p, x0, y, iw, []rowButton{
-		{zoneCodex, "Codex", glyphConsole, buttonSecondary, v.Policy.LaunchCodex},
-		{zoneOpenCode, "OpenCode", glyphCode, buttonSecondary, v.Policy.LaunchOpenCode},
 		{zoneClaudeOpen, "Claude", glyphChat, buttonSecondary, v.Policy.ClaudeOpen},
+		{zoneClaudeLocal, "Claude Local", glyphChat, buttonSecondary, v.Policy.ClaudeLocal},
 	})
-	y += 36 + 12
-
-	segmentW := float32(176)
-	p.text("Claude Desktop", x0, y, iw-segmentW-12, 36, textStrong, pal.Ink, dtLeft|dtVCenter|dtSingleLine|dtEndEllipse)
-	f.segmented(p, x0+iw-segmentW, y, segmentW, v)
 	y += 36 + 4
 	p.text(v.ClaudeNote, x0, y, iw, 17, textSmall, pal.InkMuted, dtLeft|dtVCenter|dtSingleLine|dtEndEllipse)
 	y += 17 + 16
@@ -1324,41 +1312,6 @@ func (f *flyout) buttonRow(p *painter, x, y, width float32, buttons []rowButton)
 		}
 		f.button(p, button.id, x, y, buttonW, 36, button.label, button.symbol, button.style, button.enabled, f.palette.Bg)
 		x += buttonW + 8
-	}
-}
-
-// segmented draws the Claude Desktop mode switch as the page draws its tabs.
-func (f *flyout) segmented(p *painter, x, y, w float32, v View) {
-	pal := f.palette
-	p.fill(x, y, w, 36, 12, pal.Surface2)
-	p.stroke(x, y, w, 36, 12, pal.Line)
-	half := (w - 8) / 2
-	segments := []struct {
-		id      zoneID
-		label   string
-		mode    ClaudeMode
-		enabled bool
-	}{
-		{zoneClaudeAnthropic, "Anthropic", ClaudeModeAnthropic, v.Policy.ClaudeAnthropic},
-		{zoneClaudeLocal, "Local", ClaudeModeLocal, v.Policy.ClaudeLocal},
-	}
-	for index, segment := range segments {
-		segmentX := x + 4 + float32(index)*half
-		active := v.ClaudeMode == segment.mode
-		ink := pal.InkMuted
-		switch {
-		case active:
-			p.fill(segmentX, y+4, half, 28, 9, pal.Surface)
-			p.stroke(segmentX, y+4, half, 28, 9, pal.Line)
-			ink = pal.Ink
-		case segment.enabled && f.hover == segment.id:
-			ink = pal.Ink
-		case !segment.enabled:
-			ink = fade(pal.Surface2, pal.InkMuted)
-		}
-		p.text(segment.label, segmentX, y+4, half, 28, textLabel, ink, dtCenter|dtVCenter|dtSingleLine)
-		f.focusRing(p, segment.id, segmentX, y+4, half, 28, 9)
-		p.zone(segment.id, segmentX, y+4, half, 28, segment.enabled)
 	}
 }
 

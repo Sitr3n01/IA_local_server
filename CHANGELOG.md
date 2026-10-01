@@ -6,6 +6,17 @@ All notable changes are documented here. This project follows Keep a Changelog c
 
 ### Changed
 
+- Claude Local opens beside the signed-in Claude Desktop instead of replacing
+  it (ADR 0022). The flyout's `Claude` and `Claude Local` buttons replace the
+  Anthropic/Local switch, which closed every Claude Desktop process to change
+  mode. The 3P selector is held at `3p` only while one launch reads it and
+  rests at `1p`; instances are told apart by their helpers'
+  `--user-data-dir`. No CIA code path can stop a Desktop process any more.
+  `cia-tray -claude-mode/-apply` become `-claude-open` and `-claude-local`,
+  and `Configure-ClaudeDesktop.ps1` takes `-Instance Anthropic|Local`.
+  With no model loaded, `Claude Local` first loads the model Desktop's
+  ten-second start-up health check asks for, so the instance no longer opens
+  on "Não foi possível alcançar 127.0.0.1:18090".
 - IA Local (`cia-tray`) is the deployment's one startup entry (ADR 0021).
   `Install-V2PanelStartup.ps1` registers a current-user `Run` value that Task
   Manager lists as "IA Local" with its icon, adds an "IA Local" Start-menu
@@ -17,8 +28,8 @@ All notable changes are documented here. This project follows Keep a Changelog c
   logon.
 - The tray's native menu and Win32 control window are replaced by one flyout
   drawn from the browser monitor's design tokens: status pill, state card,
-  model radio list with load/switch/unload, Codex/OpenCode/Claude buttons,
-  Claude Desktop mode switch, "Abrir painel" and "Encerrar". It follows the
+  model radio list with load/switch/unload, `Claude` and `Claude Local`
+  buttons, "Abrir painel" and "Encerrar". It follows the
   Windows app theme, scales per monitor, works from the keyboard, and the icon
   takes the monitor's mark coloured by state. `cia-tray.exe` now carries an
   icon, a version resource and a per-monitor-v2 DPI manifest.
@@ -27,6 +38,10 @@ All notable changes are documented here. This project follows Keep a Changelog c
 
 ### Removed
 
+- The flyout's Codex and OpenCode buttons, `panel.Launcher` and its capability
+  checks: both harnesses reach this server only through `/local` or the
+  manual launcher scripts. `launchers` in a generated panel configuration is
+  still read and no longer validated.
 - Tray model folders, GGUF detection, hash validation and `-validate-model`
   (a detected GGUF could never be loaded without a manifest profile), the
   "Atualizar" and "Detalhes do status" entries, and the unused model-submenu

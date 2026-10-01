@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 type testPolicy struct {
@@ -20,19 +21,40 @@ type testPolicy struct {
 
 func (p testPolicy) ManagedInference(context.Context) (bool, error) { return p.managed, p.err }
 
-type testRestarter struct {
-	calls int
-	err   error
+// testDesktop records what a launch would have seen: the selector each
+// Activate call found on disk is the deployment the new process would start.
+type testDesktop struct {
+	paths     Paths
+	shown     map[string]bool
+	activated []string
+	waited    []string
+	waitErr   error
+	// shownHook runs when the awaited window shows, as Desktop's own writes
+	// to the selector's file do.
+	shownHook func()
 }
 
-func (r *testRestarter) Restart(context.Context, Identity) error {
-	r.calls++
-	return r.err
+func (d *testDesktop) Show(_ context.Context, dataDir string) (bool, error) {
+	return d.shown[dataDir], nil
 }
 
-type testVerifier struct{ err error }
+func (d *testDesktop) Activate(context.Context) error {
+	document, err := readJSONObject(d.paths.modePath())
+	if err != nil {
+		return err
+	}
+	selector, _ := document["deploymentMode"].(string)
+	d.activated = append(d.activated, selector)
+	return nil
+}
 
-func (v testVerifier) Verify(context.Context, Mode, Gateway) error { return v.err }
+func (d *testDesktop) WaitShown(_ context.Context, dataDir string) error {
+	d.waited = append(d.waited, dataDir)
+	if d.shownHook != nil {
+		d.shownHook()
+	}
+	return d.waitErr
+}
 
 type testProtector struct{}
 
@@ -43,7 +65,7 @@ func (testProtector) Unprotect(data []byte) ([]byte, error) {
 	return append([]byte(nil), data[len("protected:"):]...), nil
 }
 
-func testManager(t *testing.T, policy PolicyReader, restarter Restarter, verifier Verifier) (*Manager, Paths) {
+func testManager(t *testing.T, policy PolicyReader) (*Manager, Paths, *testDesktop) {
 	t.Helper()
 	root := t.TempDir()
 	paths := Paths{
@@ -51,11 +73,13 @@ func testManager(t *testing.T, policy PolicyReader, restarter Restarter, verifie
 		FirstPartyConfig:   filepath.Join(root, "Roaming", "Claude", "claude_desktop_config.json"),
 		BackupDir:          filepath.Join(root, "cia-state"),
 	}
-	manager, err := NewManager(paths, Identity{PackageFamilyName: "Claude_test", AppUserModelID: "Claude_test!Claude", Version: "1.37937.0.0", InstallLocation: filepath.Join(root, "WindowsApps", "Claude_test")}, policy, restarter, verifier, testProtector{})
+	desktop := &testDesktop{paths: paths, shown: map[string]bool{}}
+	manager, err := NewManager(paths, policy, desktop, testProtector{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return manager, paths
+	manager.settle = 0
+	return manager, paths, desktop
 }
 
 func writeTestFile(t *testing.T, path, data string) {
@@ -68,23 +92,44 @@ func writeTestFile(t *testing.T, path, data string) {
 	}
 }
 
+func readSelector(t *testing.T, paths Paths) string {
+	t.Helper()
+	document, err := readJSONObject(paths.modePath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	selector, _ := document["deploymentMode"].(string)
+	return selector
+}
+
 func gatewayForTest() Gateway {
 	return Gateway{BaseURL: "http://127.0.0.1:18090", APIKey: "claude-gateway-test-token-000000000000"}
 }
 
-func TestApplyLocalWritesOnlyIsolatedThirdPartyState(t *testing.T) {
-	restarter := &testRestarter{}
-	manager, paths := testManager(t, testPolicy{}, restarter, testVerifier{})
+func TestOpenLocalLaunchesBesideTheSignedInInstanceAndRestsTheSelector(t *testing.T) {
+	manager, paths, desktop := testManager(t, testPolicy{})
 	firstParty := `{"mcpServers":{"keep":{"command":"keep.exe"}}}`
 	writeTestFile(t, paths.FirstPartyConfig, firstParty)
 	writeTestFile(t, paths.metaPath(), `{"appliedId":"11111111-1111-4111-8111-111111111111","entries":[{"id":"11111111-1111-4111-8111-111111111111","name":"Other provider"}],"foreign":true}`)
-	writeTestFile(t, paths.modePath(), `{"unrelated":true}`)
+	writeTestFile(t, paths.modePath(), `{"deploymentMode":"1p","preferences":{"kept":true}}`)
+	// The signed-in instance is running and must be neither shown nor touched.
+	desktop.shown[paths.firstPartyDataDir()] = true
 
-	if err := manager.Apply(context.Background(), ModeLocal, gatewayForTest()); err != nil {
+	if err := manager.OpenLocal(context.Background(), gatewayForTest()); err != nil {
 		t.Fatal(err)
 	}
-	if restarter.calls != 1 {
-		t.Fatalf("restart calls=%d, want 1", restarter.calls)
+	if len(desktop.activated) != 1 || desktop.activated[0] != selectorLocal {
+		t.Fatalf("launches saw selectors %v, want one launch at 3p", desktop.activated)
+	}
+	if len(desktop.waited) != 1 || desktop.waited[0] != paths.ThirdPartyStateDir {
+		t.Fatalf("waited for %v, want the local instance's data directory", desktop.waited)
+	}
+	if selector := readSelector(t, paths); selector != selectorAnthropic {
+		t.Fatalf("selector after the launch is %q, want 1p", selector)
+	}
+	mode, _ := os.ReadFile(paths.modePath())
+	if !strings.Contains(string(mode), `"kept": true`) {
+		t.Fatalf("selector rewrite dropped Desktop's own keys: %s", mode)
 	}
 	firstPartyAfter, err := os.ReadFile(paths.FirstPartyConfig)
 	if err != nil || string(firstPartyAfter) != firstParty {
@@ -103,10 +148,6 @@ func TestApplyLocalWritesOnlyIsolatedThirdPartyState(t *testing.T) {
 	if strings.Contains(profileText, "inferenceModels") {
 		t.Fatalf("local profile pinned models instead of allowing dynamic discovery: %s", profileText)
 	}
-	mode, err := os.ReadFile(paths.modePath())
-	if err != nil || !strings.Contains(string(mode), `"deploymentMode": "3p"`) {
-		t.Fatalf("mode=%s err=%v", mode, err)
-	}
 	meta, err := os.ReadFile(paths.metaPath())
 	if err != nil || !strings.Contains(string(meta), `"foreign": true`) || !strings.Contains(string(meta), profileID) {
 		t.Fatalf("metadata did not preserve foreign entry/state: %s err=%v", meta, err)
@@ -116,88 +157,129 @@ func TestApplyLocalWritesOnlyIsolatedThirdPartyState(t *testing.T) {
 	}
 }
 
-func TestApplyRollsBackExactlyAfterVerificationFailure(t *testing.T) {
-	restarter := &testRestarter{}
-	manager, paths := testManager(t, testPolicy{}, restarter, testVerifier{err: errors.New("desktop did not reach gateway")})
-	writeTestFile(t, paths.profilePath(), `{"old":"profile"}`)
-	writeTestFile(t, paths.metaPath(), `{"appliedId":"old","entries":[]}`)
-	writeTestFile(t, paths.modePath(), `{"deploymentMode":"1p","old":"mode"}`)
-	beforeProfile, _ := os.ReadFile(paths.profilePath())
-	beforeMeta, _ := os.ReadFile(paths.metaPath())
-	beforeMode, _ := os.ReadFile(paths.modePath())
-	if err := manager.Apply(context.Background(), ModeLocal, gatewayForTest()); err == nil || !strings.Contains(err.Error(), "desktop did not reach gateway") {
-		t.Fatalf("Apply error=%v", err)
+func TestOpenLocalRestsTheSelectorWhenTheLaunchFails(t *testing.T) {
+	manager, paths, desktop := testManager(t, testPolicy{})
+	desktop.waitErr = errors.New("no window")
+	if err := manager.OpenLocal(context.Background(), gatewayForTest()); err == nil || !strings.Contains(err.Error(), "no window") {
+		t.Fatalf("OpenLocal error=%v", err)
 	}
-	for path, before := range map[string][]byte{paths.profilePath(): beforeProfile, paths.metaPath(): beforeMeta, paths.modePath(): beforeMode} {
-		after, err := os.ReadFile(path)
-		if err != nil || string(after) != string(before) {
-			t.Errorf("rollback did not restore %s: got %q err=%v want %q", path, after, err, before)
-		}
-	}
-	if restarter.calls != 2 {
-		t.Fatalf("restart calls=%d, want forward + rollback", restarter.calls)
+	if selector := readSelector(t, paths); selector != selectorAnthropic {
+		t.Fatalf("a failed launch left the selector at %q, want 1p", selector)
 	}
 }
 
-func TestApplyAnthropicOnlySelectsFirstPartyInThirdPartyState(t *testing.T) {
-	restarter := &testRestarter{}
-	manager, paths := testManager(t, testPolicy{}, restarter, testVerifier{})
-	writeTestFile(t, paths.profilePath(), `{"inferenceProvider":"gateway","custom":true}`)
-	writeTestFile(t, paths.modePath(), `{"old":true}`)
-	if err := manager.Apply(context.Background(), ModeAnthropic, Gateway{}); err != nil {
+func TestOpenLocalPutsTheSelectorBackWhenDesktopRewritesAStaleRead(t *testing.T) {
+	manager, paths, desktop := testManager(t, testPolicy{})
+	manager.settle = time.Second
+	// The new instance read the file while it said 3p and writes it back
+	// after OpenLocal has already returned it to 1p.
+	desktop.shownHook = func() {
+		go func() {
+			time.Sleep(300 * time.Millisecond)
+			_ = writeAtomic(paths.modePath(), []byte(`{"deploymentMode":"3p","preferences":{"earlyWindowShowLatched":true}}`))
+		}()
+	}
+	if err := manager.OpenLocal(context.Background(), gatewayForTest()); err != nil {
 		t.Fatal(err)
 	}
-	profile, _ := os.ReadFile(paths.profilePath())
-	if string(profile) != `{"inferenceProvider":"gateway","custom":true}` {
-		t.Fatalf("Anthropic mode rewrote isolated provider profile: %s", profile)
+	if selector := readSelector(t, paths); selector != selectorAnthropic {
+		t.Fatalf("a stale Desktop write left the selector at %q, want 1p", selector)
 	}
 	mode, _ := os.ReadFile(paths.modePath())
-	if !strings.Contains(string(mode), `"deploymentMode": "1p"`) || !strings.Contains(string(mode), `"old": true`) {
-		t.Fatalf("Anthropic selector did not preserve isolated state: %s", mode)
+	if !strings.Contains(string(mode), "earlyWindowShowLatched") {
+		t.Fatalf("putting 1p back dropped Desktop's own preference: %s", mode)
 	}
 }
 
-func TestApplySameLocalModeIsIdempotentWhenLiveVerificationPasses(t *testing.T) {
-	restarter := &testRestarter{}
-	manager, _ := testManager(t, testPolicy{}, restarter, testVerifier{})
+func TestOpenLocalShowsARunningLocalInstanceWithoutLaunching(t *testing.T) {
+	manager, paths, desktop := testManager(t, testPolicy{})
 	gateway := gatewayForTest()
-	if err := manager.Apply(context.Background(), ModeLocal, gateway); err != nil {
+	if err := manager.OpenLocal(context.Background(), gateway); err != nil {
 		t.Fatal(err)
 	}
-	if err := manager.Apply(context.Background(), ModeLocal, gateway); err != nil {
+	backupBefore, err := os.ReadFile(paths.backupPath())
+	if err != nil {
 		t.Fatal(err)
 	}
-	if restarter.calls != 1 {
-		t.Fatalf("repeated matching Local mode restarted Desktop %d times, want 1 initial restart", restarter.calls)
+	desktop.shown[paths.ThirdPartyStateDir] = true
+	if err := manager.OpenLocal(context.Background(), gateway); err != nil {
+		t.Fatal(err)
+	}
+	if len(desktop.activated) != 1 {
+		t.Fatalf("a running local instance was launched again: %v", desktop.activated)
+	}
+	backupAfter, err := os.ReadFile(paths.backupPath())
+	if err != nil || string(backupAfter) != string(backupBefore) {
+		t.Fatalf("an applied profile was backed up and written again: err=%v", err)
 	}
 }
 
-func TestApplySameAnthropicModeDoesNotCreateBackupOrRestart(t *testing.T) {
-	restarter := &testRestarter{}
-	manager, paths := testManager(t, testPolicy{}, restarter, testVerifier{})
-	writeTestFile(t, paths.modePath(), `{"deploymentMode":"1p"}`)
-	if err := manager.Apply(context.Background(), ModeAnthropic, Gateway{}); err != nil {
-		t.Fatal(err)
+func TestOpenLocalStopsBeforeBackupWhenPolicyIsManaged(t *testing.T) {
+	manager, paths, desktop := testManager(t, testPolicy{managed: true})
+	if err := manager.OpenLocal(context.Background(), gatewayForTest()); err == nil || !strings.Contains(err.Error(), "managed inference policy") {
+		t.Fatalf("OpenLocal error=%v", err)
 	}
-	if restarter.calls != 0 {
-		t.Fatalf("matching Anthropic mode restarted Desktop %d times", restarter.calls)
-	}
-	if _, err := os.Stat(paths.backupPath()); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("matching Anthropic mode created a backup: %v", err)
-	}
-}
-
-func TestApplyStopsBeforeBackupWhenPolicyIsManaged(t *testing.T) {
-	restarter := &testRestarter{}
-	manager, paths := testManager(t, testPolicy{managed: true}, restarter, testVerifier{})
-	if err := manager.Apply(context.Background(), ModeLocal, gatewayForTest()); err == nil || !strings.Contains(err.Error(), "managed inference policy") {
-		t.Fatalf("Apply error=%v", err)
-	}
-	if restarter.calls != 0 {
-		t.Fatalf("managed precheck restarted Desktop %d times", restarter.calls)
+	if len(desktop.activated) != 0 {
+		t.Fatalf("managed precheck launched Desktop %d times", len(desktop.activated))
 	}
 	if _, err := os.Stat(paths.backupPath()); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("managed precheck created backup: %v", err)
+	}
+}
+
+func TestOpenAnthropicRestsALeftoverLocalSelectorBeforeLaunching(t *testing.T) {
+	manager, paths, desktop := testManager(t, testPolicy{})
+	writeTestFile(t, paths.profilePath(), `{"inferenceProvider":"gateway","custom":true}`)
+	writeTestFile(t, paths.modePath(), `{"deploymentMode":"3p","old":true}`)
+	if err := manager.OpenAnthropic(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if len(desktop.activated) != 1 || desktop.activated[0] != selectorAnthropic {
+		t.Fatalf("launches saw selectors %v, want one launch at 1p", desktop.activated)
+	}
+	if len(desktop.waited) != 1 || desktop.waited[0] != paths.firstPartyDataDir() {
+		t.Fatalf("waited for %v, want the signed-in instance's data directory", desktop.waited)
+	}
+	profile, _ := os.ReadFile(paths.profilePath())
+	if string(profile) != `{"inferenceProvider":"gateway","custom":true}` {
+		t.Fatalf("opening the signed-in instance rewrote the isolated provider profile: %s", profile)
+	}
+	mode, _ := os.ReadFile(paths.modePath())
+	if !strings.Contains(string(mode), `"old": true`) {
+		t.Fatalf("selector rewrite dropped Desktop's own keys: %s", mode)
+	}
+}
+
+func TestOpenAnthropicTreatsAMissingSelectorAsLocalOnlyWithAnAppliedProfile(t *testing.T) {
+	manager, paths, _ := testManager(t, testPolicy{})
+	if err := manager.OpenAnthropic(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(paths.ThirdPartyStateDir); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("opening the signed-in instance created 3P state on a clean machine: %v", err)
+	}
+
+	writeTestFile(t, paths.metaPath(), `{"appliedId":"`+profileID+`","entries":[]}`)
+	if err := manager.OpenAnthropic(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if selector := readSelector(t, paths); selector != selectorAnthropic {
+		t.Fatalf("a missing selector with an applied local profile stayed %q, want 1p", selector)
+	}
+}
+
+func TestOpenAnthropicShowsTheRunningInstanceWithoutLaunching(t *testing.T) {
+	manager, paths, desktop := testManager(t, testPolicy{})
+	writeTestFile(t, paths.modePath(), `{"deploymentMode":"1p"}`)
+	desktop.shown[paths.firstPartyDataDir()] = true
+	if err := manager.OpenAnthropic(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if len(desktop.activated) != 0 {
+		t.Fatalf("a running signed-in instance was launched again: %v", desktop.activated)
+	}
+	if _, err := os.Stat(paths.backupPath()); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("opening the signed-in instance created a backup: %v", err)
 	}
 }
 

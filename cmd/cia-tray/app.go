@@ -28,13 +28,14 @@ type appController struct {
 	selection      *panel.SelectionStore
 	statusClient   *mcpserver.ControlClient
 	adminClient    *mcpadmin.Client
-	launcher       *panel.Launcher
 	server         serverControl
 	claude         claudeDesktopService
 	readCredential func(string) (string, error)
 	probeGateway   func(context.Context, claudedesktop.Gateway) error
-	claudeDetail   string
-	now            func() time.Time
+	// warmClaude runs before Claude Local opens; nil skips it.
+	warmClaude   func(context.Context) error
+	claudeDetail string
+	now          func() time.Time
 
 	mu            sync.RWMutex
 	selected      string
@@ -53,11 +54,10 @@ type serverControl interface {
 }
 
 // claudeDesktopService keeps tray actions testable as one end-to-end unit:
-// mode selection and launch go through the same discovered Desktop identity.
+// both instances open through the same discovered Desktop package.
 type claudeDesktopService interface {
-	CurrentMode() (claudedesktop.Mode, error)
-	Apply(context.Context, claudedesktop.Mode, claudedesktop.Gateway) error
-	Launch(context.Context) error
+	OpenAnthropic(context.Context) error
+	OpenLocal(context.Context, claudedesktop.Gateway) error
 }
 
 func newAppController(config panel.Config, appVersion string) (*appController, error) {
@@ -73,11 +73,6 @@ func newAppController(config panel.Config, appVersion string) (*appController, e
 	if err != nil {
 		return nil, err
 	}
-	launcher, err := panel.NewLauncher(config, catalog)
-	if err != nil {
-		return nil, err
-	}
-
 	readAdmin := func(context.Context) (string, error) {
 		return credential.Read("admin")
 	}
@@ -115,7 +110,6 @@ func newAppController(config panel.Config, appVersion string) (*appController, e
 		selection:      selection,
 		statusClient:   statusClient,
 		adminClient:    adminClient,
-		launcher:       launcher,
 		server:         server,
 		selected:       selected,
 		selectionNote:  selectionNote,
@@ -123,6 +117,7 @@ func newAppController(config panel.Config, appVersion string) (*appController, e
 		probeGateway:   claudedesktop.ProbeGateway,
 		now:            time.Now,
 	}
+	controller.warmClaude = controller.loadClaudeProbeModel
 	controller.claude, controller.claudeDetail = discoverClaudeDesktop(filepath.Join(filepath.Dir(config.SelectionPath), "claude-desktop"))
 	return controller, nil
 }
@@ -154,20 +149,13 @@ func (c *appController) Snapshot(ctx context.Context) (trayui.Snapshot, error) {
 		SelectionNote: selectionNote,
 		UpdatedAt:     c.now().UTC(),
 	}
-	if c.claude != nil {
-		snapshot.ClaudeAvailable = true
-		if mode, modeErr := c.claude.CurrentMode(); modeErr == nil {
-			snapshot.ClaudeMode = trayui.ClaudeMode(mode)
-		}
-	}
+	snapshot.ClaudeAvailable = c.claude != nil
 	snapshot.ClaudeDetail = c.claudeDetail
 	for _, model := range c.catalog.AvailableModels() {
 		snapshot.Models = append(snapshot.Models, trayui.Model{
 			ID:          model.ID,
 			DisplayName: model.DisplayName,
 			Available:   true,
-			Codex:       model.CanLaunchCodex(),
-			OpenCode:    model.CanLaunchOpenCode(),
 		})
 	}
 
@@ -194,8 +182,6 @@ func (c *appController) Snapshot(ctx context.Context) (trayui.Snapshot, error) {
 		for index := range snapshot.Models {
 			if _, ok := published[snapshot.Models[index].ID]; !ok {
 				snapshot.Models[index].Available = false
-				snapshot.Models[index].Codex = false
-				snapshot.Models[index].OpenCode = false
 			}
 		}
 		for _, item := range status.ModelStatuses {
@@ -255,35 +241,57 @@ func (c *appController) forgetGateway() {
 	c.mu.Unlock()
 }
 
-func (c *appController) SetClaudeMode(ctx context.Context, mode trayui.ClaudeMode) error {
+// OpenClaudeLocal reads the gateway's own credential and proves discovery
+// with it before anything under Claude-3p is written or launched.
+func (c *appController) OpenClaudeLocal(ctx context.Context) error {
 	if c.claude == nil {
-		return errors.New("claude Desktop não está disponível para configuração")
+		return errors.New("o Claude Desktop não está disponível para abertura")
 	}
 	defer c.forgetGateway()
-	var gateway claudedesktop.Gateway
-	switch mode {
-	case trayui.ClaudeModeAnthropic:
-		return c.claude.Apply(ctx, claudedesktop.ModeAnthropic, gateway)
-	case trayui.ClaudeModeLocal:
-		token, err := c.readCredential("claude-gateway")
-		if err != nil {
-			return fmt.Errorf("ler credencial exclusiva do gateway Claude: %w", err)
-		}
-		gateway = claudedesktop.Gateway{BaseURL: c.config.DataURL, APIKey: token}
-		if err := c.probeGateway(ctx, gateway); err != nil {
-			return fmt.Errorf("precheck do gateway Claude: %w", err)
-		}
-		return c.claude.Apply(ctx, claudedesktop.ModeLocal, gateway)
-	default:
-		return errors.New("modo Claude Desktop inválido")
+	token, err := c.readCredential("claude-gateway")
+	if err != nil {
+		return fmt.Errorf("ler credencial exclusiva do gateway Claude: %w", err)
 	}
+	gateway := claudedesktop.Gateway{BaseURL: c.config.DataURL, APIKey: token}
+	if err := c.probeGateway(ctx, gateway); err != nil {
+		return fmt.Errorf("precheck do gateway Claude: %w", err)
+	}
+	if c.warmClaude != nil {
+		if err := c.warmClaude(ctx); err != nil {
+			return err
+		}
+	}
+	return c.claude.OpenLocal(ctx, gateway)
+}
+
+// loadClaudeProbeModel loads, when no model is loaded, the model Claude
+// Desktop's health check will ask for. On every start, and on "Verificar
+// novamente", Desktop sends a one-token request to the first model discovery
+// returns and gives up after ten seconds, less than a cold load takes here,
+// so the instance would open on "Não foi possível alcançar". A loaded model
+// is left alone: replacing it would take another client's model away for the
+// sake of a check.
+func (c *appController) loadClaudeProbeModel(ctx context.Context) error {
+	status, err := c.statusClient.Status(ctx)
+	if err != nil {
+		return fmt.Errorf("ler o estado do servidor: %w", err)
+	}
+	if strings.TrimSpace(status.ActiveModel) != "" || len(status.Models) == 0 {
+		return nil
+	}
+	// The edge lists models to Claude in the order of its status.
+	model := status.Models[0].ID
+	if _, err := c.adminClient.Load(ctx, model); err != nil {
+		return fmt.Errorf("carregar %s para o Claude Local: %w", model, err)
+	}
+	return nil
 }
 
 func (c *appController) LaunchClaudeDesktop(ctx context.Context) error {
 	if c.claude == nil {
 		return errors.New("o Claude Desktop não está disponível para abertura")
 	}
-	return c.claude.Launch(ctx)
+	return c.claude.OpenAnthropic(ctx)
 }
 
 func sanitizeClaudeDetail(err error) string {
@@ -327,19 +335,6 @@ func (c *appController) UnloadActive(ctx context.Context) error {
 	}
 	_, err = c.adminClient.Unload(ctx, model)
 	return err
-}
-
-func (c *appController) Launch(_ context.Context, client trayui.Client, modelID string) error {
-	var target panel.Client
-	switch client {
-	case trayui.ClientCodex:
-		target = panel.ClientCodex
-	case trayui.ClientOpenCode:
-		target = panel.ClientOpenCode
-	default:
-		return fmt.Errorf("cliente não suportado: %s", client)
-	}
-	return c.launcher.Launch(target, modelID)
 }
 
 func (c *appController) StartServer(ctx context.Context) error { return c.server.Start(ctx) }

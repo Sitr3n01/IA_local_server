@@ -35,7 +35,7 @@ llama.cpp upstream            buun-llama-cpp fork
 
 Unsloth -> export -> offline validation -> manifest promotion
 
-cia-tray (IA Local) -> router/edge tasks + control API + monitor + explicit harness launchers
+cia-tray (IA Local) -> router/edge tasks + control API + monitor + Claude Desktop (signed-in and local, side by side)
 
 SOTA harness -> cia-mcp-inference (stdio) -> cia-edge data plane
 ```

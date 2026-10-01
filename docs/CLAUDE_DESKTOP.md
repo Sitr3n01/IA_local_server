@@ -35,38 +35,70 @@ or PowerShell variable. Credential initialization creates an
 additional `claude-gateway` entry in Windows Credential Manager. It is distinct
 from `inference`, `admin`, and `router`.
 
+### Two instances side by side
+
+Since ADR 0022 the local instance runs **beside** the signed-in one; CIA no
+longer switches Desktop between them, and no CIA code path can stop a Desktop
+process. Each Desktop process reads `deploymentMode` once at startup, before it
+picks its Electron user-data directory (`%APPDATA%\Claude` for 1P,
+`%LOCALAPPDATA%\Claude-3p` for 3P) and takes that directory's single-instance
+lock, so a 1P and a 3P instance hold different locks and coexist. Measured on
+2026-10-01 with Desktop 2.16120: the signed-in instance kept running untouched
+while a 3P instance started next to it, discovered the gateway's models and
+selected the public model through its opaque alias.
+
+The tray's flyout has two buttons, `Claude` and `Claude Local`. `Claude Local`
+is live when Desktop was discovered and an authenticated `GET /v1/models` with
+the `claude-gateway` credential succeeds. It does not wait for the queue to
+drain, because it interrupts nothing.
+
 ```powershell
 Set-Location C:\IA\IA_local_server
-.\scripts\v2\Configure-ClaudeDesktop.ps1 -Mode Local
+.\scripts\v2\Configure-ClaudeDesktop.ps1 -Instance Local
 ```
 
-The default is a preview and writes nothing. Apply only after edge is installed
-with `CIA_CLAUDE_GATEWAY_TOKEN`:
+The default is a preview built from the tray's diagnosis and writes nothing.
+Open an instance only after edge is installed with `CIA_CLAUDE_GATEWAY_TOKEN`:
 
 ```powershell
-.\scripts\v2\Configure-ClaudeDesktop.ps1 -Mode Local -Apply
-.\scripts\v2\Configure-ClaudeDesktop.ps1 -Mode Anthropic -Apply
+.\scripts\v2\Configure-ClaudeDesktop.ps1 -Instance Local -Apply
+.\scripts\v2\Configure-ClaudeDesktop.ps1 -Instance Anthropic -Apply
 ```
 
 The wrapper waits for the Windows GUI binary and treats its exit code as the
-transaction result. Explicit CLI actions fail with a nonzero code and suppress
-interactive error dialogs, so an unattended script cannot report a failed
-switch as successful.
+result. Explicit CLI actions fail with a nonzero code and suppress interactive
+error dialogs, so an unattended script cannot report a failed open as
+successful.
 
-The sequence is `precheck -> DPAPI backup -> atomic write -> restart -> verify
--> commit`. Any failure restores each captured 3P file and restarts Claude.
-The backup is user-DPAPI-protected under
-`C:\IA\local-ai-v2\state\claude-desktop`, never Git or diagnostics. The
-Win32 tray exposes the same two choices plus `Abrir Claude Desktop`. It disables
-Local while inference/queue is active or authenticated `GET /v1/models` fails;
-that precheck avoids changing 3P state or restarting Claude for a known gateway
-configuration error.
+`Claude Local` performs `precheck -> DPAPI backup -> profile write (only when
+the applied profile differs) -> select 3p -> launch -> wait for its window ->
+select 1p`. The last step runs whatever happened before it, and keeps
+checking for two seconds: Desktop rewrites the same file with its own
+preferences when a new window first shows, and a write that read the file at
+`3p` would otherwise put `3p` back. So the selector rests at `1p`: the Start menu, a `claude://` link or a Desktop restart keep
+opening the signed-in instance. A failed profile write restores each captured
+3P file. The backup is user-DPAPI-protected under
+`C:\IA\local-ai-v2\state\claude-desktop`, never Git or diagnostics. When a
+local instance already runs, the button only brings its window forward; that
+instance keeps the profile it started with, so a rotated gateway credential
+applies from its next start. `Claude` also returns a selector left at `3p`
+(by an interrupted launch or by the switch CIA used to perform) to `1p` before
+it opens anything.
 
-Restart and foreground operations are restricted to processes whose full
-executable path belongs to the exact discovered Claude MSIX installation.
-They never use an image-name-wide `taskkill /IM claude.exe`. Verification also
-waits until a package-owned renderer reports the requested `deploymentMode`;
-file writes alone are not treated as a successful switch.
+Instances are told apart by the `--user-data-dir=` switch that Electron passes
+to every helper process (renderer, GPU, utility, crash handler); the main
+process that owns the windows is their parent and carries no switch. Command
+lines are read natively through `ProcessCommandLineInformation`, and only
+processes whose full executable path belongs to the exact discovered Claude
+MSIX installation are considered, so Claude Code's own `claude.exe` and every
+other application are invisible to this code. The Store build can leave a
+freshly activated process at its initial suspend count; once per launch, after
+three seconds without a window, CIA resumes only package main processes that
+no helper belongs to yet, which a running instance never is.
+
+Both instances share one tray icon design in the Windows notification area.
+Quitting Desktop from the wrong icon ends that instance; CIA cannot tell the
+two icons apart for the operator.
 
 ## Edge contract
 
@@ -105,9 +137,22 @@ inference-token catalog is unchanged.
 
 The installed MSIX itself starts 3P mode with `%LOCALAPPDATA%\Claude-3p` as its
 Electron user-data directory. CIA does not create a second application or pass
-that command-line switch; it writes only the native 3P registry the same MSIX
-consumes. This separation is a current Claude Desktop limitation, not a CIA
-architecture choice.
+that command-line switch; it writes only the native 3P registry and selector
+the same MSIX consumes. That separation is what lets the two instances run at
+once (see above).
+
+Desktop checks the provider's health on every start and on "Verificar
+novamente" (`recheckConfigHealth`): it discovers the models, then sends
+`{"max_tokens":1,"messages":[{"role":"user","content":"."}]}` to the first one
+discovery returns, within a ten-second budget and one retry. A cold load of the
+public model takes about 20 s here (measured 2026-10-01), so with nothing loaded
+the check gives up, the edge records two `499`s, and the instance opens with
+"Não foi possível alcançar 127.0.0.1:18090" although the gateway is healthy.
+`Claude Local` therefore loads the first published model before it opens the
+instance when no model is loaded. A model that is already loaded is left alone;
+if it is not the first one, the check can still time out while the first model
+would have to replace it. The router unloads an idle model after 15 minutes, so
+for a later "Verificar novamente" press `Claude Local` in the tray first.
 
 `/v1/messages/count_tokens` is deliberately not advertised yet. The MSIX has
 client code for it, but no live Desktop 3P request has been observed here; a
@@ -115,9 +160,11 @@ tokenizer endpoint will not be invented before that request is captured.
 
 ## Required smoke and limits
 
-The source-level protocol, transaction, and tray action sequence tests pass,
-including an automated `1P -> Local -> open -> 1P` cycle that checks the 1P
-configuration remains byte-identical. On 2026-08-27, release
+The source-level protocol and tray action sequence tests pass, including an
+automated cycle that opens the local instance beside a running signed-in one,
+shows each again, and checks that exactly one 3P launch happened, the selector
+rests at `1p` and the 1P configuration remains byte-identical. On 2026-08-27,
+before ADR 0022 and through the restart-based switch it replaced, release
 `claude-tray-e2e-20260826-10` also passed a disposable live Windows MSIX smoke:
 Claude discovered and displayed the real Gemma name through its opaque wire
 alias, streamed a response through `POST /v1/messages?beta=true`, and returned
@@ -142,11 +189,14 @@ not protocol success, and bypassing the physical-memory gate is not an
 acceptable workaround; a forced Qwen Deep load on 2026-08-27 fell to 1.2 t/s
 with only 0.66 GiB physical memory free.
 
-After deployment run a disposable `Anthropic -> Local -> Anthropic` smoke:
+After deployment run a side-by-side smoke while the signed-in instance is open:
 
-1. Record the 1P config hash and ensure edge activity/queue are zero.
-2. Apply Local; verify discovery, text, streaming and a tool-capable model.
-3. Apply Anthropic; confirm the original 1P config hash and signed-in profile.
+1. Record the 1P config hash and the signed-in main process ID.
+2. Open `Claude Local`; verify discovery, text, streaming and a tool-capable
+   model in the new window.
+3. Confirm the signed-in main process ID is unchanged, `deploymentMode` reads
+   `1p`, and the 1P config hash is the original.
+4. Open Claude from the Start menu; the signed-in window must come forward.
 
 Never delete `configLibrary` during this smoke. A policy under
 `HKLM`/`HKCU\SOFTWARE\Policies\Claude` that controls inference stops CIA before
@@ -157,4 +207,13 @@ binary also exposes:
 
 ```powershell
 C:\IA\local-ai-v2\bin\cia-tray.exe -config C:\IA\local-ai-v2\config\panel.canary.json -claude-open
+C:\IA\local-ai-v2\bin\cia-tray.exe -config C:\IA\local-ai-v2\config\panel.canary.json -claude-local
+```
+
+A read-only check that both instances are identified from the real process
+table, without launching or foregrounding anything:
+
+```powershell
+$env:CIA_CLAUDE_LIVE_TEST = '1'
+go test ./internal/claudedesktop/ -run TestLiveInstances -v -count=1
 ```

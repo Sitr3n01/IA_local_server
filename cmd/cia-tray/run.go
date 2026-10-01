@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/sitr3n/local-ai-provider/internal/panel"
 	"github.com/sitr3n/local-ai-provider/internal/trayui"
@@ -20,9 +19,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	flags.SetOutput(stderr)
 	configPath := flags.String("config", `C:\IA\local-ai-v2\config\panel.canary.json`, "path to the generated panel configuration")
 	diagnose := flags.Bool("diagnose", false, "print one sanitized status snapshot and exit")
-	claudeMode := flags.String("claude-mode", "", "Claude Desktop mode to preview or apply: anthropic or local")
-	openClaude := flags.Bool("claude-open", false, "open or foreground the installed Claude Desktop in its current mode")
-	applyClaude := flags.Bool("apply", false, "apply the requested Claude Desktop mode; otherwise preview only")
+	openClaude := flags.Bool("claude-open", false, "open or foreground the signed-in Claude Desktop instance")
+	openClaudeLocal := flags.Bool("claude-local", false, "open or foreground the Claude Desktop instance that uses this server, beside the signed-in one")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -30,16 +28,13 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		return fmt.Errorf("unexpected positional arguments: %v", flags.Args())
 	}
 	actions := 0
-	for _, selected := range []bool{*diagnose, strings.TrimSpace(*claudeMode) != "", *openClaude} {
+	for _, selected := range []bool{*diagnose, *openClaude, *openClaudeLocal} {
 		if selected {
 			actions++
 		}
 	}
 	if actions > 1 {
-		return errors.New("diagnose, Claude mode, and Claude open actions are mutually exclusive")
-	}
-	if *applyClaude && strings.TrimSpace(*claudeMode) == "" {
-		return errors.New("-apply requires -claude-mode")
+		return errors.New("diagnose, Claude open, and Claude local actions are mutually exclusive")
 	}
 	config, err := panel.LoadConfig(*configPath)
 	if err != nil {
@@ -69,13 +64,17 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		// modal MessageBox and block unattended health collection.
 		return nil
 	}
-	if *openClaude {
+	if *openClaude || *openClaudeLocal {
 		output := struct {
 			Action string `json:"action"`
 			Result string `json:"result"`
 			Error  string `json:"error,omitempty"`
 		}{Action: "claude-open", Result: "opened"}
-		operationErr := controller.LaunchClaudeDesktop(ctx)
+		open := controller.LaunchClaudeDesktop
+		if *openClaudeLocal {
+			output.Action, open = "claude-local", controller.OpenClaudeLocal
+		}
+		operationErr := open(ctx)
 		if operationErr != nil {
 			output.Result = "failed"
 			output.Error = sanitizeDiagnosticError(operationErr)
@@ -86,45 +85,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 		if operationErr != nil {
-			return fmt.Errorf("open Claude Desktop: %w", operationErr)
-		}
-		return nil
-	}
-	if rawMode := strings.ToLower(strings.TrimSpace(*claudeMode)); rawMode != "" {
-		mode := trayui.ClaudeMode(rawMode)
-		if mode != trayui.ClaudeModeAnthropic && mode != trayui.ClaudeModeLocal {
-			return fmt.Errorf("unsupported Claude Desktop mode %q", rawMode)
-		}
-		snapshot, snapshotErr := controller.Snapshot(ctx)
-		output := struct {
-			Mode      trayui.ClaudeMode `json:"mode"`
-			Apply     bool              `json:"apply"`
-			Available bool              `json:"available"`
-			GatewayOK bool              `json:"gateway_ok"`
-			Detail    string            `json:"detail,omitempty"`
-			Result    string            `json:"result"`
-			Error     string            `json:"error,omitempty"`
-		}{Mode: mode, Apply: *applyClaude, Available: snapshot.ClaudeAvailable, GatewayOK: snapshot.ClaudeGatewayOK, Detail: snapshot.ClaudeDetail, Result: "preview"}
-		if snapshotErr != nil {
-			output.Error = sanitizeDiagnosticError(snapshotErr)
-		}
-		var operationErr error
-		if *applyClaude {
-			if err := controller.SetClaudeMode(ctx, mode); err != nil {
-				output.Result = "failed"
-				output.Error = sanitizeDiagnosticError(err)
-				operationErr = err
-			} else {
-				output.Result = "applied"
-			}
-		}
-		encoder := json.NewEncoder(stdout)
-		encoder.SetIndent("", "  ")
-		if err := encoder.Encode(output); err != nil {
-			return err
-		}
-		if operationErr != nil {
-			return fmt.Errorf("apply Claude Desktop mode %s: %w", mode, operationErr)
+			return fmt.Errorf("%s: %w", output.Action, operationErr)
 		}
 		return nil
 	}
@@ -149,7 +110,7 @@ func sanitizeDiagnosticError(err error) string {
 func headlessInvocation(args []string) bool {
 	for _, arg := range args {
 		switch arg {
-		case "-diagnose", "--diagnose", "-claude-mode", "--claude-mode", "-claude-open", "--claude-open":
+		case "-diagnose", "--diagnose", "-claude-open", "--claude-open", "-claude-local", "--claude-local":
 			return true
 		}
 	}

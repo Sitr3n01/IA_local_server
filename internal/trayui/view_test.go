@@ -11,8 +11,8 @@ func viewSnapshot() Snapshot {
 	snapshot.Environment = "canary"
 	snapshot.SelectedModel = "qwen"
 	snapshot.Models = []Model{
-		{ID: "gemma", DisplayName: "Gemma 4 12B QAT | UD-Q4_K_XL | 256k context", Available: true, Codex: true, OpenCode: true},
-		{ID: "qwen", DisplayName: "Qwen 3.8 27B | UD-IQ4_XS | 32k context", Available: true, Codex: true, OpenCode: true},
+		{ID: "gemma", DisplayName: "Gemma 4 12B QAT | UD-Q4_K_XL | 256k context", Available: true},
+		{ID: "qwen", DisplayName: "Qwen 3.8 27B | UD-IQ4_XS | 32k context", Available: true},
 		{ID: "hidden", DisplayName: "Not published", Available: false},
 	}
 	return snapshot
@@ -121,16 +121,12 @@ func TestBuildViewClaudeNote(t *testing.T) {
 	if note := BuildView(ViewState{Loaded: true, Snapshot: snapshot}).ClaudeNote; note != "Claude Desktop não encontrado" {
 		t.Fatalf("note = %q", note)
 	}
-	snapshot.ClaudeAvailable, snapshot.ClaudeMode = true, ClaudeModeAnthropic
+	snapshot.ClaudeAvailable = true
 	if note := BuildView(ViewState{Loaded: true, Snapshot: snapshot}).ClaudeNote; !strings.Contains(note, "gateway") {
 		t.Fatalf("note = %q", note)
 	}
 	snapshot.ClaudeGatewayOK = true
-	if note := BuildView(ViewState{Loaded: true, Snapshot: snapshot}).ClaudeNote; note != "Usa a Anthropic" {
-		t.Fatalf("note = %q", note)
-	}
-	snapshot.ClaudeMode = ClaudeModeLocal
-	if note := BuildView(ViewState{Loaded: true, Snapshot: snapshot}).ClaudeNote; !strings.Contains(note, "este servidor") {
+	if note := BuildView(ViewState{Loaded: true, Snapshot: snapshot}).ClaudeNote; !strings.Contains(note, "ao lado") {
 		t.Fatalf("note = %q", note)
 	}
 }

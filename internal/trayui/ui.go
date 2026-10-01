@@ -10,33 +10,12 @@ import (
 // same environment is already present in the notification area.
 var ErrAlreadyRunning = errors.New("tray is already running")
 
-// Client identifies one explicitly local harness that can be launched from
-// the notification-area flyout.
-type Client string
-
-const (
-	ClientCodex    Client = "codex"
-	ClientOpenCode Client = "opencode"
-)
-
-// ClaudeMode selects the Desktop deployment without modifying the first-party
-// Claude profile. Local always means the CIA loopback gateway.
-type ClaudeMode string
-
-const (
-	ClaudeModeAnthropic ClaudeMode = "anthropic"
-	ClaudeModeLocal     ClaudeMode = "local"
-)
-
 // Model is the operator-facing projection of one manifest entry deployed to
-// this environment. Available means the edge publishes it right now; the
-// capability flags decide which client launches the flyout may offer.
+// this environment. Available means the edge publishes it right now.
 type Model struct {
 	ID          string
 	DisplayName string
 	Available   bool
-	Codex       bool
-	OpenCode    bool
 }
 
 // Snapshot is a side-effect-free view of provider and operator state.
@@ -64,7 +43,6 @@ type Snapshot struct {
 	CapacityOK      bool
 	CapacityNote    string
 	ClaudeAvailable bool
-	ClaudeMode      ClaudeMode
 	ClaudeDetail    string
 	ClaudeGatewayOK bool
 	Models          []Model
@@ -79,9 +57,12 @@ type Controller interface {
 	LoadSelected(context.Context) error
 	SwitchSelected(context.Context) error
 	UnloadActive(context.Context) error
-	Launch(context.Context, Client, string) error
-	SetClaudeMode(context.Context, ClaudeMode) error
+	// LaunchClaudeDesktop shows the signed-in Claude Desktop instance.
 	LaunchClaudeDesktop(context.Context) error
+	// OpenClaudeLocal shows the Claude Desktop instance that uses this
+	// server's gateway, beside the signed-in one. Neither call stops a
+	// Desktop process.
+	OpenClaudeLocal(context.Context) error
 	// StartServer starts the router and edge. It is idempotent: a running
 	// server is left alone.
 	StartServer(context.Context) error

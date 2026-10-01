@@ -24,9 +24,9 @@ import "testing"
 //     defaulted, because an absent guarantee is not a false one;
 //   - it is carried verbatim into the panel projection, so every consumer sees
 //     the manifest's claim and not a re-interpretation of it;
-//   - it does NOT gate launching. An operator may deliberately open a client
-//     with a model whose tool use is weaker than a harness would like, and
-//     hiding the launcher would take that decision away from them.
+//   - it does NOT gate availability. A deployed model whose tool use is
+//     weaker than a harness would like stays selectable; deciding which model
+//     a harness may use is the client catalogs' job, not the panel's.
 //
 // The consumer that gives the flag teeth is New-V2ClientCatalogs.ps1, which
 // maps it to the Codex catalog's supports_parallel_tool_calls;
@@ -59,10 +59,10 @@ func TestFunctionCallingIsCarriedVerbatimIntoTheProjection(t *testing.T) {
 	}
 }
 
-func TestFunctionCallingDoesNotGateLaunching(t *testing.T) {
+func TestFunctionCallingDoesNotGateAvailability(t *testing.T) {
 	// gemma4-12b-qat-ud-q4xl's exact shape: the public canary default, serving
 	// chat and streaming, declaring no function-calling guarantee. It has to
-	// stay launchable -- it is the always-on model.
+	// stay available -- it is the always-on model.
 	path := writeTestFile(t, "models.yaml", testManifest("withholds-tools",
 		testModel("withholds-tools", "candidate", "[\"canary\"]", false, true, true, false),
 	))
@@ -76,9 +76,6 @@ func TestFunctionCallingDoesNotGateLaunching(t *testing.T) {
 	}
 	if !model.Available {
 		t.Fatalf("a deployed candidate was made unavailable by its capability flags: %+v", model)
-	}
-	if !model.CanLaunchCodex() || !model.CanLaunchOpenCode() {
-		t.Error("function_calling: false hid a launcher; capability flags describe, they do not gate")
 	}
 }
 

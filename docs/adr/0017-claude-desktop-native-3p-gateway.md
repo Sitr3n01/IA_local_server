@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted.
+Accepted. Amended by ADR 0022: the local instance now runs beside the
+signed-in one, and CIA no longer restarts Desktop to switch between them.
 
 ## Context
 

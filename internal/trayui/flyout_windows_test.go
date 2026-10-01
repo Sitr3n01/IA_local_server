@@ -32,7 +32,7 @@ func renderCases() []renderCase {
 	pressured.SelectionNote = "O modelo salvo não está mais disponível; o modelo padrão foi selecionado."
 	working := viewSnapshot()
 	working.ActiveModel, working.Active, working.Queued = "qwen", 1, 3
-	working.ClaudeAvailable, working.ClaudeMode, working.ClaudeGatewayOK = true, ClaudeModeLocal, true
+	working.ClaudeAvailable, working.ClaudeGatewayOK = true, true
 	empty := viewSnapshot()
 	empty.Models = nil
 	crowded := viewSnapshot()
@@ -130,7 +130,7 @@ func TestFlyoutRendersEveryStateInsideItsBounds(t *testing.T) {
 func checkZones(t *testing.T, f *flyout, width, height int32) {
 	t.Helper()
 	labels := map[zoneID]string{
-		zoneCodex: "Codex", zoneOpenCode: "OpenCode", zoneClaudeOpen: "Claude",
+		zoneClaudeOpen: "Claude", zoneClaudeLocal: "Claude Local",
 		zonePanel: "Abrir painel", zoneShutdown: "Encerrar", zoneUnload: "Descarregar",
 		zoneStartServer: "Iniciar o servidor", zoneShutdownConfirm: "Encerrar",
 	}

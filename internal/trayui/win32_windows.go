@@ -839,9 +839,6 @@ func (a *app) changed() {
 func (a *app) activate(id zoneID) {
 	view := BuildView(a.viewState())
 	policy := view.Policy
-	a.mu.RLock()
-	selected := a.snapshot.SelectedModel
-	a.mu.RUnlock()
 
 	if id >= zoneModelBase {
 		// The row is identified by what was painted under the pointer, then
@@ -875,32 +872,16 @@ func (a *app) activate(id zoneID) {
 		if policy.Unload {
 			a.startAction("Descarregando o modelo", "Descarregar o modelo", "Modelo descarregado.", a.controller.UnloadActive, false)
 		}
-	case zoneCodex:
-		if policy.LaunchCodex {
-			a.flyout.hide()
-			a.startLaunch("Abrir o Codex", func(ctx context.Context) error { return a.controller.Launch(ctx, ClientCodex, selected) })
-		}
-	case zoneOpenCode:
-		if policy.LaunchOpenCode {
-			a.flyout.hide()
-			a.startLaunch("Abrir o OpenCode", func(ctx context.Context) error { return a.controller.Launch(ctx, ClientOpenCode, selected) })
-		}
 	case zoneClaudeOpen:
 		if policy.ClaudeOpen {
 			a.flyout.hide()
 			a.startLaunch("Abrir o Claude Desktop", a.controller.LaunchClaudeDesktop)
 		}
-	case zoneClaudeAnthropic:
-		if policy.ClaudeAnthropic {
-			a.startAction("Mudando o Claude para a Anthropic", "Mudar o Claude Desktop", "Claude Desktop usa a Anthropic.", func(ctx context.Context) error {
-				return a.controller.SetClaudeMode(ctx, ClaudeModeAnthropic)
-			}, false)
-		}
 	case zoneClaudeLocal:
+		// An action, not a launch: it may load the model Claude Local's
+		// health check needs first, which takes a while to show.
 		if policy.ClaudeLocal {
-			a.startAction("Mudando o Claude para este servidor", "Mudar o Claude Desktop", "Claude Desktop usa este servidor.", func(ctx context.Context) error {
-				return a.controller.SetClaudeMode(ctx, ClaudeModeLocal)
-			}, false)
+			a.startAction("Abrindo o Claude Local", "Abrir o Claude Local", "Claude Local aberto.", a.controller.OpenClaudeLocal, false)
 		}
 	case zonePanel:
 		a.flyout.hide()

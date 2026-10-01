@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 	"unsafe"
@@ -85,11 +86,10 @@ func (windowsPolicyReader) ManagedInference(context.Context) (bool, error) {
 	return false, nil
 }
 
-type windowsRestarter struct{}
-
-func NewWindowsRestarter() Restarter { return windowsRestarter{} }
-
-const swRestore = 9
+const (
+	swShowNormal = 1
+	swRestore    = 9
+)
 
 var (
 	claudeUser32                     = windows.NewLazySystemDLL("user32.dll")
@@ -97,38 +97,51 @@ var (
 	procClaudeEnumWindows            = claudeUser32.NewProc("EnumWindows")
 	procClaudeGetWindowThreadProcess = claudeUser32.NewProc("GetWindowThreadProcessId")
 	procClaudeIsWindowVisible        = claudeUser32.NewProc("IsWindowVisible")
-	procClaudePostMessage            = claudeUser32.NewProc("PostMessageW")
 	procClaudeSetForegroundWindow    = claudeUser32.NewProc("SetForegroundWindow")
 	procClaudeShowWindow             = claudeUser32.NewProc("ShowWindow")
 	procClaudeShellExecute           = claudeShell32.NewProc("ShellExecuteW")
 )
 
-const swShowNormal = 1
+type windowsDesktop struct{ identity Identity }
 
-// LaunchWindows opens the installed Claude Desktop MSIX without terminating an
-// existing instance or changing either the 1P or isolated 3P configuration. It
-// also restores and foregrounds an existing Claude window so tray activation is
-// observable instead of silently succeeding in the background.
-func LaunchWindows(ctx context.Context, identity Identity) error {
+// NewWindowsDesktop drives the discovered package through the Windows shell.
+// It only starts the app and foregrounds windows; it has no way to stop a
+// process, so neither instance can be closed by CIA.
+func NewWindowsDesktop(identity Identity) (Desktop, error) {
 	if err := identity.Validate(); err != nil {
-		return err
+		return nil, err
 	}
-	if err := activateWindowsApplication(identity.AppUserModelID); err != nil {
-		return fmt.Errorf("activate Claude Desktop MSIX: %w", err)
-	}
-	return foregroundClaudeWindow(ctx, identity)
+	return windowsDesktop{identity: identity}, nil
 }
 
-// activateWindowsApplication asks the interactive Windows shell to activate the
-// AUMID directly. Starting explorer.exe as a child process can return before the
-// shell namespace activation is handed off and has left this FullTrustApplication
+func (d windowsDesktop) Show(_ context.Context, dataDir string) (bool, error) {
+	processes, err := packageProcesses(d.identity)
+	if err != nil {
+		return false, fmt.Errorf("enumerate Claude Desktop processes: %w", err)
+	}
+	main := instanceMain(processes, dataDir)
+	if main == 0 {
+		return false, nil
+	}
+	window := findClaudeTopLevelWindow(main)
+	if window == 0 {
+		return false, nil
+	}
+	_, _, _ = procClaudeShowWindow.Call(uintptr(window), swRestore)
+	_, _, _ = procClaudeSetForegroundWindow.Call(uintptr(window))
+	return true, nil
+}
+
+// Activate asks the interactive Windows shell to activate the AUMID directly.
+// Starting explorer.exe as a child process can return before the shell
+// namespace activation is handed off and has left this FullTrustApplication
 // suspended after package updates.
-func activateWindowsApplication(appUserModelID string) error {
+func (d windowsDesktop) Activate(context.Context) error {
 	operation, err := windows.UTF16PtrFromString("open")
 	if err != nil {
 		return err
 	}
-	target, err := windows.UTF16PtrFromString("shell:AppsFolder\\" + appUserModelID)
+	target, err := windows.UTF16PtrFromString("shell:AppsFolder\\" + d.identity.AppUserModelID)
 	if err != nil {
 		return fmt.Errorf("encode Claude AUMID: %w", err)
 	}
@@ -149,36 +162,44 @@ func activateWindowsApplication(appUserModelID string) error {
 	return nil
 }
 
-func foregroundClaudeWindow(ctx context.Context, identity Identity) error {
-	waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	resumeAttempted := false
+// WaitShown polls until the instance shows a window. The Store build can leave
+// a freshly activated FullTrustApplication at its initial suspend count; once,
+// after a short grace period, it resumes the threads of main processes no
+// helper belongs to yet. A running instance always has helpers, so neither the
+// signed-in instance nor a running local one is ever touched.
+func (d windowsDesktop) WaitShown(ctx context.Context, dataDir string) error {
+	started := time.Now()
+	resumed := false
 	for {
-		pids, err := claudeProcessIDs(identity)
-		if err == nil && len(pids) > 0 {
-			if window := findClaudeTopLevelWindow(pids); window != 0 {
-				_, _, _ = procClaudeShowWindow.Call(uintptr(window), swRestore)
-				_, _, _ = procClaudeSetForegroundWindow.Call(uintptr(window))
-				return nil
-			}
-			// The Store build can occasionally leave its FullTrustApplication
-			// main thread at the initial suspend count after AUMID activation.
-			// Resume each thread at most once and only for processes whose exact
-			// executable belongs to the discovered Claude package.
-			if !resumeAttempted {
-				resumeAttempted = true
-				_ = resumeClaudeThreads(pids)
+		shown, err := d.Show(ctx, dataDir)
+		if err != nil {
+			return err
+		}
+		if shown {
+			return nil
+		}
+		if !resumed && time.Since(started) > 3*time.Second {
+			resumed = true
+			if processes, err := packageProcesses(d.identity); err == nil {
+				_ = resumeProcessThreads(unclaimedMains(processes))
 			}
 		}
 		select {
-		case <-waitCtx.Done():
-			return errors.New("the Claude Desktop app did not create a visible window within 10 seconds")
-		case <-time.After(100 * time.Millisecond):
+		case <-ctx.Done():
+			return errors.New("the Claude Desktop instance did not show a window in time")
+		case <-time.After(200 * time.Millisecond):
 		}
 	}
 }
 
-func resumeClaudeThreads(pids map[uint32]struct{}) error {
+func resumeProcessThreads(pids []uint32) error {
+	if len(pids) == 0 {
+		return nil
+	}
+	targets := make(map[uint32]bool, len(pids))
+	for _, pid := range pids {
+		targets[pid] = true
+	}
 	snapshot, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPTHREAD, 0)
 	if err != nil {
 		return err
@@ -193,7 +214,7 @@ func resumeClaudeThreads(pids map[uint32]struct{}) error {
 		return err
 	}
 	for {
-		if _, ok := pids[entry.OwnerProcessID]; ok {
+		if targets[entry.OwnerProcessID] {
 			thread, openErr := windows.OpenThread(windows.THREAD_SUSPEND_RESUME, false, entry.ThreadID)
 			if openErr == nil {
 				_, _ = windows.ResumeThread(thread)
@@ -213,10 +234,11 @@ func claudeExecutablePath(identity Identity) string {
 	return filepath.Clean(filepath.Join(identity.InstallLocation, "app", "Claude.exe"))
 }
 
-// claudeProcessIDs returns only processes whose executable path belongs to the
+// packageProcesses lists only processes whose executable path belongs to the
 // exact MSIX package discovered for Claude Desktop. Matching merely by image
-// name would also catch Claude Code and unrelated applications.
-func claudeProcessIDs(identity Identity) (map[uint32]struct{}, error) {
+// name would also catch Claude Code and unrelated applications. A process
+// that exits or denies access while it is read is left out.
+func packageProcesses(identity Identity) ([]packageProcess, error) {
 	if err := identity.Validate(); err != nil {
 		return nil, err
 	}
@@ -227,18 +249,18 @@ func claudeProcessIDs(identity Identity) (map[uint32]struct{}, error) {
 	defer windows.CloseHandle(snapshot)
 
 	expected := claudeExecutablePath(identity)
-	pids := make(map[uint32]struct{})
+	var processes []packageProcess
 	entry := windows.ProcessEntry32{Size: uint32(unsafe.Sizeof(windows.ProcessEntry32{}))}
 	if err := windows.Process32First(snapshot, &entry); err != nil {
 		if errors.Is(err, windows.ERROR_NO_MORE_FILES) {
-			return pids, nil
+			return processes, nil
 		}
 		return nil, err
 	}
 	for {
 		if strings.EqualFold(windows.UTF16ToString(entry.ExeFile[:]), "claude.exe") {
-			if path, pathErr := processExecutablePath(entry.ProcessID); pathErr == nil && strings.EqualFold(filepath.Clean(path), expected) {
-				pids[entry.ProcessID] = struct{}{}
+			if process, ok := readPackageProcess(entry.ProcessID, entry.ParentProcessID, expected); ok {
+				processes = append(processes, process)
 			}
 		}
 		if err := windows.Process32Next(snapshot, &entry); err != nil {
@@ -248,33 +270,70 @@ func claudeProcessIDs(identity Identity) (map[uint32]struct{}, error) {
 			return nil, err
 		}
 	}
-	return pids, nil
+	return processes, nil
 }
 
-func processExecutablePath(pid uint32) (string, error) {
+func readPackageProcess(pid, parent uint32, expectedExecutable string) (packageProcess, bool) {
 	process, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
 	if err != nil {
-		return "", err
+		return packageProcess{}, false
 	}
 	defer windows.CloseHandle(process)
+
 	buffer := make([]uint16, 32768)
 	size := uint32(len(buffer))
 	if err := windows.QueryFullProcessImageName(process, 0, &buffer[0], &size); err != nil {
-		return "", err
+		return packageProcess{}, false
 	}
-	return windows.UTF16ToString(buffer[:size]), nil
+	if !strings.EqualFold(filepath.Clean(windows.UTF16ToString(buffer[:size])), expectedExecutable) {
+		return packageProcess{}, false
+	}
+	commandLine, err := processCommandLine(process)
+	if err != nil {
+		return packageProcess{}, false
+	}
+	args, err := windows.DecomposeCommandLine(commandLine)
+	if err != nil {
+		return packageProcess{}, false
+	}
+	helper, dataDir := classifyArguments(args)
+	return packageProcess{pid: pid, parent: parent, helper: helper, dataDir: dataDir}, true
 }
 
-func findClaudeTopLevelWindow(pids map[uint32]struct{}) windows.Handle {
+// processCommandLine reads another process's command line through
+// ProcessCommandLineInformation, which needs only
+// PROCESS_QUERY_LIMITED_INFORMATION. Renderer command lines carry Desktop's
+// managed configuration, so the buffer grows on demand up to 1 MiB.
+func processCommandLine(process windows.Handle) (string, error) {
+	buffer := make([]byte, 64<<10)
+	for {
+		var needed uint32
+		err := windows.NtQueryInformationProcess(process, windows.ProcessCommandLineInformation, unsafe.Pointer(&buffer[0]), uint32(len(buffer)), &needed)
+		if err == nil {
+			commandLine := (*windows.NTUnicodeString)(unsafe.Pointer(&buffer[0])).String()
+			runtime.KeepAlive(buffer)
+			return commandLine, nil
+		}
+		grow := errors.Is(err, windows.STATUS_INFO_LENGTH_MISMATCH) || errors.Is(err, windows.STATUS_BUFFER_TOO_SMALL) || errors.Is(err, windows.STATUS_BUFFER_OVERFLOW)
+		if !grow || int(needed) <= len(buffer) || needed > 1<<20 {
+			return "", err
+		}
+		buffer = make([]byte, needed)
+	}
+}
+
+// findClaudeTopLevelWindow returns the first visible top-level window of one
+// process in z-order, which is the one the user last brought forward.
+func findClaudeTopLevelWindow(pid uint32) windows.Handle {
 	var found windows.Handle
 	callback := windows.NewCallback(func(window uintptr, _ uintptr) uintptr {
 		visible, _, _ := procClaudeIsWindowVisible.Call(window)
 		if visible == 0 {
 			return 1
 		}
-		var pid uint32
-		_, _, _ = procClaudeGetWindowThreadProcess.Call(window, uintptr(unsafe.Pointer(&pid)))
-		if _, ok := pids[pid]; !ok {
+		var owner uint32
+		_, _, _ = procClaudeGetWindowThreadProcess.Call(window, uintptr(unsafe.Pointer(&owner)))
+		if owner != pid {
 			return 1
 		}
 		found = windows.Handle(window)
@@ -282,177 +341,4 @@ func findClaudeTopLevelWindow(pids map[uint32]struct{}) windows.Handle {
 	})
 	_, _, _ = procClaudeEnumWindows.Call(callback, 0)
 	return found
-}
-
-func (windowsRestarter) Restart(ctx context.Context, identity Identity) error {
-	if err := identity.Validate(); err != nil {
-		return err
-	}
-	if err := stopClaudeDesktop(ctx, identity); err != nil {
-		return err
-	}
-	return LaunchWindows(ctx, identity)
-}
-
-const wmClose = 0x0010
-
-func stopClaudeDesktop(ctx context.Context, identity Identity) error {
-	pids, err := claudeProcessIDs(identity)
-	if err != nil {
-		return fmt.Errorf("enumerate Claude Desktop processes: %w", err)
-	}
-	if len(pids) == 0 {
-		return nil
-	}
-	for _, window := range findClaudeTopLevelWindows(pids) {
-		_, _, _ = procClaudePostMessage.Call(uintptr(window), wmClose, 0, 0)
-	}
-	if waitForClaudeExit(ctx, identity, 3*time.Second) {
-		return nil
-	}
-
-	// Some Desktop configurations keep Electron resident after WM_CLOSE. The
-	// fallback is still narrowly scoped to executable paths from this exact
-	// package, never to every process named claude.exe.
-	pids, err = claudeProcessIDs(identity)
-	if err != nil {
-		return fmt.Errorf("re-enumerate Claude Desktop processes: %w", err)
-	}
-	for pid := range pids {
-		process, openErr := windows.OpenProcess(windows.PROCESS_TERMINATE, false, pid)
-		if openErr != nil {
-			continue
-		}
-		_ = windows.TerminateProcess(process, 0)
-		_ = windows.CloseHandle(process)
-	}
-	if !waitForClaudeExit(ctx, identity, 5*time.Second) {
-		return errors.New("the Claude Desktop package processes did not exit")
-	}
-	return nil
-}
-
-func waitForClaudeExit(ctx context.Context, identity Identity, timeout time.Duration) bool {
-	deadline := time.NewTimer(timeout)
-	defer deadline.Stop()
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-	for {
-		pids, err := claudeProcessIDs(identity)
-		if err == nil && len(pids) == 0 {
-			return true
-		}
-		select {
-		case <-ctx.Done():
-			return false
-		case <-deadline.C:
-			return false
-		case <-ticker.C:
-		}
-	}
-}
-
-func findClaudeTopLevelWindows(pids map[uint32]struct{}) []windows.Handle {
-	var found []windows.Handle
-	callback := windows.NewCallback(func(window uintptr, _ uintptr) uintptr {
-		visible, _, _ := procClaudeIsWindowVisible.Call(window)
-		if visible == 0 {
-			return 1
-		}
-		var pid uint32
-		_, _, _ = procClaudeGetWindowThreadProcess.Call(window, uintptr(unsafe.Pointer(&pid)))
-		if _, ok := pids[pid]; ok {
-			found = append(found, windows.Handle(window))
-		}
-		return 1
-	})
-	_, _, _ = procClaudeEnumWindows.Call(callback, 0)
-	return found
-}
-
-// GatewayVerifier confirms the selected local profile is byte-safe and that
-// the actual CIA edge accepts its separate gateway credential. It sends no
-// prompt, model request, or data beyond GET /v1/models.
-type GatewayVerifier struct {
-	paths    Paths
-	identity Identity
-}
-
-func NewGatewayVerifier(paths Paths, identity Identity) (*GatewayVerifier, error) {
-	if err := paths.Validate(); err != nil {
-		return nil, err
-	}
-	if err := identity.Validate(); err != nil {
-		return nil, err
-	}
-	return &GatewayVerifier{paths: paths, identity: identity}, nil
-}
-
-func (v *GatewayVerifier) Verify(ctx context.Context, mode Mode, gateway Gateway) error {
-	modeDocument, err := readJSONObject(v.paths.modePath())
-	if err != nil {
-		return err
-	}
-	expected := "1p"
-	if mode == ModeLocal {
-		expected = "3p"
-	}
-	if current, _ := modeDocument["deploymentMode"].(string); current != expected {
-		return fmt.Errorf("isolated Claude Desktop deployment mode is %q, want %q", current, expected)
-	}
-	if err := waitForRuntimeMode(ctx, v.identity, expected); err != nil {
-		return err
-	}
-	if mode != ModeLocal {
-		return nil
-	}
-	profile, err := readJSONObject(v.paths.profilePath())
-	if err != nil {
-		return err
-	}
-	for key, wanted := range map[string]string{
-		"inferenceProvider":          "gateway",
-		"inferenceCredentialKind":    "static",
-		"inferenceGatewayBaseUrl":    gateway.BaseURL,
-		"inferenceGatewayApiKey":     gateway.APIKey,
-		"inferenceGatewayAuthScheme": "bearer",
-	} {
-		if actual, _ := profile[key].(string); actual != wanted {
-			return fmt.Errorf("isolated Claude Desktop profile has unexpected %s", key)
-		}
-	}
-	meta, err := readJSONObject(v.paths.metaPath())
-	if err != nil {
-		return err
-	}
-	if applied, _ := meta["appliedId"].(string); applied != profileID {
-		return errors.New("CIA Claude Desktop profile is not selected")
-	}
-
-	return ProbeGateway(ctx, gateway)
-}
-
-func waitForRuntimeMode(ctx context.Context, identity Identity, expected string) error {
-	waitCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
-	for {
-		if runtimeHasDeploymentMode(waitCtx, identity, expected) {
-			return nil
-		}
-		select {
-		case <-waitCtx.Done():
-			return fmt.Errorf("the Claude Desktop runtime did not report deployment mode %q", expected)
-		case <-time.After(250 * time.Millisecond):
-		}
-	}
-}
-
-func runtimeHasDeploymentMode(ctx context.Context, identity Identity, expected string) bool {
-	const command = `$ErrorActionPreference='Stop'; $hit=Get-CimInstance Win32_Process -Filter "Name='claude.exe'" | Where-Object { $_.ExecutablePath -eq $env:CIA_CLAUDE_EXPECTED_EXE -and $_.CommandLine -like '*--type=renderer*' -and $_.CommandLine.Contains(('\"deploymentMode\":\"'+$env:CIA_CLAUDE_EXPECTED_MODE+'\"')) } | Select-Object -First 1; if($null -eq $hit){exit 44}`
-	check := exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command)
-	check.Env = append(os.Environ(),
-		"CIA_CLAUDE_EXPECTED_EXE="+claudeExecutablePath(identity),
-		"CIA_CLAUDE_EXPECTED_MODE="+expected,
-	)
-	return check.Run() == nil
 }

@@ -29,8 +29,10 @@ const (
 	EnvironmentFinal  Environment = "final"
 )
 
-// LauncherPaths contains the operator-approved PowerShell entry points. The
-// panel never discovers or constructs script paths from user input.
+// LauncherPaths named the PowerShell entry points behind the tray's Codex and
+// OpenCode buttons, removed on 2026-10-01: both harnesses reach this server
+// only through an explicit /local command. Generated configurations still
+// carry the paths, so they are read, and nothing uses them.
 type LauncherPaths struct {
 	Codex    string `json:"codex"`
 	OpenCode string `json:"opencode"`
@@ -52,7 +54,7 @@ type Config struct {
 	ModelRootsPath          string        `json:"model_roots_path,omitempty"`
 	ValidationPath          string        `json:"validation_path,omitempty"`
 	LogsPath                string        `json:"logs_path"`
-	Launchers               LauncherPaths `json:"launchers"`
+	Launchers               LauncherPaths `json:"launchers,omitempty"`
 	RefreshSeconds          int           `json:"refresh_seconds"`
 	OperationTimeoutSeconds int           `json:"operation_timeout_seconds"`
 }
@@ -102,12 +104,6 @@ func (c Config) Validate() error {
 		return err
 	}
 	if err := validateAbsolutePath("logs_path", c.LogsPath); err != nil {
-		return err
-	}
-	if err := validateAbsolutePath("launchers.codex", c.Launchers.Codex); err != nil {
-		return err
-	}
-	if err := validateAbsolutePath("launchers.opencode", c.Launchers.OpenCode); err != nil {
 		return err
 	}
 	if c.RefreshSeconds < 2 || c.RefreshSeconds > 300 {

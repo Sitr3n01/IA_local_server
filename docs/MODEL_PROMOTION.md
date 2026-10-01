@@ -117,7 +117,7 @@ The flag is a **deployment guarantee for one artifact**, not a description of wh
 Consumers advertise the promise rather than gate on it, which is exactly why an over-claimed `true` is expensive:
 
 - `scripts/v2/New-V2ClientCatalogs.ps1` maps it to the Codex catalog's `supports_parallel_tool_calls`, so a harness reads it before issuing parallel tool calls. `Test-V2HarnessConfig.ps1` asserts the mapping stays exact in both directions.
-- `internal/panel` requires the field to be present and carries it verbatim; `CanLaunchCodex` and `CanLaunchOpenCode` deliberately ignore it, so a weaker model stays launchable by operator choice. Pinned by `internal/panel/capability_contract_test.go`.
+- `internal/panel` requires the field to be present and carries it verbatim; availability deliberately ignores it, so a weaker model stays selectable by operator choice. Pinned by `internal/panel/capability_contract_test.go`.
 - `internal/edge` never reads it. The edge serves the protocol surface regardless; the flag describes what has been proven about a model, not what the router permits.
 
 So a benchmark score, however good, is not grounds for flipping it. Raising `function_calling` to `true` requires the forced-tool-call evidence above, recorded for that artifact.

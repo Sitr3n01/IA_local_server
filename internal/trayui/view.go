@@ -79,7 +79,6 @@ type View struct {
 	ShowUnload  bool
 	// InFlight counts the requests a shutdown would interrupt.
 	InFlight   int
-	ClaudeMode ClaudeMode
 	ClaudeNote string
 	Policy     ActionPolicy
 	Tooltip    string
@@ -93,7 +92,6 @@ func BuildView(state ViewState) View {
 	view := View{
 		Environment: strings.ToUpper(strings.TrimSpace(snapshot.Environment)),
 		Policy:      EvaluateActions(snapshot, busy),
-		ClaudeMode:  snapshot.ClaudeMode,
 	}
 	edgeReachable := snapshot.EdgeReachable
 	loaded := modelLabel(snapshot.Models, snapshot.ActiveModel)
@@ -194,12 +192,10 @@ func BuildView(state ViewState) View {
 	switch {
 	case !snapshot.ClaudeAvailable:
 		view.ClaudeNote = "Claude Desktop não encontrado"
-	case !snapshot.ClaudeGatewayOK && snapshot.ClaudeMode != ClaudeModeLocal:
-		view.ClaudeNote = "O modo local espera o gateway deste servidor responder"
-	case snapshot.ClaudeMode == ClaudeModeLocal:
-		view.ClaudeNote = "Usa este servidor pelo gateway local"
+	case !snapshot.ClaudeGatewayOK:
+		view.ClaudeNote = "O Claude Local espera o gateway deste servidor responder"
 	default:
-		view.ClaudeNote = "Usa a Anthropic"
+		view.ClaudeNote = "O Claude Local abre ao lado do Claude, neste servidor"
 	}
 
 	view.Tooltip = "IA Local · " + view.Pill

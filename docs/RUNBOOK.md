@@ -279,7 +279,9 @@ Then verify manually:
 The completion transaction adds
 `%CODEX_HOME%\cia-local-canary.config.toml`, copies the
 OpenCode canary override and local-only catalog, and installs the three
-allowlisted panel launchers below `C:\IA\local-ai-v2\integrations`. It never
+manual launcher scripts below `C:\IA\local-ai-v2\integrations`. Since ADR 0022
+the tray no longer offers them: Codex and OpenCode reach this server only
+through `/local` or these scripts, run by hand. It never
 edits `~/.codex/config.toml`, an OpenCode global/project config, Unsloth private
 state, or any cloud credential. A differing existing canary file is preserved
 unless the operator inspects it and supplies `-Replace`.

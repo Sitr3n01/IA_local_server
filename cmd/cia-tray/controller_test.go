@@ -161,7 +161,23 @@ func TestSnapshotExplainsAnEdgeThatIsNotReadyForLackOfMemory(t *testing.T) {
 		t.Fatalf("snapshot=%+v", snapshot)
 	}
 	// The edge publishes only "public"; "second" must not be offered.
-	if !snapshot.Models[0].Available || snapshot.Models[1].Available || snapshot.Models[1].Codex {
+	if !snapshot.Models[0].Available || snapshot.Models[1].Available {
 		t.Fatalf("models=%+v", snapshot.Models)
+	}
+}
+
+func TestLoadClaudeProbeModelLeavesALoadedModelAlone(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"service": "cia-edge", "ready": true, "upstream": {"reachable": true},
+			"models": [{"id": "public"}, {"id": "second"}], "active_model": "second",
+			"gate": {"active": 1, "queued": 0, "max_active": 1, "max_queue": 16},
+			"capacity": {"available": true, "reason": "model_already_running"}}`))
+	}))
+	defer server.Close()
+	// adminClient is nil: a load attempt would panic, so passing proves the
+	// loaded model was not replaced for the sake of Desktop's health check.
+	if err := statusController(t, server.URL).loadClaudeProbeModel(context.Background()); err != nil {
+		t.Fatal(err)
 	}
 }

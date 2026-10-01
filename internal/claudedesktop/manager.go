@@ -1,6 +1,7 @@
 // Package claudedesktop owns the narrowly-scoped, reversible Claude Desktop
-// third-party-inference profile used by CIA. It never reads or writes the
-// first-party Claude profile.
+// third-party-inference profile used by CIA, and opens the local instance
+// beside the signed-in one. It never reads or writes the first-party Claude
+// profile and never stops a Desktop process.
 package claudedesktop
 
 import (
@@ -29,14 +30,30 @@ const (
 	maxProfileBytes     int64 = 1 << 20
 )
 
-// Mode represents the deployment selected on the next full Claude Desktop
-// launch. Anthropic only changes the isolated 3P selector to force the
-// untouched first-party profile back into use.
-type Mode string
-
+// The isolated selector names the deployment a new Desktop process starts in.
+// Each process reads it once, before it picks its Electron user-data directory
+// and takes that directory's single-instance lock, so a 1P and a 3P instance
+// run side by side. The selector rests at 1p: OpenLocal holds it at 3p only for
+// as long as one launch takes to read it.
 const (
-	ModeAnthropic Mode = "anthropic"
-	ModeLocal     Mode = "local"
+	selectorAnthropic = "1p"
+	selectorLocal     = "3p"
+)
+
+// launchTimeout bounds one launch, and with it how long OpenLocal may hold the
+// selector at 3p. A cold Desktop start measured here shows its window in well
+// under half of it.
+const launchTimeout = 45 * time.Second
+
+// Desktop keeps its own preferences in the selector's file and rewrites it by
+// read-modify-write, notably when a new window first shows, which is the
+// moment OpenLocal returns the selector to 1p. A write that read the file
+// while it said 3p would put 3p back, so OpenLocal keeps checking for
+// selectorSettle afterwards. Measured on 2026-10-01: that file grew from 1382
+// to 1623 bytes when the local window was brought forward.
+const (
+	selectorSettle        = 2 * time.Second
+	selectorSettleCheckIn = 250 * time.Millisecond
 )
 
 // Identity is resolved from the installed MSIX package. Package paths and
@@ -254,6 +271,10 @@ func (p Paths) Validate() error {
 	return nil
 }
 
+// firstPartyDataDir is the signed-in instance's Electron user-data directory,
+// the folder that holds the first-party configuration.
+func (p Paths) firstPartyDataDir() string { return filepath.Dir(p.FirstPartyConfig) }
+
 func (p Paths) configLibrary() string { return filepath.Join(p.ThirdPartyStateDir, "configLibrary") }
 func (p Paths) profilePath() string   { return filepath.Join(p.configLibrary(), profileID+".json") }
 func (p Paths) metaPath() string      { return filepath.Join(p.configLibrary(), "_meta.json") }
@@ -268,16 +289,22 @@ type PolicyReader interface {
 	ManagedInference(context.Context) (bool, error)
 }
 
-// Restarter owns process shutdown/relaunch. Its implementation never passes a
-// gateway credential on a command line.
-type Restarter interface {
-	Restart(context.Context, Identity) error
-}
-
-// Verifier observes the post-restart result. It must not infer successful
-// routing merely because a profile was written.
-type Verifier interface {
-	Verify(context.Context, Mode, Gateway) error
+// Desktop drives the installed package's processes. Both deployments run the
+// same executable; an instance is told apart by the Electron user-data
+// directory its helper processes were started with. Production code uses the
+// Windows shell and process table, tests a fake.
+type Desktop interface {
+	// Show restores and foregrounds a window of the instance whose user-data
+	// directory is dataDir. It reports false, without error, when that
+	// instance is not running or shows no window.
+	Show(ctx context.Context, dataDir string) (bool, error)
+	// Activate asks the shell to start the package's app. The new process
+	// reads the selector once, then either becomes that deployment's instance
+	// or hands the activation to the instance of it that already runs.
+	Activate(ctx context.Context) error
+	// WaitShown waits until the instance whose user-data directory is dataDir
+	// shows a window, and foregrounds it.
+	WaitShown(ctx context.Context, dataDir string) error
 }
 
 // Protector provides user-scoped protection for the full pre-mutation 3P
@@ -289,39 +316,52 @@ type Protector interface {
 
 type Manager struct {
 	paths     Paths
-	identity  Identity
 	policy    PolicyReader
-	restarter Restarter
-	verifier  Verifier
+	desktop   Desktop
 	protector Protector
+	settle    time.Duration
 	mu        sync.Mutex
 }
 
-func NewManager(paths Paths, identity Identity, policy PolicyReader, restarter Restarter, verifier Verifier, protector Protector) (*Manager, error) {
+func NewManager(paths Paths, policy PolicyReader, desktop Desktop, protector Protector) (*Manager, error) {
 	if err := paths.Validate(); err != nil {
 		return nil, err
 	}
-	if err := identity.Validate(); err != nil {
-		return nil, err
-	}
-	if policy == nil || restarter == nil || verifier == nil || protector == nil {
+	if policy == nil || desktop == nil || protector == nil {
 		return nil, errors.New("claude Desktop manager dependencies are required")
 	}
-	return &Manager{paths: paths, identity: identity, policy: policy, restarter: restarter, verifier: verifier, protector: protector}, nil
+	return &Manager{paths: paths, policy: policy, desktop: desktop, protector: protector, settle: selectorSettle}, nil
 }
 
-// Apply performs the only permitted mutation sequence:
-// precheck -> DPAPI backup -> atomic write -> restart -> verify -> commit.
-// A failed write, restart, or verification restores every 3P byte captured by
-// the backup and asks the same restarter to bring Claude back up.
-func (m *Manager) Apply(ctx context.Context, mode Mode, gateway Gateway) (err error) {
-	if mode != ModeAnthropic && mode != ModeLocal {
-		return fmt.Errorf("unsupported Claude Desktop mode %q", mode)
+// OpenAnthropic shows the signed-in instance, starting it when it is not
+// running. It never writes the local profile.
+func (m *Manager) OpenAnthropic(ctx context.Context) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.restSelector(); err != nil {
+		return fmt.Errorf("return Claude Desktop selector to 1p: %w", err)
 	}
-	if mode == ModeLocal {
-		if err := gateway.Validate(); err != nil {
-			return err
-		}
+	shown, err := m.desktop.Show(ctx, m.paths.firstPartyDataDir())
+	if err != nil || shown {
+		return err
+	}
+	launchCtx, cancel := context.WithTimeout(ctx, launchTimeout)
+	defer cancel()
+	if err := m.desktop.Activate(launchCtx); err != nil {
+		return fmt.Errorf("start Claude Desktop: %w", err)
+	}
+	return m.desktop.WaitShown(launchCtx, m.paths.firstPartyDataDir())
+}
+
+// OpenLocal shows the local instance beside the signed-in one, starting it
+// when it is not running. It performs the only permitted sequence:
+// precheck -> DPAPI backup -> profile write (only when the applied profile
+// differs) -> select 3p -> launch -> wait -> select 1p. The last step runs
+// whatever happened before it, so the Start menu, a claude:// link or a
+// restart keep opening the signed-in instance.
+func (m *Manager) OpenLocal(ctx context.Context, gateway Gateway) (err error) {
+	if err := gateway.Validate(); err != nil {
+		return err
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -333,15 +373,43 @@ func (m *Manager) Apply(ctx context.Context, mode Mode, gateway Gateway) (err er
 	if managed {
 		return errors.New("claude Desktop has a managed inference policy; CIA will not override it")
 	}
-	if m.configuredFor(mode, gateway) {
-		// A repeated tray selection should not close and reopen Desktop when both
-		// persisted state and the running renderer already match. A failed live
-		// verification falls through to the normal transactional restart path.
-		if err := m.verifier.Verify(ctx, mode, gateway); err == nil {
-			return nil
+	if !m.profileApplied(gateway) {
+		if err := m.applyProfile(gateway); err != nil {
+			return err
 		}
 	}
+	if err := m.restSelector(); err != nil {
+		return fmt.Errorf("return Claude Desktop selector to 1p: %w", err)
+	}
+	// A local instance that is already running keeps the profile it started
+	// with, so a changed gateway credential applies from its next start.
+	shown, err := m.desktop.Show(ctx, m.paths.ThirdPartyStateDir)
+	if err != nil || shown {
+		return err
+	}
 
+	if err := m.setSelector(selectorLocal); err != nil {
+		return fmt.Errorf("select the Claude Desktop local deployment: %w", err)
+	}
+	defer func() {
+		if restErr := m.returnSelector(); restErr != nil {
+			err = errors.Join(err, fmt.Errorf("return Claude Desktop selector to 1p: %w", restErr))
+		}
+	}()
+	launchCtx, cancel := context.WithTimeout(ctx, launchTimeout)
+	defer cancel()
+	if err := m.desktop.Activate(launchCtx); err != nil {
+		return fmt.Errorf("start Claude Desktop: %w", err)
+	}
+	if err := m.desktop.WaitShown(launchCtx, m.paths.ThirdPartyStateDir); err != nil {
+		return fmt.Errorf("wait for the Claude Desktop local instance: %w", err)
+	}
+	return nil
+}
+
+// applyProfile writes the CIA gateway profile and selects it in the 3P config
+// library, restoring every captured 3P byte when either write fails.
+func (m *Manager) applyProfile(gateway Gateway) error {
 	backup, err := m.captureBackup()
 	if err != nil {
 		return fmt.Errorf("backup Claude Desktop 3P state: %w", err)
@@ -349,43 +417,16 @@ func (m *Manager) Apply(ctx context.Context, mode Mode, gateway Gateway) (err er
 	if err := m.writeBackup(backup); err != nil {
 		return fmt.Errorf("protect Claude Desktop 3P backup: %w", err)
 	}
-
-	rollback := func(cause error) error {
-		restoreErr := m.restoreBackup(backup)
-		restartErr := m.restarter.Restart(context.Background(), m.identity)
-		if restoreErr != nil || restartErr != nil {
-			return fmt.Errorf("%w; rollback restore=%v restart=%v", cause, restoreErr, restartErr)
+	if err := m.writeProfile(gateway); err != nil {
+		if restoreErr := m.restoreBackup(backup); restoreErr != nil {
+			return fmt.Errorf("write Claude Desktop 3P profile: %w; restore: %v", err, restoreErr)
 		}
-		return cause
-	}
-
-	if err := m.writeMode(mode, gateway); err != nil {
-		return rollback(fmt.Errorf("write Claude Desktop 3P state: %w", err))
-	}
-	if err := m.restarter.Restart(ctx, m.identity); err != nil {
-		return rollback(fmt.Errorf("restart Claude Desktop: %w", err))
-	}
-	if err := m.verifier.Verify(ctx, mode, gateway); err != nil {
-		return rollback(fmt.Errorf("verify Claude Desktop mode: %w", err))
+		return fmt.Errorf("write Claude Desktop 3P profile: %w", err)
 	}
 	return nil
 }
 
-func (m *Manager) configuredFor(mode Mode, gateway Gateway) bool {
-	modeDocument, err := readJSONObject(m.paths.modePath())
-	if err != nil {
-		return false
-	}
-	expectedMode := "1p"
-	if mode == ModeLocal {
-		expectedMode = "3p"
-	}
-	if current, _ := modeDocument["deploymentMode"].(string); current != expectedMode {
-		return false
-	}
-	if mode == ModeAnthropic {
-		return true
-	}
+func (m *Manager) profileApplied(gateway Gateway) bool {
 	profile, err := readJSONObject(m.paths.profilePath())
 	if err != nil {
 		return false
@@ -473,21 +514,6 @@ func (m *Manager) ReadBackup() error {
 	return nil
 }
 
-// CurrentMode reads only the isolated selector. It never opens the first-party
-// profile and returns Anthropic when no 3P selector has been created yet.
-func (m *Manager) CurrentMode() (Mode, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	document, err := readJSONObject(m.paths.modePath())
-	if err != nil {
-		return "", err
-	}
-	if current, _ := document["deploymentMode"].(string); current == "3p" {
-		return ModeLocal, nil
-	}
-	return ModeAnthropic, nil
-}
-
 func (m *Manager) restoreBackup(backup backupDocument) error {
 	for _, file := range backup.Files {
 		var path string
@@ -512,36 +538,82 @@ func (m *Manager) restoreBackup(backup backupDocument) error {
 	return nil
 }
 
-func (m *Manager) writeMode(mode Mode, gateway Gateway) error {
-	modeDocument, err := readJSONObject(m.paths.modePath())
+func (m *Manager) writeProfile(gateway Gateway) error {
+	profile, err := gatewayProfile(gateway)
 	if err != nil {
 		return err
 	}
-	if mode == ModeLocal {
-		profile, err := gatewayProfile(gateway)
-		if err != nil {
-			return err
+	if err := writeJSONAtomic(m.paths.profilePath(), profile); err != nil {
+		return err
+	}
+	meta, err := readJSONObject(m.paths.metaPath())
+	if err != nil {
+		return err
+	}
+	if err := selectProfile(meta); err != nil {
+		return err
+	}
+	return writeJSONAtomic(m.paths.metaPath(), meta)
+}
+
+// setSelector rewrites only deploymentMode and keeps every other key Desktop
+// stores in the same file. Even the 1p value lives in the isolated 3P state;
+// the %APPDATA%\Claude config and all 1P data remain untouched.
+func (m *Manager) setSelector(selector string) error {
+	document, err := readJSONObject(m.paths.modePath())
+	if err != nil {
+		return err
+	}
+	document["deploymentMode"] = selector
+	return writeJSONAtomic(m.paths.modePath(), document)
+}
+
+// returnSelector sets 1p after a launch and keeps it there while the new
+// instance settles. A read that fails while Desktop is rewriting the file is
+// retried on the next check; only the last check's result counts.
+func (m *Manager) returnSelector() error {
+	if err := m.setSelector(selectorAnthropic); err != nil {
+		return err
+	}
+	var lastErr error
+	for deadline := time.Now().Add(m.settle); time.Now().Before(deadline); {
+		time.Sleep(selectorSettleCheckIn)
+		document, err := readJSONObject(m.paths.modePath())
+		if lastErr = err; err != nil {
+			continue
 		}
-		if err := writeJSONAtomic(m.paths.profilePath(), profile); err != nil {
-			return err
+		if current, _ := document["deploymentMode"].(string); current != selectorAnthropic {
+			lastErr = m.setSelector(selectorAnthropic)
 		}
+	}
+	return lastErr
+}
+
+// restSelector returns the selector to 1p wherever a new process would
+// otherwise start the local deployment: a selector that names 3p, left by an
+// interrupted launch or by the restart-based switch this package once made,
+// or a missing one while a local profile is applied, which Desktop also reads
+// as 3p. Without a local profile a missing selector already means 1p and no
+// file is created.
+func (m *Manager) restSelector() error {
+	document, err := readJSONObject(m.paths.modePath())
+	if err != nil {
+		return err
+	}
+	current, _ := document["deploymentMode"].(string)
+	if current == selectorAnthropic {
+		return nil
+	}
+	if current != selectorLocal {
 		meta, err := readJSONObject(m.paths.metaPath())
 		if err != nil {
 			return err
 		}
-		if err := selectProfile(meta); err != nil {
-			return err
+		if applied, _ := meta["appliedId"].(string); strings.TrimSpace(applied) == "" {
+			return nil
 		}
-		if err := writeJSONAtomic(m.paths.metaPath(), meta); err != nil {
-			return err
-		}
-		modeDocument["deploymentMode"] = "3p"
-	} else {
-		// This 1P selector is intentionally stored in the isolated 3P state.
-		// The existing %APPDATA%\\Claude config and all 1P data remain untouched.
-		modeDocument["deploymentMode"] = "1p"
 	}
-	return writeJSONAtomic(m.paths.modePath(), modeDocument)
+	return m.setSelector(selectorAnthropic)
 }
 
 func gatewayProfile(g Gateway) (map[string]any, error) {
