@@ -182,6 +182,11 @@ When a measurement comes back bad, `TUNING.md` has the bottleneck decision tree 
 
 ## Soak
 
+The project owner waived this gate on 2026-10-01 for the four definitive models
+listed in `MODEL_PROMOTION.md`. The current readiness report must identify it as
+`waived`; no duration, request count, stability result, or success rate may be
+invented. The protocol below remains available for future qualification work.
+
 Run for 72 continuous hours with at least 500 mixed Responses/Chat requests and 20 complete load/unload cycles. Include concurrent Codex/OpenCode use, cancellation, queue overflow, router restart, edge restart, and an interactive-logon restart.
 
 Acceptance is at least 99% success after excluding deliberate 4xx/429 policy tests, with zero unrecovered crash, external request, credential finding, or model duplication.
@@ -212,3 +217,13 @@ Acceptance is at least 99% success after excluding deliberate 4xx/429 policy tes
 `peak_commit_gib` is a **delta**, not an absolute, so `idle_commit_gib` must accompany it or the number is not reproducible across machine states. Capture it with a **cold prompt cache** — the first request after process start — because admission adds `cache_ram_mib` separately as its full ceiling; a warm-cache measurement charges the same gibibytes twice. See `MODEL_PROMOTION.md`.
 
 Reports are evidence, not configuration. Promotion values must be reviewed into the manifest deliberately.
+
+For the 2026-10-01 readiness review, `scripts/v2/eval/responses_contract.py`
+checks native Responses, SSE, exact tool arguments, continuation, cancellation
+and state refusal. `scripts/v2/eval/edge_overhead.py` compares at least twenty
+warm edge/router pairs, alternating order and recording only timing/token
+metadata and response hashes. The caller must enforce idle/admission checks,
+supply role-specific credentials through the child environment and own cleanup.
+Cold warmups are recorded separately. Token-count mismatch fails the comparison;
+it must not be reported as a throughput pass. Results and the waived soak are in
+`docs/reports/2026-10-01-deploy-readiness.md`.

@@ -76,7 +76,7 @@ Estes são aplicados em código e verificados por testes, não apenas documentad
 | Nunca há fallback para nuvem | Nenhum upstream remoto é alcançável; allowlists de rota e modelo; regras de firewall bloqueando saída |
 | Logs contêm apenas metadados | ID da requisição, método, rota sanitizada, status, latência. Nunca prompts, corpos, headers ou tokens |
 | Descompressão limitada | Teto de 16 MiB na rede / 64 MiB decodificado / expansão 100:1 em identity, gzip e zstd |
-| Concorrência limitada | Uma inferência ativa, quatro na fila, limite de espera de 120 s e então `429` com `Retry-After` |
+| Concorrência limitada | Por padrão, uma inferência ativa, até 16 na fila e 120 s de espera; excesso ou timeout retorna `429` com `Retry-After`. A leitura limitada do corpo ocorre antes da espera e também tem limite de concorrência |
 | Acesso direto ao modelo é autenticado | O `llama-server` exige o arquivo de chave do router; inferência sem credencial na porta dinâmica retorna `401` |
 | Nenhum segredo em linha de comando | O supervisor injeta em uma allowlist de ambiente local ao processo |
 | Nada sensível no Git | A CI rejeita binários e pesos rastreados; o Gitleaks varre o histórico completo |
@@ -87,7 +87,7 @@ A separação de privilégio é deliberada em todas as camadas: o control plane 
 
 | Executável | Função | Exposição |
 |---|---|---|
-| `cia-edge` | Data e control plane: auth, validação, fila, streaming | `127.0.0.1:8090` / `:8091` |
+| `cia-edge` | Data e control plane: auth, validação, fila, streaming | `127.0.0.1:18090` / `:18091` (canary); `:8090` / `:8091` (final) |
 | `cia-supervisor` | Contenção em Job Object, backoff exponencial de reinício de 1 a 15 min | Ação de tarefa agendada |
 | `cia-tray` | IA Local: ícone e flyout nativos no design do monitor — inicia e encerra o servidor, status, carregar/trocar/descarregar, abre o painel e os clientes | Área de notificação; única entrada de inicialização |
 | `cia-monitor` | Monitor no navegador — fase da requisição, tokens/s, GPU, RAM, commit; carregar/descarregar modelo com confirmação nativa | `127.0.0.1:18095` (canary) / `:8095` (final) |
@@ -95,19 +95,24 @@ A separação de privilégio é deliberada em todas as camadas: o control plane 
 | `cia-mcp` | MCP operacional somente leitura (5 ferramentas sem efeito colateral) | stdio do harness |
 | `cia-mcp-inference` | Uma ferramenta de delegação sem estado, só texto, para harnesses SOTA | stdio do harness |
 | `cia-mcp-admin` | MCP de administração de ciclo de vida | **Não registrado por padrão** |
+| `cia-mcp-smoke` | Teste ao vivo do `cia-mcp-inference` instalado: handshake MCP, superfície de uma ferramenta só, marcador sintético exato; relatório apenas com metadados | Operador; servidor MCP iniciado como filho por stdio |
 | `cia-manifest` | Validação por JSON Schema do manifesto versionado de modelos | Operador / CI |
+| `cia-fork-gate` | Gate de proveniência: decide se um commit pinado do `buun-llama-cpp` pode ser compilado e adotado como runtime agentic do Qwen3.8; não carrega modelo, não abre porta, não acessa a rede | Operador, via `Build-V2ForkRuntime.ps1` |
+| `cia-console` | Console WebView2 da ADR 0018, congelado pela [ADR 0019](docs/adr/0019-browser-monitor.md): código mantido no repositório, sem desenvolvimento nem deploy | Não implantado |
 
 ## Práticas de engenharia
 
-**Testes.** 103 funções de teste, ~3,5 mil linhas de código de teste contra ~8,7 mil linhas de Go de produção — uma **razão teste/código de ~40%**. A cobertura está concentrada onde importa: manipulação de credenciais, limites de decodificação de corpo, adaptação de protocolo, validação de configuração e caminhos negativos de autorização. Os testes de contrato verificam os invariantes de segurança acima em vez de reafirmar a implementação.
+**Testes.** A suíte Go cobre credenciais, limites de corpos, fila, cancelamento, capacidades do modelo, adaptação de protocolos e caminhos negativos de autorização. Testes de transporte executam pipes descartáveis no Windows. O monitor ativo tem testes próprios de DOM; a suíte React cobre o console preservado pela ADR 0019. Execute `go test ./cmd/... ./internal/...` e, em `frontend`, `npm test` e `npm run test:monitor`; contagens e cobertura devem ser obtidas da execução atual.
 
-**CI.** Quatro jobs a cada push: parsing de PowerShell e validação de config de harness; formatação/vet/[Staticcheck](https://staticcheck.dev/)/[govulncheck](https://go.dev/blog/govulncheck) de Go com artefato [SBOM CycloneDX](https://cyclonedx.org/); uma execução separada do detector de corrida sobre o núcleo portável; e uma varredura de segredos com [Gitleaks](https://github.com/gitleaks/gitleaks) sobre o histórico completo. Um passo dedicado quebra o build se um `.gguf`, `.safetensors`, `.exe` ou arquivo compactado for rastreado.
+**CI.** Os jobs em [ci.yml](.github/workflows/ci.yml) validam PowerShell e harnesses; Go com formatação/vet/[Staticcheck](https://staticcheck.dev/)/[govulncheck](https://go.dev/blog/govulncheck) e [SBOM CycloneDX](https://cyclonedx.org/); corridas no núcleo portável; proveniência do fork; segredos com [Gitleaks](https://github.com/gitleaks/gitleaks); frontend; e qualidade do frontend. Um passo dedicado quebra o build se um `.gguf`, `.safetensors`, `.exe` ou arquivo compactado for rastreado.
 
-**Registros de decisão.** Nove [ADRs](docs/adr/) capturam o *porquê* por trás da arquitetura — a separação de edge fino, a autonomia fail-closed, o gate de manifesto/promoção, painel nativo em vez de UI web, a fronteira de ACL para artefatos externos, e o offload parcial de pesos com cache de contexto em RAM para modelos híbridos.
+**Registros de decisão.** As [ADRs](docs/adr/) documentam o *porquê* da arquitetura, incluindo admissão, manifesto/promoção, segurança de artefatos, offload, monitor no navegador e instância local do Claude. Consulte os registros atuais para distinguir componentes ativos de componentes mantidos para compatibilidade.
 
-**Reprodutibilidade.** Módulos diretos e transitivos são pinados, e o `go.mod` fixa um piso de toolchain no nível de patch (`go 1.26.5`) em vez de minor — a CI resolve a versão do Go a partir desse arquivo, então um piso desatualizado significaria compilar e distribuir contra uma biblioteca padrão com advisories conhecidos. O deploy nunca copia do worktree: candidatos a release são compilados numa área de staging, revisados por SHA-256, e então instalados atomicamente num diretório protegido.
+**Reprodutibilidade.** Módulos diretos e transitivos são pinados, e [go.mod](go.mod) fixa o piso da toolchain em `go 1.26.6`. A CI resolve a versão de Go a partir desse arquivo. O deploy nunca copia do worktree: candidatos a release são compilados numa área de staging, revisados por SHA-256, e então instalados atomicamente num diretório protegido.
 
-**Operações preview-first.** Cada um dos 47 scripts PowerShell de deploy é somente leitura a menos que um switch `-Apply` explícito seja fornecido. Mudanças de firewall e ACL exigem adicionalmente um shell elevado e gravam um registro SDDL de recuperação antes da alteração.
+**Operações preview-first.** Os scripts PowerShell de deploy em [scripts/v2](scripts/v2/) fazem preview por padrão; alterações exigem `-Apply` explícito, e os launchers Start-V2 só iniciam um processo com `-Run`. Mudanças de firewall e ACL exigem adicionalmente um shell elevado e gravam um registro SDDL de recuperação antes da alteração. O `New-V2ClientCatalogs.ps1` não é um script de deploy: ele regrava diretamente os catálogos de clientes rastreados.
+
+**Capacidades qualificadas.** O edge verifica a rota e os recursos pedidos contra `capabilities` do modelo antes de ocupar o slot de inferência. Nas rotas OpenAI (`/v1/chat/completions`, `/v1/responses`), requisições que exigem Responses, streaming, ferramentas, saída estruturada ou reasoning não qualificados retornam `400 unsupported_feature`. Em `/v1/messages`, chat ou streaming não qualificados, uma escolha obrigatória de ferramenta ou um histórico de ferramentas retornam `invalid_request_error`, e definições opcionais de ferramenta são omitidas para um modelo sem function calling. A existência de uma rota no edge não qualifica os modelos do manifesto. No adaptador Anthropic, escolhas explícitas de ferramenta são preservadas ou recusadas; um stream interrompido emite erro em vez de conclusão normal.
 
 ## Gate de promoção de modelo
 
@@ -125,14 +130,18 @@ candidate ──▶ qualified ──▶ enabled ──▶ retired
 
 **Canary v2. A promoção para produção está intencionalmente bloqueada.** O edge em Go, os servidores MCP, o manifesto, o router de ciclo de vida, o auxiliar de credenciais, o supervisor, o painel do operador, os scripts de deploy, os testes e a documentação estão implementados e passando. O que passou na validação de canary: Responses nativo, streaming SSE real, Chat Completions, zstd, function calling, estouro de fila, cancelamento, TTL/unload, descoberta MCP, reinício de router/edge e contenção por Job Object. O overhead p95 do edge foi medido dentro do ruído e abaixo do gate de 50 ms.
 
-Dois gates medidos bloqueiam o cutover, e nenhum dos dois foi contornado com conversa:
+A revisão de 2026-10-01 corrigiu os launchers, os contratos de protocolo e a
+admissão de memória durante trocas de modelo. O Qwen Agent concluiu uma sessão
+real do Codex que corrigiu um fixture Go e executou seus testes, preservando os
+testes originais. Deep e Agent passaram nos contratos nativos de Responses e
+ferramentas; Gemma passou em Responses simples e continua sem ferramentas
+qualificadas. A revalidação física do Huge e a qualificação/publicação dos
+artefatos para produção permanecem pendentes. Resultados, limites e exceções
+estão na [revisão de prontidão](docs/reports/2026-10-01-deploy-readiness.md).
 
-1. **Qualificação do modelo.** Uma sessão real do Codex corrigiu um fixture Go e fez `go test ./...` passar — mas o modelo candidato não encerrou a sessão, repetindo turnos de ferramenta até o timeout de cinco minutos.
-2. **Envelope de recursos.** A folga de memória comprometida não satisfaz o pico exigido mais a reserva de 4 GiB em contexto de 128k.
+O responsável pelo projeto dispensou explicitamente o soak de 72 horas nesta revisão de 2026-10-01. O resultado é registrado como `waived` (dispensado), sem evidência de estabilidade prolongada. Os quatro modelos ativos são o conjunto definitivo do projeto; as capacidades declaradas e as reservas de memória continuam exigindo evidência e validação. Veja a decisão em [Promoção de modelo](docs/MODEL_PROMOTION.md).
 
-O soak de 72 horas / 500 requisições / 20 ciclos não foi executado. Registrar isso no README em vez de publicar assim mesmo *é* a posição de engenharia: um gate de promoção que cede para o próprio autor não é um gate.
-
-## Perfis Qwen3.8
+## Perfis Qwen
 
 Três perfis, três finalidades. Selecione pelo id do modelo; trocar de perfil é
 uma troca de modelo no llama-swap, não uma reconfiguração.
@@ -165,8 +174,13 @@ milhares de tokens em system prompt, definições de ferramentas, arquivos, logs
 histórico antes de o problema chegar.
 
 Detalhes, evidência medida e limitações conhecidas: [TUNING §1.8](docs/TUNING.md)
-e [RUNBOOK §13](docs/RUNBOOK.md). Retenção em contexto longo ainda **não** foi
-validada para Agent e Huge; ambos são `candidate` em `canary` por isso.
+e [RUNBOOK §13](docs/RUNBOOK.md). Há medições de retenção para o Agent na
+[campanha de qualificação](docs/reports/QUALIFICATION-CAMPAIGN-20260823.md) de
+2026-08-23 e para o Huge atual (Qwen3.6) no
+[relatório de roster](docs/reports/FINAL-ROSTER-20260825.md) de 2026-08-25; a
+linha Huge da campanha é o perfil Qwen3.8 denso aposentado. A qualificação
+completa dos artefatos e da configuração atual continua registrada separadamente
+da escolha dos quatro modelos definitivos.
 
 ## Baseline de hardware
 
@@ -204,7 +218,7 @@ Os scripts fazem preview por padrão; mutação é sempre uma invocação separa
 
 O `cia-monitor` serve uma página em loopback que mostra, a cada segundo, o que o servidor está fazendo: a fase da requisição (na fila, carregando o modelo, lendo o prompt, gerando), tokens por segundo, tempo até o primeiro token, reaproveitamento de cache e ocupação do contexto, além de GPU, VRAM, memória compartilhada, CPU, RAM, commit e disco.
 
-Não depende do edge para enxergar a máquina: mostra a energia que a GPU consome (watts, temperatura, clocks e energia acumulada na sessão), quais processos usam a GPU e quais outras ferramentas estão servindo um modelo — LM Studio / Bionic, Ollama, llama.cpp avulso e servidores compatíveis com OpenAI —, com modelo, quantização e janela de contexto quando a API da ferramenta informa, e sinaliza atividade mesmo que o edge esteja fora do ar (ADR 0020). Para o tráfego que passa pelo edge a velocidade por requisição vem da telemetria dele; para servidores llama.cpp de outras ferramentas (LM Studio / Bionic, ou um `llama-server` iniciado com `--log-file`) o monitor lê os contadores que o próprio servidor escreve no log — prompt, cache, saída, tokens por segundo, tempo até o primeiro token — sem ler texto, e mostra tudo na mesma tabela, com a coluna "via" dizendo quem atendeu. Ferramentas sem log por requisição (Ollama, por exemplo) aparecem como "externa" (duração, pico de GPU e de potência, energia da placa) e o cartão da fonte explica por quê. Para um modelo que outra ferramenta carregou, cada fonte tem um botão "Encerrar processo do modelo", que pede confirmação numa janela do Windows.
+Não depende do edge para enxergar a máquina: mostra a energia que a GPU consome (watts, temperatura, clocks e energia acumulada na sessão), quais processos usam a GPU e quais outras ferramentas estão servindo um modelo — LM Studio / Bionic, Ollama, llama.cpp avulso e servidores compatíveis com OpenAI —, com modelo, quantização e janela de contexto quando a API da ferramenta informa, e sinaliza atividade mesmo que o edge esteja fora do ar (ADR 0020). Para o tráfego que passa pelo edge a velocidade por requisição vem da telemetria dele; para servidores llama.cpp de outras ferramentas (LM Studio / Bionic, ou um `llama-server` iniciado com `--log-file`) o monitor lê os contadores que o próprio servidor escreve no log — prompt, cache, saída, tokens por segundo, tempo até o primeiro token — sem ler texto, e mostra tudo na mesma tabela, com a origem que atendeu (o edge ou a ferramenta) indicada sob o nome de cada modelo. Ferramentas sem log por requisição (Ollama, por exemplo) aparecem como "externa" (duração, pico de GPU e de potência, energia da placa) e o cartão da fonte explica por quê. Para um modelo que outra ferramenta carregou, cada fonte tem um botão "Encerrar processo do modelo", que pede confirmação numa janela do Windows.
 
 `/api/snapshot` inclui `requests[]`, uma lista limitada aos registros recentes com métricas por requisição de ambas as origens, e `coverage`, que distingue fontes externas medidas das que mostram apenas atividade. Cada registro indica de onde veio cada número em `measurements`; prompt e cache calculados do log e velocidades estimadas são identificados, e valores ausentes continuam `null`. Essa cobertura se refere às fontes detectadas: uma ferramenta que não passa pelo edge nem publica métricas por resposta ou log não permite contagem exata apenas pela GPU.
 
@@ -223,15 +237,29 @@ Os templates de integração de harness ficam em [`integrations/`](integrations/
 ## Mapa do repositório
 
 ```
-cmd/                 9 binários Go (edge, supervisor, tray, servidores MCP, ferramental)
-internal/            edge, credential, panel, supervisor, MCP, trayui, rotatelog
-config/              manifesto versionado de modelos + JSON Schema (fonte da verdade)
-scripts/v2/          47 scripts PowerShell de deploy, preview-first
-integrations/        templates de perfil para Codex e OpenCode (sem segredos)
-docs/                arquitetura, threat model, runbook, benchmarks, promoção, tuning, 9 ADRs
+cmd/                 um diretório por executável Go (edge, supervisor, tray, monitor, servidores MCP,
+                     ferramental, console congelado)
+internal/            pacotes Go: edge, adminpipe, credential, supervisor, monitor, trayui + panel,
+                     servidores MCP, claudedesktop, forkgate, manifestvalidator, rotatelog
+config/              manifesto versionado de modelos + JSON Schema (fonte da verdade), template do
+                     llama-swap, referência de configurações do edge (nenhum programa a lê),
+                     procedimento de override de chat template (nenhum em uso)
+scripts/v2/          scripts PowerShell de deploy (preview-first; -Apply para alterar, -Run nos
+                     launchers Start-V2), drivers de qualificação e medição, gerador de catálogos
+                     de clientes (grava direto); eval/ em Python
+scripts/             ferramental por perfil, em sua maioria guiado por model-test-matrix.json:
+                     downloads, llama-bench e benchmark de chat, smoke, avaliações de qualidade e
+                     stress, launcher avulso do llama-server e listagem de dispositivos,
+                     sincronização de catálogos Codex/Unsloth, auxiliares do Unsloth
+integrations/        launchers e templates de perfil para Codex, OpenCode e Unsloth; notas de
+                     registro da ponte MCP de inferência (sem segredos)
+frontend/            console React congelado pela ADR 0019 + lint e testes de DOM do monitor ativo
+docs/                arquitetura, threat model, runbook, benchmarks, promoção, tuning, Claude Desktop,
+                     frontend, ADRs, relatórios
 incident-reports/    registro sanitizado da exposição de credencial da v1
-benchmarks/          evidência registrada de benchmark de modelos
-control/             painel Python legado da v1 — apenas evidência de migração, nunca alvo de rollback
+benchmarks/          evidência registrada de benchmark e qualificação de modelos
+assets/              ícone dos atalhos da v1; sem referência no código atual
+.github/workflows/   CI e release
 ```
 
 ## Documentação
@@ -240,13 +268,16 @@ A documentação longa é escrita em inglês.
 
 | Documento | Conteúdo |
 |---|---|
-| [Arquitetura](docs/ARCHITECTURE.md) | Contratos de componente, máquina de estados, comportamento em falha, 10 invariantes |
-| [Threat model](docs/THREAT_MODEL.md) | Ativos, 7 fronteiras de confiança, matriz ameaça/controle/verificação, riscos residuais |
+| [Arquitetura](docs/ARCHITECTURE.md) | Contratos de componente, máquina de estados, comportamento em falha, invariantes arquiteturais |
+| [Threat model](docs/THREAT_MODEL.md) | Ativos, fronteiras de confiança, matriz ameaça/controle/verificação, riscos residuais |
 | [Runbook](docs/RUNBOOK.md) | Procedimentos operacionais e fronteiras de rollback |
 | [Promoção de modelo](docs/MODEL_PROMOTION.md) | Critérios de qualificação e aplicação do gate |
 | [Benchmarks](docs/BENCHMARKS.md) | Metodologia de medição e formato de evidência |
 | [Tuning](docs/TUNING.md) | Diagnóstico de gargalo e teto de banda de memória |
-| [ADRs](docs/adr/) | Nove registros de decisão arquitetural |
+| [Claude Desktop](docs/CLAUDE_DESKTOP.md) | Contrato do Claude Desktop como cliente de inferência de terceiros; instância local ao lado da conectada |
+| [Frontend](docs/FRONTEND.md) | Referência do console React congelado: camadas, regras de importação, testes |
+| [ADRs](docs/adr/) | Registros de decisão arquitetural |
+| [Relatórios](docs/reports/) | Validações de canary, campanhas de qualificação, auditorias e revisões de prontidão |
 | [Política de segurança](SECURITY.md) | Processo de reporte |
 
 ## Licença

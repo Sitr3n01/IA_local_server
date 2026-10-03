@@ -30,7 +30,7 @@ rule and one string**:
 | Commit | `f3d8f0a`, 12/12 |
 
 `ReflectionScanV2` is defined at
-[fixture_corpus.py:43](../../scripts/v2/eval/fixture_corpus.py:43). The retention
+[fixture_corpus.py:43](../../scripts/v2/eval/fixture_corpus.py#L43). The retention
 suite manufactures credential-shaped needles so a long-context probe has an
 answer the model cannot guess, and the `negative_memory` family asks the model
 *not* to name that particular one. Every hit is a capture of the model doing

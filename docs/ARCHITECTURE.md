@@ -355,10 +355,11 @@ independent places: `provider.max_loaded_models` and `parallel` are pinned to
 `1` by the manifest schema, llama-swap applies `concurrencyLimit: 1`, and the
 edge gate admits one active request with a bounded queue.
 
-Raising `CIA_EDGE_MAX_ACTIVE` alone does **not** make the system concurrent. It
-widens the edge's admission window in front of a serialized runtime, which
-converts queue waiting into upstream contention and makes the queue metrics
-misleading without adding throughput.
+The edge rejects `CIA_EDGE_MAX_ACTIVE` values other than `1`. A model swap
+unloads the outgoing model and rechecks actual host memory before forwarding
+the incoming request; another active request must never overlap that unload.
+The resource peaks disclosed as reclaimable in status are projections, and do
+not replace this admission measurement after the unload.
 
 Real concurrency would require a coordinated change across: llama-server slots
 and `--parallel`; llama-swap's concurrency limit; the edge gate; per-slot KV

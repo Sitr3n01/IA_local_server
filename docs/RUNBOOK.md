@@ -391,7 +391,7 @@ does not read them (ADR 0013).
 
 ## 10. Promotion and final cutover
 
-Complete the checklist in `MODEL_PROMOTION.md` and the soak in `BENCHMARKS.md`. Only then change the model to `qualified`/`enabled` and add `final` to its deployments.
+Complete the checklist in `MODEL_PROMOTION.md` and applicable acceptance gates in `BENCHMARKS.md`. The owner waived the 72-hour soak for the four definitive models on 2026-10-01; record the exception, without calling it a pass. Only supported evidence permits changing the model to `qualified`/`enabled` and adding `final` to its deployments.
 
 ### 10.1 Publish the production artifacts
 
