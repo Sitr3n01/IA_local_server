@@ -122,11 +122,11 @@ func TestBuildViewClaudeNote(t *testing.T) {
 		t.Fatalf("note = %q", note)
 	}
 	snapshot.ClaudeAvailable = true
-	if note := BuildView(ViewState{Loaded: true, Snapshot: snapshot}).ClaudeNote; !strings.Contains(note, "gateway") {
+	if note := BuildView(ViewState{Loaded: true, Snapshot: snapshot}).ClaudeNote; !strings.Contains(note, "oficial disponível") || !strings.Contains(note, "gateway local indisponível") {
 		t.Fatalf("note = %q", note)
 	}
 	snapshot.ClaudeGatewayOK = true
-	if note := BuildView(ViewState{Loaded: true, Snapshot: snapshot}).ClaudeNote; !strings.Contains(note, "ao lado") {
+	if note := BuildView(ViewState{Loaded: true, Snapshot: snapshot}).ClaudeNote; !strings.Contains(note, "Anthropic") || !strings.Contains(note, "servidor") {
 		t.Fatalf("note = %q", note)
 	}
 }

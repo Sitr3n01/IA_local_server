@@ -26,6 +26,7 @@ const (
 	zoneStartServer
 	zoneModelAction
 	zoneUnload
+	zoneClaudeAnthropic
 	zoneClaudeLocal
 	zonePanel
 	zoneShutdown
@@ -1243,12 +1244,12 @@ func (f *flyout) layout(p *painter) float32 {
 	}
 	y += 20
 
-	// Claude Desktop: only the local instance. The signed-in one opens from
-	// the Start menu as always.
+	// Each option opens its own instance; only the gateway needs the server.
 	p.text("Claude Desktop", x0, y, iw, 18, textStrong, pal.InkSoft, dtLeft|dtVCenter|dtSingleLine)
 	y += 18 + 8
 	f.buttonRow(p, x0, y, iw, []rowButton{
-		{zoneClaudeLocal, "Claude Local", glyphChat, buttonSecondary, v.Policy.ClaudeLocal},
+		{zoneClaudeAnthropic, "Claude oficial", glyphChat, buttonSecondary, v.Policy.ClaudeAnthropic},
+		{zoneClaudeLocal, "Gateway local", glyphChat, buttonSecondary, v.Policy.ClaudeLocal},
 	})
 	y += 36 + 4
 	p.text(v.ClaudeNote, x0, y, iw, 17, textSmall, pal.InkMuted, dtLeft|dtVCenter|dtSingleLine|dtEndEllipse)

@@ -111,3 +111,22 @@ func TestEvaluateActionsClaudeLocalFollowsTheGatewayNotTheQueue(t *testing.T) {
 		t.Fatalf("Claude actions without Claude Desktop: %+v", policy)
 	}
 }
+
+func TestEvaluateActionsClaudeAnthropicDoesNotDependOnTheLocalServer(t *testing.T) {
+	snapshot := policySnapshot()
+	snapshot.ClaudeAvailable = true
+	snapshot.ClaudeGatewayOK = false
+	snapshot.EdgeReachable, snapshot.StatusAvailable, snapshot.UpstreamReady, snapshot.CapacityOK = false, false, false, false
+	snapshot.Active, snapshot.Queued = 1, 3
+	policy := EvaluateActions(snapshot, false)
+	if !policy.ClaudeAnthropic || policy.ClaudeLocal {
+		t.Fatalf("official Claude must remain available with the local server down: %+v", policy)
+	}
+	if policy := EvaluateActions(snapshot, true); policy.ClaudeAnthropic {
+		t.Fatalf("Claude instance selection overlapped another action: %+v", policy)
+	}
+	snapshot.ClaudeAvailable = false
+	if policy := EvaluateActions(snapshot, false); policy.ClaudeAnthropic {
+		t.Fatalf("official Claude offered without the installed application: %+v", policy)
+	}
+}

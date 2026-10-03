@@ -11,6 +11,7 @@ type ActionPolicy struct {
 	Load            bool
 	Switch          bool
 	Unload          bool
+	ClaudeAnthropic bool
 	ClaudeLocal     bool
 	StartServer     bool
 	OpenPanel       bool
@@ -45,6 +46,7 @@ func EvaluateActions(snapshot Snapshot, busy bool) ActionPolicy {
 
 	// Opening Claude Local stops no process and interrupts no request, so it
 	// does not wait for the queue to drain.
+	policy.ClaudeAnthropic = snapshot.ClaudeAvailable && !busy
 	policy.ClaudeLocal = snapshot.ClaudeAvailable && !busy && snapshot.ClaudeGatewayOK
 
 	policy.StartServer = !busy && !snapshot.EdgeReachable

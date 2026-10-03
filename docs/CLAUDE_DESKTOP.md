@@ -47,11 +47,23 @@ lock, so a 1P and a 3P instance hold different locks and coexist. Measured on
 while a 3P instance started next to it, discovered the gateway's models and
 selected the public model through its opaque alias.
 
-The tray's flyout has one Claude button, `Claude Local`; the signed-in
-instance opens from the Start menu as always (`cia-tray -claude-open` still
-foregrounds it from a script). `Claude Local` is live when Desktop was discovered and an authenticated `GET /v1/models` with
+The tray's flyout offers `Claude oficial` and `Gateway local`. The official
+option opens or foregrounds the signed-in Anthropic instance independently of
+the local server. The gateway option is live when Desktop was discovered and an authenticated `GET /v1/models` with
 the `claude-gateway` credential succeeds. It does not wait for the queue to
 drain, because it interrupts nothing.
+
+`New-V2ClaudeShortcuts.ps1 -Apply` creates `Claude Local` on the current user's
+Desktop and under `IA Local` in the Start menu. It calls the installed tray's
+existing `-claude-local` action and uses the installed Claude package's original
+logo, copied unchanged into a content-named per-user icon file. After saving
+the shortcuts, the script explicitly notifies the Windows Shell to refresh
+them and leaves an identical icon file untouched on reapplication. The native `Claude`
+app entry remains the Anthropic option: the local launch restores the selector
+to `1p`. No tray binary replacement is needed. The script removes earlier
+`Claude oficial` and `Claude Gateway` shortcuts only when they target these
+known CIA actions, saving a per-user backup before removal. Without `-Apply`,
+it previews the changes and writes nothing.
 
 ```powershell
 Set-Location C:\IA\IA_local_server

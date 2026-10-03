@@ -57,6 +57,9 @@ type Controller interface {
 	LoadSelected(context.Context) error
 	SwitchSelected(context.Context) error
 	UnloadActive(context.Context) error
+	// LaunchClaudeDesktop opens the signed-in Anthropic instance without
+	// requiring the local server or reading its gateway credential.
+	LaunchClaudeDesktop(context.Context) error
 	// OpenClaudeLocal shows the Claude Desktop instance that uses this
 	// server's gateway, beside the signed-in one. It stops no Desktop process.
 	OpenClaudeLocal(context.Context) error

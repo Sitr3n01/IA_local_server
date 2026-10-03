@@ -193,9 +193,9 @@ func BuildView(state ViewState) View {
 	case !snapshot.ClaudeAvailable:
 		view.ClaudeNote = "Claude Desktop não encontrado"
 	case !snapshot.ClaudeGatewayOK:
-		view.ClaudeNote = "O Claude Local espera o gateway deste servidor responder"
+		view.ClaudeNote = "Claude oficial disponível; gateway local indisponível"
 	default:
-		view.ClaudeNote = "O Claude Local abre ao lado do Claude, neste servidor"
+		view.ClaudeNote = "Conta Anthropic ou modelos deste servidor"
 	}
 
 	view.Tooltip = "IA Local · " + view.Pill

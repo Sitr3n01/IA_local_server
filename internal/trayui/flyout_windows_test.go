@@ -130,8 +130,9 @@ func TestFlyoutRendersEveryStateInsideItsBounds(t *testing.T) {
 func checkZones(t *testing.T, f *flyout, width, height int32) {
 	t.Helper()
 	labels := map[zoneID]string{
-		zoneClaudeLocal: "Claude Local",
-		zonePanel:       "Abrir painel", zoneShutdown: "Encerrar", zoneUnload: "Descarregar",
+		zoneClaudeAnthropic: "Claude oficial",
+		zoneClaudeLocal:     "Gateway local",
+		zonePanel:           "Abrir painel", zoneShutdown: "Encerrar", zoneUnload: "Descarregar",
 		zoneStartServer: "Iniciar o servidor", zoneShutdownConfirm: "Encerrar",
 	}
 	if f.view.ModelAction == ModelActionSwitch {
@@ -157,6 +158,36 @@ func checkZones(t *testing.T, f *flyout, width, height int32) {
 				t.Errorf("live zones %d and %d overlap", z.id, other.id)
 			}
 		}
+	}
+}
+
+func TestFlyoutOffersOfficialClaudeWhenTheGatewayIsDown(t *testing.T) {
+	if err := startGDIPlus(); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := viewSnapshot()
+	snapshot.ClaudeAvailable = true
+	snapshot.ClaudeGatewayOK = false
+	snapshot.EdgeReachable, snapshot.StatusAvailable, snapshot.UpstreamReady = false, false, false
+	f := newRenderer()
+	defer f.destroy()
+	f.palette = LightPalette
+	f.setScale(96)
+	f.view = BuildView(ViewState{Loaded: true, Snapshot: snapshot})
+	f.contentH = f.measureHeight()
+	f.viewH = f.contentH
+	renderPixels(t, f, int32(flyoutWidth), int32(math.Ceil(float64(f.contentH))))
+	wanted := map[zoneID]bool{zoneClaudeAnthropic: true, zoneClaudeLocal: false}
+	for _, z := range f.zones {
+		if enabled, ok := wanted[z.id]; ok {
+			if z.enabled != enabled {
+				t.Errorf("Claude option %d enabled=%v, want %v", z.id, z.enabled, enabled)
+			}
+			delete(wanted, z.id)
+		}
+	}
+	if len(wanted) != 0 {
+		t.Fatalf("missing Claude options: %v", wanted)
 	}
 }
 

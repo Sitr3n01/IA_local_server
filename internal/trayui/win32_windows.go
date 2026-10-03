@@ -872,6 +872,10 @@ func (a *app) activate(id zoneID) {
 		if policy.Unload {
 			a.startAction("Descarregando o modelo", "Descarregar o modelo", "Modelo descarregado.", a.controller.UnloadActive, false)
 		}
+	case zoneClaudeAnthropic:
+		if policy.ClaudeAnthropic {
+			a.startAction("Abrindo o Claude oficial", "Abrir o Claude oficial", "Claude oficial aberto.", a.controller.LaunchClaudeDesktop, false)
+		}
 	case zoneClaudeLocal:
 		// An action, not a launch: it may load the model Claude Local's
 		// health check needs first, which takes a while to show.

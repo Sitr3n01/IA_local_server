@@ -45,6 +45,14 @@ own providers, reaching this server only when asked through `/local`.
   happened. When a 3P instance already runs, it only foregrounds it. `Claude`
   returns a leftover `3p` selector to `1p` and foregrounds or starts the
   signed-in instance.
+- Amended 2026-10-02: the flyout explicitly offers `Claude oficial` and
+  `Gateway local`. The official option remains available when the local
+  server is offline; it opens the signed-in instance and resets a leftover
+  selector to `1p`. Windows keeps its native `Claude` app entry for Anthropic;
+  the only added option is `Claude Local`, on the Desktop and in the Start
+  menu, calling the existing `-claude-local` action with the original Claude
+  logo. The shortcut generator backs up and removes its earlier duplicate
+  `Claude oficial` and `Claude Gateway` links without modifying the native app.
 - Before opening, `Claude Local` loads the first published model when no
   model is loaded: Desktop's start-up health check sends a one-token request
   to it with a ten-second budget, and a cold load takes about twenty.
