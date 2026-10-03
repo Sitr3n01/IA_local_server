@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
@@ -158,9 +159,19 @@ func (h *handler) serveAction(w http.ResponseWriter, r *http.Request) {
 		Model  string `json:"model"`
 		Source string `json:"source"`
 	}
-	decoder := json.NewDecoder(io.LimitReader(r.Body, maxActionBody))
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxActionBody+1))
+	if err != nil || len(body) > maxActionBody {
+		actionFailure(w, http.StatusBadRequest, "invalid_request")
+		return
+	}
+	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&request); err != nil || decoder.More() {
+	if err := decoder.Decode(&request); err != nil {
+		actionFailure(w, http.StatusBadRequest, "invalid_request")
+		return
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
 		actionFailure(w, http.StatusBadRequest, "invalid_request")
 		return
 	}

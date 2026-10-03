@@ -320,6 +320,9 @@ func TestActionRejectsMalformedBodies(t *testing.T) {
 	for name, body := range map[string]string{
 		"an unknown field":  `{"action":"switch","model":"huge","force":true}`,
 		"trailing data":     `{"action":"switch","model":"huge"} {"action":"unload","model":"huge"}`,
+		"trailing brace":    `{"action":"switch","model":"huge"}}`,
+		"trailing bracket":  `{"action":"switch","model":"huge"}]`,
+		"oversized suffix":  `{"action":"switch","model":"huge"}` + strings.Repeat(" ", maxActionBody*2) + "x",
 		"an array":          `[]`,
 		"not JSON":          `action=switch&model=huge`,
 		"an oversized body": `{"action":"switch","model":"` + strings.Repeat("h", 2048) + `"}`,

@@ -92,6 +92,8 @@ func TestServeConnRefusesMalformedOversizedAndUnknownRequests(t *testing.T) {
 		"not an object":             {`"load"` + "\n", "invalid_request"},
 		"truncated json":            {`{"operation":` + "\n", "invalid_request"},
 		"two objects on one line":   {`{"operation":"load","model_id":"m"} {"operation":"unload","model_id":"m"}` + "\n", "invalid_request"},
+		"trailing brace":            {`{"operation":"load","model_id":"m"}}` + "\n", "invalid_request"},
+		"trailing bracket":          {`{"operation":"load","model_id":"m"}]` + "\n", "invalid_request"},
 		"empty line":                {"\n", "invalid_request"},
 		"oversized without newline": {strings.Repeat("a", MaxMessageBytes+64), "message_too_large"},
 		"oversized model id":        {`{"operation":"load","model_id":"` + strings.Repeat("m", MaxModelIDBytes+1) + `"}` + "\n", "invalid_request"},
