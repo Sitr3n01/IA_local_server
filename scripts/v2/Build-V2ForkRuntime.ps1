@@ -52,7 +52,7 @@ param(
     [ValidatePattern('^gfx[0-9a-f]+$')]
     [string]$GpuTarget = 'gfx1201',
 
-    [string]$ManifestPath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'config\models.yaml'),
+    [string]$ManifestPath,
 
     [string]$RuntimeId = 'amd-rocm-qwen38-buun',
 
@@ -61,6 +61,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Common.ps1')
+if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
+    $ManifestPath = Join-Path (Get-V2RepoRoot) 'config\models.yaml'
+}
 
 foreach ($moving in @('master', 'main', 'latest', 'head')) {
     if ($Revision.ToLowerInvariant() -eq $moving) {
@@ -77,15 +80,13 @@ $gateReportPath = Join-Path $installDirectory 'fork-gate-report.json'
 # The upstream baseline must survive this untouched. Its artifact path comes from
 # the manifest rather than from a convention, so a future relocation of either
 # runtime cannot make them collide silently.
-if (Test-Path -LiteralPath $ManifestPath -PathType Leaf) {
-    $manifest = Read-V2Manifest -Path $ManifestPath
-    foreach ($existing in @($manifest.runtimes)) {
-        if ($existing.id -eq $RuntimeId) { continue }
-        $existingDirectory = [IO.Path]::GetFullPath((Split-Path -Parent ([string]$existing.artifact.path)))
-        $candidateDirectory = [IO.Path]::GetFullPath($installDirectory)
-        if ([string]::Equals($existingDirectory, $candidateDirectory, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Refusing to build into '$candidateDirectory'; runtime '$($existing.id)' already lives there. The fork is installed alongside the baseline, never over it."
-        }
+$manifest = Read-V2Manifest -Path $ManifestPath
+foreach ($existing in @($manifest.runtimes)) {
+    if ($existing.id -eq $RuntimeId) { continue }
+    $existingDirectory = [IO.Path]::GetFullPath((Split-Path -Parent ([string]$existing.artifact.path)))
+    $candidateDirectory = [IO.Path]::GetFullPath($installDirectory)
+    if ([string]::Equals($existingDirectory, $candidateDirectory, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Refusing to build into '$candidateDirectory'; runtime '$($existing.id)' already lives there. The fork is installed alongside the baseline, never over it."
     }
 }
 

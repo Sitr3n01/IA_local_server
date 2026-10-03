@@ -2,8 +2,8 @@
 param(
     [ValidateSet('Canary', 'Final')]
     [string]$Environment = 'Canary',
-    [string]$ManifestPath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'config\models.yaml'),
-    [string]$SchemaPath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'config\models.schema.json'),
+    [string]$ManifestPath,
+    [string]$SchemaPath,
     [string]$SchemaValidatorPath = 'C:\IA\local-ai-v2\bin\cia-manifest.exe',
     [string]$InstallRoot = 'C:\IA\local-ai-v2',
 	[string]$TargetCodexHome,
@@ -15,6 +15,13 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'Common.ps1')
+$repoRoot = Get-V2RepoRoot
+if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
+    $ManifestPath = Join-Path $repoRoot 'config\models.yaml'
+}
+if ([string]::IsNullOrWhiteSpace($SchemaPath)) {
+    $SchemaPath = Join-Path $repoRoot 'config\models.schema.json'
+}
 
 $expectedInstallRoot = [IO.Path]::GetFullPath('C:\IA\local-ai-v2').TrimEnd([char[]]@('\', '/'))
 $resolvedInstallRoot = [IO.Path]::GetFullPath($InstallRoot).TrimEnd([char[]]@('\', '/'))
@@ -30,7 +37,6 @@ if ($ExpectedPlanSha256 -and $ExpectedPlanSha256 -notmatch '^[A-Fa-f0-9]{64}$') 
 }
 $approvedPlanHash = if ($ExpectedPlanSha256) { $ExpectedPlanSha256.ToUpperInvariant() } else { $null }
 
-$repoRoot = Get-V2RepoRoot
 $resolvedManifest = (Resolve-Path -LiteralPath $ManifestPath -ErrorAction Stop).Path
 $resolvedSchema = (Resolve-Path -LiteralPath $SchemaPath -ErrorAction Stop).Path
 $sourceManifestHashBeforeValidation = (Get-FileHash -LiteralPath $resolvedManifest -Algorithm SHA256).Hash

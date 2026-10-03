@@ -2,8 +2,8 @@
 param(
     [ValidateSet('Canary', 'Final')]
     [string]$Environment = 'Canary',
-    [string]$ManifestPath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'config\models.yaml'),
-    [string]$SchemaPath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'config\models.schema.json'),
+    [string]$ManifestPath,
+    [string]$SchemaPath,
     [string]$SchemaValidatorPath = 'C:\IA\local-ai-v2\bin\cia-manifest.exe',
     [string]$OutputRoot = 'C:\IA\local-ai-v2',
     [switch]$Apply
@@ -11,6 +11,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Common.ps1')
+$repoRoot = Get-V2RepoRoot
+if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
+    $ManifestPath = Join-Path $repoRoot 'config\models.yaml'
+}
+if ([string]::IsNullOrWhiteSpace($SchemaPath)) {
+    $SchemaPath = Join-Path $repoRoot 'config\models.schema.json'
+}
 
 $expectedOutputRoot = [IO.Path]::GetFullPath('C:\IA\local-ai-v2').TrimEnd([char[]]@('\', '/'))
 try {
@@ -27,7 +34,6 @@ if ($Apply -and -not (Test-V2IsAdministrator)) {
     throw "Configuration apply requires an elevated PowerShell because '$OutputRoot\config' and '$OutputRoot\launchers' are protected. Preview remains available without elevation."
 }
 
-$repoRoot = Get-V2RepoRoot
 $resolvedManifestPath = (Resolve-Path -LiteralPath $ManifestPath -ErrorAction Stop).Path
 $resolvedSchemaPath = (Resolve-Path -LiteralPath $SchemaPath -ErrorAction Stop).Path
 $manifestSha256BeforeValidation = (Get-FileHash -LiteralPath $resolvedManifestPath -Algorithm SHA256).Hash

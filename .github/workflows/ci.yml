@@ -37,6 +37,7 @@ jobs:
           }
           ./scripts/v2/Test-V2HarnessConfig.ps1
           ./scripts/v2/Test-V2ConfigGeneration.ps1
+          ./scripts/v2/Test-V2ScriptEntryPoints.ps1
 
       # Pure-Python, no server, no toolchain, sub-second. They guard the
       # qualification generation budget and the tool-argument contract -- the
