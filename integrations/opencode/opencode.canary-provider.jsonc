@@ -16,6 +16,9 @@
                                               "models":  {
                                                              "gemma4-12b-qat-ud-q4xl-256k":  {
                                                                                                  "name":  "Gemma 4 12B QAT | UD-Q4_K_XL | 256k context",
+                                                                                                 "tool_call":  false,
+                                                                                                 "reasoning":  true,
+                                                                                                 "attachment":  false,
                                                                                                  "limit":  {
                                                                                                                "context":  262144,
                                                                                                                "output":  8192
@@ -23,6 +26,9 @@
                                                                                              },
                                                              "qwen38-27b-deep-32k":  {
                                                                                          "name":  "Qwen 3.8 27B | UD-IQ4_XS | 32k context",
+                                                                                         "tool_call":  true,
+                                                                                         "reasoning":  true,
+                                                                                         "attachment":  false,
                                                                                          "limit":  {
                                                                                                        "context":  32768,
                                                                                                        "output":  8192
@@ -30,6 +36,9 @@
                                                                                      },
                                                              "qwen38-27b-agent-128k":  {
                                                                                            "name":  "Qwen 3.8 27B | UD-Q3_K_XL | 128k context",
+                                                                                           "tool_call":  true,
+                                                                                           "reasoning":  true,
+                                                                                           "attachment":  false,
                                                                                            "limit":  {
                                                                                                          "context":  131072,
                                                                                                          "output":  8192
@@ -37,6 +46,9 @@
                                                                                        },
                                                              "qwen36-35b-a3b-huge-256k":  {
                                                                                               "name":  "Qwen 3.6 35B-A3B | UD-Q2_K_XL | 256k context",
+                                                                                              "tool_call":  false,
+                                                                                              "reasoning":  true,
+                                                                                              "attachment":  false,
                                                                                               "limit":  {
                                                                                                             "context":  262144,
                                                                                                             "output":  16384
