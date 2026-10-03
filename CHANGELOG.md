@@ -133,7 +133,7 @@ All notable changes are documented here. This project follows Keep a Changelog c
   reads `1.26.6`, as `go.mod` does, instead of `1.26.5`. Test, CI-job, ADR
   and script counts give way to the commands and files that produce them.
   The repository map drops `control/`, removed with the v1 stack, adds
-  `frontend/`, `scripts/`, `assets/` and `.github/workflows/`, and calls
+  `frontend/`, `scripts/` and `.github/workflows/`, and calls
   `config/edge.sample.yaml` a settings reference that no program reads; the
   documentation table adds Claude Desktop, Frontend and Reports. The
   capability paragraph separates the OpenAI routes (`400
@@ -198,6 +198,8 @@ All notable changes are documented here. This project follows Keep a Changelog c
 
 - `internal/modeloverlay` and its tests, which had no production consumer,
   and `claudedesktop.ProfileFingerprint`, also unused.
+- `assets/ineffa-tray.ico`, the v1 tray-shortcut icon. No code, script,
+  workflow or current shortcut referenced it, so `assets/` is gone too.
 - The flyout's Codex and OpenCode buttons, `panel.Launcher` and its capability
   checks: both harnesses reach this server only through `/local` or the
   manual launcher scripts. `launchers` in a generated panel configuration is

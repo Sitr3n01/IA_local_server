@@ -258,7 +258,6 @@ docs/                architecture, threat model, runbook, benchmarks, promotion,
                      frontend, ADRs, reports
 incident-reports/    sanitized v1 credential-exposure record
 benchmarks/          recorded model benchmark and qualification evidence
-assets/              v1 shortcut icon; not referenced by current code
 .github/workflows/   CI and release
 ```
 

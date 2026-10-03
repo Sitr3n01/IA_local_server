@@ -258,7 +258,6 @@ docs/                arquitetura, threat model, runbook, benchmarks, promoção,
                      frontend, ADRs, relatórios
 incident-reports/    registro sanitizado da exposição de credencial da v1
 benchmarks/          evidência registrada de benchmark e qualificação de modelos
-assets/              ícone dos atalhos da v1; sem referência no código atual
 .github/workflows/   CI e release
 ```
 
