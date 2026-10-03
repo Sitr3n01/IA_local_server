@@ -98,13 +98,12 @@ A separação de privilégio é deliberada em todas as camadas: o control plane 
 | `cia-mcp-smoke` | Teste ao vivo do `cia-mcp-inference` instalado: handshake MCP, superfície de uma ferramenta só, marcador sintético exato; relatório apenas com metadados | Operador; servidor MCP iniciado como filho por stdio |
 | `cia-manifest` | Validação por JSON Schema do manifesto versionado de modelos | Operador / CI |
 | `cia-fork-gate` | Gate de proveniência: decide se um commit pinado do `buun-llama-cpp` pode ser compilado e adotado como runtime agentic do Qwen3.8; não carrega modelo, não abre porta, não acessa a rede | Operador, via `Build-V2ForkRuntime.ps1` |
-| `cia-console` | Console WebView2 da ADR 0018, congelado pela [ADR 0019](docs/adr/0019-browser-monitor.md): código mantido no repositório, sem desenvolvimento nem deploy | Não implantado |
 
 ## Práticas de engenharia
 
-**Testes.** A suíte Go cobre credenciais, limites de corpos, fila, cancelamento, capacidades do modelo, adaptação de protocolos e caminhos negativos de autorização. Testes de transporte executam pipes descartáveis no Windows. O monitor ativo tem testes próprios de DOM; a suíte React cobre o console preservado pela ADR 0019. Execute `go test ./cmd/... ./internal/...` e, em `frontend`, `npm test` e `npm run test:monitor`; contagens e cobertura devem ser obtidas da execução atual.
+**Testes.** A suíte Go cobre credenciais, limites de corpos, fila, cancelamento, capacidades do modelo, adaptação de protocolos e caminhos negativos de autorização. Testes de transporte executam pipes descartáveis no Windows. A página do monitor tem lint e testes próprios de DOM em `frontend/`. Execute `go test ./cmd/... ./internal/...` e, em `frontend`, `npm run lint:monitor` e `npm run test:monitor`; contagens e cobertura devem ser obtidas da execução atual.
 
-**CI.** Os jobs em [ci.yml](.github/workflows/ci.yml) validam PowerShell e harnesses; Go com formatação/vet/[Staticcheck](https://staticcheck.dev/)/[govulncheck](https://go.dev/blog/govulncheck) e [SBOM CycloneDX](https://cyclonedx.org/); corridas no núcleo portável; proveniência do fork; segredos com [Gitleaks](https://github.com/gitleaks/gitleaks); frontend; e qualidade do frontend. Um passo dedicado quebra o build se um `.gguf`, `.safetensors`, `.exe` ou arquivo compactado for rastreado.
+**CI.** Os jobs em [ci.yml](.github/workflows/ci.yml) validam PowerShell e harnesses; Go com formatação/vet/[Staticcheck](https://staticcheck.dev/)/[govulncheck](https://go.dev/blog/govulncheck) e [SBOM CycloneDX](https://cyclonedx.org/); corridas no núcleo portável; proveniência do fork; segredos com [Gitleaks](https://github.com/gitleaks/gitleaks); e lint e testes de DOM da página do monitor. Um passo dedicado quebra o build se um `.gguf`, `.safetensors`, `.exe` ou arquivo compactado for rastreado.
 
 **Registros de decisão.** As [ADRs](docs/adr/) documentam o *porquê* da arquitetura, incluindo admissão, manifesto/promoção, segurança de artefatos, offload, monitor no navegador e instância local do Claude. Consulte os registros atuais para distinguir componentes ativos de componentes mantidos para compatibilidade.
 
@@ -238,7 +237,7 @@ Os templates de integração de harness ficam em [`integrations/`](integrations/
 
 ```
 cmd/                 um diretório por executável Go (edge, supervisor, tray, monitor, servidores MCP,
-                     ferramental, console congelado)
+                     ferramental)
 internal/            pacotes Go: edge, adminpipe, credential, supervisor, monitor, trayui + panel,
                      servidores MCP, claudedesktop, forkgate, manifestvalidator, rotatelog
 config/              manifesto versionado de modelos + JSON Schema (fonte da verdade), template do
@@ -253,9 +252,9 @@ scripts/             ferramental por perfil, em sua maioria guiado por model-tes
                      sincronização de catálogos Codex/Unsloth, auxiliares do Unsloth
 integrations/        launchers e templates de perfil para Codex, OpenCode e Unsloth; notas de
                      registro da ponte MCP de inferência (sem segredos)
-frontend/            console React congelado pela ADR 0019 + lint e testes de DOM do monitor ativo
+frontend/            lint e testes de DOM da página do monitor (Node; nada aqui é compilado ou distribuído)
 docs/                arquitetura, threat model, runbook, benchmarks, promoção, tuning, Claude Desktop,
-                     frontend, ADRs, relatórios
+                     ADRs, relatórios
 incident-reports/    registro sanitizado da exposição de credencial da v1
 benchmarks/          evidência registrada de benchmark e qualificação de modelos
 .github/workflows/   CI e release
@@ -274,7 +273,6 @@ A documentação longa é escrita em inglês.
 | [Benchmarks](docs/BENCHMARKS.md) | Metodologia de medição e formato de evidência |
 | [Tuning](docs/TUNING.md) | Diagnóstico de gargalo e teto de banda de memória |
 | [Claude Desktop](docs/CLAUDE_DESKTOP.md) | Contrato do Claude Desktop como cliente de inferência de terceiros; instância local ao lado da conectada |
-| [Frontend](docs/FRONTEND.md) | Referência do console React congelado: camadas, regras de importação, testes |
 | [ADRs](docs/adr/) | Registros de decisão arquitetural |
 | [Relatórios](docs/reports/) | Validações de canary, campanhas de qualificação, auditorias e revisões de prontidão |
 | [Política de segurança](SECURITY.md) | Processo de reporte |

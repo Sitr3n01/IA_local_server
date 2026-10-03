@@ -98,13 +98,12 @@ The privilege split is deliberate at every layer: the control plane is a separat
 | `cia-mcp-smoke` | Live probe of the installed `cia-mcp-inference`: MCP handshake, single-tool surface, exact synthetic marker; metadata-only report | Operator; launches the MCP server as a stdio child |
 | `cia-manifest` | JSON Schema validation of the versioned model manifest | Operator / CI |
 | `cia-fork-gate` | Provenance gate: decides whether a pinned `buun-llama-cpp` commit may be built and adopted as the Qwen3.8 agentic runtime; never loads a model, opens a port, or reaches the network | Operator, via `Build-V2ForkRuntime.ps1` |
-| `cia-console` | ADR 0018's WebView2 console, frozen by [ADR 0019](docs/adr/0019-browser-monitor.md): code kept in the tree, not developed or deployed | Not deployed |
 
 ## Engineering practices
 
-**Testing.** The Go suite covers credentials, body limits, queueing, cancellation, model capabilities, protocol adaptation, and negative authorization paths. Transport tests use disposable Windows pipes. The active monitor has its own DOM tests; the React suite covers the console retained by ADR 0019. Run `go test ./cmd/... ./internal/...` and, in `frontend`, `npm test` and `npm run test:monitor`; obtain counts and coverage from the current run.
+**Testing.** The Go suite covers credentials, body limits, queueing, cancellation, model capabilities, protocol adaptation, and negative authorization paths. Transport tests use disposable Windows pipes. The monitor page has its own lint and DOM tests in `frontend/`. Run `go test ./cmd/... ./internal/...` and, in `frontend`, `npm run lint:monitor` and `npm run test:monitor`; obtain counts and coverage from the current run.
 
-**CI.** The jobs in [ci.yml](.github/workflows/ci.yml) validate PowerShell and harnesses; Go with formatting/vet/[Staticcheck](https://staticcheck.dev/)/[govulncheck](https://go.dev/blog/govulncheck) and a [CycloneDX SBOM](https://cyclonedx.org/); races in the portable core; fork provenance; secrets with [Gitleaks](https://github.com/gitleaks/gitleaks); the frontend; and frontend quality. A dedicated step fails the build if a `.gguf`, `.safetensors`, `.exe`, or archive is ever tracked.
+**CI.** The jobs in [ci.yml](.github/workflows/ci.yml) validate PowerShell and harnesses; Go with formatting/vet/[Staticcheck](https://staticcheck.dev/)/[govulncheck](https://go.dev/blog/govulncheck) and a [CycloneDX SBOM](https://cyclonedx.org/); races in the portable core; fork provenance; secrets with [Gitleaks](https://github.com/gitleaks/gitleaks); and the monitor page's lint and DOM tests. A dedicated step fails the build if a `.gguf`, `.safetensors`, `.exe`, or archive is ever tracked.
 
 **Decision records.** The [ADRs](docs/adr/) document the *why* behind the architecture, including admission, manifest/promotion, artifact security, offload, the browser monitor, and the local Claude instance. Consult the current records to distinguish active components from those retained for compatibility.
 
@@ -238,7 +237,7 @@ Harness integration templates live under [`integrations/`](integrations/) and co
 
 ```
 cmd/                 one directory per Go executable (edge, supervisor, tray, monitor, MCP servers,
-                     tooling, frozen console)
+                     tooling)
 internal/            Go packages: edge, adminpipe, credential, supervisor, monitor, trayui + panel,
                      MCP servers, claudedesktop, forkgate, manifestvalidator, rotatelog
 config/              versioned model manifest + JSON Schema (source of truth), llama-swap template,
@@ -253,9 +252,9 @@ scripts/             per-profile tooling, mostly driven by model-test-matrix.jso
                      Unsloth helpers
 integrations/        Codex, OpenCode, and Unsloth launchers and profile templates; MCP inference
                      bridge registration notes (secret-free)
-frontend/            React console frozen by ADR 0019 + the active monitor's lint and DOM tests
+frontend/            the monitor page's lint and DOM tests (Node; nothing here is built or shipped)
 docs/                architecture, threat model, runbook, benchmarks, promotion, tuning, Claude Desktop,
-                     frontend, ADRs, reports
+                     ADRs, reports
 incident-reports/    sanitized v1 credential-exposure record
 benchmarks/          recorded model benchmark and qualification evidence
 .github/workflows/   CI and release
@@ -274,7 +273,6 @@ Long-form documentation is written in English.
 | [Benchmarks](docs/BENCHMARKS.md) | Measurement methodology and evidence format |
 | [Tuning](docs/TUNING.md) | Bottleneck diagnosis and the memory-bandwidth ceiling |
 | [Claude Desktop](docs/CLAUDE_DESKTOP.md) | Claude Desktop's third-party-inference client contract; the local instance beside the signed-in one |
-| [Frontend](docs/FRONTEND.md) | Reference for the frozen React console: layers, import rules, tests |
 | [ADRs](docs/adr/) | Architecture decision records |
 | [Reports](docs/reports/) | Canary validations, qualification campaigns, audits, and readiness reviews |
 | [Security policy](SECURITY.md) | Reporting process |

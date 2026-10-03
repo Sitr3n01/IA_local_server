@@ -128,14 +128,14 @@ All notable changes are documented here. This project follows Keep a Changelog c
   row states the default queue of 16 instead of four and that bodies are
   read before the wait; the `cia-edge` row gives the canary ports `18090`
   and `18091` beside the final ones; the components table adds
-  `cia-mcp-smoke`, `cia-fork-gate` and the frozen `cia-console`; a new
+  `cia-mcp-smoke` and `cia-fork-gate`; a new
   paragraph describes the capability enforcement above; and the Go floor
   reads `1.26.6`, as `go.mod` does, instead of `1.26.5`. Test, CI-job, ADR
   and script counts give way to the commands and files that produce them.
   The repository map drops `control/`, removed with the v1 stack, adds
   `frontend/`, `scripts/` and `.github/workflows/`, and calls
   `config/edge.sample.yaml` a settings reference that no program reads; the
-  documentation table adds Claude Desktop, Frontend and Reports. The
+  documentation table adds Claude Desktop and Reports. The
   capability paragraph separates the OpenAI routes (`400
   unsupported_feature`) from `/v1/messages` (`invalid_request_error`, with
   optional tools omitted). The preview-first paragraph, which said every
@@ -196,6 +196,14 @@ All notable changes are documented here. This project follows Keep a Changelog c
 
 ### Removed
 
+- The WebView2 operator console that ADR 0019 froze: `cmd/cia-console`, its
+  React and TypeScript app in `frontend/`, `docs/FRONTEND.md`, the frontend
+  quality gate and their CI jobs. The browser monitor and the tray are the
+  operator surfaces. `frontend/` keeps only the monitor page's lint and DOM
+  tests, and `go.mod` drops `go-webview2` and `go-winloader`. ADR 0018 is
+  marked superseded, and the threat model drops the console's asset, trust
+  boundary, threats and residual risks. Earlier entries in this section that
+  describe the console record work that no longer ships.
 - `internal/modeloverlay` and its tests, which had no production consumer,
   and `claudedesktop.ProfileFingerprint`, also unused.
 - `assets/ineffa-tray.ico`, the v1 tray-shortcut icon. No code, script,
@@ -338,8 +346,8 @@ All notable changes are documented here. This project follows Keep a Changelog c
   `Claude Gateway` shortcuts, after a backup, only when they point at these
   CIA actions. The native `Claude` entry stays the Anthropic option
   (`docs/reports/2026-10-02-claude-instance-choice.md`).
-- Browser-monitor lint and DOM regression tests run in CI using the console's
-  existing development dependencies, without contacting a real service.
+- Browser-monitor lint and DOM regression tests run in CI, in their own
+  `Monitor UI` job, without contacting a real service.
 - The monitor now publishes a bounded `requests[]` feed that combines measured
   edge requests and external llama.cpp log requests without treating GPU bursts
   as requests. Each count or rate carries its source (`runtime-usage`,
@@ -612,10 +620,11 @@ All notable changes are documented here. This project follows Keep a Changelog c
   "candidate". The first manifest entry is the 256k Gemma so the semantic tests,
   which mutate `models[0]`, keep exercising an active model. Client catalogs
   were regenerated; an installed edge shows the change after the next release.
-- ADR 0019 supersedes the direction of ADR 0018. `cia-console.exe` and
-  `frontend/` are frozen: not developed, not deployed, and not deleted, which
-  remains the operator's decision. `cia-tray.exe` stays the only surface that
-  changes anything; the browser monitor only reads.
+- ADR 0019 supersedes the direction of ADR 0018. `cia-console.exe` and its
+  React frontend were frozen, not developed and not deployed, until the
+  operator removed them (see Removed). `cia-tray.exe` keeps every
+  administrative operation except the monitor's two confirmed model controls
+  (ADR 0019, section 4).
 - `config/models.yaml` declares `cache_ram_mib: 8192`, `ctx_checkpoints: 32`,
   `checkpoint_min_step: 8192` and `cache_idle_slots: true` on five of the six
   active profiles. These are the runtimes' own defaults, so the served
@@ -978,12 +987,12 @@ All notable changes are documented here. This project follows Keep a Changelog c
   that `npm audit` reported as high severity, `brace-expansion` 5.0.9 to
   5.0.12, `fast-uri` 3.1.6 to 3.1.8 and `undici` 8.10.0 to 8.11.2, without
   updating the rest of the tree.
-- The blocking `npm audit` in CI and the frontend quality gate's audit now
-  cover only the dependencies that ship in the console bundle
-  (`--omit=dev`). GHSA-vfj7-8cjw-p6xm, a high-severity `braces` advisory
-  with no fixed release, reaches the frontend only through development
-  tooling (`stylelint`, `jscpd`) and was blocking every change. A separate
-  CI step still audits the whole tree and reports it as a warning.
+- `npm audit` in CI reports instead of blocking. `frontend/` now holds only
+  the monitor's check tooling, none of which is built or shipped, and a
+  high or critical finding becomes a warning on the run. The trigger was
+  GHSA-vfj7-8cjw-p6xm, a high-severity `braces` advisory with no fixed
+  release that reached the tree only through the console's `stylelint` and
+  `jscpd`; it left with the console.
 - The monitor's action endpoint and the administrative pipe accept exactly
   one JSON object. A trailing `}` or `]` used to pass, because
   `decoder.More()` reports no further value before a closing delimiter, and

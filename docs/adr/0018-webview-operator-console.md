@@ -2,8 +2,13 @@
 
 ## Status
 
-Accepted. Phase A: `cia-console.exe` is additive. `cia-tray.exe` is unchanged and
-remains the supported operator panel until the console passes its own gate.
+Superseded by [ADR 0019](0019-browser-monitor.md) on 2026-09-28. The operator
+removed `cia-console.exe`, its React frontend and its quality gate from the
+repository on 2026-10-03; this record stays as the history of the decision.
+
+Originally accepted. Phase A: `cia-console.exe` is additive. `cia-tray.exe` is
+unchanged and remains the supported operator panel until the console passes its
+own gate.
 
 ## Context
 

@@ -6,6 +6,10 @@ Accepted, 2026-09-28. Supersedes the direction of ADR 0018: `cia-console.exe`
 is no longer developed and is not deployed. Its code stays in the tree until the
 operator decides to remove it; this record does not delete it.
 
+Amended 2026-10-03: the operator removed `cia-console.exe`, its React frontend
+and the frontend quality gate. `frontend/` now holds only this monitor's lint
+and DOM tests.
+
 Amended the same day. The first version made the monitor strictly read-only;
 the operator then asked for two model controls on the page, and section 4 is
 the decision that admits them. `cia-tray.exe` keeps every other administrative
