@@ -51,6 +51,8 @@ jobs:
         run: |
           python ./scripts/v2/eval/test_qualify_budget.py
           python ./scripts/v2/eval/test_tool_grading.py
+          python ./scripts/v2/eval/test_responses_contract.py
+          python ./scripts/v2/eval/test_edge_overhead.py
 
       - name: Production artifact store self-test
         shell: pwsh

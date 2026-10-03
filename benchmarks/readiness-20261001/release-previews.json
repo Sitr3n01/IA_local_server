@@ -1,0 +1,74 @@
+{
+  "captured_utc": "2026-10-02T03:44:03.724693+00:00",
+  "applied": false,
+  "configuration": {
+    "mode": "preview",
+    "environment": "canary",
+    "models": [
+      "gemma4-12b-qat-ud-q4xl-256k",
+      "qwen38-27b-deep-32k",
+      "qwen38-27b-agent-128k",
+      "qwen36-35b-a3b-huge-256k"
+    ],
+    "manifest_sha256": "08C952C46842A386648405F652B2A870130F55E52CC7505BDDFDE88C02300F51",
+    "schema_sha256": "85D264E87D5317074CE393FC40CB64ECCCC795F1D07A2CE2A99F6030CDE403D8",
+    "artifact_source": "candidate",
+    "router_address": "127.0.0.1:19292",
+    "data_address": "127.0.0.1:18090",
+    "control_address": "127.0.0.1:18091",
+    "files": [
+      "C:\\IA\\local-ai-v2\\config\\models.yaml",
+      "C:\\IA\\local-ai-v2\\config\\models.schema.json",
+      "C:\\IA\\local-ai-v2\\config\\llama-swap.canary.yaml",
+      "C:\\IA\\local-ai-v2\\config\\deployment.canary.json",
+      "C:\\IA\\local-ai-v2\\config\\panel.canary.json",
+      "C:\\IA\\local-ai-v2\\launchers\\router-canary.vbs",
+      "C:\\IA\\local-ai-v2\\launchers\\edge-canary.vbs",
+      "C:\\IA\\local-ai-v2\\launchers\\tray-canary.vbs"
+    ],
+    "commit_marker": "C:\\IA\\local-ai-v2\\config\\deployment.canary.json"
+  },
+  "harness": {
+    "mode": "preview",
+    "environment": "canary",
+    "plan_sha256": "1D0F2FA7CBF8B55D645AC29F4BBD82393510845B82145A43B05C76FD4BEDF124",
+    "deployment_ready": false,
+    "deployment_error": "Canary deployment marker does not certify both the source and installed manifest copies. Regenerate the deployment.",
+    "base_config_touched": false,
+    "cloud_credentials_touched": false
+  },
+  "runtime_publication": [
+    {
+      "mode": "preview",
+      "kind": "runtime",
+      "id": "amd-rocm-qwen38",
+      "source": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14\\llama-server.exe",
+      "source_directory": "C:\\IA\\runtimes\\llama.cpp\\b10549-rocm-7.14",
+      "destination": "C:\\IA\\local-ai-v2\\artifacts\\runtimes\\amd-rocm-qwen38\\llama-server.exe",
+      "manifest_sha256": "C8B1E5A66E1BB45854BED3DAAAB116C37E74526E30143D737C67557BAB822359",
+      "manifest_bytes": 9216,
+      "destination_sha256": null,
+      "payload_files": 1830,
+      "payload_bytes": 1994625566,
+      "action": "create",
+      "source_is_modified": false,
+      "index": "C:\\IA\\local-ai-v2\\artifacts\\published.json"
+    },
+    {
+      "mode": "preview",
+      "kind": "runtime",
+      "id": "unsloth-runtime-candidate",
+      "source": "C:\\Users\\Sitr3n\\.unsloth\\llama.cpp\\build\\bin\\Release\\llama-server.exe",
+      "source_directory": "C:\\Users\\Sitr3n\\.unsloth\\llama.cpp\\build\\bin\\Release",
+      "destination": "C:\\IA\\local-ai-v2\\artifacts\\runtimes\\unsloth-runtime-candidate\\llama-server.exe",
+      "manifest_sha256": "7F15112CAD13FF7BB87B1D0E51F641F5183E83050D96870070BCCC1E695ED967",
+      "manifest_bytes": 9728,
+      "destination_sha256": null,
+      "payload_files": 820,
+      "payload_bytes": 1564742952,
+      "action": "create",
+      "source_is_modified": false,
+      "index": "C:\\IA\\local-ai-v2\\artifacts\\published.json"
+    }
+  ]
+}

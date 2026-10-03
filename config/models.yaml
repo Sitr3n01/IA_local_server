@@ -118,7 +118,7 @@
       "jinja": true,
       "reasoning": "auto",
       "capabilities": {
-        "responses": false,
+        "responses": true,
         "chat_completions": true,
         "streaming": true,
         "function_calling": false,
@@ -455,7 +455,7 @@
         }
       ],
       "capabilities": {
-        "responses": false,
+        "responses": true,
         "chat_completions": true,
         "streaming": true,
         "function_calling": true,
@@ -512,7 +512,7 @@
         }
       ],
       "capabilities": {
-        "responses": false,
+        "responses": true,
         "chat_completions": true,
         "streaming": true,
         "function_calling": true,

@@ -1,0 +1,109 @@
+{
+  "scenario": "codex-native-coding-client",
+  "model": "qwen38-27b-agent-128k",
+  "cli_version": "codex-cli 0.159.2",
+  "cli_sha256": "fcd5eafefb4ff4a607f244e099e0974f66e17966b6ffda6948de2ef3a7a79530",
+  "baseline_failing": true,
+  "exit_code": 0,
+  "seconds": 114.469,
+  "stdout_sha256": "f42d16fe552995e01e9e6fb8151b5b20cdbd3efa5a78fd44ab6f5a5bd603d03e",
+  "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+  "event_types": [
+    "thread.started",
+    "turn.started",
+    "item.started",
+    "item.completed",
+    "item.started",
+    "item.completed",
+    "item.started",
+    "item.completed",
+    "item.started",
+    "item.completed",
+    "item.completed",
+    "turn.completed"
+  ],
+  "command_count": 4,
+  "items": [
+    {
+      "type": "command_execution",
+      "keys": [
+        "aggregated_output",
+        "command",
+        "exit_code",
+        "id",
+        "status",
+        "type"
+      ],
+      "status": "completed",
+      "exit_code": 0,
+      "text_length": 0,
+      "marker_present": false
+    },
+    {
+      "type": "command_execution",
+      "keys": [
+        "aggregated_output",
+        "command",
+        "exit_code",
+        "id",
+        "status",
+        "type"
+      ],
+      "status": "completed",
+      "exit_code": 0,
+      "text_length": 0,
+      "marker_present": false
+    },
+    {
+      "type": "command_execution",
+      "keys": [
+        "aggregated_output",
+        "command",
+        "exit_code",
+        "id",
+        "status",
+        "type"
+      ],
+      "status": "completed",
+      "exit_code": 0,
+      "text_length": 0,
+      "marker_present": false
+    },
+    {
+      "type": "command_execution",
+      "keys": [
+        "aggregated_output",
+        "command",
+        "exit_code",
+        "id",
+        "status",
+        "type"
+      ],
+      "status": "completed",
+      "exit_code": 0,
+      "text_length": 0,
+      "marker_present": false
+    },
+    {
+      "type": "agent_message",
+      "keys": [
+        "id",
+        "text",
+        "type"
+      ],
+      "status": null,
+      "exit_code": null,
+      "text_length": 18,
+      "marker_present": true
+    }
+  ],
+  "marker_correct": true,
+  "completed": true,
+  "failed": false,
+  "passed": true,
+  "verification_exit_code": 0,
+  "tests_unchanged": true,
+  "go_mod_unchanged": true,
+  "model_ran_passing_tests": true,
+  "cleanup_status": 200
+}

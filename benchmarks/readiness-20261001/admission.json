@@ -1,0 +1,103 @@
+{
+  "captured_utc": "2026-10-02T03:18:59.8397029Z",
+  "gate": {
+    "active": 0,
+    "queued": 0,
+    "max_active": 1,
+    "max_queue": 16,
+    "wait_timeout_seconds": 120,
+    "rejected_total": 0,
+    "timed_out_total": 0
+  },
+  "active_model": "",
+  "models": [
+    {
+      "id": "gemma4-12b-qat-ud-q4xl-256k",
+      "available": true,
+      "reason": "commit_headroom_available",
+      "capacity": {
+        "admission": "commit-headroom",
+        "model": "gemma4-12b-qat-ud-q4xl-256k",
+        "model_running": false,
+        "commit_headroom_gib": 37.56,
+        "required_commit_gib": 26.91,
+        "reserve_commit_gib": 4,
+        "physical_headroom_gib": 16.66,
+        "required_physical_gib": 11.94,
+        "reserve_physical_gib": 2,
+        "required_vram_gib": 12.67,
+        "device_vram_gib": 15.92,
+        "reserve_vram_gib": 3,
+        "measured": true,
+        "available": true,
+        "reason": "commit_headroom_available"
+      }
+    },
+    {
+      "id": "qwen38-27b-deep-32k",
+      "available": true,
+      "reason": "commit_headroom_available",
+      "capacity": {
+        "admission": "commit-headroom",
+        "model": "qwen38-27b-deep-32k",
+        "model_running": false,
+        "commit_headroom_gib": 37.56,
+        "required_commit_gib": 26.32,
+        "reserve_commit_gib": 4,
+        "physical_headroom_gib": 16.66,
+        "required_physical_gib": 16.31,
+        "reserve_physical_gib": 2,
+        "required_vram_gib": 15.56,
+        "device_vram_gib": 15.92,
+        "reserve_vram_gib": 3,
+        "measured": true,
+        "available": true,
+        "reason": "commit_headroom_available"
+      }
+    },
+    {
+      "id": "qwen38-27b-agent-128k",
+      "available": true,
+      "reason": "commit_headroom_available",
+      "capacity": {
+        "admission": "commit-headroom",
+        "model": "qwen38-27b-agent-128k",
+        "model_running": false,
+        "commit_headroom_gib": 37.56,
+        "required_commit_gib": 25.38,
+        "reserve_commit_gib": 4,
+        "physical_headroom_gib": 16.66,
+        "required_physical_gib": 15.27,
+        "reserve_physical_gib": 2,
+        "required_vram_gib": 14.39,
+        "device_vram_gib": 15.92,
+        "reserve_vram_gib": 3,
+        "measured": true,
+        "available": true,
+        "reason": "commit_headroom_available"
+      }
+    },
+    {
+      "id": "qwen36-35b-a3b-huge-256k",
+      "available": false,
+      "reason": "insufficient_physical_memory",
+      "capacity": {
+        "admission": "commit-headroom",
+        "model": "qwen36-35b-a3b-huge-256k",
+        "model_running": false,
+        "commit_headroom_gib": 37.56,
+        "required_commit_gib": 32.61,
+        "reserve_commit_gib": 4,
+        "physical_headroom_gib": 16.66,
+        "required_physical_gib": 18.2,
+        "reserve_physical_gib": 2,
+        "required_vram_gib": 15.49,
+        "device_vram_gib": 15.92,
+        "reserve_vram_gib": 3,
+        "measured": true,
+        "available": false,
+        "reason": "insufficient_physical_memory"
+      }
+    }
+  ]
+}

@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "scenario": "native-responses-contract",
+  "model": "gemma4-12b-qat-ud-q4xl-256k",
+  "started_utc": "2026-10-01T23:58:47Z",
+  "checks": [
+    {
+      "id": "responses_text",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "abb1daef8bf5b74a702dc3fa3b2a1e9d189be81ada08874b7bdf220898965a4a",
+      "duration_ms": 9781.0
+    },
+    {
+      "id": "responses_stream",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "8dff52cbf6e79a8dbf9db45c0dd718966e9b73a7da0350269b836dfcf7fcaf81",
+      "event_count": 24,
+      "first_event_ms": 94.0,
+      "duration_ms": 422.0
+    },
+    {
+      "id": "namespace_tool_0",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "9af3f4e934a91d584856359370d6ad7a1905109d86b2fa01ec3943ed073f25c6",
+      "duration_ms": 1484.0
+    },
+    {
+      "id": "tool_continuation_0",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "f10eae2617b1d156e6cbf7867b9b55faef10bd6e6d7ad2bf64656194fa53dfd7",
+      "duration_ms": 188.0
+    },
+    {
+      "id": "namespace_tool_1",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "344289177e17e0dc8b2b8026ac8b1e44713a71f1c1c827f5b8e265c762ce0709",
+      "duration_ms": 1453.0
+    },
+    {
+      "id": "tool_continuation_1",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "5dff082f839a85a9450307ed26fa81d12916167c21f9ab697498488a98fa8262",
+      "duration_ms": 172.0
+    },
+    {
+      "id": "namespace_tool_2",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "cd631c0159e01c3232f79b349862d279f74d2d9752aad79e47d4435cf5a51c55",
+      "duration_ms": 1437.0
+    },
+    {
+      "id": "tool_continuation_2",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "a478f0ffffc3e595174665c2990f48afbc193e23315a00761933770896a57d37",
+      "duration_ms": 156.0
+    },
+    {
+      "id": "namespace_tool_3",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "25f4bd841511968bc6e4dc3e0decc0e21ed0d238ba67d1253ca29ac4661ec61e",
+      "duration_ms": 1657.0
+    },
+    {
+      "id": "tool_continuation_3",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "9e0c6602dbf972f88422da5555eea62ddcc6e16199c591b097b1d777b83c1411",
+      "duration_ms": 156.0
+    },
+    {
+      "id": "namespace_tool_4",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "b4820d62a87950a7708d8d02a1ea81b25326e39cda788deed9e1c8505416ceb5",
+      "duration_ms": 2375.0
+    },
+    {
+      "id": "tool_continuation_4",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "fe2bca9f813dfe427368ee1382ab5b269b46ed6da27fce8e81eb3657a9521b5e",
+      "duration_ms": 172.0
+    },
+    {
+      "id": "namespace_tool_5",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "07f2c22c8890b2cc369982b0fce7440bedd67b30ae768fbfacf06b8f9c7db282",
+      "duration_ms": 1734.0
+    },
+    {
+      "id": "tool_continuation_5",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "2167e38ce15d25fbaf45826e340e70b53af0b4da5d454b132946d2cf8ca53aef",
+      "duration_ms": 156.0
+    },
+    {
+      "id": "namespace_tool_6",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "5350fcf366222e04ecd361ba24b910a977543e3f96cc27c654c53617c003a2d7",
+      "duration_ms": 1250.0
+    },
+    {
+      "id": "tool_continuation_6",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "680a99a71b97ec91ac45891a8719cac0373d2f6ccc86bcd4928c1ff9993c30d1",
+      "duration_ms": 156.0
+    },
+    {
+      "id": "namespace_tool_7",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "6d18dc8e2364a4c4947164c58b7b712cebb101e79be04e33511e7a641834331e",
+      "duration_ms": 2281.0
+    },
+    {
+      "id": "tool_continuation_7",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "16980f4fe96b4a1085f26ff30258ea5f4c6ab3f4827f613c0fbfa0f1ffd44788",
+      "duration_ms": 172.0
+    },
+    {
+      "id": "namespace_tool_8",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "f02eebc9b6d3858462cb6d9606f006b7303e9d17f978081dfdbf59e9443b797c",
+      "duration_ms": 1313.0
+    },
+    {
+      "id": "tool_continuation_8",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "9b257f1dac247f6cbc5b92ffaed0e2c4a772dfd66ec51b69617d97a39da0e707",
+      "duration_ms": 156.0
+    },
+    {
+      "id": "namespace_tool_9",
+      "status": 200,
+      "passed": false,
+      "body_sha256": "6f566ef40d18a29a40da2fe52c43ae1ffd69f1cbd4fcc2a595eb5478744ea5c3",
+      "duration_ms": 1563.0
+    },
+    {
+      "id": "namespace_tool_stream",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "a8ef1c56282be94c0e5872d9e7afc1767a81f22090c51e8ab862dee6d740fbd7",
+      "event_count": 84,
+      "first_event_ms": 125.0,
+      "duration_ms": 1671.0
+    },
+    {
+      "id": "cancel_disconnect",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "db5a78a5c33cb2b16bbd3ba5ed28d85227eca491350e1f72ab67f161e3186bb7",
+      "event_count": 4,
+      "first_event_ms": 125.0,
+      "duration_ms": 172.0
+    },
+    {
+      "id": "recovery_after_cancel",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "6d5b13c28c2d829c038d068d7771d0eb6a0fbea594c321f55238ed8b4c484aab",
+      "duration_ms": 953.0
+    },
+    {
+      "id": "stateful_response",
+      "status": 400,
+      "passed": true,
+      "body_sha256": "6372856ebdf61d913133d60daea306e928831fe401b4813c1ca2af049921127c",
+      "duration_ms": 32.0
+    },
+    {
+      "id": "stored_response",
+      "status": 400,
+      "passed": true,
+      "body_sha256": "4aa8cf267d286d1153141fe740bcd8bb0929d53d0d053d8c629e3adae3b6d875",
+      "duration_ms": 0.0
+    }
+  ],
+  "passed": false
+}
