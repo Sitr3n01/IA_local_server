@@ -34,6 +34,12 @@ function Invoke-EntryPoint {
     $startInfo.CreateNoWindow = $true
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
+    # A direct launch gets Windows PowerShell's own module path. Inherited from
+    # a PowerShell 7 host, as in CI, PSModulePath lists PowerShell 7's modules
+    # first, and Windows PowerShell then cannot load Microsoft.PowerShell.Utility
+    # (Get-FileHash among others). pwsh resets the variable when it starts
+    # powershell.exe itself; a raw Process start does not.
+    [void]$startInfo.EnvironmentVariables.Remove('PSModulePath')
     $process = [Diagnostics.Process]::new()
     $process.StartInfo = $startInfo
     try {
