@@ -58,15 +58,13 @@ func newGate(maxActive, maxQueue int, wait time.Duration) *gate {
 }
 
 func (g *gate) acquire(ctx context.Context) (func(), error) {
-	g.control.Lock()
-	if g.draining {
-		g.drainRejected.Add(1)
-		g.control.Unlock()
-		return nil, errDraining
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
-	if g.controlActive {
+	g.control.Lock()
+	if err := g.admissionError(); err != nil {
 		g.control.Unlock()
-		return nil, errControlBusy
+		return nil, err
 	}
 	select {
 	case g.slots <- struct{}{}:
@@ -106,6 +104,18 @@ func (g *gate) acquire(ctx context.Context) (func(), error) {
 		g.control.Unlock()
 		return nil, errQueueTimeout
 	}
+}
+
+// admissionError requires control to be locked by the caller.
+func (g *gate) admissionError() error {
+	if g.draining {
+		g.drainRejected.Add(1)
+		return errDraining
+	}
+	if g.controlActive {
+		return errControlBusy
+	}
+	return nil
 }
 
 func (g *gate) reserveQueueSlot() bool {

@@ -32,6 +32,9 @@ func testConfig(upstream string) Config {
 	cfg.ClaudeGatewayToken = testClaudeGatewayToken
 	cfg.LogOutput = io.Discard
 	cfg.QueueWait = 100 * time.Millisecond
+	// The simulated runtime qualifies every surface exercised by these tests.
+	cfg.Models[0].Capabilities.Responses = true
+	cfg.Models[0].Capabilities.StructuredOutput = true
 	return cfg
 }
 
@@ -260,7 +263,7 @@ func TestChatCompletionsWrappedFunctionToolReachesUpstream(t *testing.T) {
 		"model":"local-coding",
 		"messages":[{"role":"user","content":"synthetic"}],
 		"tools":[{"type":"function","function":{"name":"read_file","description":"read","parameters":{"type":"object","properties":{}}}}],
-		"tool_choice":{"type":"function","function":{"name":"read_file"}}
+		"tool_choice":"required"
 	}`)
 	recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/chat/completions", body)
 	if recorder.Code != http.StatusOK {

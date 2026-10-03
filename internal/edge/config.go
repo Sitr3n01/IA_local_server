@@ -378,6 +378,9 @@ func (c Config) Validate() error {
 	if c.MaxActive <= 0 || c.MaxQueue < 0 || c.QueueWait <= 0 {
 		return errors.New("invalid admission-control configuration")
 	}
+	if c.MaxActive != 1 {
+		return errors.New("single-model lifecycle and memory admission require exactly one active inference")
+	}
 	if c.HeaderTimeout <= 0 || c.ShutdownTimeout <= 0 {
 		return errors.New("timeouts must be positive")
 	}

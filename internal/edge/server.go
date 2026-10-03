@@ -26,11 +26,14 @@ const maxHeaderBytes = 64 << 10
 // Server is a loopback-only, stateless OpenAI-compatible edge. It owns no
 // model lifecycle state; llama-swap remains the single lifecycle authority.
 type Server struct {
-	cfg          Config
-	upstream     *url.URL
-	client       *http.Client
-	allowed      map[string]struct{}
-	gate         *gate
+	cfg      Config
+	upstream *url.URL
+	client   *http.Client
+	allowed  map[string]struct{}
+	gate     *gate
+	// bodies bounds requests retaining a decoded body, including queue waits.
+	// Reading before inference admission must not create an unbounded buffer.
+	bodies       chan struct{}
 	events       *eventStore
 	metrics      *metrics
 	startedAt    time.Time
@@ -85,6 +88,7 @@ func New(cfg Config) (*Server, error) {
 		client:          client,
 		allowed:         allowed,
 		gate:            newGate(cfg.MaxActive, cfg.MaxQueue, cfg.QueueWait),
+		bodies:          make(chan struct{}, cfg.MaxActive+cfg.MaxQueue),
 		events:          newEventStore(cfg.LogOutput),
 		metrics:         newMetrics(),
 		startedAt:       time.Now(),
@@ -419,16 +423,12 @@ func (s *Server) handleInference(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	release, err := s.gate.acquire(r.Context())
+	releaseBody, err := s.reserveBody(r.Context())
 	if err != nil {
 		s.writeGateError(w, err)
 		return
 	}
-	admitted := time.Now()
-	defer func() {
-		s.metrics.inferenceDuration.observe(time.Since(admitted))
-		release()
-	}()
+	defer releaseBody()
 
 	body, err := decodeRequestBody(r, s.cfg.MaxWireBytes, s.cfg.MaxDecodedBytes, s.cfg.MaxRatio)
 	if err != nil {
@@ -489,6 +489,21 @@ func (s *Server) handleInference(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusNotFound, "model_not_found", "requested model is not available", "model")
 		return
 	}
+	if err := validateCapabilities(r.URL.Path, body, modelConfig.Capabilities); err != nil {
+		s.metrics.invalidRequests.Add(1)
+		s.writeError(w, err.Status, err.Code, err.Message, err.Param)
+		return
+	}
+	release, err := s.gate.acquire(r.Context())
+	if err != nil {
+		s.writeGateError(w, err)
+		return
+	}
+	admitted := time.Now()
+	defer func() {
+		s.metrics.inferenceDuration.observe(time.Since(admitted))
+		release()
+	}()
 	capacity, ok := s.requireCapacity(w, r.Context(), modelConfig)
 	if !ok {
 		return
@@ -506,6 +521,26 @@ func (s *Server) handleInference(w http.ResponseWriter, r *http.Request) {
 			}
 			s.writeError(w, http.StatusServiceUnavailable, "upstream_unavailable", "local inference runtime is unavailable", "")
 		}
+	}
+}
+
+// reserveBody refuses excess requests before reading them. Hold the reservation
+// through inference so at most MaxActive+MaxQueue requests retain decoded data.
+func (s *Server) reserveBody(ctx context.Context) (func(), error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	s.gate.control.Lock()
+	defer s.gate.control.Unlock()
+	if err := s.gate.admissionError(); err != nil {
+		return nil, err
+	}
+	select {
+	case s.bodies <- struct{}{}:
+		return func() { <-s.bodies }, nil
+	default:
+		s.gate.rejected.Add(1)
+		return nil, errQueueFull
 	}
 }
 

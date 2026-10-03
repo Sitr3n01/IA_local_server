@@ -1,6 +1,7 @@
 package edge
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -545,9 +546,10 @@ func TestUnmeasuredCanaryAllowedButUnmeasuredFinalFailsClosed(t *testing.T) {
 // entry, so any code path that reaches for Models[0] fails these tests.
 func readinessConfig(upstream string) Config {
 	cfg := testConfig(upstream)
+	capabilities := cfg.Models[0].Capabilities
 	cfg.Models = []Model{
-		{ID: "local-fast", Object: "model", OwnedBy: "local", State: "candidate", Deployments: []string{"canary"}},
-		{ID: "local-coding", Object: "model", OwnedBy: "local", State: "candidate", Deployments: []string{"canary"}},
+		{ID: "local-fast", Object: "model", OwnedBy: "local", State: "candidate", Deployments: []string{"canary"}, Capabilities: capabilities},
+		{ID: "local-coding", Object: "model", OwnedBy: "local", State: "candidate", Deployments: []string{"canary"}, Capabilities: capabilities},
 	}
 	cfg.PublicModelID = "local-coding"
 	return cfg
@@ -630,9 +632,9 @@ func TestCapacityCreditsResourcesTheOutgoingModelReleases(t *testing.T) {
 
 	t.Run("measured outgoing model is credited", func(t *testing.T) {
 		server := build(true)
-		recorder := dataRequest(t, server.DataHandler(), http.MethodPost, "/v1/responses", []byte(`{"model":"local-coding"}`))
-		if recorder.Code != http.StatusOK {
-			t.Fatalf("swap refused although the outgoing model releases enough: status=%d body=%s", recorder.Code, recorder.Body.String())
+		capacity, _ := server.capacityFor(context.Background(), server.publicModel())
+		if !capacity.Available {
+			t.Fatalf("projected swap was refused: %+v", capacity)
 		}
 		status := controlRequest(t, server.ControlHandler(), http.MethodGet, "/api/v1/status", nil)
 		if !strings.Contains(status.Body.String(), `"reclaimable_commit_gib":8`) {

@@ -196,6 +196,9 @@ func capacityFrom(model Model, allowed []Model, running map[string]string, runni
 		} else {
 			result.Reason = "insufficient_commit_headroom"
 		}
+	case metricErr != nil && (haveCommit || model.OffloadsTensors || (model.CacheRAMMiB != nil && *model.CacheRAMMiB > 0)):
+		result.Available = false
+		result.Reason = "resource_measurement_required"
 	case isCanaryCandidate(model):
 		result.Available = true
 		result.Reason = "canary_resource_measurement_pending"
@@ -308,11 +311,41 @@ func exceedsVRAMBudget(model Model) bool {
 	return *model.PeakVRAMGiB+vramReserveGiB > *model.DeviceVRAMGiB
 }
 
-// requireCapacity refuses a model that cannot be admitted and otherwise returns
-// the verdict it admitted on; ModelRunning in it is what tells a cold load from
-// a warm request without a second router query.
+// prepareInferenceCapacity runs while the inference slot is held. A measured
+// peak is an upper bound, not the memory an outgoing process currently holds.
+// Projected reclaim may justify trying an unload, but only the fresh host
+// measurements after that unload can admit the incoming model.
+func (s *Server) prepareInferenceCapacity(ctx context.Context, model Model) (capacityStatus, error) {
+	capacity, running := s.capacityFor(ctx, model)
+	if !capacity.Available || capacity.ModelRunning || len(running) == 0 {
+		return capacity, nil
+	}
+	if err := s.routerOperation(ctx, http.MethodPost, "/api/models/unload"); err != nil {
+		return capacity, err
+	}
+	return s.capacityAfterUnload(ctx, model)
+}
+
+func (s *Server) capacityAfterUnload(ctx context.Context, model Model) (capacityStatus, error) {
+	running, err := s.runningModels(ctx)
+	if err != nil {
+		return capacityStatus{}, err
+	}
+	if len(running) != 0 {
+		return capacityStatus{}, errors.New("router still reports a loaded model after unload")
+	}
+	memory, metricErr := s.memoryStatus()
+	return capacityFrom(model, s.cfg.Models, running, nil, memory, metricErr), nil
+}
+
+// requireCapacity refuses a model before forwarding any inference request.
 func (s *Server) requireCapacity(w http.ResponseWriter, ctx context.Context, model Model) (capacityStatus, bool) {
-	capacity, _ := s.capacityFor(ctx, model)
+	capacity, err := s.prepareInferenceCapacity(ctx, model)
+	if err != nil {
+		s.metrics.upstreamFailures.Add(1)
+		s.writeError(w, http.StatusServiceUnavailable, "upstream_unavailable", "local model unload could not be verified", "model")
+		return capacity, false
+	}
 	if capacity.Available {
 		return capacity, true
 	}

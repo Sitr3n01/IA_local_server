@@ -23,6 +23,12 @@ func (s *Server) handleAnthropicMessages(w http.ResponseWriter, r *http.Request)
 			return
 		}
 	}
+	releaseBody, err := s.reserveBody(r.Context())
+	if err != nil {
+		s.writeAnthropicGateError(w, err)
+		return
+	}
+	defer releaseBody()
 	// Read and validate the bounded request before it waits for an inference
 	// slot. Claude can cancel queued requests after another branch succeeds; if
 	// the body is read only after the wait, that normal cancellation becomes a
@@ -44,16 +50,10 @@ func (s *Server) handleAnthropicMessages(w http.ResponseWriter, r *http.Request)
 		s.writeAnthropicError(w, http.StatusBadRequest, "invalid_request_error", "request body must be a JSON object")
 		return
 	}
-	release, err := s.gate.acquire(r.Context())
-	if err != nil {
-		s.writeAnthropicGateError(w, err)
-		return
-	}
-	admitted := time.Now()
-	defer func() {
-		s.metrics.inferenceDuration.observe(time.Since(admitted))
-		release()
-	}()
+	// Model selection and capability checks need only the static manifest and
+	// the decoded request, so they run before admission, as on the OpenAI
+	// routes. With a single inference slot, a request this edge will refuse
+	// must not wait behind a running inference or hold the slot to be refused.
 	realModelID, ok := claudeRealModelID(s.cfg.Models, converted.model)
 	if !ok {
 		s.metrics.invalidRequests.Add(1)
@@ -79,7 +79,12 @@ func (s *Server) handleAnthropicMessages(w http.ResponseWriter, r *http.Request)
 		s.writeAnthropicError(w, http.StatusBadRequest, "invalid_request_error", "selected model does not support streaming")
 		return
 	}
+	toolsOmitted := false
 	if !model.Capabilities.FunctionCalling {
+		if converted.requiresTools {
+			s.writeAnthropicError(w, http.StatusBadRequest, "invalid_request_error", "selected model does not support the required tool choice")
+			return
+		}
 		if converted.hasToolHistory {
 			s.writeAnthropicError(w, http.StatusBadRequest, "invalid_request_error", "selected model cannot continue a tool-use conversation")
 			return
@@ -89,14 +94,35 @@ func (s *Server) handleAnthropicMessages(w http.ResponseWriter, r *http.Request)
 				s.writeAnthropicError(w, http.StatusBadRequest, "invalid_request_error", "request tools could not be omitted")
 				return
 			}
-			s.logEvent("claude.tools.omitted", map[string]any{"model": model.ID})
+			toolsOmitted = true
 		}
+	}
+	release, err := s.gate.acquire(r.Context())
+	if err != nil {
+		s.writeAnthropicGateError(w, err)
+		return
+	}
+	admitted := time.Now()
+	defer func() {
+		s.metrics.inferenceDuration.observe(time.Since(admitted))
+		release()
+	}()
+	// The selection events describe admitted requests only. A request that
+	// times out or is canceled in the queue never used the model, so it logs
+	// neither event even though its checks ran before admission.
+	if toolsOmitted {
+		s.logEvent("claude.tools.omitted", map[string]any{"model": model.ID})
 	}
 	s.logEvent("claude.model.selected", map[string]any{
 		"model":               model.ID,
 		"external_alias_used": converted.clientModel != model.ID,
 	})
-	capacity, _ := s.capacityFor(r.Context(), model)
+	capacity, err := s.prepareInferenceCapacity(r.Context(), model)
+	if err != nil {
+		s.metrics.upstreamFailures.Add(1)
+		s.writeAnthropicError(w, http.StatusServiceUnavailable, "api_error", "local model unload could not be verified")
+		return
+	}
 	if !capacity.Available {
 		// 400, not 503. Claude Desktop's agent retries a 5xx ten times and
 		// shows only "Solicitação falhou"; memory does not free itself in
@@ -142,6 +168,7 @@ type convertedAnthropicRequest struct {
 	stream         bool
 	hasTools       bool
 	hasToolHistory bool
+	requiresTools  bool
 	body           []byte
 }
 
@@ -166,6 +193,8 @@ func (c *convertedAnthropicRequest) withoutTools() error {
 		return err
 	}
 	delete(payload, "tools")
+	delete(payload, "tool_choice")
+	delete(payload, "parallel_tool_calls")
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err
@@ -181,6 +210,7 @@ type anthropicWireRequest struct {
 	System        json.RawMessage    `json:"system"`
 	Messages      []anthropicMessage `json:"messages"`
 	Tools         []anthropicTool    `json:"tools"`
+	ToolChoice    json.RawMessage    `json:"tool_choice"`
 	Stream        bool               `json:"stream"`
 	Temperature   *float64           `json:"temperature"`
 	TopP          *float64           `json:"top_p"`
@@ -202,7 +232,7 @@ func decodeAnthropicRequest(body []byte) (convertedAnthropicRequest, error) {
 	var raw anthropicWireRequest
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	// Claude Desktop's Cowork transport adds optional beta envelope fields
-	// (for example metadata, thinking, output_config, and tool_choice). Decode
+	// (for example metadata, thinking, and output_config). Decode
 	// the stable subset we implement and rebuild the canonical upstream body
 	// from that subset below, so extensions are tolerated but never forwarded.
 	if err := decoder.Decode(&raw); err != nil {
@@ -278,6 +308,10 @@ func decodeAnthropicRequest(body []byte) (convertedAnthropicRequest, error) {
 	if len(tools) > 0 {
 		payload["tools"] = tools
 	}
+	requiresTools, err := convertAnthropicToolChoice(raw.ToolChoice, raw.Tools, payload)
+	if err != nil {
+		return convertedAnthropicRequest{}, err
+	}
 	if raw.Temperature != nil {
 		payload["temperature"] = *raw.Temperature
 	}
@@ -291,7 +325,45 @@ func decodeAnthropicRequest(body []byte) (convertedAnthropicRequest, error) {
 	if err != nil {
 		return convertedAnthropicRequest{}, errors.New("encode canonical request")
 	}
-	return convertedAnthropicRequest{model: raw.Model, clientModel: raw.Model, stream: raw.Stream, hasTools: len(tools) > 0, hasToolHistory: hasToolHistory, body: encoded}, nil
+	return convertedAnthropicRequest{model: raw.Model, clientModel: raw.Model, stream: raw.Stream, hasTools: len(tools) > 0, hasToolHistory: hasToolHistory, requiresTools: requiresTools, body: encoded}, nil
+}
+
+func convertAnthropicToolChoice(raw json.RawMessage, tools []anthropicTool, payload map[string]any) (bool, error) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return false, nil
+	}
+	var choice struct {
+		Type            string `json:"type"`
+		Name            string `json:"name"`
+		DisableParallel *bool  `json:"disable_parallel_tool_use"`
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&choice); err != nil {
+		return false, anthropicInvalid("tool_choice must be a supported object")
+	}
+	required := false
+	switch choice.Type {
+	case "auto", "none":
+		if choice.Name != "" {
+			return false, anthropicInvalid("tool_choice.name requires type tool")
+		}
+		payload["tool_choice"] = choice.Type
+	case "any":
+		if len(tools) == 0 || choice.Name != "" {
+			return false, anthropicInvalid("tool_choice any requires tools and no name")
+		}
+		payload["tool_choice"] = "required"
+		required = true
+	case "tool":
+		return false, anthropicInvalid("named tool_choice is not qualified for the local runtime; use auto, none or any")
+	default:
+		return false, anthropicInvalid("unsupported tool_choice.type")
+	}
+	if choice.DisableParallel != nil {
+		payload["parallel_tool_calls"] = !*choice.DisableParallel
+	}
+	return required, nil
 }
 
 func convertAnthropicMessage(message anthropicMessage, index int) ([]map[string]any, error) {
@@ -494,10 +566,8 @@ func anthropicResponseFromChat(raw []byte, model, requestID string) (anthropicMe
 			} `json:"message"`
 			FinishReason string `json:"finish_reason"`
 		} `json:"choices"`
-		Usage struct {
-			PromptTokens     int `json:"prompt_tokens"`
-			CompletionTokens int `json:"completion_tokens"`
-		} `json:"usage"`
+		Usage   inferenceUsage   `json:"usage"`
+		Timings inferenceTimings `json:"timings"`
 	}
 	if err := json.Unmarshal(raw, &response); err != nil || len(response.Choices) == 0 {
 		return anthropicMessageResponse{}, nil, "", errors.New("upstream response is not a valid chat completion")
@@ -521,7 +591,20 @@ func anthropicResponseFromChat(raw []byte, model, requestID string) (anthropicMe
 	if id == "" {
 		id = "msg_" + requestID
 	}
-	return anthropicMessageResponse{id: id, content: content}, map[string]int{"input_tokens": response.Usage.PromptTokens, "output_tokens": response.Usage.CompletionTokens}, anthropicStopReason(choice.FinishReason), nil
+	return anthropicMessageResponse{id: id, content: content}, anthropicTokenUsage(response.Usage, response.Timings), anthropicStopReason(choice.FinishReason), nil
+}
+
+func anthropicTokenUsage(usage inferenceUsage, timings inferenceTimings) map[string]int {
+	counts := map[string]int{"input_tokens": 0, "output_tokens": 0}
+	input := firstCount(usage.PromptTokens, usage.InputTokens, sumCounts(timings.PromptN, timings.CacheN), timings.PromptN)
+	output := firstCount(usage.CompletionTokens, usage.OutputTokens, timings.PredictedN)
+	if input != nil {
+		counts["input_tokens"] = *input
+	}
+	if output != nil {
+		counts["output_tokens"] = *output
+	}
+	return counts
 }
 
 func anthropicStopReason(value string) string {
@@ -543,7 +626,7 @@ func writeAnthropicStream(w http.ResponseWriter, body io.Reader, model, requestI
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("X-Accel-Buffering", "no")
-	state := anthropicStreamState{model: model, requestID: requestID, outputTokens: 0}
+	var state anthropicStreamState
 	if err := state.write(w, "message_start", map[string]any{"type": "message_start", "message": map[string]any{"id": "msg_" + requestID, "type": "message", "role": "assistant", "model": model, "content": []any{}, "stop_reason": nil, "stop_sequence": nil, "usage": map[string]int{"input_tokens": 0, "output_tokens": 0}}}); err != nil {
 		return err
 	}
@@ -559,23 +642,23 @@ func writeAnthropicStream(w http.ResponseWriter, body io.Reader, model, requestI
 			return state.finish(w)
 		}
 		if err := state.consume(w, []byte(data)); err != nil {
-			return err
+			return state.fail(w, err)
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return err
+		return state.fail(w, err)
 	}
 	return state.finish(w)
 }
 
 type anthropicStreamState struct {
-	model        string
-	requestID    string
-	textStarted  bool
-	toolBlocks   map[int]int
-	openBlocks   []int
-	stopReason   string
-	outputTokens int
+	textStarted bool
+	textIndex   int
+	toolBlocks  map[int]int
+	openBlocks  []int
+	stopReason  string
+	usage       inferenceUsage
+	timings     inferenceTimings
 }
 
 func (s *anthropicStreamState) consume(w http.ResponseWriter, data []byte) error {
@@ -594,15 +677,40 @@ func (s *anthropicStreamState) consume(w http.ResponseWriter, data []byte) error
 			} `json:"delta"`
 			FinishReason *string `json:"finish_reason"`
 		} `json:"choices"`
-		Usage struct {
-			CompletionTokens int `json:"completion_tokens"`
-		} `json:"usage"`
+		Usage   *inferenceUsage   `json:"usage"`
+		Timings *inferenceTimings `json:"timings"`
+		Error   json.RawMessage   `json:"error"`
 	}
 	if err := json.Unmarshal(data, &event); err != nil {
 		return errors.New("upstream stream emitted invalid JSON")
 	}
-	if event.Usage.CompletionTokens > 0 {
-		s.outputTokens = event.Usage.CompletionTokens
+	if rawHasText(event.Error) {
+		return errors.New("upstream stream reported an error")
+	}
+	if event.Usage != nil {
+		if event.Usage.PromptTokens != nil {
+			s.usage.PromptTokens = event.Usage.PromptTokens
+		}
+		if event.Usage.InputTokens != nil {
+			s.usage.InputTokens = event.Usage.InputTokens
+		}
+		if event.Usage.CompletionTokens != nil {
+			s.usage.CompletionTokens = event.Usage.CompletionTokens
+		}
+		if event.Usage.OutputTokens != nil {
+			s.usage.OutputTokens = event.Usage.OutputTokens
+		}
+	}
+	if event.Timings != nil {
+		if event.Timings.PromptN != nil {
+			s.timings.PromptN = event.Timings.PromptN
+		}
+		if event.Timings.CacheN != nil {
+			s.timings.CacheN = event.Timings.CacheN
+		}
+		if event.Timings.PredictedN != nil {
+			s.timings.PredictedN = event.Timings.PredictedN
+		}
 	}
 	if len(event.Choices) == 0 {
 		return nil
@@ -613,13 +721,14 @@ func (s *anthropicStreamState) consume(w http.ResponseWriter, data []byte) error
 	}
 	if content := choice.Delta.Content; content != "" {
 		if !s.textStarted {
-			if err := s.write(w, "content_block_start", map[string]any{"type": "content_block_start", "index": 0, "content_block": map[string]any{"type": "text", "text": ""}}); err != nil {
+			s.textIndex = len(s.openBlocks)
+			if err := s.write(w, "content_block_start", map[string]any{"type": "content_block_start", "index": s.textIndex, "content_block": map[string]any{"type": "text", "text": ""}}); err != nil {
 				return err
 			}
 			s.textStarted = true
-			s.openBlocks = append(s.openBlocks, 0)
+			s.openBlocks = append(s.openBlocks, s.textIndex)
 		}
-		if err := s.write(w, "content_block_delta", map[string]any{"type": "content_block_delta", "index": 0, "delta": map[string]any{"type": "text_delta", "text": content}}); err != nil {
+		if err := s.write(w, "content_block_delta", map[string]any{"type": "content_block_delta", "index": s.textIndex, "delta": map[string]any{"type": "text_delta", "text": content}}); err != nil {
 			return err
 		}
 	}
@@ -630,9 +739,6 @@ func (s *anthropicStreamState) consume(w http.ResponseWriter, data []byte) error
 		block, found := s.toolBlocks[call.Index]
 		if !found {
 			block = len(s.openBlocks)
-			if s.textStarted {
-				block++
-			}
 			s.toolBlocks[call.Index] = block
 			s.openBlocks = append(s.openBlocks, block)
 			if err := s.write(w, "content_block_start", map[string]any{"type": "content_block_start", "index": block, "content_block": map[string]any{"type": "tool_use", "id": call.ID, "name": call.Function.Name, "input": map[string]any{}}}); err != nil {
@@ -649,18 +755,25 @@ func (s *anthropicStreamState) consume(w http.ResponseWriter, data []byte) error
 }
 
 func (s *anthropicStreamState) finish(w http.ResponseWriter) error {
+	if s.stopReason == "" {
+		return s.fail(w, errors.New("upstream stream ended before completion"))
+	}
 	for _, index := range s.openBlocks {
 		if err := s.write(w, "content_block_stop", map[string]any{"type": "content_block_stop", "index": index}); err != nil {
 			return err
 		}
 	}
-	if s.stopReason == "" {
-		s.stopReason = "end_turn"
-	}
-	if err := s.write(w, "message_delta", map[string]any{"type": "message_delta", "delta": map[string]any{"stop_reason": s.stopReason, "stop_sequence": nil}, "usage": map[string]int{"output_tokens": s.outputTokens}}); err != nil {
+	if err := s.write(w, "message_delta", map[string]any{"type": "message_delta", "delta": map[string]any{"stop_reason": s.stopReason, "stop_sequence": nil}, "usage": anthropicTokenUsage(s.usage, s.timings)}); err != nil {
 		return err
 	}
 	return s.write(w, "message_stop", map[string]any{"type": "message_stop"})
+}
+
+func (s *anthropicStreamState) fail(w http.ResponseWriter, cause error) error {
+	if err := s.write(w, "error", map[string]any{"type": "error", "error": map[string]string{"type": "api_error", "message": "local inference stream did not complete"}}); err != nil {
+		return err
+	}
+	return cause
 }
 
 func (s *anthropicStreamState) write(w http.ResponseWriter, name string, payload any) error {

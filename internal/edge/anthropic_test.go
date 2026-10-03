@@ -218,10 +218,17 @@ func TestDecodeAnthropicRequestDropsEnvelopeExtensionsAndRejectsKnownTypeErrors(
 	if err != nil {
 		t.Fatalf("Claude Desktop envelope extensions were rejected: %v", err)
 	}
-	for _, key := range []string{"metadata", "thinking", "output_config", "tool_choice"} {
+	for _, key := range []string{"metadata", "thinking", "output_config"} {
 		if bytes.Contains(converted.body, []byte(`"`+key+`"`)) {
 			t.Errorf("unimplemented extension %q was forwarded: %s", key, converted.body)
 		}
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(converted.body, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["tool_choice"] != "auto" {
+		t.Fatalf("tool_choice was not preserved: %v", payload["tool_choice"])
 	}
 
 	for _, body := range []string{

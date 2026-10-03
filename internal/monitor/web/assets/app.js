@@ -1511,17 +1511,23 @@
 
   // ------------------------------------------------------------------ models
 
-  // Each tag says what it promises. Riscado never means "the model cannot":
-  // function calling, Responses and structured output are deployment guarantees
-  // that the edge only declares after demonstrating them for that exact file
-  // (docs/MODEL_PROMOTION.md), and a struck-through one is "not guaranteed".
+  // Each tag is a manifest capability the edge enforces before the inference
+  // slot: internal/edge/capabilities.go on the OpenAI routes; on /v1/messages,
+  // internal/edge/anthropic.go checks chat_completions, streaming and
+  // function_calling, and that route never forwards structured-output or
+  // thinking fields for any model. A struck-through tag is a feature the edge
+  // refuses for this model with a 400 until a qualification of this exact file
+  // declares it (docs/MODEL_PROMOTION.md). The OpenAI routes answer
+  // unsupported_feature; /v1/messages answers invalid_request_error and omits
+  // optional tools instead of refusing them. Responses is its own contract and
+  // does not imply tools, although Codex also requires streaming and tools.
   var CAPABILITIES = [
-    ['responses', 'Responses', 'API Responses (Codex). Garantia de implantação: só é marcada depois que o edge demonstra uma chamada de ferramenta forçada para este arquivo.'],
-    ['chat_completions', 'Chat', 'API Chat Completions (OpenAI).'],
-    ['streaming', 'Streaming', 'Respostas em streaming.'],
-    ['function_calling', 'Ferramentas', 'Chamada de ferramentas garantida pelo edge para este arquivo. Riscado é "não garantido", não "incapaz".'],
-    ['structured_output', 'JSON estruturado', 'Saída JSON estruturada garantida pelo edge. Riscado é "não garantido".'],
-    ['reasoning', 'Raciocínio', 'O modelo emite raciocínio antes da resposta, observado nas campanhas de qualificação.']
+    ['responses', 'Responses', 'API Responses (usada pelo Codex, que também exige Streaming e Ferramentas), qualificada por contrato próprio (saída nativa da API Responses e SSE, cancelamento, recuperação) e independente de ferramentas. Riscado (não qualificado): o edge recusa com 400 unsupported_feature as requisições em /v1/responses.'],
+    ['chat_completions', 'Chat', 'API Chat Completions (OpenAI); /v1/messages (Anthropic) também depende dela. Riscado (não qualificado): o edge recusa requisições nas duas rotas com 400.'],
+    ['streaming', 'Streaming', 'Respostas em streaming. Riscado (não qualificado): o edge recusa com 400 qualquer requisição com "stream": true.'],
+    ['function_calling', 'Ferramentas', 'Chamada de ferramentas qualificada para este arquivo. Riscado (não qualificado): o edge recusa com 400 requisições com ferramentas ou histórico de ferramentas; em /v1/messages, ferramentas opcionais são omitidas em vez de recusadas.'],
+    ['structured_output', 'JSON estruturado', 'Saída JSON estruturada qualificada para este arquivo. Riscado (não qualificado): o edge recusa com 400 unsupported_feature requisições com response_format ou text.format diferente de "text".'],
+    ['reasoning', 'Raciocínio', 'O modelo emite raciocínio antes da resposta, observado nas campanhas de qualificação. Riscado (não qualificado): o edge recusa com 400 unsupported_feature requisições com reasoning ou reasoning_effort diferente de "none".']
   ];
 
   function fact(term, value) {
