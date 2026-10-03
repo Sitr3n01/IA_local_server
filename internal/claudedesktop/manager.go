@@ -7,8 +7,6 @@ package claudedesktop
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -739,11 +737,4 @@ func writeAtomic(path string, contents []byte) error {
 		return err
 	}
 	return os.Rename(temporaryPath, path)
-}
-
-// ProfileFingerprint reports a non-secret identity for a profile document.
-// It is useful in status output without exposing the endpoint credential.
-func ProfileFingerprint(profile []byte) string {
-	sum := sha256.Sum256(profile)
-	return hex.EncodeToString(sum[:8])
 }
