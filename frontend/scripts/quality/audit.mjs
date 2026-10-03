@@ -23,7 +23,10 @@ mkdirSync(out, { recursive: true });
 // escape. A shell is needed at all only because `npm` is `npm.cmd` on Windows
 // and bare `npm.cmd` does not resolve under Git Bash, which is what every
 // developer on this project runs.
-const result = spawnSync('npm audit --json', {
+//
+// `--omit=dev` scopes the gate to the dependencies that ship in the bundle.
+// CI reports the development tooling separately, as a non-blocking warning.
+const result = spawnSync('npm audit --json --omit=dev', {
   encoding: 'utf8',
   shell: true,
   maxBuffer: 32 * 1024 * 1024,

@@ -298,10 +298,24 @@ jobs:
           path: frontend/sbom.cdx.json
           if-no-files-found: error
 
-      - name: Vulnerability scan (npm audit)
+      # Blocks on the dependencies that ship in the console bundle. Development
+      # tooling (linters, test runners, jscpd) never leaves the build machine,
+      # and an advisory with no fixed release in that tree would otherwise
+      # block every change until upstream ships one.
+      - name: Vulnerability scan (npm audit, production)
         shell: bash
         working-directory: frontend
-        run: npm audit --audit-level=high
+        run: npm audit --omit=dev --audit-level=high
+
+      # The whole tree, reported and never blocking, so an advisory in the
+      # development tooling stays visible as a warning on the run.
+      - name: Vulnerability report (npm audit, development tooling)
+        shell: bash
+        working-directory: frontend
+        run: |
+          if ! npm audit --audit-level=high; then
+            echo "::warning title=npm audit (development tooling)::high or critical advisories in development-only dependencies; see this step's log"
+          fi
 
   frontend-quality:
     name: Frontend quality gate

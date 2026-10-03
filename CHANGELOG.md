@@ -975,7 +975,13 @@ All notable changes are documented here. This project follows Keep a Changelog c
 - `frontend/package-lock.json` patches the three development dependencies
   that `npm audit` reported as high severity, `brace-expansion` 5.0.9 to
   5.0.12, `fast-uri` 3.1.6 to 3.1.8 and `undici` 8.10.0 to 8.11.2, without
-  updating the rest of the tree; the audit now reports none.
+  updating the rest of the tree.
+- The blocking `npm audit` in CI and the frontend quality gate's audit now
+  cover only the dependencies that ship in the console bundle
+  (`--omit=dev`). GHSA-vfj7-8cjw-p6xm, a high-severity `braces` advisory
+  with no fixed release, reaches the frontend only through development
+  tooling (`stylelint`, `jscpd`) and was blocking every change. A separate
+  CI step still audits the whole tree and reports it as a warning.
 - The monitor's action endpoint and the administrative pipe accept exactly
   one JSON object. A trailing `}` or `]` used to pass, because
   `decoder.More()` reports no further value before a closing delimiter, and

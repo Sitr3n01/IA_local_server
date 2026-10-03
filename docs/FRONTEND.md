@@ -391,7 +391,7 @@ implementation detail:
 | 2 — the host sanitizes its own environment before creating WebView2 | Implemented and fails closed at startup. |
 | 3 — the runtime is pinned to the Fixed Version distribution | **Not implemented.** The console runs on the machine's auto-updating Evergreen runtime — the one thing the ADR explicitly rejected. See "Known gaps". |
 | 4 — no HTML injection path, and the build proves it | Partly. The lint bans are real and the CSP is asserted against the built page. The ADR also says the CSP is "emitted by the build, never hand-written into a template" — it *is* hand-written in `index.html` — and that the build asserts no `innerHTML` sink in the bundle, which it does not. React's own vendored code contains such sinks, so a bundle-level grep would fail on every build; the ban is enforced on *our* source instead. |
-| 5 — the npm dependency tree is covered by CI | Partly. CycloneDX SBOM and `npm audit --audit-level=high` run in CI. The WebView2 user-data folder and Crashpad dump retention policy the ADR also requires does not exist. |
+| 5 — the npm dependency tree is covered by CI | Partly. CycloneDX SBOM and `npm audit --omit=dev --audit-level=high` run in CI; the full tree, development tooling included, is audited as a non-blocking warning. The WebView2 user-data folder and Crashpad dump retention policy the ADR also requires does not exist. |
 
 **Inference is out of scope by decision, not by omission.** Sprint 5 resolved
 that an inference transport must satisfy two named invariants — a
