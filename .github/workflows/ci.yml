@@ -37,6 +37,7 @@ jobs:
           }
           ./scripts/v2/Test-V2HarnessConfig.ps1
           ./scripts/v2/Test-V2ConfigGeneration.ps1
+          ./scripts/v2/Test-V2ScriptEntryPoints.ps1
 
       # Pure-Python, no server, no toolchain, sub-second. They guard the
       # qualification generation budget and the tool-argument contract -- the
@@ -51,6 +52,8 @@ jobs:
         run: |
           python ./scripts/v2/eval/test_qualify_budget.py
           python ./scripts/v2/eval/test_tool_grading.py
+          python ./scripts/v2/eval/test_responses_contract.py
+          python ./scripts/v2/eval/test_edge_overhead.py
 
       - name: Production artifact store self-test
         shell: pwsh
@@ -190,8 +193,81 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Gitleaks exits non-zero on a finding and prints nothing a reader can act
+      # on: the console output is a count, and `--redact` blanks the one field
+      # that would say where. The 2026-08-25 failure reported twelve leaks with
+      # no rule, no file and no line, which is a gate that fails without
+      # accusing anything.
+      #
+      # So take the report as JSON and print only metadata. .Secret and .Match
+      # never leave the report file -- the whole point is to say WHERE to look,
+      # not to reprint the finding into a public build log. The report is written
+      # under RUNNER_TEMP rather than the workspace so no later step can pick it
+      # up as an artifact.
+      #
+      # The exit code is captured before printing and re-raised afterwards, so
+      # the summary is additive: a scan that finds something still fails.
       - name: Run Gitleaks
         shell: bash
         run: |
           go install github.com/zricethezav/gitleaks/v8@v8.30.1
-          "$(go env GOPATH)/bin/gitleaks" git --no-banner --redact
+
+          set +e
+          "$(go env GOPATH)/bin/gitleaks" git --no-banner --redact --report-format json --report-path "$RUNNER_TEMP/gitleaks.json"
+          status=$?
+          set -e
+
+          # A clean scan still writes the file, holding an empty array, so gate on
+          # the finding count rather than on the file existing.
+          if [ -s "$RUNNER_TEMP/gitleaks.json" ] && [ "$(jq 'length' "$RUNNER_TEMP/gitleaks.json")" -gt 0 ]; then
+            echo '::group::Gitleaks findings (rule / file / line / commit)'
+            jq -r '.[] | [.RuleID, .File, (.StartLine|tostring), .Commit] | @tsv' "$RUNNER_TEMP/gitleaks.json" | sort -u
+            echo '::endgroup::'
+            echo
+            echo 'Counts by rule:'
+            jq -r '.[].RuleID' "$RUNNER_TEMP/gitleaks.json" | sort | uniq -c | sort -rn
+          fi
+
+          exit "$status"
+
+  monitor-ui:
+    name: Monitor UI
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        shell: bash
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint the monitor page
+        shell: bash
+        working-directory: frontend
+        run: npm run lint:monitor
+
+      - name: Monitor UI regression tests
+        shell: bash
+        working-directory: frontend
+        run: npm run test:monitor
+
+      # frontend/ holds only the Node tooling that checks the monitor page;
+      # nothing in it is built or shipped. Its audit is reported and never
+      # blocks, so an advisory in that tooling stays visible as a warning on
+      # the run without holding every change until upstream ships a fix.
+      - name: Vulnerability report (npm audit, monitor tooling)
+        shell: bash
+        working-directory: frontend
+        run: |
+          if ! npm audit --audit-level=high; then
+            echo "::warning title=npm audit (monitor tooling)::high or critical advisories in the monitor's check tooling; see this step's log"
+          fi

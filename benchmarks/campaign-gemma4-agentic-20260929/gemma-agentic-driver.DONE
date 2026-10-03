@@ -1,0 +1,6 @@
+﻿context=262144 done=2 skipped=0 failed=0 elapsed=0,52 h
+completed:
+  gemma4-12b-agentic-retention-ctx262144
+  gemma4-12b-agentic-quality-ctx262144
+skipped:
+failed:

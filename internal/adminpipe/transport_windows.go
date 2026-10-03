@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +15,9 @@ import (
 
 	"golang.org/x/sys/windows"
 )
+
+// x/sys/windows does not wrap this entry point. Load only the system DLL.
+var cancelSynchronousIO = windows.NewLazySystemDLL("kernel32.dll").NewProc("CancelSynchronousIo")
 
 const (
 	// pipeBufferBytes sizes the kernel buffers. Messages are bounded well below
@@ -29,6 +33,9 @@ const (
 	// one request. It is not the operation timeout: a model load legitimately
 	// runs for minutes after the request has been read.
 	requestDeadline = 10 * time.Second
+	// Delivery and flush are bounded separately from a potentially long model
+	// operation. A peer that stops reading must not retain the pipe forever.
+	responseDeadline = 2 * time.Second
 	// serving user access mask: FILE_GENERIC_READ | FILE_GENERIC_WRITE.
 	servingUserAccess = "0x12019f"
 )
@@ -139,11 +146,11 @@ func (l *Listener) Accept() (*Conn, error) {
 	if createErr != nil {
 		l.pending = windows.InvalidHandle
 		l.mu.Unlock()
-		return &Conn{handle: handle, server: true}, nil
+		return newConn(handle, true), nil
 	}
 	l.pending = next
 	l.mu.Unlock()
-	return &Conn{handle: handle, server: true}, nil
+	return newConn(handle, true), nil
 }
 
 // rearm replaces a pending instance that failed to connect. A failure here is
@@ -185,9 +192,14 @@ func (l *Listener) Close() error {
 // Serve runs the accept loop until ctx is done or the listener is closed. Each
 // connection handles exactly one request under a read deadline.
 func (l *Listener) Serve(ctx context.Context, handler Handler, onError func(error)) error {
+	stopped := make(chan struct{})
+	defer close(stopped)
 	go func() {
-		<-ctx.Done()
-		_ = l.Close()
+		select {
+		case <-ctx.Done():
+			_ = l.Close()
+		case <-stopped:
+		}
 	}()
 
 	semaphore := make(chan struct{}, maxPipeInstances)
@@ -201,22 +213,25 @@ func (l *Listener) Serve(ctx context.Context, handler Handler, onError func(erro
 			}
 			return err
 		}
+		conn.ctx = ctx
+		readCtx, cancelRead := context.WithTimeout(ctx, requestDeadline)
+		conn.readCtx = readCtx
 		select {
 		case semaphore <- struct{}{}:
 		default:
 			// Refuse rather than queue: the caller sees a closed connection and
 			// retries, and the server keeps a bounded number of handles.
 			_ = conn.Close()
+			cancelRead()
 			continue
 		}
 		wait.Add(1)
 		go func(conn *Conn) {
 			defer wait.Done()
 			defer func() { <-semaphore }()
+			defer cancelRead()
 			defer conn.Close()
-			stop := conn.cancelAfter(requestDeadline)
 			serveErr := ServeConn(ctx, conn, handler)
-			stop()
 			if serveErr != nil && onError != nil {
 				onError(serveErr)
 			}
@@ -226,11 +241,23 @@ func (l *Listener) Serve(ctx context.Context, handler Handler, onError func(erro
 
 // Conn is one administrative pipe connection.
 type Conn struct {
-	handle windows.Handle
-	server bool
+	handle    windows.Handle
+	server    bool
+	ctx       context.Context
+	readCtx   context.Context
+	closedCtx context.Context
+	cancel    context.CancelFunc
 
-	mu     sync.Mutex
-	closed bool
+	mu        sync.Mutex
+	closed    bool
+	ioWait    sync.WaitGroup
+	closeDone chan struct{}
+}
+
+func newConn(handle windows.Handle, server bool) *Conn {
+	closedCtx, cancel := context.WithCancel(context.Background())
+	return &Conn{handle: handle, server: server, ctx: context.Background(),
+		closedCtx: closedCtx, cancel: cancel, closeDone: make(chan struct{})}
 }
 
 func (c *Conn) Read(p []byte) (int, error) {
@@ -238,7 +265,11 @@ func (c *Conn) Read(p []byte) (int, error) {
 		return 0, nil
 	}
 	var read uint32
-	err := windows.ReadFile(c.handle, p, &read, nil)
+	ctx := c.ctx
+	if c.readCtx != nil {
+		ctx = c.readCtx
+	}
+	err := c.runIO(ctx, func() error { return windows.ReadFile(c.handle, p, &read, nil) })
 	if err != nil {
 		if errors.Is(err, windows.ERROR_BROKEN_PIPE) || errors.Is(err, windows.ERROR_NO_DATA) {
 			return int(read), errPipeClosed
@@ -249,10 +280,16 @@ func (c *Conn) Read(p []byte) (int, error) {
 }
 
 func (c *Conn) Write(p []byte) (int, error) {
+	ctx := c.ctx
+	if c.server {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, responseDeadline)
+		defer cancel()
+	}
 	written := 0
 	for written < len(p) {
 		var count uint32
-		if err := windows.WriteFile(c.handle, p[written:], &count, nil); err != nil {
+		if err := c.runIO(ctx, func() error { return windows.WriteFile(c.handle, p[written:], &count, nil) }); err != nil {
 			return written, err
 		}
 		if count == 0 {
@@ -263,34 +300,89 @@ func (c *Conn) Write(p []byte) (int, error) {
 	return written, nil
 }
 
-// Close flushes and releases the connection. A server connection is
-// disconnected first so the client observes end-of-file instead of a reset.
+// Close cancels live I/O, waits for it to return, then releases the handle.
+// Server delivery is flushed under a deadline and the serving context so a
+// peer that never reads cannot prevent shutdown.
 func (c *Conn) Close() error {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	if c.closed {
+		c.mu.Unlock()
+		<-c.closeDone
 		return nil
 	}
 	c.closed = true
+	c.mu.Unlock()
+	defer close(c.closeDone)
+	c.cancel()
+	c.ioWait.Wait()
 	if c.server {
-		_ = windows.FlushFileBuffers(c.handle)
+		ctx, cancel := context.WithTimeout(c.ctx, responseDeadline)
+		_ = synchronousIO(ctx, func() error { return windows.FlushFileBuffers(c.handle) })
+		cancel()
 		_ = windows.DisconnectNamedPipe(c.handle)
 	}
 	return windows.CloseHandle(c.handle)
 }
 
-// cancelAfter aborts a blocked read once the deadline elapses, so a client that
-// connects and never speaks cannot hold an instance open.
-func (c *Conn) cancelAfter(deadline time.Duration) func() {
-	timer := time.AfterFunc(deadline, func() {
-		c.mu.Lock()
-		defer c.mu.Unlock()
-		if c.closed {
+func (c *Conn) runIO(ctx context.Context, operation func() error) error {
+	c.mu.Lock()
+	if c.closed {
+		c.mu.Unlock()
+		return errPipeClosed
+	}
+	c.ioWait.Add(1)
+	c.mu.Unlock()
+	defer c.ioWait.Done()
+	ioCtx, cancel := context.WithCancel(ctx)
+	stop := context.AfterFunc(c.closedCtx, cancel)
+	defer func() { stop(); cancel() }()
+	return synchronousIO(ioCtx, operation)
+}
+
+// Synchronous pipe operations, including FlushFileBuffers, need cancellation
+// of their issuing OS thread. Pin that thread and join the cancellation worker
+// before releasing it, so cancellation cannot hit unrelated Go work. Retry
+// until completion to cover cancellation just before the syscall starts.
+func synchronousIO(ctx context.Context, operation func() error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if ctx.Done() == nil {
+		return operation()
+	}
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	thread, err := windows.OpenThread(windows.THREAD_TERMINATE, false, windows.GetCurrentThreadId())
+	if err != nil {
+		return fmt.Errorf("prepare cancellable pipe I/O: %w", err)
+	}
+	defer windows.CloseHandle(thread)
+	done, joined := make(chan struct{}), make(chan struct{})
+	go func() {
+		defer close(joined)
+		select {
+		case <-done:
 			return
+		case <-ctx.Done():
 		}
-		_ = windows.CancelIoEx(c.handle, nil)
-	})
-	return func() { timer.Stop() }
+		ticker := time.NewTicker(time.Millisecond)
+		defer ticker.Stop()
+		for {
+			_, _, _ = cancelSynchronousIO.Call(uintptr(thread))
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
+	err = operation()
+	close(done)
+	<-joined
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	return err
 }
 
 // servingUserDescriptor builds the DACL applied to the pipe. The account this
@@ -367,6 +459,9 @@ func Dial(ctx context.Context, options DialOptions) (*Conn, error) {
 
 	deadline := time.Now().Add(normalized.Timeout)
 	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		// SECURITY_SQOS_PRESENT|SECURITY_IDENTIFICATION caps the server at
 		// identification level, so a compromised endpoint cannot impersonate the
 		// operator against anything else on the machine.
@@ -384,7 +479,9 @@ func Dial(ctx context.Context, options DialOptions) (*Conn, error) {
 				_ = windows.CloseHandle(handle)
 				return nil, err
 			}
-			return &Conn{handle: handle}, nil
+			conn := newConn(handle, false)
+			conn.ctx = ctx
+			return conn, nil
 		}
 		if errors.Is(openErr, windows.ERROR_FILE_NOT_FOUND) || errors.Is(openErr, windows.ERROR_PATH_NOT_FOUND) {
 			return nil, fmt.Errorf("%w: %s", ErrNotListening, normalized.Name)
@@ -398,7 +495,13 @@ func Dial(ctx context.Context, options DialOptions) (*Conn, error) {
 		if time.Now().After(deadline) {
 			return nil, errors.New("administrative pipe is busy")
 		}
-		time.Sleep(50 * time.Millisecond)
+		timer := time.NewTimer(50 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
 	}
 }
 

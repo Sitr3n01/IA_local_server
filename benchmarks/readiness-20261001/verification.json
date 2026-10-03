@@ -1,0 +1,66 @@
+{
+  "captured_utc": "2026-10-02T03:25:59.6302985Z",
+  "go": {
+    "windows": {
+      "passed": 728,
+      "skipped": 6,
+      "failed": 0,
+      "packages": 18
+    },
+    "linux_race": {
+      "passed": 653,
+      "skipped": 0,
+      "failed": 0,
+      "packages": 18
+    }
+  },
+  "frontend": {
+    "tests": 315,
+    "test_files": 32,
+    "monitor_tests": 11,
+    "typecheck": true,
+    "eslint": true,
+    "stylelint": true,
+    "build": true,
+    "bundle_check": true,
+    "source_changed_since_validation": false
+  },
+  "python": {
+    "responses_negative_controls": 5,
+    "overhead_negative_controls": 3
+  },
+  "scans": {
+    "govulncheck": 0,
+    "npm_audit": 0,
+    "gitleaks": 0
+  },
+  "release": {
+    "command_builds": 12,
+    "icon_generator_build": true,
+    "reproducible_rebuilds": [
+      "cia-edge",
+      "cia-mcp-admin"
+    ],
+    "release_transaction_checks": 11,
+    "artifact_store_checks": 11,
+    "previews": {
+      "canary_configuration": true,
+      "harness": true,
+      "runtime_publication_plans": 2,
+      "applied": false,
+      "harness_deployment_ready": false
+    }
+  },
+  "soak": "waived",
+  "goal_complete": false,
+  "powershell": {
+    "captured_utc": "2026-10-02T03:44:03.724693+00:00",
+    "native_entry_point_checks": 15,
+    "native_entry_points_passed": true,
+    "native_shell": "Windows PowerShell 5.1",
+    "parse_files": 52,
+    "parse_errors": 0,
+    "config_generation_passed": true,
+    "harness_config_passed": true
+  }
+}

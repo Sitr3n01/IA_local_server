@@ -66,10 +66,23 @@ command = "keep.exe"
         permission = @{ edit = 'allow' }
     } | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $openCode -Encoding UTF8
 
+    # A fixture manifest, so the pin is resolved and validated against a known
+    # roster rather than whatever this machine happens to have installed.
+    $manifestFixture = Join-Path $resolvedTestRoot 'models.yaml'
+    @{
+        provider = @{ public_model = 'pinned-public-model' }
+        models = @(
+            @{ id = 'pinned-public-model'; state = 'candidate' },
+            @{ id = 'pinned-other-model'; state = 'candidate' },
+            @{ id = 'retired-model'; state = 'retired' }
+        )
+    } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $manifestFixture -Encoding UTF8
+
     $common = @{
         BinaryPath = $binary
         DataUrl = 'http://127.0.0.1:18090'
-        Model = 'local-coding'
+        Model = 'pinned-other-model'
+        ManifestPath = $manifestFixture
         CodexConfigPath = $codex
         ClaudeDesktopConfigPath = $desktop
         ClaudeCodeConfigPath = $claudeCode
@@ -106,7 +119,7 @@ command = "keep.exe"
     $desktopJson = Get-Content -LiteralPath $desktop -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-True ($desktopJson.theme -eq 'dark') 'Claude Desktop unrelated setting changed.'
     Assert-True ($desktopJson.mcpServers.keep.command -eq 'keep.exe') 'Claude Desktop existing MCP was lost.'
-    Assert-True ($desktopJson.mcpServers.'cia-local-inference'.env.CIA_MCP_INFERENCE_MODEL -eq 'local-coding') 'Claude Desktop managed MCP is wrong.'
+    Assert-True ($desktopJson.mcpServers.'cia-local-inference'.env.CIA_MCP_INFERENCE_MODEL -eq 'pinned-other-model') 'Claude Desktop managed MCP is wrong.'
     Assert-True ($desktopJson.mcpServers.'cia-local-inference'.env.CIA_MCP_INFERENCE_MAX_OUTPUT_TOKENS -eq '4096') 'Claude Desktop output limit is wrong.'
     Assert-True (@($desktopJson.mcpServers.'cia-local-inference'.args).Count -eq 0) 'Claude Desktop MCP args must be empty.'
 
@@ -190,6 +203,117 @@ command = "keep.exe"
         $invalidRejected = $_.Exception.Message -match 'not valid JSON'
     }
     Assert-True $invalidRejected 'Installer accepted an invalid existing JSON config.'
+
+    # With no -Model the pin is the manifest's public model.
+    $publicArguments = $common.Clone()
+    $publicArguments.Remove('Model')
+    $publicPreview = Invoke-InstallerJson -Arguments $publicArguments
+    Assert-True ($publicPreview.model -eq 'pinned-public-model') "Installer did not pin provider.public_model (got '$($publicPreview.model)')."
+    Assert-True ($publicPreview.model_source -eq 'provider.public_model') 'Installer did not report where the pin came from.'
+
+    # A model the manifest does not list as active would be refused by the edge
+    # on every call, so the installer refuses to pin it.
+    foreach ($inactiveModel in @('retired-model', 'removed-model')) {
+        $inactiveArguments = $common.Clone()
+        $inactiveArguments['Model'] = $inactiveModel
+        $inactiveRejected = $false
+        try {
+            Invoke-InstallerJson -Arguments $inactiveArguments | Out-Null
+        }
+        catch {
+            $inactiveRejected = $_.Exception.Message -match 'not an active model'
+        }
+        Assert-True $inactiveRejected "Installer pinned '$inactiveModel', which is not an active model in the manifest."
+    }
+
+    # With neither -Model nor a readable manifest there is nothing to pin.
+    $unresolvedArguments = $common.Clone()
+    $unresolvedArguments.Remove('Model')
+    $unresolvedArguments['ManifestPath'] = Join-Path $resolvedTestRoot 'missing-models.yaml'
+    $unresolvedRejected = $false
+    try {
+        Invoke-InstallerJson -Arguments $unresolvedArguments | Out-Null
+    }
+    catch {
+        $unresolvedRejected = $_.Exception.Message -match 'Pass -Model explicitly'
+    }
+    Assert-True $unresolvedRejected 'Installer invented a model with no -Model and no manifest.'
+
+    # What an installed canary client actually looks like: Codex rewrote its
+    # config and dropped the END marker while BEGIN survived, a table was
+    # written after the managed block, and the registration carries tuned
+    # limits that a re-pin must restate rather than reset.
+    $rewrittenRoot = Join-Path $resolvedTestRoot 'rewritten'
+    [IO.Directory]::CreateDirectory($rewrittenRoot) | Out-Null
+    $rewrittenCodex = Join-Path $rewrittenRoot 'config.toml'
+    @'
+model = "sota-cloud-model"
+
+# BEGIN CIA LOCAL INFERENCE MCP (managed)
+[mcp_servers.cia-local-inference]
+command = 'C:\old\cia-mcp-inference.exe'
+enabled = true
+
+[mcp_servers.cia-local-inference.env]
+CIA_MCP_INFERENCE_MODEL = 'removed-model'
+CIA_MCP_INFERENCE_MAX_OUTPUT_TOKENS = "65536"
+
+[mcp_servers.cia-local-inference.tools.local_ai_delegate]
+approval_mode = "prompt"
+
+[mcp_servers.after]
+command = "after.exe"
+'@ | Set-Content -LiteralPath $rewrittenCodex -Encoding UTF8
+    $rewrittenClaude = Join-Path $rewrittenRoot '.claude.json'
+    @{
+        accountState = @{ privateMarker = 'private-sentinel-never-plaintext-backup' }
+        mcpServers = @{ 'cia-local-inference' = @{ command = 'C:\old\cia-mcp-inference.exe'; env = @{ CIA_MCP_INFERENCE_MODEL = 'removed-model' } } }
+    } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $rewrittenClaude -Encoding UTF8
+
+    $tunedArguments = $common.Clone()
+    $tunedArguments['CodexConfigPath'] = $rewrittenCodex
+    $tunedArguments['ClaudeCodeConfigPath'] = $rewrittenClaude
+    $tunedArguments['Clients'] = @('Codex', 'ClaudeCode')
+    $tunedArguments['MaxOutputTokens'] = 65536
+    $tunedArguments['Timeout'] = '30m'
+    $tunedArguments['Temperature'] = '0.2'
+    $tunedPreview = Invoke-InstallerJson -Arguments $tunedArguments
+    Assert-True (@($tunedPreview.items | Where-Object { $_.action -eq 'update' }).Count -eq 2) 'Expected both rewritten configs to be updated.'
+    $tunedApply = $tunedArguments.Clone()
+    $tunedApply['Apply'] = $true
+    $tunedApply['ExpectedPlanSha256'] = $tunedPreview.plan_sha256
+    Invoke-InstallerJson -Arguments $tunedApply | Out-Null
+
+    $rewrittenText = Get-Content -LiteralPath $rewrittenCodex -Raw -Encoding UTF8
+    Assert-True (@([regex]::Matches($rewrittenText, '(?m)^\[mcp_servers\.cia-local-inference\]\r?$')).Count -eq 1) 'The orphan-marker Codex config did not end with exactly one managed table.'
+    Assert-True (@([regex]::Matches($rewrittenText, '(?m)^# BEGIN CIA LOCAL INFERENCE MCP \(managed\)\r?$')).Count -eq 1) 'The BEGIN marker was not restored exactly once.'
+    Assert-True (@([regex]::Matches($rewrittenText, '(?m)^# END CIA LOCAL INFERENCE MCP \(managed\)\r?$')).Count -eq 1) 'The END marker was not restored exactly once.'
+    Assert-True ($rewrittenText -match '(?m)^\[mcp_servers\.after\]\r?$' -and $rewrittenText -match 'after\.exe') 'A table written after the managed block was lost.'
+    Assert-True ($rewrittenText -match '(?m)^model = "sota-cloud-model"\r?$') 'The Codex primary model changed.'
+    Assert-True ($rewrittenText -notmatch 'removed-model') 'The stale pin survived the re-pin.'
+    Assert-True ($rewrittenText -match "(?m)^CIA_MCP_INFERENCE_MODEL = 'pinned-other-model'\r?$") 'The re-pin did not write the new model.'
+    Assert-True ($rewrittenText -match '(?m)^CIA_MCP_INFERENCE_MAX_OUTPUT_TOKENS = "65536"\r?$') 'The output limit was not restated.'
+    Assert-True ($rewrittenText -match '(?m)^CIA_MCP_INFERENCE_TIMEOUT = "30m"\r?$') 'The timeout was not restated.'
+    Assert-True ($rewrittenText -match '(?m)^CIA_MCP_INFERENCE_TEMPERATURE = "0\.2"\r?$') 'The temperature was not restated.'
+
+    $rewrittenClaudeJson = Get-Content -LiteralPath $rewrittenClaude -Raw -Encoding UTF8 | ConvertFrom-Json
+    $rewrittenEnv = $rewrittenClaudeJson.mcpServers.'cia-local-inference'.env
+    Assert-True ($rewrittenClaudeJson.accountState.privateMarker -eq 'private-sentinel-never-plaintext-backup') 'Claude Code unrelated state changed during the re-pin.'
+    Assert-True ($rewrittenEnv.CIA_MCP_INFERENCE_MODEL -eq 'pinned-other-model') 'Claude Code was not re-pinned.'
+    Assert-True ($rewrittenEnv.CIA_MCP_INFERENCE_MAX_OUTPUT_TOKENS -eq '65536' -and $rewrittenEnv.CIA_MCP_INFERENCE_TIMEOUT -eq '30m' -and $rewrittenEnv.CIA_MCP_INFERENCE_TEMPERATURE -eq '0.2') 'Claude Code limits were not restated.'
+
+    foreach ($badTuning in @(@{ Timeout = '41m' }, @{ Timeout = '30' }, @{ Temperature = '2.5' }, @{ Temperature = '0,2' })) {
+        $badArguments = $common.Clone()
+        foreach ($key in $badTuning.Keys) { $badArguments[$key] = $badTuning[$key] }
+        $badRejected = $false
+        try {
+            Invoke-InstallerJson -Arguments $badArguments | Out-Null
+        }
+        catch {
+            $badRejected = $_.Exception.Message -match 'Timeout must|Temperature must'
+        }
+        Assert-True $badRejected "Installer accepted an invalid delegate limit: $(($badTuning.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ', ')."
+    }
 
     [pscustomobject]@{
         status = 'ok'

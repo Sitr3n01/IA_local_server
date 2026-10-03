@@ -2,7 +2,7 @@
 param(
 	[string]$OpenCode = (Join-Path $env:LOCALAPPDATA 'Programs\@opencode-aidesktop\OpenCode.exe'),
 	[ValidatePattern('^[a-z0-9][a-z0-9._-]{0,127}$')]
-	[string]$Model = 'local-coding',
+	[string]$Model,
 	[string[]]$Arguments = @()
 )
 
@@ -20,6 +20,13 @@ foreach ($required in @($helperPath, $configPath, $OpenCode)) {
 }
 
 $providerConfig = Get-Content -LiteralPath $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace($Model)) {
+	$prefix = "$provider/"
+	if (-not ([string]$providerConfig.model).StartsWith($prefix, [StringComparison]::Ordinal)) {
+		throw 'The installed OpenCode default must use the pinned local-only provider.'
+	}
+	$Model = ([string]$providerConfig.model).Substring($prefix.Length)
+}
 $configuredModels = @($providerConfig.provider.$provider.models.PSObject.Properties.Name)
 if ($configuredModels -notcontains $Model) {
 	throw "Model '$Model' is not present in the installed OpenCode local-only provider."
@@ -27,7 +34,7 @@ if ($configuredModels -notcontains $Model) {
 $providerModel = "$provider/$Model"
 
 foreach ($argument in $Arguments) {
-    if ($argument -in @('--model', '-m') -or $argument -match '^--model=') {
+    if ($argument -in @('--model', '-m') -or $argument -match '^--model=' -or ($argument.Length -gt 2 -and $argument.StartsWith('-m', [StringComparison]::Ordinal))) {
         throw "Argument '$argument' is not allowed by the canary launcher. Start OpenCode directly for another model."
     }
 }

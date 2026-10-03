@@ -13,8 +13,8 @@ const maxManifestBytes = 16 << 20
 
 var modelIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{1,63}$`)
 
-// Capabilities are the protocol features qualified for a model. They are used
-// both for display and to keep a launcher from selecting an incompatible model.
+// Capabilities are the protocol features qualified for a model, as the
+// manifest states them.
 type Capabilities struct {
 	Responses        bool `json:"responses"`
 	ChatCompletions  bool `json:"chat_completions"`
@@ -43,20 +43,6 @@ type Model struct {
 	GPULayers         int          `json:"gpu_layers"`
 	Available         bool         `json:"available"`
 	UnavailableReason string       `json:"unavailable_reason,omitempty"`
-}
-
-// CanLaunchCodex reports whether the model may be selected by the local Codex
-// harness. Capability flags remain descriptive: operators may intentionally
-// open a client with a model that has weaker tool-use behavior.
-func (m Model) CanLaunchCodex() bool {
-	return m.Available
-}
-
-// CanLaunchOpenCode follows the same operator-selection policy as Codex. The
-// edge supplies the protocol surface; model-level capability badges describe
-// expected behavior without hiding the launcher.
-func (m Model) CanLaunchOpenCode() bool {
-	return m.Available
 }
 
 // Catalog preserves manifest order while attaching deployment-specific

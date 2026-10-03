@@ -28,7 +28,7 @@ manifest.
 #>
 [CmdletBinding()]
 param(
-    [string]$ManifestPath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'config\models.yaml'),
+    [string]$ManifestPath,
 
     [Parameter(Mandatory = $true)]
     [string]$ModelId,
@@ -49,6 +49,9 @@ Set-StrictMode -Version Latest
 
 . (Join-Path $PSScriptRoot 'Common.ps1')
 . (Join-Path $PSScriptRoot 'Telemetry.ps1')
+if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
+    $ManifestPath = Join-Path (Get-V2RepoRoot) 'config\models.yaml'
+}
 
 $script:Checks = 0
 $script:Failures = [System.Collections.Generic.List[string]]::new()
@@ -68,9 +71,9 @@ function Assert-Smoke {
 }
 
 $manifest = Read-V2Manifest -Path $ManifestPath
-$model = @($manifest.models | Where-Object { $_.id -eq $ModelId })[0]
+$model = $manifest.models | Where-Object { $_.id -eq $ModelId } | Select-Object -First 1
 if ($null -eq $model) { throw "Model '$ModelId' is not in $ManifestPath." }
-$runtime = @($manifest.runtimes | Where-Object { $_.id -eq $model.runtime })[0]
+$runtime = $manifest.runtimes | Where-Object { $_.id -eq $model.runtime } | Select-Object -First 1
 if ($null -eq $runtime) { throw "Model '$ModelId' references unknown runtime '$($model.runtime)'." }
 
 $runtimeRoot = Split-Path -Parent $runtime.artifact.path

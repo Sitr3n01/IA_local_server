@@ -3,11 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
-	"os"
-	"strings"
 
 	"github.com/sitr3n/local-ai-provider/internal/panel"
 	"github.com/sitr3n/local-ai-provider/internal/trayui"
@@ -20,12 +19,22 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	flags.SetOutput(stderr)
 	configPath := flags.String("config", `C:\IA\local-ai-v2\config\panel.canary.json`, "path to the generated panel configuration")
 	diagnose := flags.Bool("diagnose", false, "print one sanitized status snapshot and exit")
-	validateModel := flags.String("validate-model", "", "validate one registered model, persist the sanitized result, and exit")
+	openClaude := flags.Bool("claude-open", false, "open or foreground the signed-in Claude Desktop instance")
+	openClaudeLocal := flags.Bool("claude-local", false, "open or foreground the Claude Desktop instance that uses this server, beside the signed-in one")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 0 {
 		return fmt.Errorf("unexpected positional arguments: %v", flags.Args())
+	}
+	actions := 0
+	for _, selected := range []bool{*diagnose, *openClaude, *openClaudeLocal} {
+		if selected {
+			actions++
+		}
+	}
+	if actions > 1 {
+		return errors.New("diagnose, Claude open, and Claude local actions are mutually exclusive")
 	}
 	config, err := panel.LoadConfig(*configPath)
 	if err != nil {
@@ -55,22 +64,33 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		// modal MessageBox and block unattended health collection.
 		return nil
 	}
-	if modelID := strings.TrimSpace(*validateModel); modelID != "" {
-		result := struct {
-			Model  string `json:"model"`
-			Status string `json:"status"`
+	if *openClaude || *openClaudeLocal {
+		output := struct {
+			Action string `json:"action"`
+			Result string `json:"result"`
 			Error  string `json:"error,omitempty"`
-		}{Model: modelID, Status: "validated"}
-		if err := controller.ValidateModel(ctx, modelID); err != nil {
-			result.Status = "failed"
-			result.Error = sanitizeDiagnosticError(err)
+		}{Action: "claude-open", Result: "opened"}
+		open := controller.LaunchClaudeDesktop
+		if *openClaudeLocal {
+			output.Action, open = "claude-local", controller.OpenClaudeLocal
+		}
+		operationErr := open(ctx)
+		if operationErr != nil {
+			output.Result = "failed"
+			output.Error = sanitizeDiagnosticError(operationErr)
 		}
 		encoder := json.NewEncoder(stdout)
 		encoder.SetIndent("", "  ")
-		return encoder.Encode(result)
+		if err := encoder.Encode(output); err != nil {
+			return err
+		}
+		if operationErr != nil {
+			return fmt.Errorf("%s: %w", output.Action, operationErr)
+		}
+		return nil
 	}
 	return trayui.Run(ctx, controller, trayui.Options{
-		Title:           "CIA Local AI — " + strings.ToUpper(string(config.Environment)),
+		Environment:     string(config.Environment),
 		InstanceID:      string(config.Environment),
 		RefreshInterval: config.RefreshInterval(),
 	})
@@ -87,4 +107,12 @@ func sanitizeDiagnosticError(err error) string {
 	return text
 }
 
-func defaultStreams() (io.Writer, io.Writer) { return os.Stdout, os.Stderr }
+func headlessInvocation(args []string) bool {
+	for _, arg := range args {
+		switch arg {
+		case "-diagnose", "--diagnose", "-claude-open", "--claude-open", "-claude-local", "--claude-local":
+			return true
+		}
+	}
+	return false
+}

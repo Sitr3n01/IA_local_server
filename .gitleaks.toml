@@ -3,8 +3,38 @@ title = "IA_local_server gitleaks config"
 [extend]
 useDefault = true
 
-[allowlist]
-description = "Synthetic eval-fixture needles, not real credentials. This file manufactures distinctive, credential-shaped strings on purpose so long-context retention probes have an unguessable exact answer."
+# The long-context retention suite needs answers a model cannot guess, so
+# scripts/v2/eval/fixture_corpus.py manufactures credential-shaped strings on
+# purpose. Every one of them is a literal in that file with no service behind
+# it, and the corpus is regenerated deterministically from those literals.
+#
+# Two allowlists rather than one, because the fixture leaks in two directions:
+# the generator declares the strings, and the graded evidence quotes them back.
+
+[[allowlists]]
+description = "The fixture generator itself, where the synthetic needles are declared."
 paths = [
   '''scripts/v2/eval/fixture_corpus\.py''',
+]
+
+# A capture is the verbatim request and wire response of a graded exchange, so a
+# retention probe that asks the model to recall PROJECT_BUILD_TOKEN necessarily
+# stores the model writing it down. The 2026-08-25 scan found twelve of these,
+# all one string: `ReflectionScanV2`, the rejected-approach needle the
+# negative_memory probes ask the model NOT to name.
+#
+# Scoped three ways so it cannot mask a real credential: one rule, one set of
+# exact literal values, and `condition = "AND"` so both must hold. It allows
+# four specific strings and nothing else - not a path, not a file type, not a
+# directory. A genuine key committed next to one of these still fails the gate.
+[[allowlists]]
+description = "Synthetic eval-fixture needles quoted back inside benchmark evidence."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+regexes = [
+  '''^ReflectionScanV2$''',
+  '''^H7Q9-42AX-731$''',
+  '''^K3M8-57BW-904$''',
+  '''^P5R2-18CQ-663$''',
 ]

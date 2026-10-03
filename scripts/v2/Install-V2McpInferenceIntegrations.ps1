@@ -2,7 +2,16 @@
 param(
     [string]$BinaryPath = 'C:\IA\local-ai-v2\bin\cia-mcp-inference.exe',
     [string]$DataUrl = 'http://127.0.0.1:18090',
-    [string]$Model = 'local-coding',
+    # Empty means provider.public_model from -ManifestPath.
+    [string]$Model,
+    [string]$ManifestPath = 'C:\IA\local-ai-v2\config\models.yaml',
+    # The delegate's limits live in the same managed registration, so a re-pin
+    # must be able to restate them instead of resetting them. Timeout and
+    # Temperature are written only when given; the executable's own defaults
+    # apply otherwise.
+    [ValidateRange(1, 65536)][int]$MaxOutputTokens = 4096,
+    [string]$Timeout,
+    [string]$Temperature,
     [string]$CodexConfigPath = (Join-Path $env:USERPROFILE '.codex\config.toml'),
     [string]$ClaudeDesktopConfigPath = (Join-Path $env:APPDATA 'Claude\claude_desktop_config.json'),
     [string]$ClaudeCodeConfigPath = (Join-Path $env:USERPROFILE '.claude.json'),
@@ -90,6 +99,17 @@ function Remove-ManagedCodexTables {
     $end = '# END CIA LOCAL INFERENCE MCP (managed)'
     $beginMatches = @([regex]::Matches($Text, '(?m)^' + [regex]::Escape($begin) + '[ \t]*\r?$'))
     $endMatches = @([regex]::Matches($Text, '(?m)^' + [regex]::Escape($end) + '[ \t]*\r?$'))
+    if ($beginMatches.Count -eq 1 -and $endMatches.Count -eq 0) {
+        # Codex rewrites config.toml itself and can drop the trailing END
+        # comment while BEGIN survives, attached to the first managed table.
+        # Only that orphan line is removed here; the managed tables go through
+        # the header-based removal below like an unmarked installation.
+        $orphanStart = $beginMatches[0].Index
+        $orphanEnd = $orphanStart + $beginMatches[0].Length
+        if ($orphanEnd -lt $Text.Length -and $Text[$orphanEnd] -eq "`n") { $orphanEnd++ }
+        $Text = $Text.Remove($orphanStart, $orphanEnd - $orphanStart)
+        $beginMatches = @()
+    }
     if ($beginMatches.Count -ne $endMatches.Count -or $beginMatches.Count -gt 1) {
         throw 'Codex config contains malformed or duplicate CIA managed-block markers.'
     }
@@ -148,7 +168,11 @@ function Merge-CodexConfig {
         '[mcp_servers.cia-local-inference.env]',
         "CIA_MCP_INFERENCE_DATA_URL = $url",
         "CIA_MCP_INFERENCE_MODEL = $modelValue",
-        'CIA_MCP_INFERENCE_MAX_OUTPUT_TOKENS = "4096"',
+        "CIA_MCP_INFERENCE_MAX_OUTPUT_TOKENS = `"$script:maxOutputTokensText`""
+    )
+    if ($script:normalizedTimeout) { $lines += "CIA_MCP_INFERENCE_TIMEOUT = `"$script:normalizedTimeout`"" }
+    if ($script:normalizedTemperature) { $lines += "CIA_MCP_INFERENCE_TEMPERATURE = `"$script:normalizedTemperature`"" }
+    $lines += @(
         '',
         '[mcp_servers.cia-local-inference.tools.local_ai_delegate]',
         'approval_mode = "prompt"',
@@ -176,7 +200,7 @@ function Merge-CodexConfig {
     }
     foreach ($requiredLine in @(
         'enabled_tools = ["local_ai_delegate"]',
-        'CIA_MCP_INFERENCE_MAX_OUTPUT_TOKENS = "4096"',
+        "CIA_MCP_INFERENCE_MAX_OUTPUT_TOKENS = `"$script:maxOutputTokensText`"",
         'approval_mode = "prompt"'
     )) {
         if ($merged.IndexOf($requiredLine, [StringComparison]::Ordinal) -lt 0) {
@@ -232,15 +256,22 @@ function Read-JsonRoot {
     return $root
 }
 
+function New-ManagedEnvironment {
+    $environment = [ordered]@{
+        CIA_MCP_INFERENCE_DATA_URL = $script:normalizedDataUrl
+        CIA_MCP_INFERENCE_MODEL = $script:normalizedModel
+        CIA_MCP_INFERENCE_MAX_OUTPUT_TOKENS = $script:maxOutputTokensText
+    }
+    if ($script:normalizedTimeout) { $environment['CIA_MCP_INFERENCE_TIMEOUT'] = $script:normalizedTimeout }
+    if ($script:normalizedTemperature) { $environment['CIA_MCP_INFERENCE_TEMPERATURE'] = $script:normalizedTemperature }
+    return [pscustomobject]$environment
+}
+
 function New-ClaudeServerConfig {
     return [pscustomobject][ordered]@{
         command = $script:resolvedBinaryPath
         args = @()
-        env = [pscustomobject][ordered]@{
-            CIA_MCP_INFERENCE_DATA_URL = $script:normalizedDataUrl
-            CIA_MCP_INFERENCE_MODEL = $script:normalizedModel
-            CIA_MCP_INFERENCE_MAX_OUTPUT_TOKENS = '4096'
-        }
+        env = New-ManagedEnvironment
     }
 }
 
@@ -286,11 +317,7 @@ function Merge-OpenCodeConfig {
         command = @($script:resolvedBinaryPath)
         enabled = $true
         timeout = 10000
-        environment = [pscustomobject][ordered]@{
-            CIA_MCP_INFERENCE_DATA_URL = $script:normalizedDataUrl
-            CIA_MCP_INFERENCE_MODEL = $script:normalizedModel
-            CIA_MCP_INFERENCE_MAX_OUTPUT_TOKENS = '4096'
-        }
+        environment = New-ManagedEnvironment
     }
     Set-JsonProperty -Object $mcp -Name $script:serverName -Value $server
 
@@ -377,6 +404,29 @@ if ($candidateDataUrl -notmatch '^http://127\.0\.0\.1:[0-9]{1,5}/?$') {
     throw 'DataUrl must be an HTTP loopback origin with an explicit port, such as http://127.0.0.1:18090.'
 }
 $normalizedDataUrl = $candidateDataUrl.TrimEnd('/')
+
+# The model is pinned from the installed manifest unless one is named. That
+# manifest is what the edge admits, so a model it does not list is refused on
+# every delegated call - which is what a hard-coded default did once its
+# profile left the roster.
+$resolvedManifestPath = [IO.Path]::GetFullPath($ManifestPath)
+$activeModelIds = $null
+$publicModelId = $null
+if (Test-Path -LiteralPath $resolvedManifestPath -PathType Leaf) {
+    $manifestDocument = Get-Content -LiteralPath $resolvedManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $activeModelIds = @($manifestDocument.models | Where-Object { $_.state -ne 'retired' } | ForEach-Object { [string]$_.id })
+    $publicModelId = [string]$manifestDocument.provider.public_model
+}
+if ([string]::IsNullOrWhiteSpace($Model)) {
+    if ([string]::IsNullOrWhiteSpace($publicModelId)) {
+        throw "Model was not given and no provider.public_model could be read from $resolvedManifestPath. Pass -Model explicitly."
+    }
+    $Model = $publicModelId
+    $modelSource = 'provider.public_model'
+}
+else {
+    $modelSource = 'parameter'
+}
 $normalizedModel = $Model.Trim()
 $explicitClients = $Clients.Count -gt 0
 
@@ -403,6 +453,34 @@ if ($invalidDataUrl) {
 }
 if ($normalizedModel -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$') {
     throw 'Model must be a stable local model identifier.'
+}
+if ($null -ne $activeModelIds -and $activeModelIds -notcontains $normalizedModel) {
+    throw "Model '$normalizedModel' is not an active model in $resolvedManifestPath; the edge would refuse every delegated call."
+}
+$maxOutputTokensText = [string]$MaxOutputTokens
+$normalizedTimeout = $null
+if (-not [string]::IsNullOrWhiteSpace($Timeout)) {
+    $candidateTimeout = $Timeout.Trim()
+    if ($candidateTimeout -notmatch '^(?<amount>[1-9][0-9]{0,4})(?<unit>[sm])$') {
+        throw 'Timeout must be a whole number of seconds or minutes, such as 30m.'
+    }
+    $timeoutSeconds = [int]$Matches['amount'] * $(if ($Matches['unit'] -eq 'm') { 60 } else { 1 })
+    # The executable refuses anything above its compiled 40-minute ceiling at
+    # startup; failing here keeps a bad value out of the client configs.
+    if ($timeoutSeconds -gt 2400) {
+        throw 'Timeout must be at most 40m, the executable''s compiled ceiling.'
+    }
+    $normalizedTimeout = $candidateTimeout
+}
+$normalizedTemperature = $null
+if (-not [string]::IsNullOrWhiteSpace($Temperature)) {
+    $parsedTemperature = 0.0
+    $validTemperature = [double]::TryParse($Temperature.Trim(), [Globalization.NumberStyles]::Float,
+        [Globalization.CultureInfo]::InvariantCulture, [ref]$parsedTemperature)
+    if (-not $validTemperature -or $parsedTemperature -lt 0 -or $parsedTemperature -gt 2) {
+        throw 'Temperature must be a number between 0 and 2, written with a dot.'
+    }
+    $normalizedTemperature = $parsedTemperature.ToString([Globalization.CultureInfo]::InvariantCulture)
 }
 if ($ExpectedPlanSha256 -and $ExpectedPlanSha256 -notmatch '^[A-Fa-f0-9]{64}$') {
     throw 'ExpectedPlanSha256 must contain exactly 64 hexadecimal characters.'
@@ -475,7 +553,12 @@ $planLines = @(
     "binary_sha256=$binaryHash",
     "backup_root=$resolvedBackupRoot",
     "data_url=$normalizedDataUrl",
-    "model=$normalizedModel"
+    "model=$normalizedModel",
+    "model_source=$modelSource",
+    "manifest=$resolvedManifestPath",
+    "max_output_tokens=$maxOutputTokensText",
+    "timeout=$normalizedTimeout",
+    "temperature=$normalizedTemperature"
 )
 $planLines += @($items | ForEach-Object {
     '{0}|{1}|{2}|{3}|{4}|{5}' -f $_.client, $_.path, $_.detected, $_.action, $_.before_sha256, $_.after_sha256
@@ -504,6 +587,11 @@ $result = [ordered]@{
     binary_sha256 = $binaryHash
     data_url = $normalizedDataUrl
     model = $normalizedModel
+    model_source = $modelSource
+    manifest_path = $resolvedManifestPath
+    max_output_tokens = $MaxOutputTokens
+    timeout = $normalizedTimeout
+    temperature = $normalizedTemperature
     provider_or_primary_model_touched = $false
     secrets_written = $false
     backups = 'DPAPI CurrentUser'

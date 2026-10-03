@@ -1,0 +1,449 @@
+{
+  "schema_version": 1,
+  "scenario": "paired-warm-edge-overhead",
+  "model": "gemma4-12b-qat-ud-q4xl-256k",
+  "started_utc": "2026-10-02T03:13:51Z",
+  "warmups": {
+    "direct": {
+      "elapsed_ms": 11081.680200000847,
+      "compute_ms": 779.8209999999999,
+      "output_tokens": 38,
+      "body_sha256": "fa43aa3b6c6bd761696f4b023ed8b8ba46c7dabb1cb1c5db4ac2af6dc997bbf8"
+    },
+    "edge": {
+      "elapsed_ms": 736.556699997891,
+      "compute_ms": 701.727,
+      "output_tokens": 38,
+      "body_sha256": "24c0a307457d0567d82a62fc6b854b777863456e8d966cd90687c497902d3bf3"
+    }
+  },
+  "pairs": [
+    {
+      "direct": {
+        "elapsed_ms": 731.7670999982511,
+        "compute_ms": 710.957,
+        "output_tokens": 38,
+        "body_sha256": "1f762c8d1cb02453110f44b1c6211fcc3bf35cbac093d6e04ee8a537b445c4d7"
+      },
+      "edge": {
+        "elapsed_ms": 731.5062999987276,
+        "compute_ms": 705.745,
+        "output_tokens": 38,
+        "body_sha256": "c2e8836df1bece4b8ba21bec607ec4a0385e51d5f5d285bf962da5524677a01c"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 736.1323000004631,
+        "compute_ms": 708.298,
+        "output_tokens": 38,
+        "body_sha256": "8d871a576c9809b6ccde764db39b100e142fc48f72a420a516983b0401daeac8"
+      },
+      "direct": {
+        "elapsed_ms": 728.0825000016193,
+        "compute_ms": 698.9190000000001,
+        "output_tokens": 38,
+        "body_sha256": "27b625acca8272825f06fa3a0d43a083999b8bfb862eddcf602f1af0e5d71195"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 696.9312000001082,
+        "compute_ms": 694.039,
+        "output_tokens": 38,
+        "body_sha256": "26c421b5dded9e21772634c4ab4e9e284bd7c896359927b04ffc683f91c6588b"
+      },
+      "edge": {
+        "elapsed_ms": 707.9383000018424,
+        "compute_ms": 704.874,
+        "output_tokens": 38,
+        "body_sha256": "b53fbcc6f49e139fc5b28981b2d9f7f5e250cde8d536f3ff5266ca399da8f671"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 716.1148000013782,
+        "compute_ms": 694.878,
+        "output_tokens": 38,
+        "body_sha256": "81cd521d777edfc30531e2d3ecb0ab281d4ee6fcd4a99bd5dfe8327c32644f86"
+      },
+      "direct": {
+        "elapsed_ms": 703.2160000017029,
+        "compute_ms": 700.224,
+        "output_tokens": 38,
+        "body_sha256": "1c04438cde170635c6cb0e55e1d5de14ca8f6835bcfb5b524f9f30fcd8a96b66"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 698.2424999987416,
+        "compute_ms": 695.4250000000001,
+        "output_tokens": 38,
+        "body_sha256": "cbe79151f21dd831aca31d53b3f7c79493e51bbc3ed079940a77a91ee05612ab"
+      },
+      "edge": {
+        "elapsed_ms": 681.1014000013529,
+        "compute_ms": 677.864,
+        "output_tokens": 38,
+        "body_sha256": "5d40fd36f742a94685acb2824340bbec1060ae6adf45d1548242c1d19c7d84eb"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 699.223700001312,
+        "compute_ms": 695.631,
+        "output_tokens": 38,
+        "body_sha256": "a635264aba97755c26584ca771c667e5f8b5adfaaa25257849758da8f8367168"
+      },
+      "direct": {
+        "elapsed_ms": 705.8980999972846,
+        "compute_ms": 702.9649999999999,
+        "output_tokens": 38,
+        "body_sha256": "36d80f7c160cf073cbd9fa2f9f3896429acf9b8f47f527d44769a045511bb408"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 724.2946000005759,
+        "compute_ms": 707.663,
+        "output_tokens": 38,
+        "body_sha256": "291e39ca1bd027b816fad6b037ae00326911682cb414c5f9be396a774706134a"
+      },
+      "edge": {
+        "elapsed_ms": 700.9143000032054,
+        "compute_ms": 697.6869999999999,
+        "output_tokens": 38,
+        "body_sha256": "f44cd8ba91acd50cb7b1692f9ccba86863113ce529035afc4bce74fde4d81910"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 713.2211000025563,
+        "compute_ms": 699.6370000000001,
+        "output_tokens": 38,
+        "body_sha256": "822c30d7743aa1e0226320aed3446d7013f2d65f5d4004d397a526395e3182bc"
+      },
+      "direct": {
+        "elapsed_ms": 718.7326999992365,
+        "compute_ms": 701.042,
+        "output_tokens": 38,
+        "body_sha256": "1ce50ec2abf0f5deabfa4b9968bd2ca60a231e282560e8b261d5ba36225084b6"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 703.0163999988872,
+        "compute_ms": 700.172,
+        "output_tokens": 38,
+        "body_sha256": "5fe78c5f284ca777d7c4f4986243f3ea0d009972f09593622d8326de5f926a32"
+      },
+      "edge": {
+        "elapsed_ms": 711.6974999989907,
+        "compute_ms": 698.742,
+        "output_tokens": 38,
+        "body_sha256": "299a19f70e873c5404f087ea6aadeba4c61b1e7f5491586ab94707cf30fc9f3b"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 733.5397000024386,
+        "compute_ms": 712.095,
+        "output_tokens": 38,
+        "body_sha256": "65bb7bf6b76003a2576c80e864cb06b27a7241703f8bffe65f36f01a85c172cb"
+      },
+      "direct": {
+        "elapsed_ms": 723.1720999989193,
+        "compute_ms": 696.8539999999999,
+        "output_tokens": 38,
+        "body_sha256": "5828c3891587e25ce80b463c4c4375d8b66490bef73b142c00af178becce56d8"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 726.9305000008899,
+        "compute_ms": 700.622,
+        "output_tokens": 38,
+        "body_sha256": "a26772c958b7d3e4f25975a17ff133e70fab4ba3a4b0e550a3f4157314dd461b"
+      },
+      "edge": {
+        "elapsed_ms": 701.0559999980615,
+        "compute_ms": 697.769,
+        "output_tokens": 38,
+        "body_sha256": "2c2b510a0b85b68e77a03090d36a3d0f6ba071e604248d36e215d762314783e9"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 701.1237000006076,
+        "compute_ms": 697.767,
+        "output_tokens": 38,
+        "body_sha256": "9432498b4003dbf3e02704ce7ae84d7d7bb86dc4b34b00087747f1999546cc5d"
+      },
+      "direct": {
+        "elapsed_ms": 705.5891000018164,
+        "compute_ms": 702.851,
+        "output_tokens": 38,
+        "body_sha256": "656e424d4518f540eec8e760f92ea14ce03dbd09466dbd37ddc5226aa76e4c63"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 692.1832999978506,
+        "compute_ms": 689.293,
+        "output_tokens": 38,
+        "body_sha256": "89411d242f7e236b87a1bd4279cf0c7a9e665d269781f1838cfdcbddb3127748"
+      },
+      "edge": {
+        "elapsed_ms": 697.6443999992625,
+        "compute_ms": 694.592,
+        "output_tokens": 38,
+        "body_sha256": "5ad823890259288c44178d38ca53618079afa6b3a9d04f28a10569abda69f7d7"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 705.4041000010329,
+        "compute_ms": 679.746,
+        "output_tokens": 38,
+        "body_sha256": "fd4f0ba8e334651c7dcf09745f235804c8980cdd7f437db65a1521f0a537d862"
+      },
+      "direct": {
+        "elapsed_ms": 728.6124999991443,
+        "compute_ms": 708.104,
+        "output_tokens": 38,
+        "body_sha256": "f130ae780e07a1b28aaa851a08e2adff197320db9a19c21bb58045b5e7007f2b"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 732.0427000013296,
+        "compute_ms": 704.097,
+        "output_tokens": 38,
+        "body_sha256": "dec731213a0ad07ad291b9de3bf7ced4c805b4fb021ab15a0d1091e300c68ee4"
+      },
+      "edge": {
+        "elapsed_ms": 700.7709999998042,
+        "compute_ms": 697.6949999999999,
+        "output_tokens": 38,
+        "body_sha256": "92f1711aea4dcfbe61fa081a88336c8034d7f0c138ee397d936097dae3153346"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 720.1749000014388,
+        "compute_ms": 696.797,
+        "output_tokens": 38,
+        "body_sha256": "a4a9f766326e3ace602e8f694f69bc83d16ba3c59cdd4481bd500600703845c9"
+      },
+      "direct": {
+        "elapsed_ms": 697.8243999983533,
+        "compute_ms": 695.0400000000001,
+        "output_tokens": 38,
+        "body_sha256": "82120abb50dad2dd97873fb64e8d6fbad8a462046bb867f169e975c3f74cf5f9"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 692.269999999553,
+        "compute_ms": 689.289,
+        "output_tokens": 38,
+        "body_sha256": "0c631fb179c2d7c7f4c6edb6477962e5f60f9e0e857831aa46f98e3cff2d502f"
+      },
+      "edge": {
+        "elapsed_ms": 711.1294999995152,
+        "compute_ms": 694.7009999999999,
+        "output_tokens": 38,
+        "body_sha256": "5efaacd3fde17341206f84eb2820f33b44d8632909676af7d420983f143b38bc"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 729.7269999980927,
+        "compute_ms": 702.262,
+        "output_tokens": 38,
+        "body_sha256": "85312d2ad7f91e42c43fce97058e9987c0d85787b2a04c80505d99e304738e75"
+      },
+      "direct": {
+        "elapsed_ms": 716.8165999974008,
+        "compute_ms": 698.207,
+        "output_tokens": 38,
+        "body_sha256": "f37110d227aa6e6129cf5193d0f09b59aef03fb0023020280e77323a377cb029"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 682.8668999987713,
+        "compute_ms": 680.115,
+        "output_tokens": 38,
+        "body_sha256": "9afa1dc03abf8502e5be2b2802a043ffb4880ec67c89f65bcacd7d38a52f93e4"
+      },
+      "edge": {
+        "elapsed_ms": 703.7244999992254,
+        "compute_ms": 700.62,
+        "output_tokens": 38,
+        "body_sha256": "1711056817936b62b63f022be886fe32fa906662761afa25c501c7f332639313"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 695.2339999988908,
+        "compute_ms": 692.188,
+        "output_tokens": 38,
+        "body_sha256": "157bd0a899c3d5c414ae700a5877139ddb3f3a89bb3040c9db19aa215163bb7f"
+      },
+      "direct": {
+        "elapsed_ms": 722.2021999987192,
+        "compute_ms": 705.418,
+        "output_tokens": 38,
+        "body_sha256": "f22e2a316d82770eefb0f0c6e0dab39653e9358398cc461c0f3d393163fa820e"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 701.0479999989911,
+        "compute_ms": 697.771,
+        "output_tokens": 38,
+        "body_sha256": "d048c1a0f1363cac496924587948bc2ea793f742b0ac9737d4a6fa57e81866c5"
+      },
+      "edge": {
+        "elapsed_ms": 702.7142999977514,
+        "compute_ms": 699.399,
+        "output_tokens": 38,
+        "body_sha256": "3f6e44b2c5d880e303121e4368854a21281c5199c3515058f978f9c303714357"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 713.0550000001676,
+        "compute_ms": 693.118,
+        "output_tokens": 38,
+        "body_sha256": "9c55fc35dad14b0125555cf8c997df7011e414354caf95a8b09d0f880e91bd76"
+      },
+      "direct": {
+        "elapsed_ms": 699.7531000015442,
+        "compute_ms": 697.041,
+        "output_tokens": 38,
+        "body_sha256": "21ac3b01183027336dcc4f10ac5ffc643a91bfbbbd6bfc25e4094e721482f525"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 712.937399999646,
+        "compute_ms": 709.577,
+        "output_tokens": 38,
+        "body_sha256": "788bc8f43e389215f924c9a2b91b44e3bd85095d0a4128eda4a4049f4dd9e0ef"
+      },
+      "edge": {
+        "elapsed_ms": 702.2541000005731,
+        "compute_ms": 699.003,
+        "output_tokens": 38,
+        "body_sha256": "79cfa6c6cd6641c8a682bf1268a15142a65c98de83a14561e9159b68328e6d94"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 719.2486000021745,
+        "compute_ms": 700.51,
+        "output_tokens": 38,
+        "body_sha256": "0603c01506af9bd5e9ee7b01481fcbb1e1fdaa348a7c1e9b3a173e3f2f57e05d"
+      },
+      "direct": {
+        "elapsed_ms": 712.8047999976843,
+        "compute_ms": 688.6990000000001,
+        "output_tokens": 38,
+        "body_sha256": "d2eae4428bfb2a2b929e224f93e619598b818328d3e68b6d5eb1caa5c600ac32"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 714.3935000021884,
+        "compute_ms": 694.044,
+        "output_tokens": 38,
+        "body_sha256": "805a6b99e2aa727017a4b8df752fd7e3d59255af61c499dfe2ad85a3895ad4a8"
+      },
+      "edge": {
+        "elapsed_ms": 716.7891999997664,
+        "compute_ms": 703.641,
+        "output_tokens": 38,
+        "body_sha256": "ba4ebd9861a1bc65a02da964af4a5a6a0736c46f9584ac101216e1013a2c0ec5"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 709.8698000008881,
+        "compute_ms": 693.7090000000001,
+        "output_tokens": 38,
+        "body_sha256": "1de0ac9564bc92d1c16b111b149082e3dc5c17340ca5ebfbc6cb90a65adde3e3"
+      },
+      "direct": {
+        "elapsed_ms": 691.6280000004917,
+        "compute_ms": 688.9169999999999,
+        "output_tokens": 38,
+        "body_sha256": "7ce5670f3daf84ecfd1582d3b052f5b5f98bd18c4c7790d9a5cf2e9846ea298f"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 701.2437999983376,
+        "compute_ms": 697.711,
+        "output_tokens": 38,
+        "body_sha256": "e6306630cedf9fb84062c496ae37c1c5ed139695c996d99b3104a12d51376cc4"
+      },
+      "edge": {
+        "elapsed_ms": 683.1650999993144,
+        "compute_ms": 679.841,
+        "output_tokens": 38,
+        "body_sha256": "8bf856a64a1fd96d4c27d34ef790c91570fa756bdfe15a6cf75b05658369b2aa"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 699.4271999974444,
+        "compute_ms": 695.9689999999999,
+        "output_tokens": 38,
+        "body_sha256": "f6207822ea41d71224dd1594faf28e2ec44c609315b8e582f51a7829ac333604"
+      },
+      "direct": {
+        "elapsed_ms": 697.8005999990273,
+        "compute_ms": 694.95,
+        "output_tokens": 38,
+        "body_sha256": "a55fe8744d759958dcc419453f6dada9a00857bdd95bc22c356177b7803d5831"
+      }
+    },
+    {
+      "direct": {
+        "elapsed_ms": 701.433400001406,
+        "compute_ms": 698.437,
+        "output_tokens": 38,
+        "body_sha256": "d7e56ea1e66cfc1e15582aca1b00d99b5808852bcad7059cddda646309e512eb"
+      },
+      "edge": {
+        "elapsed_ms": 705.2820999997493,
+        "compute_ms": 691.696,
+        "output_tokens": 38,
+        "body_sha256": "0e391f6b23070a71439a3ead3199f80f09f038c1f4dd5de67482442f1d51369c"
+      }
+    },
+    {
+      "edge": {
+        "elapsed_ms": 708.0051000011736,
+        "compute_ms": 704.551,
+        "output_tokens": 38,
+        "body_sha256": "600b9b7283deeb2081b9d3adcadf7d6a8c500d81ef12079743db2cf146256f95"
+      },
+      "direct": {
+        "elapsed_ms": 711.4768000028562,
+        "compute_ms": 689.5780000000001,
+        "output_tokens": 38,
+        "body_sha256": "801304723b81fe01a9b34dc54dfcc3484ffb7035ee9ecdd8389079e8df3c352f"
+      }
+    }
+  ],
+  "passed": true,
+  "samples": 30,
+  "output_token_counts_match": true,
+  "p95_edge_overhead_ms": 18.245,
+  "throughput_regression_percent": -0.085,
+  "edge_tokens_per_second": 53.629,
+  "direct_tokens_per_second": 53.583
+}

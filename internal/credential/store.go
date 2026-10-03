@@ -9,9 +9,10 @@ import (
 var ErrNotFound = errors.New("credential not found")
 
 var allowedNames = map[string]struct{}{
-	"inference": {},
-	"admin":     {},
-	"router":    {},
+	"inference":      {},
+	"admin":          {},
+	"router":         {},
+	"claude-gateway": {},
 }
 
 func Target(name string) (string, error) {

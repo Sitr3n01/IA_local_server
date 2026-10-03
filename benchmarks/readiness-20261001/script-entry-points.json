@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "checks": 15,
+  "cases": [
+    "New-V2Config.ps1 defaults reach validation",
+    "New-V2Config.ps1 preserves explicit manifest",
+    "New-V2Config.ps1 preserves explicit schema",
+    "Install-V2Harness.ps1 defaults reach validation",
+    "Install-V2Harness.ps1 preserves explicit manifest",
+    "Install-V2Harness.ps1 preserves explicit schema",
+    "Publisher defaults read repository manifest",
+    "Publisher preserves explicit manifest",
+    "Smoke rejects unknown model before loading",
+    "Smoke preserves explicit manifest",
+    "Runtime build defaults produce preview",
+    "Runtime build refuses missing protection manifest",
+    "Runtime build respects explicit collision manifest",
+    "Smoke rejects unknown runtime before loading",
+    "Previews do not create build directories"
+  ],
+  "native_shell": "Windows PowerShell 5.1",
+  "captured_utc": "2026-10-02T03:44:03.724693+00:00",
+  "script_sha256": "94568acc574266e8f678bf7a1f165f056b36aed02793db1426e169c2f4bff5a3"
+}

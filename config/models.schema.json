@@ -471,7 +471,8 @@
       ],
       "properties": {
         "responses": {
-          "type": "boolean"
+          "type": "boolean",
+          "$comment": "Its own contract, independent of function_calling: true means complete native Responses and SSE output, cancellation and recovery have passed for this artifact, per docs/MODEL_PROMOTION.md. It does not imply tools; a Responses request that carries tools also needs function_calling. While it is false, internal/edge/capabilities.go refuses requests to /v1/responses with 400 unsupported_feature before an inference slot is reserved. The Codex launcher and catalog additionally require streaming and function_calling."
         },
         "chat_completions": {
           "type": "boolean"
@@ -481,11 +482,16 @@
         },
         "function_calling": {
           "type": "boolean",
-          "$comment": "A deployment guarantee for THIS artifact, not a description of what the chat template can do. True means a forced tool call has been demonstrated end to end through internal/edge/namespace.go for this exact quantization, per docs/MODEL_PROMOTION.md. A score on a benchmark that talks straight to llama-server is not that evidence and does not license flipping this: the 2026-08-23 campaign measured gemma4-12b-qat-ud-q4xl at 6/7 on the tool suite against the server's own endpoint while this flag stayed false, and the flag was right. Its consumers advertise a promise rather than gate behaviour -- New-V2ClientCatalogs.ps1 maps it to the Codex catalog's supports_parallel_tool_calls, and the tray renders it as a capability badge -- so an over-claimed true is visible to a harness that will then depend on it.",
+          "$comment": "A deployment guarantee for THIS artifact, not a description of what the chat template can do. True means forced tool calls with exact arguments and namespace round-trips have been demonstrated end to end through internal/edge/namespace.go for this exact quantization, per docs/MODEL_PROMOTION.md. A score on a benchmark that talks straight to llama-server is not that evidence and does not license flipping this: the 2026-08-23 campaign measured gemma4-12b-qat-ud-q4xl at 6/7 on the tool suite against the server's own endpoint while this flag stayed false, and the flag was right. The edge gates on it: while it is false, internal/edge/capabilities.go refuses tools, required tool choices and tool history on the OpenAI routes with 400 unsupported_feature before an inference slot is reserved, and the /v1/messages adapter refuses a required tool choice or tool history and omits optional tools. New-V2ClientCatalogs.ps1 also maps it to the Codex catalog's supports_parallel_tool_calls, and the monitor renders it as a capability tag, so an over-claimed true admits tool requests that a harness will then depend on.",
           "default": false
         },
         "structured_output": {
           "type": "boolean"
+        },
+        "reasoning": {
+          "type": "boolean",
+          "$comment": "The model emits reasoning (reasoning_content) before its answer. Unlike function_calling this is an observation of the served artifact, not a promise about the quality of the reasoning, but the edge gates on it all the same: while it is false, internal/edge/capabilities.go refuses an explicit reasoning request (reasoning_effort or a reasoning object other than none) on the OpenAI routes with 400 unsupported_feature. It is declared from qualification runs against the served artifact, in which reasoning_content was present in nearly every case (2026-08-23 campaign for the Qwen3.8 profiles, 2026-08-25 for Gemma and Qwen3.6). Optional so that manifests that predate it stay valid; absent means false.",
+          "default": false
         }
       }
     },
@@ -650,6 +656,10 @@
         },
         "context_shift": {
           "type": "boolean"
+        },
+        "chat_template_file": {
+          "type": "string",
+          "$comment": "Path to a Jinja chat template that overrides the one inside the GGUF, emitted as --chat-template-file. It exists for an artifact whose embedded template is wrong for the OpenAI-shaped contract this server serves rather than wrong in general. The corrected template and the verbatim upstream copy it was derived from live in config/chat-templates/, so the patch is a reviewable diff. Requires jinja: true."
         },
         "kv_unified": {
           "type": "boolean"

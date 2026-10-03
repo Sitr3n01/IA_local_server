@@ -4,15 +4,16 @@ import "testing"
 
 func policySnapshot() Snapshot {
 	return Snapshot{
+		EdgeReachable:   true,
 		ProviderReady:   true,
 		UpstreamReady:   true,
 		StatusAvailable: true,
-		SelectedModel:   "local-coding",
+		SelectedModel:   "gemma",
 		MaxActive:       1,
 		MaxQueue:        4,
 		CapacityOK:      true,
 		Models: []Model{{
-			ID: "local-coding", Available: true, Codex: true, OpenCode: true,
+			ID: "gemma", Available: true,
 		}},
 	}
 }
@@ -23,11 +24,11 @@ func TestEvaluateActionsSeparatesSelectedAndLoadedState(t *testing.T) {
 	if !policy.Load || policy.Switch || policy.Unload {
 		t.Fatalf("lazy state policy = %+v", policy)
 	}
-	if !policy.LaunchCodex || !policy.LaunchOpenCode || !policy.Exit {
-		t.Fatalf("launch policy = %+v", policy)
+	if !policy.Shutdown {
+		t.Fatalf("shutdown policy = %+v", policy)
 	}
 
-	snapshot.ActiveModel = "local-coding"
+	snapshot.ActiveModel = "gemma"
 	policy = EvaluateActions(snapshot, false)
 	if policy.Load || policy.Switch || !policy.Unload {
 		t.Fatalf("loaded state policy = %+v", policy)
@@ -41,16 +42,13 @@ func TestEvaluateActionsFailsClosedWithoutOperationalStatus(t *testing.T) {
 	if policy.Load || policy.Switch || policy.Unload {
 		t.Fatalf("administrative action enabled without status: %+v", policy)
 	}
-	if !policy.LaunchCodex {
-		t.Fatal("healthy data-plane launch should remain available")
-	}
 }
 
 func TestEvaluateActionsRequiresSecondQualifiedModelForSwitch(t *testing.T) {
 	snapshot := policySnapshot()
-	snapshot.ActiveModel = "local-coding"
-	snapshot.SelectedModel = "local-fast"
-	snapshot.Models = append(snapshot.Models, Model{ID: "local-fast", Available: false, Codex: true})
+	snapshot.ActiveModel = "gemma"
+	snapshot.SelectedModel = "qwen"
+	snapshot.Models = append(snapshot.Models, Model{ID: "qwen", Available: false})
 	if policy := EvaluateActions(snapshot, false); policy.Switch {
 		t.Fatalf("switch enabled for unavailable candidate: %+v", policy)
 	}
@@ -60,9 +58,75 @@ func TestEvaluateActionsRequiresSecondQualifiedModelForSwitch(t *testing.T) {
 	}
 }
 
-func TestEvaluateActionsBlocksExitAndLaunchWhileBusy(t *testing.T) {
+func TestEvaluateActionsBlocksShutdownAndLaunchWhileBusy(t *testing.T) {
 	policy := EvaluateActions(policySnapshot(), true)
-	if policy.Exit || policy.Load || policy.LaunchCodex || policy.LaunchOpenCode {
+	if policy.Shutdown || policy.Load || policy.Select || policy.StartServer {
 		t.Fatalf("busy policy enabled unsafe action: %+v", policy)
+	}
+	if !policy.OpenPanel {
+		t.Fatal("watching the monitor must stay possible during a long load")
+	}
+}
+
+func TestEvaluateActionsOffersStartOnlyWhenTheEdgeIsGone(t *testing.T) {
+	snapshot := policySnapshot()
+	if EvaluateActions(snapshot, false).StartServer {
+		t.Fatal("start offered while the edge answers")
+	}
+	// An edge that answers "not ready" is running: starting it again would
+	// do nothing, so the button must not appear.
+	snapshot.ProviderReady, snapshot.UpstreamReady, snapshot.StatusAvailable = false, false, false
+	if EvaluateActions(snapshot, false).StartServer {
+		t.Fatal("start offered for a reachable but unready edge")
+	}
+	snapshot.EdgeReachable = false
+	policy := EvaluateActions(snapshot, false)
+	if !policy.StartServer || policy.Load || policy.Unload {
+		t.Fatalf("offline policy = %+v", policy)
+	}
+}
+
+func TestEvaluateActionsClaudeLocalFollowsTheGatewayNotTheQueue(t *testing.T) {
+	snapshot := policySnapshot()
+	snapshot.ClaudeAvailable = true
+	policy := EvaluateActions(snapshot, false)
+	if policy.ClaudeLocal {
+		t.Fatalf("gateway down: %+v", policy)
+	}
+	snapshot.ClaudeGatewayOK = true
+	if policy := EvaluateActions(snapshot, false); !policy.ClaudeLocal {
+		t.Fatalf("gateway up: %+v", policy)
+	}
+	// Opening the local instance stops nothing, so a busy queue must not
+	// hold it back the way the old restart-based switch had to.
+	snapshot.Active, snapshot.Queued = 1, 3
+	if policy := EvaluateActions(snapshot, false); !policy.ClaudeLocal {
+		t.Fatalf("queued requests blocked opening Claude: %+v", policy)
+	}
+	if policy := EvaluateActions(snapshot, true); policy.ClaudeLocal {
+		t.Fatalf("Claude actions offered while another action runs: %+v", policy)
+	}
+	snapshot.ClaudeAvailable = false
+	if policy := EvaluateActions(snapshot, false); policy.ClaudeLocal {
+		t.Fatalf("Claude actions without Claude Desktop: %+v", policy)
+	}
+}
+
+func TestEvaluateActionsClaudeAnthropicDoesNotDependOnTheLocalServer(t *testing.T) {
+	snapshot := policySnapshot()
+	snapshot.ClaudeAvailable = true
+	snapshot.ClaudeGatewayOK = false
+	snapshot.EdgeReachable, snapshot.StatusAvailable, snapshot.UpstreamReady, snapshot.CapacityOK = false, false, false, false
+	snapshot.Active, snapshot.Queued = 1, 3
+	policy := EvaluateActions(snapshot, false)
+	if !policy.ClaudeAnthropic || policy.ClaudeLocal {
+		t.Fatalf("official Claude must remain available with the local server down: %+v", policy)
+	}
+	if policy := EvaluateActions(snapshot, true); policy.ClaudeAnthropic {
+		t.Fatalf("Claude instance selection overlapped another action: %+v", policy)
+	}
+	snapshot.ClaudeAvailable = false
+	if policy := EvaluateActions(snapshot, false); policy.ClaudeAnthropic {
+		t.Fatalf("official Claude offered without the installed application: %+v", policy)
 	}
 }

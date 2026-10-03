@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
 	[ValidatePattern('^[a-z0-9][a-z0-9._-]{0,127}$')]
-	[string]$Model = 'local-coding',
+	[string]$Model,
 	[ValidateRange(1024, 65535)]
 	[int]$Port = 8888,
 	[ValidateRange(5, 300)]
@@ -16,6 +16,7 @@ if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
 	throw "Installed v2 manifest not found: $manifestPath"
 }
 $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace($Model)) { $Model = [string]$manifest.provider.public_model }
 $allowedModels = @($manifest.models | Where-Object {
 		$_.id -eq $Model -and
 		$_.deployments -contains 'canary' -and

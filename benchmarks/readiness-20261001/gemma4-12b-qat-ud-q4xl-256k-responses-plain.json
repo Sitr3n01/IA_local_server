@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "scenario": "native-responses-contract",
+  "model": "gemma4-12b-qat-ud-q4xl-256k",
+  "started_utc": "2026-10-02T00:34:32Z",
+  "checks": [
+    {
+      "id": "responses_text",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "e25db0fe1647cdbfb9d62fd19eb5f6d4661a24741c4bc59ff59dfd8d021d53a3",
+      "duration_ms": 11000.0
+    },
+    {
+      "id": "responses_stream",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "9eb63bb9b0a8071d6319e0864afe2fc92dd3ae797058c3ab07a190ed00fbdde8",
+      "event_count": 40,
+      "first_event_ms": 94.0,
+      "duration_ms": 672.0
+    },
+    {
+      "id": "cancel_disconnect",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "1f3d5a9343bc611beeede5ef81d8ef5c614297f6606004d6b6ac0bd067eb5114",
+      "event_count": 4,
+      "first_event_ms": 125.0,
+      "duration_ms": 187.0
+    },
+    {
+      "id": "recovery_after_cancel",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "e7880ef94ca1179e735bf2211d01a94fde4b57d059a88c765e28aeae5971aefd",
+      "duration_ms": 641.0
+    },
+    {
+      "id": "stateful_response",
+      "status": 400,
+      "passed": true,
+      "body_sha256": "6372856ebdf61d913133d60daea306e928831fe401b4813c1ca2af049921127c",
+      "duration_ms": 16.0
+    },
+    {
+      "id": "stored_response",
+      "status": 400,
+      "passed": true,
+      "body_sha256": "4aa8cf267d286d1153141fe740bcd8bb0929d53d0d053d8c629e3adae3b6d875",
+      "duration_ms": 0.0
+    }
+  ],
+  "passed": true
+}

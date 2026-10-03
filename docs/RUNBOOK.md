@@ -19,9 +19,9 @@ Do not clean or reset the dirty v1 panel file. Preserve it independently before 
 
 Build from tracked source. Never build an elevated process directly into the
 protected `bin` directory. `Build-V2Binaries.ps1` runs the complete Go test
-suite and atomically publishes exactly six application artifacts to the
-user-writable staging directory: Edge, supervisor, read-only MCP, administrative
-MCP, inference MCP, and the Windows-GUI tray. Their independently reviewed hashes
+suite and atomically publishes exactly eight application artifacts to the
+user-writable staging directory: Edge, credential helper, supervisor, read-only
+MCP, administrative MCP, inference MCP, monitor, and the Windows-GUI tray. Their independently reviewed hashes
 authorize the later elevated cutover. Run `Test-V2Manifest.ps1`; it requires
 the already installed `cia-manifest.exe` and applies
 `config/models.schema.json` before semantic and artifact checks.
@@ -33,12 +33,12 @@ $version = 'v2-canary-YYYYMMDD.N' # replace with one immutable reviewed release 
 ```
 
 The apply result must say `tests_passed: true` and list hashes for
-`cia-edge.exe`, `cia-supervisor.exe`, `cia-mcp.exe`, `cia-mcp-admin.exe`,
-`cia-mcp-inference.exe`, and `cia-tray.exe`. Record and independently review
-all six SHA-256 values. Do not calculate or substitute them inline in a later
+`cia-edge.exe`, `cia-credential.exe`, `cia-supervisor.exe`, `cia-mcp.exe`,
+`cia-mcp-admin.exe`, `cia-mcp-inference.exe`, `cia-monitor.exe`, and `cia-tray.exe`. Record and independently review
+all eight SHA-256 values. Do not calculate or substitute them inline in a later
 `-Apply` command: each literal reviewed value is an approval boundary. The
 script uses a private build directory and rolls back all staging publications
-if any of the six cannot be published and reverified.
+if any of the eight cannot be published and reverified.
 
 Obtain `llama-swap_240_windows_amd64.zip` from the official v240 release and verify it before extraction:
 
@@ -62,7 +62,7 @@ Do not use `latest`, a branch archive, Winget, or an unverified replacement duri
 
 ## 3. Initialize credentials
 
-Preview, then initialize only missing `inference`, `admin`, and `router` credentials:
+Preview, then initialize only missing `inference`, `admin`, `router`, and `claude-gateway` credentials:
 
 ```powershell
 .\scripts\v2\Initialize-V2Secrets.ps1
@@ -122,7 +122,7 @@ $codexHome = 'C:\Users\Sitr3n\.codex'
 .\scripts\v2\Install-V2Harness.ps1 -Environment Canary -TargetCodexHome $codexHome -Replace
 ```
 
-After independently recording that plan hash and the six hashes emitted by
+After independently recording that plan hash and the eight hashes emitted by
 `Build-V2Binaries.ps1`, place only the literal reviewed values in the approval
 map. Open an elevated PowerShell, define the map there, and run the first
 command as a non-mutating preview. Run the second command in the same shell
@@ -134,10 +134,12 @@ $canaryApproval = @{
     Version                       = 'v2-canary-YYYYMMDD.N'
     ExpectedHarnessPlanSha256     = '<reviewed 64-hex harness plan SHA-256>'
     ExpectedEdgeSha256            = '<reviewed 64-hex cia-edge.exe SHA-256>'
+	ExpectedCredentialSha256      = '<reviewed 64-hex cia-credential.exe SHA-256>'
     ExpectedSupervisorSha256      = '<reviewed 64-hex cia-supervisor.exe SHA-256>'
     ExpectedMcpSha256             = '<reviewed 64-hex cia-mcp.exe SHA-256>'
     ExpectedMcpAdminSha256        = '<reviewed 64-hex cia-mcp-admin.exe SHA-256>'
     ExpectedMcpInferenceSha256    = '<reviewed 64-hex cia-mcp-inference.exe SHA-256>'
+    ExpectedMonitorSha256         = '<reviewed 64-hex cia-monitor.exe SHA-256>'
     ExpectedTraySha256            = '<reviewed 64-hex cia-tray.exe SHA-256>'
     Replace                       = $true
 }
@@ -277,7 +279,9 @@ Then verify manually:
 The completion transaction adds
 `%CODEX_HOME%\cia-local-canary.config.toml`, copies the
 OpenCode canary override and local-only catalog, and installs the three
-allowlisted panel launchers below `C:\IA\local-ai-v2\integrations`. It never
+manual launcher scripts below `C:\IA\local-ai-v2\integrations`. Since ADR 0022
+the tray no longer offers them: Codex and OpenCode reach this server only
+through `/local` or these scripts, run by hand. It never
 edits `~/.codex/config.toml`, an OpenCode global/project config, Unsloth private
 state, or any cloud credential. A differing existing canary file is preserved
 unless the operator inspects it and supplies `-Replace`.
@@ -289,28 +293,36 @@ With Router and Edge canary already healthy, test in this order:
 .\integrations\codex\Start-CodexLocalCanary.ps1
 ```
 
-After the installed hashes and ACL audit pass, launch the canary panel manually:
+After the installed hashes and ACL audit pass, open IA Local (the tray)
+manually:
 
 ```powershell
-wscript.exe C:\IA\local-ai-v2\launchers\tray-canary.vbs
+C:\IA\local-ai-v2\bin\cia-tray.exe -config C:\IA\local-ai-v2\config\panel.canary.json
 ```
 
-Double-click the icon and confirm that all registered and detected GGUFs are
-visible, search and details update asynchronously, the loaded state is
-independent from the selection, closing returns to the tray, and `Sair` leaves
-Router and Edge running. Confirm that no Unsloth action or label is present. Do
-not add the panel to logon until this smoke test passes. Afterwards, install the separate
-current-user Startup shortcut; this does not create a third scheduled task,
-start a process, or load a model:
+It starts the Router and Edge tasks if they are not running (ADR 0021). Click
+the icon and confirm that the flyout lists exactly the models the edge
+publishes, that selecting a row moves the radio without loading anything, that
+the loaded state is independent from the selection, that "Abrir painel" opens
+the monitor, and that Esc or a click elsewhere closes the flyout. "Encerrar"
+asks first and then stops the monitor, Edge, Router and the tray; `Cancelar`
+changes nothing. Confirm that no Unsloth action or label is present.
+
+Do not make IA Local start at logon until this smoke test passes. Then register
+it; this writes one current-user `Run` value and an "IA Local" Start-menu
+shortcut, removes the legacy wscript Startup shortcut, and starts nothing:
 
 ```powershell
 .\scripts\v2\Install-V2PanelStartup.ps1
 .\scripts\v2\Install-V2PanelStartup.ps1 -Apply
 ```
 
-If preview reports `blocked-existing`, inspect the existing shortcut and use
-`-Replace` only for the reviewed conflict. A second preview must report
-`unchanged`.
+Task Manager's Startup apps tab then lists "IA Local" with its icon; disabling
+it there means nothing of IA Local starts at logon, because the Router and Edge
+tasks have no trigger of their own. The preview reports that choice as
+`task_manager` and never changes it. If preview reports `blocked-existing`,
+inspect the existing value or shortcut and use `-Replace` only for the reviewed
+conflict. A second preview must report `unchanged`.
 
 Unsloth is intentionally absent from the v2 panel and startup policy. Use it
 manually outside CIA Local AI when training or export is intended; do not
@@ -379,7 +391,7 @@ does not read them (ADR 0013).
 
 ## 10. Promotion and final cutover
 
-Complete the checklist in `MODEL_PROMOTION.md` and the soak in `BENCHMARKS.md`. Only then change the model to `qualified`/`enabled` and add `final` to its deployments.
+Complete the checklist in `MODEL_PROMOTION.md` and applicable acceptance gates in `BENCHMARKS.md`. The owner waived the 72-hour soak for the four definitive models on 2026-10-01; record the exception, without calling it a pass. Only supported evidence permits changing the model to `qualified`/`enabled` and adding `final` to its deployments.
 
 ### 10.1 Publish the production artifacts
 
@@ -428,10 +440,12 @@ $finalApproval = @{
     Version                       = 'v2-final-YYYYMMDD.N'
     ExpectedHarnessPlanSha256     = '<reviewed 64-hex final harness plan SHA-256>'
     ExpectedEdgeSha256            = '<reviewed 64-hex cia-edge.exe SHA-256>'
+	ExpectedCredentialSha256      = '<reviewed 64-hex cia-credential.exe SHA-256>'
     ExpectedSupervisorSha256      = '<reviewed 64-hex cia-supervisor.exe SHA-256>'
     ExpectedMcpSha256             = '<reviewed 64-hex cia-mcp.exe SHA-256>'
     ExpectedMcpAdminSha256        = '<reviewed 64-hex cia-mcp-admin.exe SHA-256>'
     ExpectedMcpInferenceSha256    = '<reviewed 64-hex cia-mcp-inference.exe SHA-256>'
+    ExpectedMonitorSha256         = '<reviewed 64-hex cia-monitor.exe SHA-256>'
     ExpectedTraySha256            = '<reviewed 64-hex cia-tray.exe SHA-256>'
     Replace                       = $true
 }
@@ -743,6 +757,7 @@ point the fork stops being worth its maintenance.
 | `/livez` passes, `/readyz` fails | Router/config/model admission unavailable | Check router task, hashes, credentials, capacity |
 | `429` | Queue or wait policy intentionally enforced | Harness retries with backoff or operator reduces load |
 | `503` | Local provider cannot serve safely | Fix local dependency; do not enable fallback |
+| `400 invalid_request_error` on `/v1/messages` naming GiB | Admission refused the model (memory, commit or VRAM) | Close what the message names or choose a smaller model; do not bypass admission |
 | Model process absent while idle | Expected lazy state | No action |
 | Model starts after `/v1/models` | Contract regression | Stop cutover and file a blocking defect |
 
@@ -768,9 +783,27 @@ because the thing each optimises for costs the others something measured.
 
 | Profile | Weights | KV | Context | Output | Use it when |
 |---|---|---|---:|---:|---|
-| `qwen38-27b-deep-32k` | UD-IQ4_XS | `q8_0`/`q8_0` | 32768 | 8192 | Hardest localized tasks: algorithms, architecture, a complex bug in a few highly relevant files. Reasoning matters more than how much context you can hold. |
-| **`qwen38-27b-agent-128k`** | UD-Q3_K_XL | `q4_0`/`q4_0` | 131072 | 8192 | **Daily default.** Codex, Claude Code, OpenCode, Unity work, refactors, features, repo investigation, tool loops. |
-| `qwen38-27b-huge-256k` | UD-Q2_K_XL | `q4_0`/`q4_0` | 262144 | 32768 | Huge active context: very large repositories, long investigations, long histories, many tool calls. Explicitly a **huge-context / high-thinking-budget** profile, not the highest-quality one. |
+| `qwen38-27b-deep-32k` | Qwen3.8 27B UD-IQ4_XS | `q8_0`/`q8_0` | 32768 | 8192 | Hardest localized tasks: algorithms, architecture, a complex bug in a few highly relevant files. Reasoning matters more than how much context you can hold. |
+| **`qwen38-27b-agent-128k`** | Qwen3.8 27B UD-Q3_K_XL | `q4_0`/`q4_0` | 131072 | 8192 | **Daily default.** Codex, Claude Code, OpenCode, Unity work, refactors, features, repo investigation, tool loops. |
+| `qwen36-35b-a3b-huge-256k` | Qwen3.6 35B-A3B UD-Q2_K_XL | `q4_0`/`q4_0` | 262144 | 16384 | Huge active context: very large repositories, long investigations, long histories, many tool calls. Explicitly a **huge-context** profile, not the highest-quality one. |
+
+The Huge slot stopped being a 2-bit dense Qwen3.8 and became a sparse MoE on
+2026-08-25 — 35B parameters, 3B active per token, which holds the same window
+with more throughput at depth. `qwen38-27b-huge-256k` is `retired`, and its
+`Qwen3.8-27B-UD-Q2_K_XL.gguf` was deleted; the profile keeps its id and its
+measurements but is no longer servable. The head-to-head that chose between the
+two MoE candidates is in
+[FINAL-ROSTER-20260825](reports/FINAL-ROSTER-20260825.md); the reasoning is in
+[ADR 0016](adr/0016-one-moe-and-the-four-function-roster.md).
+
+**The Huge profile's `reasoning_budget` is load-bearing.** Measured without one,
+Qwen3.6 Q2_K_XL spends an entire 8,192-token output budget inside
+`reasoning_content` and returns an empty answer on three of thirty-four
+qualification cases. With `reasoning_budget: 6144` under an `n_predict: 16384`
+ceiling, all three return answers and the suite score goes from 27/34 to 31/34.
+Do not lower the ceiling without lowering the budget with it — the manifest
+validator refuses a budget that leaves less answer room than the profile's own
+reserve, which is the guard that catches this.
 
 ### The selection rule
 

@@ -118,7 +118,7 @@ func safeRoute(path string) string {
 		return "unknown"
 	}
 	switch path {
-	case "/v1/models", "/v1/responses", "/v1/chat/completions", "/livez", "/readyz", "/metrics", "/api/v1/status":
+	case "/v1/models", "/v1/responses", "/v1/chat/completions", "/v1/messages", "/livez", "/readyz", "/metrics", "/api/v1/status", inferenceTelemetryPath:
 		return path
 	default:
 		return "unknown"

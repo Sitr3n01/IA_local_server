@@ -1,8 +1,10 @@
 package supervisor
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -12,6 +14,7 @@ func TestSanitizedEnvironmentRemovesSecretsAndUnslothDeviceSelection(t *testing.
 		"CIA_INFERENCE_TOKEN=old",
 		"cia_admin_token=old",
 		"CIA_ROUTER_TOKEN=old",
+		"CIA_CLAUDE_GATEWAY_TOKEN=old",
 		"CIA_EDGE_LOG_PATH=old",
 		"HIP_VISIBLE_DEVICES=1",
 		"OPENAI_API_KEY=cloud",
@@ -24,6 +27,75 @@ func TestSanitizedEnvironmentRemovesSecretsAndUnslothDeviceSelection(t *testing.
 	for index := range want {
 		if got[index] != want[index] {
 			t.Fatalf("environment = %v, want %v", got, want)
+		}
+	}
+}
+
+func TestEdgeSpecInjectsClaudeGatewayCredential(t *testing.T) {
+	root := t.TempDir()
+	for _, directory := range []string{"bin", "config", "logs"} {
+		if err := os.Mkdir(filepath.Join(root, directory), 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, path := range []string{
+		filepath.Join(root, "bin", "cia-edge.exe"),
+		filepath.Join(root, "config", "models.yaml"),
+		filepath.Join(root, "config", "models.schema.json"),
+	} {
+		if err := os.WriteFile(path, []byte("test"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	originalReadCredential := readCredential
+	readCredential = func(name string) (string, error) {
+		values := map[string]string{
+			"inference":      "inference-test",
+			"admin":          "admin-test",
+			"router":         "router-test",
+			"claude-gateway": "claude-gateway-test",
+		}
+		value, ok := values[name]
+		if !ok {
+			return "", fmt.Errorf("unexpected credential %q", name)
+		}
+		return value, nil
+	}
+	t.Cleanup(func() { readCredential = originalReadCredential })
+
+	spec, err := (Config{
+		Component:    Edge,
+		Environment:  "canary",
+		InstallRoot:  root,
+		RouterAddr:   "127.0.0.1:19292",
+		DataAddr:     "127.0.0.1:18090",
+		ControlAddr:  "127.0.0.1:18091",
+		UpstreamURL:  "http://127.0.0.1:19292",
+		ModelsConfig: filepath.Join(root, "config", "models.yaml"),
+		ProcessLog:   filepath.Join(root, "logs", "cia-edge-process.log"),
+	}).buildSpec()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := map[string]string{
+		"CIA_INFERENCE_TOKEN":      "inference-test",
+		"CIA_ADMIN_TOKEN":          "admin-test",
+		"CIA_ROUTER_TOKEN":         "router-test",
+		"CIA_CLAUDE_GATEWAY_TOKEN": "claude-gateway-test",
+	}
+	for name, value := range want {
+		entry := name + "=" + value
+		found := false
+		for _, candidate := range spec.Env {
+			if strings.EqualFold(candidate, entry) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("environment is missing %s", name)
 		}
 	}
 }

@@ -1,0 +1,30 @@
+[
+  {
+    "model": "gemma4-12b-qat-ud-q4xl-256k",
+    "bytes": 6716356800,
+    "size_matches": true,
+    "sha256": "90FD44E29E0D7CFFEB0FD00DC73CFDAB9ED0B0E95306ECF7821EA634C940C370",
+    "hash_matches": true
+  },
+  {
+    "model": "qwen38-27b-deep-32k",
+    "bytes": 14252845984,
+    "size_matches": true,
+    "sha256": "40FAC4050E940397DBF13087AFD50F4734A11805BF9D65EF8DDD7483470E6199",
+    "hash_matches": true
+  },
+  {
+    "model": "qwen38-27b-agent-128k",
+    "bytes": 13146393504,
+    "size_matches": true,
+    "sha256": "8C2A45FF85E7674CA185EC8EB6CDEAB0E617ED9D8018CAED0B64380EB2A67A5E",
+    "hash_matches": true
+  },
+  {
+    "model": "qwen36-35b-a3b-huge-256k",
+    "bytes": 12290628576,
+    "size_matches": true,
+    "sha256": "96B9C0AF5C77A4ECAABE3983175112B5ECE763261C1ECE12B2494B692A70DAD7",
+    "hash_matches": true
+  }
+]

@@ -139,7 +139,8 @@ func readRequest(conn io.Reader) (Request, *Error) {
 	if err := decoder.Decode(&request); err != nil {
 		return Request{}, &Error{Code: "invalid_request", Message: "administrative request must be a single JSON object", HTTPStatus: 400}
 	}
-	if decoder.More() {
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
 		return Request{}, &Error{Code: "invalid_request", Message: "administrative request must contain exactly one JSON object", HTTPStatus: 400}
 	}
 	return validateRequest(request)

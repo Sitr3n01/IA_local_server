@@ -53,15 +53,36 @@ foreach ($runtime in @($manifest.runtimes)) { $runtimesById[$runtime.id] = $runt
 #    is the regression that matters most: growing the schema must not rewrite an
 #    already-published deployment. The expected string is rebuilt independently
 #    of New-V2LlamaServerCommand, from the pre-tuning flag list.
+#
+#    The list is every optional field that CHANGES the emitted command line, not
+#    every optional field: compact_threshold_tokens is deliberately absent
+#    because it never reaches llama-server, so a model declaring only that one
+#    must still match the historical line.
+#
+#    The generation-budget fields and chat_template_file were added on
+#    2026-08-25. They had always belonged here, but no model had ever declared
+#    them WITHOUT also declaring threads or tensor_overrides, so the gap could
+#    not be reached. gemma4-12b-qat-ud-q4xl-256k is the first: it declares a
+#    reasoning budget and nothing else from this list, and was held to a
+#    historical line it has a documented reason to differ from.
 $untunedFields = @(
     'context_shift', 'kv_unified', 'threads', 'threads_batch', 'cache_ram_mib', 'ctx_checkpoints',
-    'checkpoint_min_step', 'cache_idle_slots', 'spec_decoding', 'moe_offload', 'tensor_overrides'
+    'checkpoint_min_step', 'cache_idle_slots', 'spec_decoding', 'moe_offload', 'tensor_overrides',
+    'n_predict', 'reasoning_budget', 'reasoning_budget_message', 'chat_template_file'
 )
+#    A real entry that declares any of these fields is proved through a copy with
+#    every such field removed: the same artifact, runtime and base fields that a
+#    deployment published before the fields existed would have carried. The proof
+#    therefore never depends on the manifest keeping an untuned model, since every
+#    active profile may legitimately pin its runtime's defaults.
 $untunedCount = 0
-foreach ($model in @($manifest.models)) {
-    $declared = @($untunedFields | Where-Object { $null -ne $model.PSObject.Properties[$_] })
+$strippedCount = 0
+foreach ($entry in @($manifest.models)) {
+    $declared = @($untunedFields | Where-Object { $null -ne $entry.PSObject.Properties[$_] })
+    $model = $entry
     if ($declared.Count -gt 0) {
-        continue
+        $model = ($entry | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
+        foreach ($field in $declared) { $model.PSObject.Properties.Remove($field) }
     }
     $runtime = $runtimesById[$model.runtime]
     $legacy = @(
@@ -90,16 +111,26 @@ foreach ($model in @($manifest.models)) {
         '--log-disable'
     ) -join ' '
     $actual = New-V2LlamaServerCommand -Runtime $runtime -Model $model -RouterAPIKeyPath $routerAPIKeyPath
-    Assert-CommandEquals -Expected $legacy -Actual $actual -Label "Model '$($model.id)' no longer generates its historical command line."
-    $untunedCount++
+    if ($declared.Count -gt 0) {
+        Assert-CommandEquals -Expected $legacy -Actual $actual -Label "Model '$($model.id)', stripped of its tuning fields, no longer generates its historical command line."
+        $strippedCount++
+    }
+    else {
+        Assert-CommandEquals -Expected $legacy -Actual $actual -Label "Model '$($model.id)' no longer generates its historical command line."
+        $untunedCount++
+    }
 }
-if ($untunedCount -lt 1) {
-    throw 'No untuned model remained to prove generator byte-stability.'
+if (($untunedCount + $strippedCount) -lt 1) {
+    throw 'No model was available to prove generator byte-stability.'
 }
 
 # 2. A fully tuned hybrid model must emit every optional flag, in the documented
 #    position, and must replace --context-shift rather than merely dropping it.
-$template = @($manifest.models)[0]
+#    Every case below derives from this template and adds the fields it tests, so
+#    the template is the first real entry with its tuning fields removed: the
+#    cases must not depend on what that entry happens to declare.
+$template = (@($manifest.models)[0] | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
+foreach ($field in $untunedFields) { [void]$template.PSObject.Properties.Remove($field) }
 $tuned = ($template | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
 $tuned.id = 'tuned-hybrid'
 $tuned | Add-Member -NotePropertyName 'context_shift' -NotePropertyValue $false
@@ -874,6 +905,7 @@ if (-not $Quiet) {
     [pscustomobject]@{
         manifest              = (Resolve-Path -LiteralPath $ManifestPath).Path
         byte_stable_models    = $untunedCount
+        byte_stable_stripped  = $strippedCount
         generation_tests      = 17
         argv_quoting_tests    = 5
         request_budget_tests  = 36

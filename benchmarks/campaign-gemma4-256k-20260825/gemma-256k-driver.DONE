@@ -1,0 +1,7 @@
+﻿context=262144 done=3 skipped=0 failed=0 elapsed=0,97 h
+completed:
+  admission-ctx262144 (admissible=True)
+  gemma4-12b-retention-ctx262144
+  gemma4-12b-quality-ctx262144
+skipped:
+failed:

@@ -1,0 +1,111 @@
+﻿{
+    "label":  "huge256k-gatec-192k",
+    "model":  "qwen36-35b-a3b-huge-256k",
+    "runtime":  {
+                    "id":  "amd-rocm-qwen38",
+                    "version_label":  "b10549",
+                    "build_commit":  "b2e5e9b28",
+                    "sha256":  "C8B1E5A66E1BB45854BED3DAAAB116C37E74526E30143D737C67557BAB822359"
+                },
+    "extra_arguments":  [
+
+                        ],
+    "summarize_only":  false,
+    "started_utc":  "2026-09-28T14:46:36.6687631Z",
+    "load_seconds":  6.5,
+    "idle_before":  {
+                        "adapter_instance":  "luid_0x00000000_0x00018459_phys_0",
+                        "vram_dedicated_mib":  3690.8,
+                        "vram_shared_mib":  598,
+                        "process_vram_mib":  null,
+                        "process_ws_gib":  null,
+                        "process_private_gib":  null,
+                        "commit_gib":  21.838,
+                        "commit_limit_gib":  56.114,
+                        "physical_used_gib":  11.587,
+                        "physical_free_gib":  19.527,
+                        "physical_total_gib":  31.114
+                    },
+    "verdict":  "incremental_reuse_pass",
+    "measure_exit":  0,
+    "measure_error":  null,
+    "log_counts":  {
+                       "checkpoint_lines":  0,
+                       "forced_full_reprefill":  0,
+                       "slot_selected_by_lcp":  5
+                   },
+    "turns":  [
+                  {
+                      "turn":  1,
+                      "kind":  "cold-prefill",
+                      "context":  183119,
+                      "processed":  183119,
+                      "cached":  0,
+                      "prompt_ms":  795547.451,
+                      "turn_latency_ms":  799755.1,
+                      "decode_tps":  31.299081951100977,
+                      "private_gib":  10.342,
+                      "physical_free_gib":  6.755
+                  },
+                  {
+                      "turn":  2,
+                      "kind":  "tool-result",
+                      "context":  183114,
+                      "processed":  287,
+                      "cached":  182827,
+                      "prompt_ms":  2315.744,
+                      "turn_latency_ms":  7329.4,
+                      "decode_tps":  26.229361932562863,
+                      "private_gib":  10.415,
+                      "physical_free_gib":  6.641
+                  },
+                  {
+                      "turn":  3,
+                      "kind":  "user-increment",
+                      "context":  186927,
+                      "processed":  3817,
+                      "cached":  183110,
+                      "prompt_ms":  25181.925,
+                      "turn_latency_ms":  29415.4,
+                      "decode_tps":  31.148239376426964,
+                      "private_gib":  10.466,
+                      "physical_free_gib":  6.545
+                  },
+                  {
+                      "turn":  4,
+                      "kind":  "tool-result",
+                      "context":  186922,
+                      "processed":  287,
+                      "cached":  186635,
+                      "prompt_ms":  2379.702,
+                      "turn_latency_ms":  6826.6,
+                      "decode_tps":  29.595761514091198,
+                      "private_gib":  10.417,
+                      "physical_free_gib":  6.609
+                  },
+                  {
+                      "turn":  5,
+                      "kind":  "user-increment",
+                      "context":  190780,
+                      "processed":  3862,
+                      "cached":  186918,
+                      "prompt_ms":  25715.456,
+                      "turn_latency_ms":  29959.3,
+                      "decode_tps":  31.062007593804818,
+                      "private_gib":  10.468,
+                      "physical_free_gib":  6.546
+                  },
+                  {
+                      "turn":  6,
+                      "kind":  "tool-result",
+                      "context":  190775,
+                      "processed":  287,
+                      "cached":  190488,
+                      "prompt_ms":  2417.776,
+                      "turn_latency_ms":  6807.3,
+                      "decode_tps":  30.043755062491012,
+                      "private_gib":  10.418,
+                      "physical_free_gib":  6.544
+                  }
+              ]
+}

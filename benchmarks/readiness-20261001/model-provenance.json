@@ -1,0 +1,34 @@
+[
+  {
+    "id": "gemma4-12b-qat-ud-q4xl-256k",
+    "revision_matches": true,
+    "size_matches": true,
+    "sha256_matches": true,
+    "license_matches": true,
+    "source_url": "https://huggingface.co/unsloth/gemma-4-12B-it-qat-GGUF/tree/980b060c40a8539ac159e0501a3e0f66a6365af3"
+  },
+  {
+    "id": "qwen38-27b-deep-32k",
+    "revision_matches": true,
+    "size_matches": true,
+    "sha256_matches": true,
+    "license_matches": true,
+    "source_url": "https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/4ca720788d1e01f1bff70c033e0d0028fd02e502"
+  },
+  {
+    "id": "qwen38-27b-agent-128k",
+    "revision_matches": true,
+    "size_matches": true,
+    "sha256_matches": true,
+    "license_matches": true,
+    "source_url": "https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/tree/4ca720788d1e01f1bff70c033e0d0028fd02e502"
+  },
+  {
+    "id": "qwen36-35b-a3b-huge-256k",
+    "revision_matches": true,
+    "size_matches": true,
+    "sha256_matches": true,
+    "license_matches": true,
+    "source_url": "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/tree/a483e9e6cbd595906af30beda3187c2663a1118c"
+  }
+]

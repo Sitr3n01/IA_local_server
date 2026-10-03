@@ -569,6 +569,17 @@ function Restore-V2Release {
         $entry = $files[$index]
         try {
             if ($entry.existed) {
+                # A pre-cutover failure often leaves every recorded file
+                # unchanged. Do not rewrite an already-identical executable:
+                # it may be held by the still-running service, and no byte
+                # restoration is needed.
+                if (Test-Path -LiteralPath $entry.path -PathType Leaf) {
+                    $currentHash = (Get-FileHash -LiteralPath $entry.path -Algorithm SHA256).Hash.ToUpperInvariant()
+                    if ([string]::Equals($currentHash, [string]$entry.sha256, [StringComparison]::OrdinalIgnoreCase)) {
+                        $v2RestoredItems.Add("unchanged $($entry.path)")
+                        continue
+                    }
+                }
                 if (-not (Test-Path -LiteralPath $entry.backup -PathType Leaf)) {
                     throw "backup copy is missing: $($entry.backup)"
                 }
@@ -738,7 +749,11 @@ function Write-V2JsonAtomic {
     $temporary = Join-Path $directory ('.{0}.{1}.tmp' -f ([IO.Path]::GetFileName($Path)), [Guid]::NewGuid().ToString('N'))
     $backup = Join-Path $directory ('.{0}.{1}.previous' -f ([IO.Path]::GetFileName($Path)), [Guid]::NewGuid().ToString('N'))
     try {
-        Set-Content -LiteralPath $temporary -Value ($Value | ConvertTo-Json -Depth 12) -Encoding UTF8 -ErrorAction Stop
+        # Windows PowerShell 5.1's -Encoding UTF8 emits a BOM. Go's strict JSON
+        # decoder correctly rejects those extra leading bytes, so write an
+        # explicitly BOM-less UTF-8 document on every PowerShell edition.
+        $json = ($Value | ConvertTo-Json -Depth 12) + [Environment]::NewLine
+        [IO.File]::WriteAllText($temporary, $json, [Text.UTF8Encoding]::new($false))
         Get-Content -LiteralPath $temporary -Raw -Encoding UTF8 | ConvertFrom-Json | Out-Null
         if ([IO.File]::Exists($Path)) {
             [IO.File]::Replace($temporary, $Path, $backup, $true)

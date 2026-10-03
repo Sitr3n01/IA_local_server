@@ -7,8 +7,8 @@ provider and model.
 The global MCP registration is named `cia-local-inference` and exposes only
 `local_ai_delegate`. A prompt can request it explicitly, for example:
 
-> Use `local_ai_delegate` from `cia-local-inference` to ask `local-coding` for a
-> second implementation proposal, then review the result yourself.
+> Use `local_ai_delegate` from `cia-local-inference` to ask the local model for
+> a second implementation proposal, then review the result yourself.
 
 This does not replace the harness model, route ordinary prompts locally, or add
 automatic cloud-to-local fallback. The SOTA model remains responsible for the
@@ -30,14 +30,21 @@ permission. Claude clients use their normal tool-confirmation UI. The files
 contain only the loopback data URL and model ID. The executable reads the
 inference credential from Windows Credential Manager itself.
 
+The pinned model is the installed manifest's `provider.public_model`
+(`C:\IA\local-ai-v2\config\models.yaml`) unless `-Model` names another. Either
+way the installer refuses a model that manifest does not list as active,
+because the edge would refuse every delegated call. The executable has no
+built-in model: without `CIA_MCP_INFERENCE_MODEL` it fails at startup and says
+so. Re-run the installer after the public model changes.
+
 Preview first and approve the exact plan hash:
 
 ```powershell
-$preview = & C:\IA\local-llama\scripts\v2\Install-V2McpInferenceIntegrations.ps1 |
+$preview = & C:\IA\IA_local_server\scripts\v2\Install-V2McpInferenceIntegrations.ps1 |
     ConvertFrom-Json
 $preview
 
-& C:\IA\local-llama\scripts\v2\Install-V2McpInferenceIntegrations.ps1 `
+& C:\IA\IA_local_server\scripts\v2\Install-V2McpInferenceIntegrations.ps1 `
     -Apply -ExpectedPlanSha256 $preview.plan_sha256
 ```
 
@@ -52,8 +59,14 @@ Formats follow the current official documentation for
 
 ## Known limitations of the pinned executor model
 
-`local_ai_delegate` always calls `local-coding` (Ornith 1.0 9B). It is a small
-model used strictly as a directed executor under an orchestrating SOTA
+Everything in this section was measured on `local-coding`, a 9B model, the
+model this bridge used to pin; that profile left the roster on 2026-08-22. The
+bridge now calls the model pinned at install time — by default the public
+model, the Gemma 4 12B QAT 256k profile since 2026-09-28. The scoping guidance
+still applies to any small local model; the bug list, the rating and the
+tuning figures have not been re-measured on the new pin.
+
+The model is used strictly as a directed executor under an orchestrating SOTA
 session, not as an autonomous problem-solver — the guidance below assumes the
 orchestrator scopes each call, the way the tool description asks.
 

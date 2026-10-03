@@ -32,7 +32,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Id,
 
-    [string]$ManifestPath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'config\models.yaml'),
+    [string]$ManifestPath,
 
     [string]$InstallRoot = 'C:\IA\local-ai-v2',
 
@@ -51,6 +51,9 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'Common.ps1')
+if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
+    $ManifestPath = Join-Path (Get-V2RepoRoot) 'config\models.yaml'
+}
 
 $expectedRoot = [IO.Path]::GetFullPath('C:\IA\local-ai-v2').TrimEnd([char[]]@('\', '/'))
 $resolvedRoot = [IO.Path]::GetFullPath($InstallRoot).TrimEnd([char[]]@('\', '/'))

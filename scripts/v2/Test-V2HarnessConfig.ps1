@@ -107,7 +107,12 @@ foreach ($profile in $profiles) {
     $mcpHeaders = @([regex]::Matches($codex, '(?m)^\[mcp_servers\.([^\.\]]+)\]\r?$'))
     Assert-True ($providerHeaders.Count -eq 1 -and $providerHeaders[0].Groups[1].Value -eq $profile.Provider) "Codex profile has an unexpected provider table: $($profile.Codex)"
     Assert-True ($mcpHeaders.Count -eq 1 -and $mcpHeaders[0].Groups[1].Value -eq $profile.Provider) "Codex profile has an unexpected MCP table: $($profile.Codex)"
-    Assert-True ($codex -match "(?m)^model\s*=\s*`"$([regex]::Escape($publicModel))`"\s*$") "Codex model is not pinned to provider.public_model '$publicModel': $($profile.Codex)"
+    $codexDefault = [regex]::Match($codex, '(?m)^model\s*=\s*"([a-z0-9][a-z0-9._-]{0,127})"\s*$')
+    Assert-True $codexDefault.Success "Codex profile must pin a local model: $($profile.Codex)"
+    $codexDefaultModel = @($manifest.models | Where-Object { $_.id -eq $codexDefault.Groups[1].Value -and $_.state -ne 'retired' -and @($_.deployments) -contains 'canary' })
+    Assert-True ($codexDefaultModel.Count -eq 1) "Codex default must be in the active roster: $($profile.Codex)"
+    $codexDefaultCaps = $codexDefaultModel[0].capabilities
+    Assert-True ([bool]($codexDefaultCaps.responses -and $codexDefaultCaps.streaming -and $codexDefaultCaps.function_calling)) "Codex default must qualify Responses, streaming and tools: $($profile.Codex)"
     Assert-True ($codex -match "(?m)^model_provider\s*=\s*`"$([regex]::Escape($profile.Provider))`"\s*$") "Codex provider is not pinned: $($profile.Codex)"
     Assert-True ($codex -match "base_url\s*=\s*`"http://127\.0\.0\.1:$($profile.DataPort)/v1`"") "Codex data URL mismatch: $($profile.Codex)"
     Assert-True ($codex -match '(?m)^wire_api\s*=\s*"responses"\s*$') "Codex wire API mismatch: $($profile.Codex)"
@@ -202,8 +207,7 @@ foreach ($catalogModel in @($catalog.models)) {
 	Assert-True ($null -eq $applyPatchProperty -or $null -eq $applyPatchProperty.Value) "Codex apply_patch must remain disabled for $($catalogModel.slug)."
 }
 
-# capabilities.function_calling is the one capability flag with a behavioural
-# consumer: New-V2ClientCatalogs.ps1 maps it onto the Codex catalog's
+# New-V2ClientCatalogs.ps1 maps function_calling onto the Codex catalog's
 # supports_parallel_tool_calls, which is what a harness reads before deciding it
 # may issue parallel tool calls against this model. The mapping has to stay
 # exact in both directions.
@@ -217,8 +221,10 @@ foreach ($catalogModel in @($catalog.models)) {
 # assertion makes the consequence of ever flipping it visible in a fast test
 # rather than in a client's behaviour.
 $manifestCapabilityById = @{}
+$codexEligibilityById = @{}
 foreach ($manifestModel in @($manifest.models)) {
 	$manifestCapabilityById[[string]$manifestModel.id] = [bool]$manifestModel.capabilities.function_calling
+	$codexEligibilityById[[string]$manifestModel.id] = [bool]($manifestModel.capabilities.responses -and $manifestModel.capabilities.streaming -and $manifestModel.capabilities.function_calling)
 }
 foreach ($catalogModel in @($catalog.models)) {
 	$slug = [string]$catalogModel.slug
@@ -227,6 +233,23 @@ foreach ($catalogModel in @($catalog.models)) {
 	$declared = $manifestCapabilityById[$slug]
 	$advertised = [bool]$catalogModel.supports_parallel_tool_calls
 	Assert-True ($advertised -eq $declared) "Codex supports_parallel_tool_calls=$advertised for '$slug' but the manifest declares function_calling=$declared; regenerate the catalogs with New-V2ClientCatalogs.ps1 instead of editing them."
+	Assert-True ([bool]$catalogModel.supported_in_api -eq $codexEligibilityById[$slug]) "Codex eligibility for '$slug' must require qualified Responses, streaming and function calling."
+}
+
+foreach ($profile in $profiles) {
+	$capabilityGate = Get-ScriptFunctionBody -Path $profile.CodexLauncher -Name 'Assert-CodexModelCapabilities'
+	$qualified = [pscustomobject]@{ responses = $true; streaming = $true; function_calling = $true }
+	& $capabilityGate -Capabilities $qualified
+	foreach ($missing in @('responses', 'streaming', 'function_calling')) {
+		foreach ($value in @($false, 'true', $null)) {
+			$unqualified = [pscustomobject]@{ responses = $true; streaming = $true; function_calling = $true }
+			$unqualified.$missing = $value
+			$rejected = $false
+			try { & $capabilityGate -Capabilities $unqualified }
+			catch { $rejected = $_.Exception.Message -match 'not qualified for Codex' }
+			Assert-True $rejected "Codex launcher accepted an unqualified '$missing' capability."
+		}
+	}
 }
 
 foreach ($openCodePath in @(
@@ -239,6 +262,7 @@ foreach ($openCodePath in @(
 	Assert-True ($openCodeModelIds.Count -eq $expectedModelIds.Count) "OpenCode model count must match the manifest: $openCodePath"
 	foreach ($modelId in $expectedModelIds) {
 		Assert-True ($openCodeModelIds -contains $modelId) "OpenCode config is missing ${modelId}: $openCodePath"
+		Assert-True ([bool]$openCodeConfig.provider.$providerName.models.$modelId.tool_call -eq $manifestCapabilityById[$modelId]) "OpenCode tool_call must match manifest qualifications for ${modelId}: $openCodePath"
 	}
 }
 

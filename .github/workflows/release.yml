@@ -123,9 +123,15 @@ jobs:
           # A release carries executables, schemas, and metadata. Model weights,
           # private configuration, local state, and logs must never leave the
           # workstation through this channel.
+          #
+          # The name test exempts the executables the build step wrote to the
+          # dist root: `cia-credential.exe` is the credential helper, not a
+          # credential, and matching it failed every tagged release.
+          $distRoot = (Resolve-Path dist).Path
           $forbidden = @(Get-ChildItem dist -Recurse -File | Where-Object {
+            $builtComponent = $_.DirectoryName -eq $distRoot -and $_.Name -cmatch '^cia-[a-z-]+\.exe$'
             $_.Extension -in @('.gguf', '.safetensors', '.pt', '.pth', '.zip', '.7z', '.gz', '.log', '.jsonl') -or
-            $_.Name -match '(?i)(secret|credential|token|api[_-]?key|router-api-key|panel\.|deployment\.|release\.)'
+            (-not $builtComponent -and $_.Name -match '(?i)(secret|credential|token|api[_-]?key|router-api-key|panel\.|deployment\.|release\.)')
           })
           if ($forbidden.Count -gt 0) {
             $forbidden.FullName | Write-Error

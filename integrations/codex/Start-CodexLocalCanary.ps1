@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
 	[ValidatePattern('^[a-z0-9][a-z0-9._-]{0,127}$')]
-	[string]$Model = 'local-coding',
+	[string]$Model,
 	[string[]]$Arguments = @()
 )
 
@@ -19,6 +19,17 @@ $profilePath = Join-Path $codexHome "$profileName.config.toml"
 $catalogPath = 'C:\IA\local-ai-v2\config\codex-model-catalog.json'
 $helperPath = 'C:\IA\local-ai-v2\bin\cia-credential.exe'
 $mcpPath = 'C:\IA\local-ai-v2\bin\cia-mcp.exe'
+$manifestPath = 'C:\IA\local-ai-v2\config\models.yaml'
+
+function Assert-CodexModelCapabilities {
+	param([Parameter(Mandatory = $true)][object]$Capabilities)
+	foreach ($name in @('responses', 'streaming', 'function_calling')) {
+		$property = $Capabilities.PSObject.Properties[$name]
+		if ($null -eq $property -or $property.Value -isnot [bool] -or -not $property.Value) {
+			throw "The selected model is not qualified for Codex: '$name' is required. Use the inference MCP for local delegation."
+		}
+	}
+}
 
 function Assert-SafeCodexSessionArguments {
 	param(
@@ -73,17 +84,26 @@ function Assert-SafeCodexSessionArguments {
 	}
 }
 
-foreach ($required in @($profilePath, $catalogPath, $helperPath, $mcpPath)) {
+foreach ($required in @($profilePath, $catalogPath, $helperPath, $mcpPath, $manifestPath)) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
         throw "Required canary artifact not found: $required. Run Install-V2Harness.ps1 -Environment Canary -Apply first."
     }
 }
 
 $catalog = Get-Content -LiteralPath $catalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace($Model)) {
+	$defaultModel = [regex]::Match((Get-Content -LiteralPath $profilePath -Raw), '(?m)^model\s*=\s*"([a-z0-9][a-z0-9._-]{0,127})"\s*$')
+	if (-not $defaultModel.Success) { throw 'The installed Codex profile must declare its local default model.' }
+	$Model = $defaultModel.Groups[1].Value
+}
 $allowedModels = @($catalog.models | ForEach-Object { [string]$_.slug })
 if ($allowedModels -notcontains $Model) {
 	throw "Model '$Model' is not present in the installed Codex local-only catalog."
 }
+$selected = @($manifest.models | Where-Object { $_.id -eq $Model -and $_.state -ne 'retired' -and @($_.deployments) -contains 'canary' })
+if ($selected.Count -ne 1) { throw "Model '$Model' is not deployed to canary in the installed manifest." }
+Assert-CodexModelCapabilities -Capabilities $selected[0].capabilities
 
 # Reject every known CLI escape hatch from this explicit local-only session.
 # Ordinary prompts, workspace, sandbox, approval, image, and display arguments

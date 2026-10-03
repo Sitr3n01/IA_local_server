@@ -56,7 +56,6 @@ func TestConfigRejectsUnsafeBoundaries(t *testing.T) {
 		"path":               func(c *Config) { c.ControlURL = "http://127.0.0.1:18091/api" },
 		"relative manifest":  func(c *Config) { c.ManifestPath = "models.yaml" },
 		"relative selection": func(c *Config) { c.SelectionPath = "selection.json" },
-		"relative launcher":  func(c *Config) { c.Launchers.Codex = "Start-Codex.ps1" },
 		"short refresh":      func(c *Config) { c.RefreshSeconds = 1 },
 		"long refresh":       func(c *Config) { c.RefreshSeconds = 301 },
 		"short timeout":      func(c *Config) { c.OperationTimeoutSeconds = 4 },

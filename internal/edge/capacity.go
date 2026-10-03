@@ -196,6 +196,9 @@ func capacityFrom(model Model, allowed []Model, running map[string]string, runni
 		} else {
 			result.Reason = "insufficient_commit_headroom"
 		}
+	case metricErr != nil && (haveCommit || model.OffloadsTensors || (model.CacheRAMMiB != nil && *model.CacheRAMMiB > 0)):
+		result.Available = false
+		result.Reason = "resource_measurement_required"
 	case isCanaryCandidate(model):
 		result.Available = true
 		result.Reason = "canary_resource_measurement_pending"
@@ -308,13 +311,56 @@ func exceedsVRAMBudget(model Model) bool {
 	return *model.PeakVRAMGiB+vramReserveGiB > *model.DeviceVRAMGiB
 }
 
-func (s *Server) requireCapacity(w http.ResponseWriter, ctx context.Context, model Model) bool {
-	capacity, _ := s.capacityFor(ctx, model)
-	if capacity.Available {
-		return true
+// prepareInferenceCapacity runs while the inference slot is held. A measured
+// peak is an upper bound, not the memory an outgoing process currently holds.
+// Projected reclaim may justify trying an unload, but only the fresh host
+// measurements after that unload can admit the incoming model.
+func (s *Server) prepareInferenceCapacity(ctx context.Context, model Model) (capacityStatus, error) {
+	capacity, running := s.capacityFor(ctx, model)
+	if !capacity.Available || capacity.ModelRunning || len(running) == 0 {
+		return capacity, nil
 	}
-	s.writeError(w, http.StatusServiceUnavailable, "insufficient_capacity", capacityMessage(capacity.Reason), "model")
-	return false
+	if err := s.routerOperation(ctx, http.MethodPost, "/api/models/unload"); err != nil {
+		return capacity, err
+	}
+	return s.capacityAfterUnload(ctx, model)
+}
+
+func (s *Server) capacityAfterUnload(ctx context.Context, model Model) (capacityStatus, error) {
+	running, err := s.runningModels(ctx)
+	if err != nil {
+		return capacityStatus{}, err
+	}
+	if len(running) != 0 {
+		return capacityStatus{}, errors.New("router still reports a loaded model after unload")
+	}
+	memory, metricErr := s.memoryStatus()
+	return capacityFrom(model, s.cfg.Models, running, nil, memory, metricErr), nil
+}
+
+// requireCapacity refuses a model before forwarding any inference request.
+func (s *Server) requireCapacity(w http.ResponseWriter, ctx context.Context, model Model) (capacityStatus, bool) {
+	capacity, err := s.prepareInferenceCapacity(ctx, model)
+	if err != nil {
+		s.metrics.upstreamFailures.Add(1)
+		s.writeError(w, http.StatusServiceUnavailable, "upstream_unavailable", "local model unload could not be verified", "model")
+		return capacity, false
+	}
+	if capacity.Available {
+		return capacity, true
+	}
+	s.writeError(w, http.StatusServiceUnavailable, "insufficient_capacity", s.refusalText(capacity), "model")
+	return capacity, false
+}
+
+// refusalText is what a client shows for a refused model. The process table
+// is read only for a memory refusal, and only once the refusal is certain.
+func (s *Server) refusalText(capacity capacityStatus) string {
+	var consumers []memoryConsumer
+	if needed, byCommit := needsConsumers(capacity.Reason); needed && s.memoryConsumers != nil {
+		consumers = s.memoryConsumers(refusalConsumerLimit, byCommit)
+	}
+	return capacityRefusal(capacity, consumers)
 }
 
 func (s *Server) runningModels(ctx context.Context) (map[string]string, error) {

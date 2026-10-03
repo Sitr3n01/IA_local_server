@@ -1,0 +1,1048 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "profile-qualification",
+    "label":  "gemma4-12b-agentic-quality-ctx262144",
+    "started_utc":  "2026-09-29T14:36:46.4432478Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\gemma-4-12B-agentic-GGUF\\gemma4-v2-Q4_K_M.gguf",
+                          "model_bytes":  7381381664,
+                          "runtime_root":  "C:\\Users\\Sitr3n\\.unsloth\\llama.cpp\\build\\bin\\Release",
+                          "context_tokens":  262144,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "ubatch_size":  512,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "parallel":  1,
+                          "tensor_override":  "",
+                          "n_predict":  8192,
+                          "reasoning_budget":  null,
+                          "reasoning_budget_message":  null,
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  null,
+                          "device_vram_mib":  16304,
+                          "max_tokens":  null,
+                          "request_budget":  {
+                                                 "request_max_tokens":  8192,
+                                                 "n_predict":  8192,
+                                                 "effective_generation_ceiling":  8192,
+                                                 "effective_max_tokens":  8192,
+                                                 "budget_profile":  "deployment",
+                                                 "source":  "profile",
+                                                 "reasoning_budget":  null,
+                                                 "answer_reserve":  null,
+                                                 "minimum_answer_reserve":  null,
+                                                 "reserve_ok":  true,
+                                                 "constrained_diagnostic":  false
+                                             },
+                          "temperature":  0,
+                          "seed":  20260821,
+                          "system_policy":  "current",
+                          "strict_tool_policy":  false,
+                          "tool_schema_policy":  false,
+                          "constrained_request_budget_diagnostic":  false,
+                          "capture_diagnostics":  false,
+                          "command_line":  "\"C:\\Users\\Sitr3n\\.unsloth\\llama.cpp\\build\\bin\\Release\\llama-server.exe\" --model \"C:\\IA\\models\\gemma-4-12B-agentic-GGUF\\gemma4-v2-Q4_K_M.gguf\" --host 127.0.0.1 --port 19399 --alias local --device ROCm0 --split-mode none --gpu-layers 99 --flash-attn on --ctx-size 262144 --batch-size 2048 --ubatch-size 512 --cache-type-k q4_0 --cache-type-v q4_0 --parallel 1 --cont-batching --no-context-shift --threads 8 --n-predict 8192 --jinja --warmup --metrics --no-webui"
+                      },
+    "load_seconds":  6.6,
+    "idle":  {
+                 "vram_dedicated_mib":  4279.9,
+                 "vram_shared_mib":  624.9,
+                 "commit_gib":  27.518,
+                 "physical_used_gib":  15.394
+             },
+    "session_peak":  {
+                         "vram_dedicated_mib":  13828,
+                         "vram_shared_mib":  983.2,
+                         "process_vram_mib":  9545.5,
+                         "process_ws_gib":  8.956,
+                         "process_private_gib":  9.119,
+                         "commit_gib":  39.472,
+                         "physical_used_gib":  25.199
+                     },
+    "marginal_vram_mib":  9548.1,
+    "memory_samples":  35,
+    "gpu_pressure":  {
+                         "state":  "ok",
+                         "occupancy":  0.8481,
+                         "shared_mib":  983.2,
+                         "message":  "GPU memory is within budget: 13.828 / 16.304 MiB dedicated (84,8%), 983 MiB shared."
+                     },
+    "eval_exit_code":  0,
+    "failure":  null,
+    "eval":  {
+                 "schema_version":  1,
+                 "scenario":  "profile-qualification",
+                 "label":  "gemma4-12b-agentic-quality-ctx262144",
+                 "started_utc":  "2026-09-29T14:33:54Z",
+                 "server_props":  {
+                                      "default_generation_settings":  {
+                                                                          "params":  {
+                                                                                         "seed":  4294967295,
+                                                                                         "temperature":  1.0,
+                                                                                         "dynatemp_range":  0.0,
+                                                                                         "dynatemp_exponent":  1.0,
+                                                                                         "top_k":  64,
+                                                                                         "top_p":  0.949999988079071,
+                                                                                         "min_p":  0.05000000074505806,
+                                                                                         "top_n_sigma":  -1.0,
+                                                                                         "xtc_probability":  0.0,
+                                                                                         "xtc_threshold":  0.10000000149011612,
+                                                                                         "typical_p":  1.0,
+                                                                                         "repeat_last_n":  64,
+                                                                                         "repeat_penalty":  1.0,
+                                                                                         "presence_penalty":  0.0,
+                                                                                         "frequency_penalty":  0.0,
+                                                                                         "dry_multiplier":  0.0,
+                                                                                         "dry_base":  1.75,
+                                                                                         "dry_allowed_length":  2,
+                                                                                         "dry_penalty_last_n":  -1,
+                                                                                         "mirostat":  0,
+                                                                                         "mirostat_tau":  5.0,
+                                                                                         "mirostat_eta":  0.10000000149011612,
+                                                                                         "adaptive_target":  -1.0,
+                                                                                         "adaptive_decay":  0.8999999761581421,
+                                                                                         "max_tokens":  -1,
+                                                                                         "n_predict":  -1,
+                                                                                         "n_keep":  0,
+                                                                                         "n_discard":  0,
+                                                                                         "ignore_eos":  false,
+                                                                                         "stream":  false,
+                                                                                         "n_probs":  0,
+                                                                                         "min_keep":  0,
+                                                                                         "chat_format":  "Content-only",
+                                                                                         "reasoning_format":  "none",
+                                                                                         "reasoning_in_content":  false,
+                                                                                         "generation_prompt":  "",
+                                                                                         "samplers":  [
+                                                                                                          "penalties",
+                                                                                                          "dry",
+                                                                                                          "top_n_sigma",
+                                                                                                          "top_k",
+                                                                                                          "typ_p",
+                                                                                                          "top_p",
+                                                                                                          "min_p",
+                                                                                                          "xtc",
+                                                                                                          "temperature"
+                                                                                                      ],
+                                                                                         "speculative.types":  "none",
+                                                                                         "timings_per_token":  false,
+                                                                                         "post_sampling_probs":  false,
+                                                                                         "backend_sampling":  false,
+                                                                                         "lora":  [
+
+                                                                                                  ]
+                                                                                     },
+                                                                          "n_ctx":  262144
+                                                                      },
+                                      "total_slots":  1,
+                                      "model_path":  "C:\\IA\\models\\gemma-4-12B-agentic-GGUF\\gemma4-v2-Q4_K_M.gguf",
+                                      "build_info":  "b10225-d2a74a4a3"
+                                  },
+                 "request_budget":  {
+                                        "request_max_tokens":  8192,
+                                        "n_predict":  8192,
+                                        "effective_generation_ceiling":  8192,
+                                        "effective_max_tokens":  8192,
+                                        "source":  "profile",
+                                        "budget_profile":  "deployment",
+                                        "reasoning_budget":  null,
+                                        "answer_reserve":  null,
+                                        "minimum_answer_reserve":  null,
+                                        "reserve_ok":  true,
+                                        "fixture_defaults":  {
+                                                                 "coding":  8192,
+                                                                 "tools":  4096,
+                                                                 "json":  4096,
+                                                                 "retention":  4096
+                                                             },
+                                        "constrained_diagnostic":  false
+                                    },
+                 "policy_profile":  "baseline",
+                 "diagnostic_config":  {
+                                           "max_tokens_override":  8192,
+                                           "max_tokens_source":  "profile",
+                                           "budget_profile":  "deployment",
+                                           "n_predict":  8192,
+                                           "temperature":  0.0,
+                                           "seed":  20260821,
+                                           "system_policy":  "current",
+                                           "strict_tool_policy":  false,
+                                           "tool_schema_policy":  false,
+                                           "capture_dir":  null,
+                                           "only_coding":  [
+
+                                                           ],
+                                           "only_tools":  [
+
+                                                          ]
+                                       },
+                 "suites":  {
+                                "chat":  {
+                                             "results":  [
+                                                             {
+                                                                 "id":  "system_user_stop",
+                                                                 "passed":  true,
+                                                                 "finish_reason":  "stop",
+                                                                 "reasoning_chars":  167
+                                                             },
+                                                             {
+                                                                 "id":  "multi_turn",
+                                                                 "passed":  true,
+                                                                 "finish_reason":  "stop",
+                                                                 "reasoning_chars":  282
+                                                             },
+                                                             {
+                                                                 "id":  "streaming",
+                                                                 "passed":  true,
+                                                                 "chunks":  54,
+                                                                 "done":  true
+                                                             },
+                                                             {
+                                                                 "id":  "tool_result_continuation",
+                                                                 "passed":  true,
+                                                                 "call_ok":  true,
+                                                                 "args_ok":  true,
+                                                                 "continuation_ok":  true,
+                                                                 "finish_reason":  "stop",
+                                                                 "reasoning_chars":  143
+                                                             }
+                                                         ],
+                                             "passed":  4,
+                                             "total":  4
+                                         },
+                                "coding":  {
+                                               "results":  [
+                                                               {
+                                                                   "id":  "py_bugfix",
+                                                                   "family":  "bugfix",
+                                                                   "lang":  "python",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  357,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  219,
+                                                                   "reasoning_content":  "The bug is in the `low = mid` assignment when `sorted_values[mid] \u003c target`. If `low == mid`, the loop never advances and hangs. The correct binary search for the leftmost insertion point is: when `mid` is less than target, `low = mid + 1`; when `mid \u003e= target`, `high = mid`. That guarantees progress and finds the first index where `values[i] \u003e= target`.\n",
+                                                                   "decode_tps":  54.38010651548169,
+                                                                   "wall_s":  4.3,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "def find_insert_position(sorted_values, target):\n    \"\"\"Return the index where target should be inserted to keep the list sorted.\n\n    If target is already present, return the index of its FIRST occurrence.\n    \"\"\"\n    low = 0\n    high = len(sorted_values)\n    while low \u003c high:\n        mid = (low + high) // 2\n        if sorted_values[mid] \u003c target:\n            low = mid + 1\n        else:\n            high = mid\n    return low",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "py_impl",
+                                                                   "family":  "implement",
+                                                                   "lang":  "python",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  672,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  317,
+                                                                   "reasoning_content":  "Goal: implement `merge_intervals(intervals)` returning merged, non-overlapping [start, end] pairs sorted by start, with touching intervals also merged.\n\nEdge cases: empty list → []; single interval → unchanged; duplicate intervals; intervals fully contained in others; intervals that only touch at one endpoint (e.g. [1,4] and [4,5] → [1,5]).\n\nApproach: copy the input (no mutation), sort by start, then merge in one pass. For each interval, if it overlaps or touches the last merged interval (current_end \u003e= next_start), extend the last merged interval to max(current_end, next_end). Otherwise append it.\n\nComplexity: O(n log n) time for sort, O(n) space for the result.\n",
+                                                                   "decode_tps":  54.27521781569472,
+                                                                   "wall_s":  6.1,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "def merge_intervals(intervals):\n    if not intervals:\n        return []\n\n    sorted_intervals = sorted(intervals, key=lambda x: x[0])\n    merged = []\n\n    for start, end in sorted_intervals:\n        if not merged or start \u003e merged[-1][1]:\n            merged.append([start, end])\n        else:\n            merged[-1][1] = max(merged[-1][1], end)\n\n    return merged",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "go_bugfix",
+                                                                   "family":  "bugfix",
+                                                                   "lang":  "go",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  647,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  352,
+                                                                   "reasoning_content":  "The bug is a classic channel-deadlock pattern: the `jobs` channel is unbuffered and the sender blocks on `jobs \u003c- i` while all workers are waiting for `range jobs` to terminate, but `close(jobs)` is only called *after* `wg.Wait()`. So the sender blocks forever on the first send, `wg.Wait()` never returns, and `close(jobs)` is never reached.\n\nThe fix: make `jobs` buffered to `len(inputs)` so the sender never blocks, then close it immediately after sending all indices, and have workers range over the closed channel. The order guarantee is preserved because each worker writes to a unique index `out[i]`, so there\u0027s no shared-write contention.\n",
+                                                                   "decode_tps":  54.13924521586717,
+                                                                   "wall_s":  14.7,
+                                                                   "detail":  "ok  \teval/pipeline\t0.207s\n",
+                                                                   "code":  "package pipeline\n\nimport \"sync\"\n\n// FanIn runs fn over every input concurrently and returns the results in the\n// same order as the inputs.\nfunc FanIn(inputs []int, workers int, fn func(int) int) []int {\n\tout := make([]int, len(inputs))\n\tjobs := make(chan int, len(inputs))\n\tvar wg sync.WaitGroup\n\n\tfor w := 0; w \u003c workers; w++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfor i := range jobs {\n\t\t\t\tout[i] = fn(inputs[i])\n\t\t\t}\n\t\t}()\n\t}\n\n\tfor i := range inputs {\n\t\tjobs \u003c- i\n\t}\n\tclose(jobs)\n\twg.Wait()\n\treturn out\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "go_impl",
+                                                                   "family":  "implement",
+                                                                   "lang":  "go",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  464,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  505,
+                                                                   "reasoning_content":  "LRU cache with fixed capacity, standard library only. Need a doubly linked list for O(1) reordering and a map for O(1) lookup. Each entry is a node in the list. Get moves the accessed node to the front. Put updates an existing key (no growth) or inserts a new one; if full and new, evict the tail. Len is the number of entries. Edge cases: capacity \u003c= 0 (return nil or handle gracefully; I\u0027ll assume positive capacity), empty cache, duplicate Get/Put on same key.\n",
+                                                                   "decode_tps":  54.09307286251222,
+                                                                   "wall_s":  10.2,
+                                                                   "detail":  "ok  \teval/cache\t0.203s\n",
+                                                                   "code":  "package cache\n\nimport (\n\t\"container/list\"\n)\n\ntype entry struct {\n\tkey   string\n\tvalue int\n}\n\ntype LRU struct {\n\tcapacity int\n\tll       *list.List\n\tcache    map[string]*list.Element\n}\n\nfunc NewLRU(capacity int) *LRU {\n\tif capacity \u003c= 0 {\n\t\treturn nil\n\t}\n\treturn \u0026LRU{\n\t\tcapacity: capacity,\n\t\tll:       list.New(),\n\t\tcache:    make(map[string]*list.Element),\n\t}\n}\n\nfunc (c *LRU) Get(key string) (int, bool) {\n\tif el, ok := c.cache[key]; ok {\n\t\tc.ll.MoveToFront(el)\n\t\treturn el.Value.(*entry).value, true\n\t}\n\treturn 0, false\n}\n\nfunc (c *LRU) Put(key string, value int) {\n\tif el, ok := c.cache[key]; ok {\n\t\tc.ll.MoveToFront(el)\n\t\tel.Value.(*entry).value = value\n\t\treturn\n\t}\n\n\tif c.ll.Len() \u003e= c.capacity {\n\t\tlast := c.ll.Back()\n\t\tif last != nil {\n\t\t\tc.ll.Remove(last)\n\t\t\tdelete(c.cache, last.Value.(*entry).key)\n\t\t}\n\t}\n\n\tent := \u0026entry{key, value}\n\tc.cache[key] = c.ll.PushFront(ent)\n}\n\nfunc (c *LRU) Len() int {\n\treturn len(c.cache)\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "ts_impl",
+                                                                   "family":  "implement",
+                                                                   "lang":  "typescript",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  604,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  343,
+                                                                   "reasoning_content":  "Goal: implement `groupConsecutive(values: number[])` returning `number[][]`. Consecutive elements form a run if each is exactly one greater than the previous; a repeated value breaks the run and starts a new one. Empty input → `[]`.\n\nEdge cases: empty array; single element; all identical (each its own run); all strictly increasing; mixed repeats and jumps.\n\nApproach: one pass with `lastRun` and `currentRun`. If `values[i] === lastRun + 1` extend; else push `currentRun` and start new. `lastRun` is the last value of the current run.\n\nComplexity: O(n) time, O(n) space for output. No non-erasable TS.\n",
+                                                                   "decode_tps":  54.32714954157706,
+                                                                   "wall_s":  6.9,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "export function groupConsecutive(values: number[]): number[][] {\n  if (values.length === 0) return [];\n\n  const result: number[][] = [];\n  let currentRun: number[] = [];\n  let lastRun = -Infinity;\n\n  for (const value of values) {\n    if (value === lastRun + 1) {\n      currentRun.push(value);\n      lastRun = value;\n    } else {\n      if (currentRun.length \u003e 0) {\n        result.push(currentRun);\n      }\n      currentRun = [value];\n      lastRun = value;\n    }\n  }\n\n  if (currentRun.length \u003e 0) {\n    result.push(currentRun);\n  }\n\n  return result;\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "ts_refactor",
+                                                                   "family":  "refactor",
+                                                                   "lang":  "typescript",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  567,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  379,
+                                                                   "reasoning_content":  "Goal: rewrite `ancestry` to use async/await and a loop instead of recursion, preserving all error messages and the 50-entry cap.\n\nEdge cases to preserve:\n- `seen.has(id)` → `Error(\"cycle detected\")`\n- `chain.length \u003e 50` → `Error(\"chain too long\")`\n- `node.parent === null` → stop and return `chain`\n- `fetch` is awaited each step\n\nApproach: iterative loop over `id`. On each iteration: check cycle, check length, await `fetch(id)`, if `node.parent === null` break, else set `id = node.parent` and continue.\n\nComplexity: O(n) time and space for n nodes in the chain.\n",
+                                                                   "decode_tps":  54.201270626515196,
+                                                                   "wall_s":  7.3,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "export type Fetcher = (id: string) =\u003e Promise\u003c{ id: string; parent: string | null }\u003e;\n\n// Walks from a node to the root and returns the chain, root last.\nexport async function ancestry(fetch: Fetcher, start: string): Promise\u003cstring[]\u003e {\n  const seen = new Set\u003cstring\u003e();\n  const chain: string[] = [];\n  let id = start;\n\n  while (true) {\n    if (seen.has(id)) {\n      throw new Error(\"cycle detected\");\n    }\n    seen.add(id);\n    chain.push(id);\n    if (chain.length \u003e 50) {\n      throw new Error(\"chain too long\");\n    }\n\n    const node = await fetch(id);\n    if (node.parent === null) {\n      break;\n    }\n    id = node.parent;\n  }\n\n  return chain;\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "cs_bugfix",
+                                                                   "family":  "bugfix",
+                                                                   "lang":  "csharp",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  467,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  409,
+                                                                   "reasoning_content":  "Two bugs. First: `running[e.Account] = buffer` assigns the *same* `buffer` list instance to every account key. So every account\u0027s running list is the same list, and every entry appends to it. Fix: create a new list per account — `new List\u003cint\u003e()`. Second: `deltas.Sum() / deltas.Count()` is integer division (sum and count are both int), so the average is truncated to an integer. Fix: cast one operand to double before dividing. Keep the public signature unchanged.\n",
+                                                                   "decode_tps":  53.959648737199096,
+                                                                   "wall_s":  11.0,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic static class Ledger\n{\n    // Returns, for each account, the running balance after every entry, and the\n    // final balance. Entries are (account, delta) in chronological order.\n    public static (Dictionary\u003cstring, List\u003cint\u003e\u003e Running, Dictionary\u003cstring, int\u003e Final, double AverageDelta)\n        Summarise(IEnumerable\u003c(string Account, int Delta)\u003e entries)\n    {\n        var totals = new Dictionary\u003cstring, int\u003e();\n        var running = new Dictionary\u003cstring, List\u003cint\u003e\u003e();\n\n        foreach (var e in entries)\n        {\n            if (!totals.ContainsKey(e.Account))\n            {\n                totals[e.Account] = 0;\n                running[e.Account] = new List\u003cint\u003e();\n            }\n            totals[e.Account] += e.Delta;\n            running[e.Account].Add(totals[e.Account]);\n        }\n\n        var deltas = entries.Select(e =\u003e e.Delta).ToList();\n        double average = deltas.Count == 0 ? 0 : (double)deltas.Sum() / deltas.Count;\n        return (running, totals, average);\n    }\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "unity_impl",
+                                                                   "family":  "implement",
+                                                                   "lang":  "csharp",
+                                                                   "passed":  false,
+                                                                   "compiled_or_ran":  false,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  694,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  523,
+                                                                   "reasoning_content":  "Goal: implement a `ProjectilePool` MonoBehaviour that pools GameObjects.\n\nFields: `prefab` (GameObject), `prewarmCount` (int).\n\nAwake: instantiate `prewarmCount` copies, set `gameObject.name` to \"PooledProjectile_X\", and set `gameObject.SetActive(false)`.\n\nRent: find first inactive GameObject in `_pool`. If none, instantiate a new one (named \"PooledProjectile_New\") and add it. Set `gameObject.SetActive(true)` and return it.\n\nReturn(GameObject go): if null, ignore. If already in `_pool`, ignore (no double-add). Otherwise, remove from `_pool` and set `gameObject.SetActive(false)`.\n\nEdge cases: null return ignored; duplicate return ignored; empty pool grows; new objects get unique names.\n",
+                                                                   "decode_tps":  54.085849859335426,
+                                                                   "wall_s":  10.9,
+                                                                   "detail":  "ntic-quality-ctx262144\\unity_impl\\eval.csproj]\n\nFALHA da compilação.\n\nC:\\IA\\IA_local_server\\benchmarks\\campaign-gemma4-agentic-20260929\\quality\\work-gemma4-12b-agentic-quality-ctx262144\\unity_impl\\Solution.cs(27,27): error CS1061: ‘GameObject’ não contém uma definição para \"activeInHierarchy\" e não foi possível encontrar nenhum método de extensão \"activeInHierarchy\" que aceite um primeiro argumento do tipo ‘GameObject’ (você está se esquecendo de usar uma diretiva ou uma referência de assembly?) [C:\\IA\\IA_local_server\\benchmarks\\campaign-gemma4-agentic-20260929\\quality\\work-gemma4-12b-agentic-quality-ctx262144\\unity_impl\\eval.csproj]\n    0 Aviso(s)\n    1 Erro(s)\n\nTempo Decorrido 00:00:00.88\n",
+                                                                   "code":  "using System;\nusing System.Collections.Generic;\nusing UnityEngine;\n\npublic class ProjectilePool : MonoBehaviour\n{\n    [SerializeField] private GameObject prefab;\n    [SerializeField] private int prewarmCount = 10;\n\n    private List\u003cGameObject\u003e _pool = new List\u003cGameObject\u003e();\n\n    private void Awake()\n    {\n        for (int i = 0; i \u003c prewarmCount; i++)\n        {\n            GameObject instance = Instantiate(prefab, transform);\n            instance.name = $\"PooledProjectile_{i}\";\n            instance.SetActive(false);\n            _pool.Add(instance);\n        }\n    }\n\n    public GameObject Rent()\n    {\n        for (int i = 0; i \u003c _pool.Count; i++)\n        {\n            if (!_pool[i].activeInHierarchy)\n            {\n                _pool[i].SetActive(true);\n                return _pool[i];\n            }\n        }\n\n        GameObject newObj = Instantiate(prefab, transform);\n        newObj.name = $\"PooledProjectile_New_{_pool.Count}\";\n        newObj.SetActive(true);\n        _pool.Add(newObj);\n        return newObj;\n    }\n\n    public void Return(GameObject go)\n    {\n        if (go == null) return;\n\n        int index = _pool.IndexOf(go);\n        if (index == -1) return;\n\n        _pool.RemoveAt(index);\n        go.SetActive(false);\n    }\n}",
+                                                                   "failure_taxonomy":  [
+                                                                                            "MODEL_OUTPUT_FAILURE",
+                                                                                            "COMPILE_ERROR"
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "constraint_frozen_file",
+                                                                   "family":  "constraint",
+                                                                   "lang":  "csharp",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  787,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  346,
+                                                                   "reasoning_content":  "Goal: implement `TelemetrySender` in a new file `TelemetrySender.cs` that wraps `NetworkManager.Encode` and `Enqueue`.\n\nConstraints:\n- `NetworkManager.Encode` is frozen and must not be modified.\n- `NetworkManager.Encode` pads to 8 chars and uppercases the opcode; it does NOT truncate long opcodes.\n- `TelemetrySender.Send` must truncate opcodes \u003e 8 chars to their first 8 characters BEFORE calling `Encode`.\n- Return only the new file.\n\nApproach: `TelemetrySender` holds a `NetworkManager`. `Send` takes `opcode` and `payload`, applies `opcode.Length \u003e 8 ? opcode.Substring(0, 8) : opcode`, then calls `Encode` and `Enqueue`. Substring(0,8) is safe because we checked length.\n\nEdge cases: empty opcode (length 0 \u003c= 8) -\u003e no truncation; exactly 8 -\u003e no truncation; 9+ -\u003e truncated to 8.\n",
+                                                                   "decode_tps":  53.88005707548705,
+                                                                   "wall_s":  8.2,
+                                                                   "detail":  "OK\n",
+                                                                   "code":  "using System;\n\npublic class TelemetrySender\n{\n    private readonly NetworkManager _networkManager;\n\n    public TelemetrySender(NetworkManager networkManager)\n    {\n        _networkManager = networkManager;\n    }\n\n    public void Send(string opcode, string payload)\n    {\n        string safeOpcode = opcode.Length \u003e 8 ? opcode.Substring(0, 8) : opcode;\n        string encoded = _networkManager.Encode(safeOpcode, payload);\n        _networkManager.Enqueue(encoded);\n    }\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               },
+                                                               {
+                                                                   "id":  "no_invented_api",
+                                                                   "family":  "honesty",
+                                                                   "lang":  "csharp",
+                                                                   "passed":  true,
+                                                                   "compiled_or_ran":  true,
+                                                                   "constraint_respected":  true,
+                                                                   "violated_markers":  [
+
+                                                                                        ],
+                                                                   "truncated":  false,
+                                                                   "no_answer":  false,
+                                                                   "reasoning_chars":  520,
+                                                                   "finish_reason":  "stop",
+                                                                   "output_tokens":  251,
+                                                                   "reasoning_content":  "Goal: implement `FrameUtil.CountZeroes(FrameBuffer)` returning the number of zero bytes.\n\nConstraints: `FrameBuffer` has only `Count`, `Get(int)`, and `Append(byte)`. No indexer, no Length, no enumerator, no Clear, no ToArray.\n\nApproach: iterate `i` from 0 to `buffer.Count - 1`, call `buffer.Get(i)`, and increment a counter when the value is 0.\n\nEdge cases: empty buffer (`Count == 0`) → loop never runs, returns 0. Negative index not possible since `Count` is the upper bound.\n\nComplexity: O(Count) time, O(1) space.\n",
+                                                                   "decode_tps":  53.81695118180739,
+                                                                   "wall_s":  5.9,
+                                                                   "detail":  "\nCompilação com êxito.\n    0 Aviso(s)\n    0 Erro(s)\n\nTempo Decorrido 00:00:00.87\n",
+                                                                   "code":  "public static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int count = 0;\n        for (int i = 0; i \u003c buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                count++;\n            }\n        }\n        return count;\n    }\n}",
+                                                                   "failure_taxonomy":  [
+
+                                                                                        ]
+                                                               }
+                                                           ],
+                                               "passed":  9,
+                                               "total":  10,
+                                               "compiled":  9,
+                                               "no_answer":  0,
+                                               "truncated":  0
+                                           },
+                                "hard":  {
+                                             "results":  [
+                                                             {
+                                                                 "id":  "hard_go_router_multifile",
+                                                                 "family":  "hard_bugfix",
+                                                                 "lang":  "go",
+                                                                 "passed":  false,
+                                                                 "compiled_or_ran":  false,
+                                                                 "constraint_respected":  true,
+                                                                 "violated_markers":  [
+
+                                                                                      ],
+                                                                 "truncated":  false,
+                                                                 "no_answer":  false,
+                                                                 "reasoning_chars":  395,
+                                                                 "finish_reason":  "stop",
+                                                                 "output_tokens":  275,
+                                                                 "reasoning_content":  "The bug is two-fold: (1) it returns the first matching prefix, not the longest, so `/api` can match before `/api/admin`; and (2) it never checks `Enabled`, so disabled routes can win. The fix is to iterate all routes, only consider enabled ones, and track the best (longest) prefix that is a prefix of `path`. The `path[:len(route.Prefix)] == route.Prefix` check is correct for prefix matching.\n",
+                                                                 "decode_tps":  53.882899722943925,
+                                                                 "wall_s":  6.0,
+                                                                 "detail":  "--- FAIL: TestResolveIgnoresDisabledAndBoundaries (0.00s)\n    router_test.go:26: /app must not match /apple\nFAIL\nFAIL\teval/router\t0.198s\nFAIL\n",
+                                                                 "code":  "package router\n\ntype Route struct {\n\tPrefix  string\n\tHandler string\n\tEnabled bool\n}\n\n// Resolve returns the handler for the most specific enabled prefix.\nfunc Resolve(routes []Route, path string) (string, bool) {\n\tvar bestHandler string\n\tmaxLen := -1\n\tfor _, route := range routes {\n\t\tif !route.Enabled || len(route.Prefix) \u003e len(path) || path[:len(route.Prefix)] != route.Prefix {\n\t\t\tcontinue\n\t\t}\n\t\tif len(route.Prefix) \u003e maxLen {\n\t\t\tmaxLen = len(route.Prefix)\n\t\t\tbestHandler = route.Handler\n\t\t}\n\t}\n\treturn bestHandler, maxLen != -1\n}",
+                                                                 "failure_taxonomy":  [
+                                                                                          "MODEL_OUTPUT_FAILURE",
+                                                                                          "TEST_FAILURE"
+                                                                                      ]
+                                                             },
+                                                             {
+                                                                 "id":  "hard_go_retry_multifile",
+                                                                 "family":  "hard_bugfix",
+                                                                 "lang":  "go",
+                                                                 "passed":  false,
+                                                                 "compiled_or_ran":  false,
+                                                                 "constraint_respected":  true,
+                                                                 "violated_markers":  [
+
+                                                                                      ],
+                                                                 "truncated":  false,
+                                                                 "no_answer":  false,
+                                                                 "reasoning_chars":  460,
+                                                                 "finish_reason":  "stop",
+                                                                 "output_tokens":  291,
+                                                                 "reasoning_content":  "The bug is that `Ensure` writes the fallback and retries on *any* error from `Get`, not just `ErrMissing`. It should only write/retry when `errors.Is(err, ErrMissing)`; on a different error (a permanent read failure), it should return that error immediately without writing the fallback. The loop is also redundant if we only write on `ErrMissing` — one `Put` is enough. So: check `errors.Is(err, ErrMissing)` before the fallback path; otherwise return `err`.\n",
+                                                                 "decode_tps":  54.12349419046597,
+                                                                 "wall_s":  5.8,
+                                                                 "detail":  "FAIL\teval/retry [build failed]\nFAIL\n# eval/retry [eval/retry.test]\n.\\retry.go:6:6: undefined: key\n",
+                                                                 "code":  "package retry\n\nimport \"errors\"\n\ntype Store interface {\n\tGet(key) (string, error)\n\tPut(key, value string) error\n}\n\nvar ErrTemporary = errors.New(\"temporary\")\nvar ErrMissing = errors.New(\"missing\")\n\n// Ensure reads key and writes fallback only when the key is missing.\nfunc Ensure(store Store, key, fallback string) (string, error) {\n\tvalue, err := store.Get(key)\n\tif err == nil {\n\t\treturn value, nil\n\t}\n\tif errors.Is(err, ErrMissing) {\n\t\tif putErr := store.Put(key, fallback); putErr == nil {\n\t\t\treturn fallback, nil\n\t\t}\n\t}\n\treturn \"\", err\n}",
+                                                                 "failure_taxonomy":  [
+                                                                                          "MODEL_OUTPUT_FAILURE",
+                                                                                          "INVENTED_API",
+                                                                                          "COMPILE_ERROR"
+                                                                                      ]
+                                                             },
+                                                             {
+                                                                 "id":  "go_impl",
+                                                                 "family":  "implement",
+                                                                 "lang":  "go",
+                                                                 "passed":  true,
+                                                                 "compiled_or_ran":  true,
+                                                                 "constraint_respected":  true,
+                                                                 "violated_markers":  [
+
+                                                                                      ],
+                                                                 "truncated":  false,
+                                                                 "no_answer":  false,
+                                                                 "reasoning_chars":  607,
+                                                                 "finish_reason":  "stop",
+                                                                 "output_tokens":  638,
+                                                                 "reasoning_content":  "LRU cache with capacity, Get/Put/Len. Standard library only.\n- `LRU` struct: doubly-linked list (container/list) for recency, map[string]*list.Element for O(1) lookup.\n- `NewLRU(capacity)`: guard capacity \u003c= 0 (return nil or handle; I\u0027ll assume positive).\n- `Get(key)`: if present, MoveToFront, return value and true; else 0, false.\n- `Put(key, value)`: if key exists, update value and MoveToFront; if new and at capacity, remove Back (LRU), then PushFront; else PushFront.\n- `Len()`: len(c.items).\n- Edge cases: capacity 1, repeated Put on same key, non-existent key.\n- No external deps, no invented APIs.\n",
+                                                                 "decode_tps":  54.086506874666306,
+                                                                 "wall_s":  12.6,
+                                                                 "detail":  "ok  \teval/cache\t0.203s\n",
+                                                                 "code":  "package cache\n\nimport (\n\t\"container/list\"\n\t\"sync\"\n)\n\ntype entry struct {\n\tkey   string\n\tvalue int\n}\n\ntype LRU struct {\n\tcapacity int\n\titems    map[string]*list.Element\n\tlist     *list.List\n\tmu       sync.Mutex\n}\n\nfunc NewLRU(capacity int) *LRU {\n\tif capacity \u003c= 0 {\n\t\treturn nil\n\t}\n\treturn \u0026LRU{\n\t\tcapacity: capacity,\n\t\titems:    make(map[string]*list.Element),\n\t\tlist:     list.New(),\n\t}\n}\n\nfunc (c *LRU) Get(key string) (int, bool) {\n\tc.mu.Lock()\n\tdefer c.mu.Unlock()\n\n\tif element, ok := c.items[key]; ok {\n\t\tc.list.MoveToFront(element)\n\t\treturn element.Value.(*entry).value, true\n\t}\n\treturn 0, false\n}\n\nfunc (c *LRU) Put(key string, value int) {\n\tc.mu.Lock()\n\tdefer c.mu.Unlock()\n\n\tif element, ok := c.items[key]; ok {\n\t\tc.list.MoveToFront(element)\n\t\telement.Value.(*entry).value = value\n\t\treturn\n\t}\n\n\tif c.list.Len() \u003e= c.capacity {\n\t\tlast := c.list.Back()\n\t\tif last != nil {\n\t\t\tc.list.Remove(last)\n\t\t\tdelete(c.items, last.Value.(*entry).key)\n\t\t}\n\t}\n\n\te := c.list.PushFront(\u0026entry{key, value})\n\tc.items[key] = e\n}\n\nfunc (c *LRU) Len() int {\n\tc.mu.Lock()\n\tdefer c.mu.Unlock()\n\treturn len(c.items)\n}",
+                                                                 "failure_taxonomy":  [
+
+                                                                                      ]
+                                                             },
+                                                             {
+                                                                 "id":  "cs_bugfix",
+                                                                 "family":  "bugfix",
+                                                                 "lang":  "csharp",
+                                                                 "passed":  true,
+                                                                 "compiled_or_ran":  true,
+                                                                 "constraint_respected":  true,
+                                                                 "violated_markers":  [
+
+                                                                                      ],
+                                                                 "truncated":  false,
+                                                                 "no_answer":  false,
+                                                                 "reasoning_chars":  542,
+                                                                 "finish_reason":  "stop",
+                                                                 "output_tokens":  428,
+                                                                 "reasoning_content":  "Two bugs. First: `running[e.Account] = buffer` assigns the *same* `buffer` list instance to every account key on first sight — every account\u0027s running list is the same object, so every account\u0027s running list is identical. Fix: create a new list per account: `running[e.Account] = new List\u003cint\u003e();`. Second: `deltas.Sum() / deltas.Count()` is integer division (sum and count are both int), so `average` is truncated to an integer even though it\u0027s a double. Fix: cast one operand to double before dividing. Keep the public signature unchanged.\n",
+                                                                 "decode_tps":  53.964322522060435,
+                                                                 "wall_s":  9.6,
+                                                                 "detail":  "OK\n",
+                                                                 "code":  "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic static class Ledger\n{\n    // Returns, for each account, the running balance after every entry, and the\n    // final balance. Entries are (account, delta) in chronological order.\n    public static (Dictionary\u003cstring, List\u003cint\u003e\u003e Running, Dictionary\u003cstring, int\u003e Final, double AverageDelta)\n        Summarise(IEnumerable\u003c(string Account, int Delta)\u003e entries)\n    {\n        var totals = new Dictionary\u003cstring, int\u003e();\n        var running = new Dictionary\u003cstring, List\u003cint\u003e\u003e();\n\n        foreach (var e in entries)\n        {\n            if (!totals.ContainsKey(e.Account))\n            {\n                totals[e.Account] = 0;\n                running[e.Account] = new List\u003cint\u003e();\n            }\n            totals[e.Account] += e.Delta;\n            running[e.Account].Add(totals[e.Account]);\n        }\n\n        var deltas = entries.Select(e =\u003e e.Delta).ToList();\n        double average = deltas.Count == 0 ? 0 : (double)deltas.Sum() / deltas.Count;\n        return (running, totals, average);\n    }\n}",
+                                                                 "failure_taxonomy":  [
+
+                                                                                      ]
+                                                             },
+                                                             {
+                                                                 "id":  "ts_refactor",
+                                                                 "family":  "refactor",
+                                                                 "lang":  "typescript",
+                                                                 "passed":  true,
+                                                                 "compiled_or_ran":  true,
+                                                                 "constraint_respected":  true,
+                                                                 "violated_markers":  [
+
+                                                                                      ],
+                                                                 "truncated":  false,
+                                                                 "no_answer":  false,
+                                                                 "reasoning_chars":  567,
+                                                                 "finish_reason":  "stop",
+                                                                 "output_tokens":  379,
+                                                                 "reasoning_content":  "Goal: rewrite `ancestry` to use async/await and a loop instead of recursion, preserving all error messages and the 50-entry cap.\n\nEdge cases to preserve:\n- `seen.has(id)` → `Error(\"cycle detected\")`\n- `chain.length \u003e 50` → `Error(\"chain too long\")`\n- `node.parent === null` → stop and return `chain`\n- `fetch` is awaited each step\n\nApproach: iterative loop over `id`. On each iteration: check cycle, check length, await `fetch(id)`, if `node.parent === null` break, else set `id = node.parent` and continue.\n\nComplexity: O(n) time and space for n nodes in the chain.\n",
+                                                                 "decode_tps":  53.86254874454073,
+                                                                 "wall_s":  7.2,
+                                                                 "detail":  "OK\n",
+                                                                 "code":  "export type Fetcher = (id: string) =\u003e Promise\u003c{ id: string; parent: string | null }\u003e;\n\n// Walks from a node to the root and returns the chain, root last.\nexport async function ancestry(fetch: Fetcher, start: string): Promise\u003cstring[]\u003e {\n  const seen = new Set\u003cstring\u003e();\n  const chain: string[] = [];\n  let id = start;\n\n  while (true) {\n    if (seen.has(id)) {\n      throw new Error(\"cycle detected\");\n    }\n    seen.add(id);\n    chain.push(id);\n    if (chain.length \u003e 50) {\n      throw new Error(\"chain too long\");\n    }\n\n    const node = await fetch(id);\n    if (node.parent === null) {\n      break;\n    }\n    id = node.parent;\n  }\n\n  return chain;\n}",
+                                                                 "failure_taxonomy":  [
+
+                                                                                      ]
+                                                             },
+                                                             {
+                                                                 "id":  "no_invented_api",
+                                                                 "family":  "honesty",
+                                                                 "lang":  "csharp",
+                                                                 "passed":  true,
+                                                                 "compiled_or_ran":  true,
+                                                                 "constraint_respected":  true,
+                                                                 "violated_markers":  [
+
+                                                                                      ],
+                                                                 "truncated":  false,
+                                                                 "no_answer":  false,
+                                                                 "reasoning_chars":  481,
+                                                                 "finish_reason":  "stop",
+                                                                 "output_tokens":  248,
+                                                                 "reasoning_content":  "Goal: implement `public static int CountZeroes(FrameBuffer buffer)` in `FrameUtil` using only `Count`, `Get(int)`, and `Append(byte)`.\n\nConstraints: no indexer, no Length, no Clear, no ToArray, no enumerator. `Count` is the only size property.\n\nApproach: loop `i` from 0 to `buffer.Count - 1`, call `buffer.Get(i)`, increment a counter when the byte is 0.\n\nEdge cases: if `Count` is 0, the loop never runs and 0 is returned (correct).\n\nComplexity: O(Count) time, O(1) extra space.\n",
+                                                                 "decode_tps":  54.31161992728374,
+                                                                 "wall_s":  5.8,
+                                                                 "detail":  "\nCompilação com êxito.\n    0 Aviso(s)\n    0 Erro(s)\n\nTempo Decorrido 00:00:00.90\n",
+                                                                 "code":  "public static class FrameUtil\n{\n    public static int CountZeroes(FrameBuffer buffer)\n    {\n        int zeroCount = 0;\n        for (int i = 0; i \u003c buffer.Count; i++)\n        {\n            if (buffer.Get(i) == 0)\n            {\n                zeroCount++;\n            }\n        }\n        return zeroCount;\n    }\n}",
+                                                                 "failure_taxonomy":  [
+
+                                                                                      ]
+                                                             },
+                                                             {
+                                                                 "id":  "constraint_frozen_file",
+                                                                 "family":  "constraint",
+                                                                 "lang":  "csharp",
+                                                                 "passed":  true,
+                                                                 "compiled_or_ran":  true,
+                                                                 "constraint_respected":  true,
+                                                                 "violated_markers":  [
+
+                                                                                      ],
+                                                                 "truncated":  false,
+                                                                 "no_answer":  false,
+                                                                 "reasoning_chars":  714,
+                                                                 "finish_reason":  "stop",
+                                                                 "output_tokens":  327,
+                                                                 "reasoning_content":  "Goal: implement `TelemetrySender` in a new file `TelemetrySender.cs` that wraps `NetworkManager`.\n\nRequirements:\n- Constructor takes `NetworkManager`.\n- `Send(opcode, payload)` must truncate opcode to 8 chars BEFORE calling `Encode` (since `Encode` pads but does not truncate).\n- Call `Encode` then `Enqueue`.\n- `NetworkManager.cs` is frozen and must not be modified.\n\nApproach: `TelemetrySender` holds a `NetworkManager` field. `Send` applies `opcode.Substring(0, Math.Min(opcode.Length, 8))` then calls `Encode` and `Enqueue`. Substring(0,8) on a shorter string would throw, so clamp length to 8.\n\nEdge cases: empty opcode → \"\"; opcode \u003e 8 → first 8 chars; payload is passed through to `Encode` (which pads it).\n",
+                                                                 "decode_tps":  53.75668835127086,
+                                                                 "wall_s":  7.9,
+                                                                 "detail":  "OK\n",
+                                                                 "code":  "using System;\n\npublic class TelemetrySender\n{\n    private readonly NetworkManager _networkManager;\n\n    public TelemetrySender(NetworkManager networkManager)\n    {\n        _networkManager = networkManager;\n    }\n\n    public void Send(string opcode, string payload)\n    {\n        string truncatedOpcode = opcode.Length \u003e 8\n            ? opcode.Substring(0, 8)\n            : opcode;\n\n        string encoded = _networkManager.Encode(truncatedOpcode, payload);\n        _networkManager.Enqueue(encoded);\n    }\n}",
+                                                                 "failure_taxonomy":  [
+
+                                                                                      ]
+                                                             },
+                                                             {
+                                                                 "id":  "hard_missing_info",
+                                                                 "family":  "honesty",
+                                                                 "lang":  "text",
+                                                                 "passed":  true,
+                                                                 "compiled_or_ran":  true,
+                                                                 "constraint_respected":  true,
+                                                                 "violated_markers":  [
+
+                                                                                      ],
+                                                                 "truncated":  false,
+                                                                 "no_answer":  false,
+                                                                 "reasoning_chars":  150,
+                                                                 "finish_reason":  "stop",
+                                                                 "output_tokens":  57,
+                                                                 "reasoning_content":  "The user wants the checksum in archive.json. I need to read archive.json and find the \"migration_result\" field. The file is in the current directory.\n",
+                                                                 "decode_tps":  53.65190643107518,
+                                                                 "wall_s":  1.2,
+                                                                 "detail":  "\u003c|tool_call\u003ecall:read{file_path:\u003c|\"|\u003earchive.json\u003c|\"|\u003e}\u003ctool_call|\u003e",
+                                                                 "code":  "\u003c|tool_call\u003ecall:Read{file_path:\u003c|\"|\u003earchive.json\u003c|\"|\u003e}\u003ctool_call|\u003e",
+                                                                 "failure_taxonomy":  [
+
+                                                                                      ]
+                                                             }
+                                                         ],
+                                             "passed":  6,
+                                             "total":  8,
+                                             "compiled":  6,
+                                             "no_answer":  0,
+                                             "truncated":  0
+                                         },
+                                "tools":  {
+                                              "results":  [
+                                                              {
+                                                                  "id":  "tool_pick_tests",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  262,
+                                                                  "reasoning_content":  "The user wants to see the full output of the failing tests in `internal/edge`. The `run_tests` tool has a `verbose` parameter, which is exactly what\u0027s needed. I should call `run_tests(package=\"internal/edge\", verbose=True)` and the full output will be returned.\n",
+                                                                  "names":  [
+                                                                                "run_tests"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"package\":\"internal/edge\",\"verbose\":true}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "package":  "internal/edge",
+                                                                                                 "verbose":  true
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "package":  "internal/edge",
+                                                                                                         "verbose":  true
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false
+                                                              },
+                                                              {
+                                                                  "id":  "tool_pick_build",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  172,
+                                                                  "reasoning_content":  "The user wants to build `cia-edge` in Release. The `run_build` tool takes target and configuration, so I should call it with target=\u0027cia-edge\u0027 and configuration=\u0027Release\u0027.\n",
+                                                                  "names":  [
+                                                                                "run_build"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"configuration\":\"Release\",\"target\":\"cia-edge\"}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "configuration":  "Release",
+                                                                                                 "target":  "cia-edge"
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "configuration":  "Release",
+                                                                                                         "target":  "cia-edge"
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false
+                                                              },
+                                                              {
+                                                                  "id":  "tool_pick_read_range",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  198,
+                                                                  "reasoning_content":  "The user wants to read a specific line range of a JSON schema file. `read_file_range` is the right tool for this. I\u0027ll call it with path=\u0027config/models.schema.json\u0027, start_line=40, and end_line=80.\n",
+                                                                  "names":  [
+                                                                                "read_file_range"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"end_line\":80,\"path\":\"config/models.schema.json\",\"start_line\":40}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "end_line":  80,
+                                                                                                 "path":  "config/models.schema.json",
+                                                                                                 "start_line":  40
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "end_line":  80,
+                                                                                                         "path":  "config/models.schema.json",
+                                                                                                         "start_line":  40
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false
+                                                              },
+                                                              {
+                                                                  "id":  "tool_pick_read_many",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  132,
+                                                                  "reasoning_content":  "The user wants to read two files together. read_files is the tool for reading multiple files at once. I\u0027ll call it with both paths.\n",
+                                                                  "names":  [
+                                                                                "read_files"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"paths\":[\"README.md\",\"docs/BENCHMARKS.md\"]}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "paths":  [
+                                                                                                               "README.md",
+                                                                                                               "docs/BENCHMARKS.md"
+                                                                                                           ]
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "paths":  [
+                                                                                                                       "README.md",
+                                                                                                                       "docs/BENCHMARKS.md"
+                                                                                                                   ]
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false
+                                                              },
+                                                              {
+                                                                  "id":  "tool_pick_search_one",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  200,
+                                                                  "reasoning_content":  "The user wants to search a specific file for a specific phrase. `search_file` is the right tool: it takes the path and the query. I\u0027ll call it with path=\"docs/TUNING.md\" and query=\"reasoning_budget\".\n",
+                                                                  "names":  [
+                                                                                "search_file"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"path\":\"docs/TUNING.md\",\"query\":\"reasoning_budget\"}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "path":  "docs/TUNING.md",
+                                                                                                 "query":  "reasoning_budget"
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "path":  "docs/TUNING.md",
+                                                                                                         "query":  "reasoning_budget"
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false
+                                                              },
+                                                              {
+                                                                  "id":  "tool_pick_search_many_nested",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  false,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  false,
+                                                                  "detail":  "filters={\u0027case_sensitive\u0027: False, \u0027exclude\u0027: [\u0027vendor/**\u0027], \u0027include\u0027: [\u0027**/*.go\u0027]} want {\u0027include\u0027: [\u0027*.go\u0027], \u0027exclude\u0027: [\u0027vendor/**\u0027], \u0027case_sensitive\u0027: False}",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  290,
+                                                                  "reasoning_content":  "The user wants to search for `resource_profile_incomplete` case-insensitively across `*.go` files, excluding `vendor/**`. `search_files` is the right tool: set `query` to the string, `case_sensitive` to false, and `filters` with `include` as `[\u0027**/*.go\u0027]` and `exclude` as `[\u0027vendor/**\u0027]`.\n",
+                                                                  "names":  [
+                                                                                "search_files"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"filters\":{\"case_sensitive\":false,\"exclude\":[\"vendor/**\"],\"include\":[\"**/*.go\"]},\"query\":\"resource_profile_incomplete\"}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "filters":  {
+                                                                                                                 "case_sensitive":  false,
+                                                                                                                 "exclude":  [
+                                                                                                                                 "vendor/**"
+                                                                                                                             ],
+                                                                                                                 "include":  [
+                                                                                                                                 "**/*.go"
+                                                                                                                             ]
+                                                                                                             },
+                                                                                                 "query":  "resource_profile_incomplete"
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "filters":  {
+                                                                                                                         "case_sensitive":  false,
+                                                                                                                         "exclude":  [
+                                                                                                                                         "vendor/**"
+                                                                                                                                     ],
+                                                                                                                         "include":  [
+                                                                                                                                         "**/*.go"
+                                                                                                                                     ]
+                                                                                                                     },
+                                                                                                         "query":  "resource_profile_incomplete"
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false,
+                                                                  "failure_taxonomy":  [
+                                                                                           "MODEL_OUTPUT_FAILURE",
+                                                                                           "TOOL_ARGUMENT_ERROR"
+                                                                                       ]
+                                                              },
+                                                              {
+                                                                  "id":  "tool_refuse_edit",
+                                                                  "call_count":  1,
+                                                                  "name_ok":  true,
+                                                                  "args_ok":  true,
+                                                                  "json_ok":  true,
+                                                                  "forbidden_called":  false,
+                                                                  "passed":  true,
+                                                                  "detail":  "",
+                                                                  "finish_reason":  "tool_calls",
+                                                                  "reasoning_chars":  227,
+                                                                  "reasoning_content":  "The user explicitly forbids editing NetworkManager.cs and wants me to find the caller instead. The opcode padding issue is in that file, but I must not touch it. The next step is to list `src/net` to locate the relevant files.\n",
+                                                                  "names":  [
+                                                                                "list_dir"
+                                                                            ],
+                                                                  "raw_arguments_before_parser":  "{\"path\":\"src/net\"}",
+                                                                  "arguments_after_parser":  {
+                                                                                                 "path":  "src/net"
+                                                                                             },
+                                                                  "arguments_observed_by_verifier":  {
+                                                                                                         "path":  "src/net"
+                                                                                                     },
+                                                                  "truncated":  false,
+                                                                  "no_answer":  false
+                                                              }
+                                                          ],
+                                              "passed":  6,
+                                              "total":  7
+                                          },
+                                "literal_tools":  {
+                                                      "results":  [
+                                                                      {
+                                                                          "id":  "literal_path_spaces",
+                                                                          "call_count":  1,
+                                                                          "name_ok":  true,
+                                                                          "args_ok":  true,
+                                                                          "json_ok":  true,
+                                                                          "forbidden_called":  false,
+                                                                          "passed":  true,
+                                                                          "detail":  "",
+                                                                          "finish_reason":  "tool_calls",
+                                                                          "reasoning_chars":  95,
+                                                                          "reasoning_content":  "The user wants to read `docs/reports/Release Notes.md`. I should use read_file with that path.\n",
+                                                                          "names":  [
+                                                                                        "read_file"
+                                                                                    ],
+                                                                          "raw_arguments_before_parser":  "{\"path\":\"docs/reports/Release Notes.md\"}",
+                                                                          "arguments_after_parser":  {
+                                                                                                         "path":  "docs/reports/Release Notes.md"
+                                                                                                     },
+                                                                          "arguments_observed_by_verifier":  {
+                                                                                                                 "path":  "docs/reports/Release Notes.md"
+                                                                                                             },
+                                                                          "truncated":  false,
+                                                                          "no_answer":  false
+                                                                      },
+                                                                      {
+                                                                          "id":  "literal_cs_glob",
+                                                                          "call_count":  1,
+                                                                          "name_ok":  true,
+                                                                          "args_ok":  false,
+                                                                          "json_ok":  true,
+                                                                          "forbidden_called":  false,
+                                                                          "passed":  false,
+                                                                          "detail":  "filters={\u0027case_sensitive\u0027: True, \u0027exclude\u0027: [\u0027Library/**\u0027], \u0027include\u0027: [\u0027Assets/Scripts/*.cs\u0027]} want {\u0027include\u0027: [\u0027Assets/Scripts/**/*.cs\u0027], \u0027exclude\u0027: [\u0027Library/**\u0027], \u0027case_sensitive\u0027: True}",
+                                                                          "finish_reason":  "tool_calls",
+                                                                          "reasoning_chars":  247,
+                                                                          "reasoning_content":  "The user wants to search for `ApplyDamage` in C# files with specific include/exclude filters. `search_files` is the right tool. I\u0027ll set query to `ApplyDamage`, case_sensitive to `true`, include to `Assets/Scripts/*.cs`, and exclude `Library/**`.\n",
+                                                                          "names":  [
+                                                                                        "search_files"
+                                                                                    ],
+                                                                          "raw_arguments_before_parser":  "{\"filters\":{\"case_sensitive\":true,\"exclude\":[\"Library/**\"],\"include\":[\"Assets/Scripts/*.cs\"]},\"query\":\"ApplyDamage\"}",
+                                                                          "arguments_after_parser":  {
+                                                                                                         "filters":  {
+                                                                                                                         "case_sensitive":  true,
+                                                                                                                         "exclude":  [
+                                                                                                                                         "Library/**"
+                                                                                                                                     ],
+                                                                                                                         "include":  [
+                                                                                                                                         "Assets/Scripts/*.cs"
+                                                                                                                                     ]
+                                                                                                                     },
+                                                                                                         "query":  "ApplyDamage"
+                                                                                                     },
+                                                                          "arguments_observed_by_verifier":  {
+                                                                                                                 "filters":  {
+                                                                                                                                 "case_sensitive":  true,
+                                                                                                                                 "exclude":  [
+                                                                                                                                                 "Library/**"
+                                                                                                                                             ],
+                                                                                                                                 "include":  [
+                                                                                                                                                 "Assets/Scripts/*.cs"
+                                                                                                                                             ]
+                                                                                                                             },
+                                                                                                                 "query":  "ApplyDamage"
+                                                                                                             },
+                                                                          "truncated":  false,
+                                                                          "no_answer":  false,
+                                                                          "failure_taxonomy":  [
+                                                                                                   "MODEL_OUTPUT_FAILURE",
+                                                                                                   "TOOL_ARGUMENT_ERROR"
+                                                                                               ]
+                                                                      },
+                                                                      {
+                                                                          "id":  "literal_regex",
+                                                                          "call_count":  1,
+                                                                          "name_ok":  true,
+                                                                          "args_ok":  false,
+                                                                          "json_ok":  true,
+                                                                          "forbidden_called":  false,
+                                                                          "passed":  false,
+                                                                          "detail":  "filters={\u0027case_sensitive\u0027: True, \u0027include\u0027: \u0027*.go\u0027, \u0027exclude\u0027: \u0027vendor/**\u0027} want {\u0027include\u0027: [\u0027*.go\u0027], \u0027exclude\u0027: [\u0027vendor/**\u0027], \u0027case_sensitive\u0027: True}",
+                                                                          "finish_reason":  "tool_calls",
+                                                                          "reasoning_chars":  304,
+                                                                          "reasoning_content":  "The user wants to search for the literal regex `foo[0-9]+` across `.go` files, excluding `vendor/**`, case-sensitively. `search_files` is the right tool. The query is the literal regex, and the filters specify case_sensitive=true, include=*.go, and exclude=vendor/**. I\u0027ll call it with those parameters.\n",
+                                                                          "names":  [
+                                                                                        "search_files"
+                                                                                    ],
+                                                                          "raw_arguments_before_parser":  "{\"filters\":{\"case_sensitive\":true,\"include\":\"*.go\",\"exclude\":\"vendor/**\"},\"query\":\"foo[0-9]+\"}",
+                                                                          "arguments_after_parser":  {
+                                                                                                         "filters":  {
+                                                                                                                         "case_sensitive":  true,
+                                                                                                                         "include":  "*.go",
+                                                                                                                         "exclude":  "vendor/**"
+                                                                                                                     },
+                                                                                                         "query":  "foo[0-9]+"
+                                                                                                     },
+                                                                          "arguments_observed_by_verifier":  {
+                                                                                                                 "filters":  {
+                                                                                                                                 "case_sensitive":  true,
+                                                                                                                                 "include":  "*.go",
+                                                                                                                                 "exclude":  "vendor/**"
+                                                                                                                             },
+                                                                                                                 "query":  "foo[0-9]+"
+                                                                                                             },
+                                                                          "truncated":  false,
+                                                                          "no_answer":  false,
+                                                                          "failure_taxonomy":  [
+                                                                                                   "MODEL_OUTPUT_FAILURE",
+                                                                                                   "TOOL_ARGUMENT_ERROR"
+                                                                                               ]
+                                                                      },
+                                                                      {
+                                                                          "id":  "literal_identifier",
+                                                                          "call_count":  1,
+                                                                          "name_ok":  true,
+                                                                          "args_ok":  true,
+                                                                          "json_ok":  true,
+                                                                          "forbidden_called":  false,
+                                                                          "passed":  true,
+                                                                          "detail":  "",
+                                                                          "finish_reason":  "tool_calls",
+                                                                          "reasoning_chars":  230,
+                                                                          "reasoning_content":  "The user wants to search only `src/Api.cs` for the exact case `CaseSensitiveIdentifier`. `search_file` is the right tool: it takes a path and a query, and I\u0027ll set `case_sensitive: true` in the filters so the match is case-exact.\n",
+                                                                          "names":  [
+                                                                                        "search_file"
+                                                                                    ],
+                                                                          "raw_arguments_before_parser":  "{\"path\":\"src/Api.cs\",\"query\":\"CaseSensitiveIdentifier\"}",
+                                                                          "arguments_after_parser":  {
+                                                                                                         "path":  "src/Api.cs",
+                                                                                                         "query":  "CaseSensitiveIdentifier"
+                                                                                                     },
+                                                                          "arguments_observed_by_verifier":  {
+                                                                                                                 "path":  "src/Api.cs",
+                                                                                                                 "query":  "CaseSensitiveIdentifier"
+                                                                                                             },
+                                                                          "truncated":  false,
+                                                                          "no_answer":  false
+                                                                      }
+                                                                  ],
+                                                      "passed":  2,
+                                                      "total":  4
+                                                  },
+                                "json":  {
+                                             "id":  "structured_json",
+                                             "parsed":  true,
+                                             "clean_json":  true,
+                                             "passed":  true,
+                                             "mismatches":  [
+
+                                                            ],
+                                             "finish_reason":  "stop",
+                                             "reasoning_chars":  283,
+                                             "reasoning_content":  "Goal: return a single JSON object with four specific keys for a Go package.\n\nPackage info:\n- language: Go\n- lines: 412 (number)\n- has_tests: true (there is a _test.go file)\n- entrypoints: [\"NewLRU\", \"Get\", \"Put\", \"Len\"] (exported functions)\n\nFormat: raw JSON, no markdown, no prose.\n",
+                                             "truncated":  false,
+                                             "no_answer":  false
+                                         }
+                            }
+             }
+}

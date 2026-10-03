@@ -1,0 +1,12 @@
+﻿0.09.119.087 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = -1
+22.47.581.281 I slot print_timing: id  0 | task 0 | prompt eval time = 1353832.36 ms / 248931 tokens (    5.44 ms per token,   183.87 tokens per second)
+22.50.798.666 I slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 1.000 (> 0.100 thold), f_keep = 0.999
+22.58.443.087 I slot print_timing: id  0 | task 253 | prompt eval time =    2692.22 ms /   287 tokens (    9.38 ms per token,   106.60 tokens per second)
+23.00.764.142 I slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 0.985 (> 0.100 thold), f_keep = 1.000
+23.38.174.775 I slot print_timing: id  0 | task 383 | prompt eval time =   32566.63 ms /  3817 tokens (    8.53 ms per token,   117.21 tokens per second)
+23.40.515.357 I slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 1.000 (> 0.100 thold), f_keep = 0.999
+23.48.400.281 I slot print_timing: id  0 | task 515 | prompt eval time =    3000.03 ms /   287 tokens (   10.45 ms per token,    95.67 tokens per second)
+23.50.723.698 I slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 0.985 (> 0.100 thold), f_keep = 1.000
+24.29.201.867 I slot print_timing: id  0 | task 645 | prompt eval time =   33617.22 ms /  3863 tokens (    8.70 ms per token,   114.91 tokens per second)
+24.31.544.351 I slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 1.000 (> 0.100 thold), f_keep = 0.999
+24.39.527.790 I slot print_timing: id  0 | task 777 | prompt eval time =    3051.92 ms /   287 tokens (   10.63 ms per token,    94.04 tokens per second)

@@ -21,9 +21,28 @@ Assert-V2ManifestSchema -ManifestPath $ManifestPath -SchemaPath $SchemaPath -Val
 $manifest = Read-V2Manifest -Path $ManifestPath
 Assert-V2ManifestSemantics -Manifest $manifest
 
+# The semantic tests below mutate models[0] of a copy of the real manifest and
+# assume it starts without the optional tuning fields they add or reason about.
+# The real first entry may legitimately declare its runtime's defaults, so a
+# manifest copy removes those fields from models[0] rather than letting every
+# test inherit them. A single-model copy is returned unchanged.
+$script:SemanticTuningFields = @(
+    'context_shift', 'kv_unified', 'threads', 'threads_batch', 'cache_ram_mib', 'ctx_checkpoints',
+    'checkpoint_min_step', 'cache_idle_slots', 'spec_decoding', 'moe_offload', 'tensor_overrides',
+    'n_predict', 'reasoning_budget', 'reasoning_budget_message', 'chat_template_file',
+    'compact_threshold_tokens'
+)
+
 function Copy-V2ManifestForSemanticTest {
     param([Parameter(Mandatory = $true)][object]$Value)
-    return ($Value | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
+    $copy = ($Value | ConvertTo-Json -Depth 20 | ConvertFrom-Json)
+    if ($null -ne $copy.PSObject.Properties['models'] -and @($copy.models).Count -gt 0) {
+        $first = @($copy.models)[0]
+        foreach ($field in $script:SemanticTuningFields) {
+            [void]$first.PSObject.Properties.Remove($field)
+        }
+    }
+    return $copy
 }
 
 function Assert-V2SemanticRejection {
@@ -88,6 +107,7 @@ $incompleteFinalResources.models[0].deployments = @('final')
 $incompleteFinalResources.models[0].state = 'qualified'
 Set-V2FirstModelRuntimeState -Candidate $incompleteFinalResources -State 'qualified'
 $incompleteFinalResources.models[0].resources.peak_vram_gib = 9.5
+$incompleteFinalResources.models[0].resources.peak_commit_gib = $null
 Assert-V2SemanticRejection -Candidate $incompleteFinalResources -ExpectedMessage 'resources\.peak_commit_gib'
 
 # Hybrid-model tuning rules. These are relationships between fields, which the
@@ -102,6 +122,7 @@ $moeWithBothModes.models[0] | Add-Member -NotePropertyName 'moe_offload' -NotePr
 Assert-V2SemanticRejection -Candidate $moeWithBothModes -ExpectedMessage 'moe_offload\.cpu_all and moe_offload\.cpu_layers'
 
 $moeWithoutMeasurement = Copy-V2ManifestForSemanticTest -Value $manifest
+$moeWithoutMeasurement.models[0].resources.peak_vram_gib = $null
 $moeWithoutMeasurement.models[0] | Add-Member -NotePropertyName 'moe_offload' -NotePropertyValue ([pscustomobject]@{ cpu_layers = 4 })
 Assert-V2SemanticRejection -Candidate $moeWithoutMeasurement -ExpectedMessage 'resources\.peak_vram_gib'
 
@@ -111,6 +132,7 @@ $moeZeroWithoutRam.models[0] | Add-Member -NotePropertyName 'moe_offload' -NoteP
 Assert-V2ManifestSemantics -Manifest $moeZeroWithoutRam
 
 $offloadWithoutMeasurement = Copy-V2ManifestForSemanticTest -Value $manifest
+$offloadWithoutMeasurement.models[0].resources.peak_vram_gib = $null
 $offloadWithoutMeasurement.models[0] | Add-Member -NotePropertyName 'tensor_overrides' -NotePropertyValue @([pscustomobject]@{ pattern = 'blk\.(4[4-9])\.ffn_.*'; buffer = 'CPU' })
 Assert-V2SemanticRejection -Candidate $offloadWithoutMeasurement -ExpectedMessage 'resources\.peak_vram_gib'
 
@@ -129,6 +151,7 @@ $offloadWithBadRegex.models[0] | Add-Member -NotePropertyName 'tensor_overrides'
 Assert-V2SemanticRejection -Candidate $offloadWithBadRegex -ExpectedMessage 'invalid tensor_overrides regex'
 
 $cacheWithoutCommitMeasurement = Copy-V2ManifestForSemanticTest -Value $manifest
+$cacheWithoutCommitMeasurement.models[0].resources.peak_commit_gib = $null
 $cacheWithoutCommitMeasurement.models[0] | Add-Member -NotePropertyName 'cache_ram_mib' -NotePropertyValue 6144
 Assert-V2SemanticRejection -Candidate $cacheWithoutCommitMeasurement -ExpectedMessage 'cannot account for the prompt cache'
 
@@ -336,7 +359,10 @@ if ($VerifyArtifacts) {
     foreach ($runtime in @($manifest.runtimes)) {
         Assert-V2Artifact -Artifact $runtime.artifact -Label "Runtime '$($runtime.id)'" -VerifyHash
     }
-    foreach ($model in @($manifest.models)) {
+    # Retired model entries are retained as provenance/history after their
+    # bytes have intentionally left the machine. Active/candidate/qualified
+    # artifacts remain mandatory and hash-verified.
+    foreach ($model in @($manifest.models | Where-Object { $_.state -ne 'retired' })) {
         Assert-V2Artifact -Artifact $model.artifact -Label "Model '$($model.id)'" -VerifyHash
     }
 }

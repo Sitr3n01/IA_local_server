@@ -1,5 +1,60 @@
+# cia-edge settings reference. Illustrative only: no program parses this file.
+#
+# cia-edge has no configuration file. It is configured by command-line flags
+# and by environment variables: those edge.ConfigFromEnv reads
+# (internal/edge/config.go) plus CIA_EDGE_LOG_PATH, read by
+# cmd/cia-edge/main.go. Config.Validate enforces the rules noted below.
+# The addresses and paths shown are the canary deployment's; the numbers are
+# the code defaults or limits fixed in code. C:\IA\local-ai-v2 is the install
+# root the scripts in scripts/v2 deploy to; most of them accept no other.
+# Editing this file changes nothing.
+#
+#   data_addr      --data-addr or CIA_EDGE_DATA_ADDR (default 127.0.0.1:8090)
+#   control_addr   --control-addr or CIA_EDGE_CONTROL_ADDR (default 127.0.0.1:8091)
+#   upstream       --upstream or CIA_EDGE_UPSTREAM_URL (default http://127.0.0.1:9292)
+#                  Literal loopback addresses with explicit ports; data and
+#                  control must differ. The code defaults are the final environment's
+#                  ports; the canary uses 18090, 18091 and 19292.
+#   environment    --environment, canary or final (default canary)
+#   models_config  --models-config, required
+#   models_schema  --models-schema, required
+#   authentication Environment only, never flags. Each token is 32 to 4096
+#                  characters without line breaks, and no two may be equal.
+#                  CIA_ROUTER_TOKEN and CIA_CLAUDE_GATEWAY_TOKEN are optional
+#                  to cia-edge itself, but both launchers below read all four
+#                  from Windows Credential Manager and refuse to start if any
+#                  is missing.
+#   request        The byte limits and the ratio are fixed in code; the
+#                  decoded limit must be at least the wire limit.
+#                  wait_timeout_seconds: CIA_EDGE_QUEUE_WAIT, how long a queued
+#                  request waits for the active slot before a 429.
+#                  upstream_header_timeout_seconds: CIA_EDGE_HEADER_TIMEOUT,
+#                  the wait for upstream response headers (the whole
+#                  generation on a non-streaming request) and the deadline of
+#                  an administrative load, unload or switch.
+#   queue.active   CIA_EDGE_MAX_ACTIVE; validation accepts exactly 1.
+#   queue.waiting  CIA_EDGE_MAX_QUEUE; 0 or more.
+#   shutdown_timeout_seconds  CIA_EDGE_SHUTDOWN_TIMEOUT.
+#   logging        Metadata-only JSON lines to stdout, or to the file named by
+#                  CIA_EDGE_LOG_PATH. Rotation is fixed in code. Both
+#                  launchers set it to <install root>\logs\cia-edge.jsonl, the
+#                  same file for canary and final.
+#   The three timeout variables take Go durations such as "120s".
+#   No entry here: CIA_EDGE_VERSION, the version reported in status and in the
+#   upstream User-Agent (default: the build's -X main.version), and the flags
+#   --release-manifest and --admin-pipe (default "auto").
+#
+# Two launchers start the installed edge: cia-supervisor (the scheduled tasks
+# from Install-V2ScheduledTasks.ps1) and scripts/v2/Start-V2Edge.ps1 (through
+# "cia-credential run-edge", which forwards the flags it is given unchanged).
+# Both pass the addresses and manifest paths as flags; only the supervisor
+# adds --release-manifest. Both set the four tokens and CIA_EDGE_LOG_PATH and
+# drop every other CIA_* variable, so an edge they start always runs with the
+# code defaults for the queue and the three timeouts shown here, and reports
+# the build's version; the other CIA_EDGE_* variables apply only when
+# cia-edge.exe is started directly.
 {
-  "schema_version": 1,
+  "environment": "canary",
   "data_addr": "127.0.0.1:18090",
   "control_addr": "127.0.0.1:18091",
   "upstream": "http://127.0.0.1:19292",
@@ -8,21 +63,25 @@
   "authentication": {
     "inference_token_env": "CIA_INFERENCE_TOKEN",
     "admin_token_env": "CIA_ADMIN_TOKEN",
-    "router_token_env": "CIA_ROUTER_TOKEN"
+    "router_token_env": "CIA_ROUTER_TOKEN",
+    "claude_gateway_token_env": "CIA_CLAUDE_GATEWAY_TOKEN"
   },
   "request": {
     "wire_bytes_max": 16777216,
     "decoded_bytes_max": 67108864,
     "decompression_ratio_max": 100,
-    "wait_timeout_seconds": 120
+    "wait_timeout_seconds": 120,
+    "upstream_header_timeout_seconds": 3600
   },
   "queue": {
     "active": 1,
-    "waiting": 4
+    "waiting": 16
   },
+  "shutdown_timeout_seconds": 15,
   "logging": {
     "format": "json",
     "content": "metadata-only",
+    "path_env": "CIA_EDGE_LOG_PATH",
     "rotate_megabytes": 10,
     "backups": 7,
     "retention_days": 14

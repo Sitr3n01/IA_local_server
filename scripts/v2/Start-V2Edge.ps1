@@ -21,7 +21,7 @@ $plan = [pscustomobject]@{
     control_address = $settings.ControlAddress
     upstream = "http://$($settings.RouterAddress)"
     models_config = $ManifestPath
-    credentials = @('inference', 'admin', 'router')
+    credentials = @('inference', 'admin', 'router', 'claude-gateway')
     mode = $(if ($Run) { 'run' } else { 'preview' })
 }
 
@@ -37,30 +37,11 @@ foreach ($required in @($edge, $ManifestPath, $SchemaPath, $CredentialHelper)) {
     }
 }
 
-$inferenceToken = (& $CredentialHelper get inference 2>$null | Out-String).Trim()
-$adminToken = (& $CredentialHelper get admin 2>$null | Out-String).Trim()
-$routerToken = (& $CredentialHelper get router 2>$null | Out-String).Trim()
-if (@($inferenceToken, $adminToken, $routerToken) | Where-Object { [string]::IsNullOrWhiteSpace($_) }) {
-    throw 'Unable to obtain all three v2 credentials.'
-}
-
-$env:CIA_INFERENCE_TOKEN = $inferenceToken
-$env:CIA_ADMIN_TOKEN = $adminToken
-$env:CIA_ROUTER_TOKEN = $routerToken
-$env:CIA_EDGE_LOG_PATH = Join-Path $InstallRoot 'logs\cia-edge.jsonl'
-try {
-    & $edge `
-        --environment $settings.Name `
-        --data-addr $settings.DataAddress `
-        --control-addr $settings.ControlAddress `
-        --upstream "http://$($settings.RouterAddress)" `
-        --models-config $ManifestPath `
-        --models-schema $SchemaPath
-    exit $LASTEXITCODE
-}
-finally {
-    Remove-Item Env:\CIA_INFERENCE_TOKEN, Env:\CIA_ADMIN_TOKEN, Env:\CIA_ROUTER_TOKEN, Env:\CIA_EDGE_LOG_PATH -ErrorAction SilentlyContinue
-    $inferenceToken = $null
-    $adminToken = $null
-    $routerToken = $null
-}
+& $CredentialHelper run-edge -- `
+    --environment $settings.Name `
+    --data-addr $settings.DataAddress `
+    --control-addr $settings.ControlAddress `
+    --upstream "http://$($settings.RouterAddress)" `
+    --models-config $ManifestPath `
+    --models-schema $SchemaPath
+exit $LASTEXITCODE

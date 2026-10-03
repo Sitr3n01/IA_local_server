@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "scenario": "native-responses-contract",
+  "model": "qwen38-27b-agent-128k",
+  "started_utc": "2026-10-02T00:52:40Z",
+  "checks": [
+    {
+      "id": "responses_text",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "a62e9506e1a856c8a26e53bc6663563dedf42566fbb3acb842412f59793a5545",
+      "duration_ms": 24422.0
+    },
+    {
+      "id": "responses_stream",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "27c3064766a8429c0e02dedd6b0d0896c0ea8e58efaf529f226bde7952825334",
+      "event_count": 159,
+      "first_event_ms": 156.0,
+      "duration_ms": 8437.0
+    },
+    {
+      "id": "named_tool_constraint_refused",
+      "status": 400,
+      "passed": true,
+      "body_sha256": "eb41a5b1aef5bb81c5050373208b62e5ed5b0e7eb8c2ebed552bd20eee349b1a",
+      "duration_ms": 0.0
+    },
+    {
+      "id": "namespace_tool_0",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "7fab855f5eccefa763694db4bf524760c73a95e9a065f5a902e4e435be4ade6f",
+      "duration_ms": 8656.0
+    },
+    {
+      "id": "tool_continuation_0",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "4d00ff35a8f52ac006d04d61cb0a9bddf62dc26b2c8f360152d78fb2b59ba9b1",
+      "duration_ms": 4922.0
+    },
+    {
+      "id": "namespace_tool_1",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "ba6c446024966e89a2019c69f9bb72d45a3c96a7f42c6ffbe99e5cc2f8ad7585",
+      "duration_ms": 8625.0
+    },
+    {
+      "id": "tool_continuation_1",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "98a9d59ebfd75bd1f53cb65790e8d4e6cac5dc1480d05c78546579cdebb440a4",
+      "duration_ms": 14875.0
+    },
+    {
+      "id": "namespace_tool_2",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "6ac0b80a2eb44cf5b5ecddb9e42ab6e2f4a2246ed1f0e086d47a78c38ebb3c8d",
+      "duration_ms": 38625.0
+    },
+    {
+      "id": "tool_continuation_2",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "e672c85a99c30088c322bcaeca9d084d48273273a64022f804651debdf992675",
+      "duration_ms": 3438.0
+    },
+    {
+      "id": "namespace_tool_3",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "b240ae1a8338e86ab9866f56cb210714e8896881d737897a0f1630a1698857db",
+      "duration_ms": 5250.0
+    },
+    {
+      "id": "tool_continuation_3",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "b1e55c2d50fadb79e3dd21170b7df23197d08dbbc27e2366811fe0fe61e46945",
+      "duration_ms": 4187.0
+    },
+    {
+      "id": "namespace_tool_4",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "acca1fd1ab691157e13a9707d2176b9c8fb4e9022773e2f0ab84b6373712fd02",
+      "duration_ms": 5922.0
+    },
+    {
+      "id": "tool_continuation_4",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "29cdfcb28fe1f925cf24a793c0b244efa54449f12bacb323686cc2e9510cb612",
+      "duration_ms": 8094.0
+    },
+    {
+      "id": "namespace_tool_5",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "04231384d393abd0695cf134db8e6027edc4c56299b04a5ebb630bb137cb9422",
+      "duration_ms": 7437.0
+    },
+    {
+      "id": "tool_continuation_5",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "1eacde38c5341460f9651e3b8cfa50b544cd202c189e7a91cfd68e5682cb5e8d",
+      "duration_ms": 16157.0
+    },
+    {
+      "id": "namespace_tool_6",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "93e0d8ad7d10b88a442a4d5d0f9e16efe75b302ebc9ee20f2d37f0717deb46a3",
+      "duration_ms": 6625.0
+    },
+    {
+      "id": "tool_continuation_6",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "f222f3501b392d459066eee945f5eba53b43a1a180fdc3d5634a33890a112d91",
+      "duration_ms": 2859.0
+    },
+    {
+      "id": "namespace_tool_7",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "4ce32afeac49d0406d8890d181ffcc4e800b384c1b31d728dc527bcf8b8374db",
+      "duration_ms": 8250.0
+    },
+    {
+      "id": "tool_continuation_7",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "c9aadfb309bc4a411a04748991d10ee4e4a27fe894ae2394a02eeab72a1c30e9",
+      "duration_ms": 12906.0
+    },
+    {
+      "id": "namespace_tool_8",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "39d3738996b3e62416e6deeb91c0823562118ae86084a3ddc61836702d6ce4e5",
+      "duration_ms": 7938.0
+    },
+    {
+      "id": "tool_continuation_8",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "ea29cf119a8e43e8f11b87d1dd9924d2a442d296841ae393d727ca548e15e4b1",
+      "duration_ms": 2547.0
+    },
+    {
+      "id": "namespace_tool_9",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "ae280e1ec579c9105d0ec98944eecd4a5f46b3513082e2e287f6fc0f942fccea",
+      "duration_ms": 9203.0
+    },
+    {
+      "id": "tool_continuation_9",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "455ba89e5c92d4d43e83123384bb4aac154e5e75028e6237851b6d941e8ecc3a",
+      "duration_ms": 2187.0
+    },
+    {
+      "id": "namespace_tool_stream",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "a8db93a4cb3523e1962db6259aeaa8c0d12066817a8104f28175ddb0163a38e9",
+      "event_count": 94,
+      "first_event_ms": 1422.0,
+      "duration_ms": 7531.0
+    },
+    {
+      "id": "cancel_disconnect",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "3c8e467608dbc5c003fe356d8ed97ab6c310dfa0014b2cc72d764967bb57f0a2",
+      "event_count": 4,
+      "first_event_ms": 844.0,
+      "duration_ms": 844.0
+    },
+    {
+      "id": "recovery_after_cancel",
+      "status": 200,
+      "passed": true,
+      "body_sha256": "3281f14f50edb136e53009003967f4d9f80b732c356532331aa45c0a253bc818",
+      "duration_ms": 1735.0
+    },
+    {
+      "id": "stateful_response",
+      "status": 400,
+      "passed": true,
+      "body_sha256": "6372856ebdf61d913133d60daea306e928831fe401b4813c1ca2af049921127c",
+      "duration_ms": 0.0
+    },
+    {
+      "id": "stored_response",
+      "status": 400,
+      "passed": true,
+      "body_sha256": "4aa8cf267d286d1153141fe740bcd8bb0929d53d0d053d8c629e3adae3b6d875",
+      "duration_ms": 0.0
+    }
+  ],
+  "passed": true
+}

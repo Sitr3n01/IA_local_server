@@ -53,6 +53,10 @@ param(
 
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^[A-Fa-f0-9]{64}$')]
+    [string]$ExpectedCredentialSha256,
+
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern('^[A-Fa-f0-9]{64}$')]
     [string]$ExpectedMcpSha256,
 
     [Parameter(Mandatory = $true)]
@@ -62,6 +66,10 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^[A-Fa-f0-9]{64}$')]
     [string]$ExpectedMcpInferenceSha256,
+
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern('^[A-Fa-f0-9]{64}$')]
+    [string]$ExpectedMonitorSha256,
 
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^[A-Fa-f0-9]{64}$')]
@@ -118,9 +126,11 @@ $approvals = Resolve-V2DeploymentApprovals `
     -StagingRoot (Join-Path $resolvedRoot 'state\staging') `
     -Approvals @{
     Edge         = $ExpectedEdgeSha256
+	Credential   = $ExpectedCredentialSha256
     Mcp          = $ExpectedMcpSha256
     McpAdmin     = $ExpectedMcpAdminSha256
     McpInference = $ExpectedMcpInferenceSha256
+    Monitor      = $ExpectedMonitorSha256
     Supervisor   = $ExpectedSupervisorSha256
     Tray         = $ExpectedTraySha256
 }
@@ -177,7 +187,7 @@ $plan = [pscustomobject]@{
         'transactional harness installation',
         'drain the running provider and wait for active=0 and queued=0',
         'stop panel, Edge and Router only once drained',
-        'atomic MCP, MCP admin, MCP inference, Edge, supervisor and tray replacement',
+	'atomic credential, MCP, MCP admin, MCP inference, monitor, Edge, supervisor and tray replacement',
         'replace hidden limited-user scheduled task definitions',
         'ACL hardening and firewall egress policy',
         'publish the release manifest',
@@ -284,7 +294,7 @@ try {
         catch { $false }
     } | Stop-Process -ErrorAction Stop
 
-    foreach ($component in @('Mcp', 'McpAdmin', 'McpInference', 'Edge', 'Supervisor')) {
+	foreach ($component in @('Credential', 'Mcp', 'McpAdmin', 'McpInference', 'Monitor', 'Edge', 'Supervisor')) {
         $approval = @($approvals | Where-Object { $_.Component -eq $component })[0]
         & (Join-Path $PSScriptRoot 'Install-V2Binary.ps1') `
             -Component $component `
@@ -442,4 +452,4 @@ if ($restartFailure) {
 
 & (Join-Path $PSScriptRoot 'Set-V2Acl.ps1') -InstallRoot $resolvedRoot -Audit | Out-Host
 & (Join-Path $PSScriptRoot 'Test-V2Installation.ps1') -Environment $Environment -InstallRoot $resolvedRoot -Online
-Write-Host "$Environment deployment $($transaction.release_id) succeeded: configuration, harnesses, six application binaries, ACL apply/audit, firewall, tasks, and online checks are consistent. Reopen the panel through its normal-user Startup shortcut."
+Write-Host "$Environment deployment $($transaction.release_id) succeeded: configuration, harnesses, eight application binaries, ACL apply/audit, firewall, tasks, and online checks are consistent. Reopen the panel through its normal-user Startup shortcut."

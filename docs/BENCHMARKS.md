@@ -71,7 +71,7 @@ Qwen3.8-class models interleave 48 Gated DeltaNet layers with 16 full-attention 
 | `upstream-reported` | Taken from an issue, discussion, or model card elsewhere |
 | `unverified on gfx1201` | Reported on other hardware and not reproduced here |
 
-The bandwidth ceilings and MTP sensitivity tables in `TUNING.md` are **modelled**. The Gated DeltaNet kernel behaviour, the `blk.64` acceptance figures, and the checkpoint defects are **upstream-reported** and **unverified on gfx1201**. Nothing about Qwen3.8-27B is `measured` here yet.
+The bandwidth ceilings and MTP sensitivity tables in `TUNING.md` are **modelled**. The Gated DeltaNet kernel behaviour and the `blk.64` acceptance figures are **upstream-reported** and **unverified on gfx1201**. The checkpoint defect is no longer only upstream-reported: it was `measured` on 2026-09-28 and not reproduced on b10549 at Gates B, C and D (`benchmarks/agentic-reuse-b10549-20260928/`, `TUNING.md` §1.4).
 
 **Gate zero — is the kernel accelerated at all.** `GGML_OP_GATED_DELTA_NET` landed in llama.cpp with CPU and CUDA backends only. Vulkan falls back to CPU, and on RDNA 3.5 (gfx1151) the HIP path measures at CPU speed. Whether gfx1201 escapes that is unverified here. Run the `qwen38-27b-iq4xs-sanity` profile first: no offload, short context, no speculative decoding, so the numbers isolate kernel throughput.
 
@@ -99,7 +99,7 @@ Judge against evidence rather than an invented threshold. The comparison points,
 
 Record, per turn, how many prompt tokens the server actually processed against how many are new. A healthy run processes roughly the increment; a broken one reprocesses the whole context every turn. **This is a regression gate, not an observation:** fail the run when processed tokens approach total context on any turn after the first.
 
-Note the upstream defects in `TUNING.md` §1.4 before interpreting a failure — context checkpoints are reported broken on hybrid/recurrent models, so a failing result may be the runtime rather than the configuration. Use synthetic fixtures only; never store real prompts.
+On b10549 this scenario passes at Gates B and C for both hybrid profiles and at Gate D (~257k) for Huge (`benchmarks/agentic-reuse-b10549-20260928/`). A failure on any other build may still be the runtime rather than the configuration — `TUNING.md` §1.4 keeps the upstream history. b10549 writes no checkpoint events to its log at default verbosity, so the server's counters below are the evidence, not the log. Use synthetic fixtures only; never store real prompts.
 
 `scripts/v2/Measure-V2AgenticReuse.ps1` runs this scenario and emits the verdict
 `incremental_reuse_pass` or `incremental_reuse_fail` with the supporting numbers.
@@ -129,7 +129,17 @@ processed_prompt_tokens`. Ideal is ≈1.0 — 2k new against 2.1k processed is 0
 2k new against 182k processed is 0.011. Treat it as evidence to read next to the
 raw counts and the server log, not as a threshold to tune against.
 
+It reads 0 on a turn where the conversation shrank — a harness that drops
+reasoning from history does that on every tool turn — even when only a few
+hundred tokens were processed, and those zeros drag the run's mean down: all six
+2026-09-28 cells passed and still report a mean of 0.39. On those turns compare
+processed against cached tokens instead.
+
 ## Runtime A/B: upstream against buun-llama-cpp
+
+Upstream b10549 passed Gates B, C and D on its own on 2026-09-28, so up to ~257k
+this A/B has no defect to compare. It applies if a later upstream build regresses,
+or for history rewrites deeper than one `ubatch`, which is not measured.
 
 The fork adopted in ADR 0010 is qualified against upstream, not against
 expectations. Run the identical fixture on both and diff the reports with
@@ -172,6 +182,11 @@ When a measurement comes back bad, `TUNING.md` has the bottleneck decision tree 
 
 ## Soak
 
+The project owner waived this gate on 2026-10-01 for the four definitive models
+listed in `MODEL_PROMOTION.md`. The current readiness report must identify it as
+`waived`; no duration, request count, stability result, or success rate may be
+invented. The protocol below remains available for future qualification work.
+
 Run for 72 continuous hours with at least 500 mixed Responses/Chat requests and 20 complete load/unload cycles. Include concurrent Codex/OpenCode use, cancellation, queue overflow, router restart, edge restart, and an interactive-logon restart.
 
 Acceptance is at least 99% success after excluding deliberate 4xx/429 policy tests, with zero unrecovered crash, external request, credential finding, or model duplication.
@@ -202,3 +217,13 @@ Acceptance is at least 99% success after excluding deliberate 4xx/429 policy tes
 `peak_commit_gib` is a **delta**, not an absolute, so `idle_commit_gib` must accompany it or the number is not reproducible across machine states. Capture it with a **cold prompt cache** — the first request after process start — because admission adds `cache_ram_mib` separately as its full ceiling; a warm-cache measurement charges the same gibibytes twice. See `MODEL_PROMOTION.md`.
 
 Reports are evidence, not configuration. Promotion values must be reviewed into the manifest deliberately.
+
+For the 2026-10-01 readiness review, `scripts/v2/eval/responses_contract.py`
+checks native Responses, SSE, exact tool arguments, continuation, cancellation
+and state refusal. `scripts/v2/eval/edge_overhead.py` compares at least twenty
+warm edge/router pairs, alternating order and recording only timing/token
+metadata and response hashes. The caller must enforce idle/admission checks,
+supply role-specific credentials through the child environment and own cleanup.
+Cold warmups are recorded separately. Token-count mismatch fails the comparison;
+it must not be reported as a throughput pass. Results and the waived soak are in
+`docs/reports/2026-10-01-deploy-readiness.md`.

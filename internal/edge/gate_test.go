@@ -56,3 +56,18 @@ func TestGatePropagatesQueuedCancellation(t *testing.T) {
 		t.Fatalf("canceled request remained queued: %+v", gate.snapshot())
 	}
 }
+
+func TestGateRefusesCanceledAdmissionWithAnAvailableSlot(t *testing.T) {
+	gate := newGate(1, 1, time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if release, err := gate.acquire(ctx); !errors.Is(err, context.Canceled) {
+		if release != nil {
+			release()
+		}
+		t.Fatalf("canceled admission error=%v", err)
+	}
+	if snapshot := gate.snapshot(); snapshot.Active != 0 || snapshot.Queued != 0 {
+		t.Fatalf("canceled request consumed capacity: %+v", snapshot)
+	}
+}

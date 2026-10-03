@@ -14,6 +14,22 @@ Every candidate records:
 
 Missing resource values or untested capabilities remain `null`/`false`; they must not be inferred from a model card.
 
+## Definitive roster and acceptance decision (2026-10-01)
+
+The project owner fixed the scope to the four deployed canary profiles:
+`gemma4-12b-qat-ud-q4xl-256k`, `qwen38-27b-deep-32k`,
+`qwen38-27b-agent-128k`, and `qwen36-35b-a3b-huge-256k`. No replacement
+model is required for this readiness review. "Definitive" identifies the product
+roster; `candidate`, `qualified`, and the `final` deployment still describe the
+evidence and installation status of each artifact.
+
+The owner explicitly waived the 72-hour soak for this review. It is not a
+blocking acceptance criterion for these four profiles, and must be recorded as
+`waived`, never as a successful soak. Contract, cancellation, bounded queue,
+recovery, artifact identity, and resource-admission checks remain required.
+This exception does not waive measured resource reserves or authorize inferred
+capabilities. Historical soak requirements below apply to other promotion work.
+
 ## Promotion gates
 
 ### Candidate
@@ -93,7 +109,30 @@ Adding such a model touches four files that CI checks against each other, and th
 2. `integrations/codex/codex-model-catalog.json` — one entry per non-retired canary model.
 3. `integrations/opencode/opencode.local-provider.jsonc` and `opencode.canary-provider.jsonc` — the model lists must have the same cardinality and IDs as the canary manifest.
 
-Declare `capabilities.function_calling` and `capabilities.responses` as `false` until the stress evaluation demonstrates a valid forced tool call through `internal/edge/namespace.go`. A model family's tool-call serialization is not evidence for a specific quantization of it.
+Declare each capability as `false` until its own contract has passed.
+`responses` requires complete native Responses and SSE output, cancellation and
+recovery; it does not imply tools. `function_calling` additionally requires
+forced calls with exact arguments and namespace round-trips through
+`internal/edge/namespace.go`. A model family's serialization is not evidence
+for a specific quantization.
+
+The supported tool-choice modes are `auto`, `none`, and `required` (Anthropic
+`any`). A named object choice is refused with a clear client error: b10549
+ignored that constraint in
+`benchmarks/campaign-qwen36-35b-a3b/contract/edge-contract-direct.json`.
+The adapter must not return a successful response that silently discarded the
+requested selection. Supporting named selection requires a new runtime
+contract test, not just a JSON translation.
+
+### `capabilities.reasoning` is an observation, not a guarantee
+
+`reasoning` records that the served artifact emits `reasoning_content` before
+its answer. The edge rejects an explicit reasoning request when this capability
+is false, just as it rejects other unqualified features. It does not promise the
+quality of the reasoning. Declare it `true` only from a
+qualification run against that artifact in which the field was present; the
+2026-08-23 and 2026-08-25 campaigns are the evidence for the four active
+models. It is optional and absent means `false`.
 
 ### What `capabilities.function_calling` does and does not mean
 
@@ -105,12 +144,11 @@ The flag is a **deployment guarantee for one artifact**, not a description of wh
 | `scripts/v2/Test-V2WorkstationSmoke.ps1` | The same question against the real chat template, as part of an end-to-end profile smoke | No, on its own |
 | Stress evaluation through `internal/edge/namespace.go` | Whether a **forced** tool call survives the serving path this deployment actually exposes, for this exact quantization | **Yes.** This is the evidence. |
 
-Consumers advertise the promise rather than gate on it, which is exactly why an over-claimed `true` is expensive:
+Consumers must advertise and enforce the same promise:
 
 - `scripts/v2/New-V2ClientCatalogs.ps1` maps it to the Codex catalog's `supports_parallel_tool_calls`, so a harness reads it before issuing parallel tool calls. `Test-V2HarnessConfig.ps1` asserts the mapping stays exact in both directions.
-- `cmd/cia-tray` renders it as a capability badge and as the "candidato sem function calling" label.
-- `internal/panel` requires the field to be present and carries it verbatim; `CanLaunchCodex` and `CanLaunchOpenCode` deliberately ignore it, so a weaker model stays launchable by operator choice. Pinned by `internal/panel/capability_contract_test.go`.
-- `internal/edge` never reads it. The edge serves the protocol surface regardless; the flag describes what has been proven about a model, not what the router permits.
+- `internal/panel` requires the field to be present and carries it verbatim; availability deliberately ignores it, so a weaker model stays selectable by operator choice. Pinned by `internal/panel/capability_contract_test.go`.
+- `internal/edge` checks it before reserving an inference slot or contacting the runtime. When it is false, the OpenAI routes reject tools, required tool choices, and tool history with `400 unsupported_feature`; `/v1/messages` rejects a required tool choice or tool history with `invalid_request_error` and omits optional tools (see `docs/CLAUDE_DESKTOP.md`).
 
 So a benchmark score, however good, is not grounds for flipping it. Raising `function_calling` to `true` requires the forced-tool-call evidence above, recorded for that artifact.
 
@@ -159,11 +197,11 @@ runtime — or it measures nothing.
 
 ## Current status
 
-- `local-coding` / Ornith 1.0 9B Q4_K_M: canary candidate. Direct Responses and a function call were observed, but the complete gates and soak remain outstanding.
-- `local-fast` / Qwen 3.5 4B Q4_K_M and the four additional Qwen/Gemma
-  quantizations are canary candidates. They are generated independently and
-  remain client-gated until their declared contracts pass.
-- Unsloth runtime `10068 (87d9271bd)`: candidate only; it can replace the AMD baseline only after an independent full comparison.
+- The four definitive profiles above are the active roster. Retired entries
+  retain provenance and are excluded from deployment and generated client lists.
+  Each active profile remains subject to its declared capabilities and live
+  capacity; a fixed roster does not authorize a silent model substitution.
+- Unsloth runtime `10225 (d2a74a4a3)`: candidate only; it can replace the AMD baseline only after an independent full comparison.
 - `spiritbuun/buun-llama-cpp` (ADR 0010): the qualification path exists and the
   provenance gate passes on commit `799e3995cd4f19aa9f6a3fa9fb5b4674422bf0ee` at
   source level. No runtime entry is in the manifest, because the artifact has not

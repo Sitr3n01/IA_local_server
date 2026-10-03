@@ -46,6 +46,7 @@ The deliberate scope limit is the point: this is an **inference and admission-co
 ```mermaid
 flowchart LR
     T["cia-tray<br/>operator panel"] --> P
+    W["cia-monitor<br/>browser monitor"] --> P
     C["Codex profile"] --> E
     O["OpenCode provider"] --> E
     E["cia-edge<br/>data :8090"] --> S
@@ -75,7 +76,7 @@ These are enforced in code and asserted by tests, not just documented:
 | No cloud fallback, ever | No remote upstream is reachable; route + model allowlists; outbound firewall deny rules |
 | Logs are metadata-only | Request ID, method, sanitized route, status, latency. Never prompts, bodies, headers, or tokens |
 | Bounded decompression | 16 MiB wire / 64 MiB decoded / 100:1 expansion ceiling on identity, gzip, and zstd |
-| Bounded concurrency | One active inference, four queued, 120 s wait limit, then `429` with `Retry-After` |
+| Bounded concurrency | Defaults: one active inference, up to 16 queued, and a 120 s wait; overflow or timeout returns `429` with `Retry-After`. Bounded body reading happens before the wait and has its own concurrency limit |
 | Direct model access is authenticated | `llama-server` requires the router key file; unauthenticated inference on the dynamic port returns `401` |
 | No secrets on command lines | Supervisor injects into a process-local environment allowlist |
 | Nothing sensitive in Git | CI rejects tracked binaries and weights; Gitleaks scans full history |
@@ -86,26 +87,31 @@ The privilege split is deliberate at every layer: the control plane is a separat
 
 | Executable | Purpose | Exposure |
 |---|---|---|
-| `cia-edge` | Data + control plane: auth, validation, queue, streaming | `127.0.0.1:8090` / `:8091` |
+| `cia-edge` | Data + control plane: auth, validation, queue, streaming | `127.0.0.1:18090` / `:18091` (canary); `:8090` / `:8091` (final) |
 | `cia-supervisor` | Job Object containment, 1–15 min exponential restart backoff | Scheduled-task action |
-| `cia-tray` | Native Win32 operator panel — status, lifecycle, model validation | Notification area |
+| `cia-tray` | IA Local: native icon and flyout in the monitor's design — starts and stops the server, status, load/switch/unload, opens the monitor and the clients | Notification area; the only startup entry |
+| `cia-monitor` | Browser monitor — request phase, tokens/s, GPU, RAM, commit; load/unload a model behind a native confirmation | `127.0.0.1:18095` (canary) / `:8095` (final) |
 | `cia-credential` | Windows Credential Manager helper | Local process only |
 | `cia-mcp` | Read-only operational MCP (5 side-effect-free tools) | Harness stdio |
 | `cia-mcp-inference` | One stateless, text-only delegation tool for SOTA harnesses | Harness stdio |
 | `cia-mcp-admin` | Lifecycle administration MCP | **Not registered by default** |
+| `cia-mcp-smoke` | Live probe of the installed `cia-mcp-inference`: MCP handshake, single-tool surface, exact synthetic marker; metadata-only report | Operator; launches the MCP server as a stdio child |
 | `cia-manifest` | JSON Schema validation of the versioned model manifest | Operator / CI |
+| `cia-fork-gate` | Provenance gate: decides whether a pinned `buun-llama-cpp` commit may be built and adopted as the Qwen3.8 agentic runtime; never loads a model, opens a port, or reaches the network | Operator, via `Build-V2ForkRuntime.ps1` |
 
 ## Engineering practices
 
-**Testing.** 103 test functions, ~3.5k lines of test code against ~8.7k lines of production Go — a **~40% test-to-source ratio**. Coverage is concentrated where it matters: credential handling, body decoding limits, protocol adaptation, config validation, and negative authorization paths. Contract tests assert the security invariants above rather than restating implementation.
+**Testing.** The Go suite covers credentials, body limits, queueing, cancellation, model capabilities, protocol adaptation, and negative authorization paths. Transport tests use disposable Windows pipes. The monitor page has its own lint and DOM tests in `frontend/`. Run `go test ./cmd/... ./internal/...` and, in `frontend`, `npm run lint:monitor` and `npm run test:monitor`; obtain counts and coverage from the current run.
 
-**CI.** Four jobs on every push: PowerShell parse + harness-config validation, Go format/vet/[Staticcheck](https://staticcheck.dev/)/[govulncheck](https://go.dev/blog/govulncheck) with a [CycloneDX SBOM](https://cyclonedx.org/) artifact, a separate race-detector run on the portable core, and a full-history [Gitleaks](https://github.com/gitleaks/gitleaks) secret scan. A dedicated step fails the build if a `.gguf`, `.safetensors`, `.exe`, or archive is ever tracked.
+**CI.** The jobs in [ci.yml](.github/workflows/ci.yml) validate PowerShell and harnesses; Go with formatting/vet/[Staticcheck](https://staticcheck.dev/)/[govulncheck](https://go.dev/blog/govulncheck) and a [CycloneDX SBOM](https://cyclonedx.org/); races in the portable core; fork provenance; secrets with [Gitleaks](https://github.com/gitleaks/gitleaks); and the monitor page's lint and DOM tests. A dedicated step fails the build if a `.gguf`, `.safetensors`, `.exe`, or archive is ever tracked.
 
-**Decision records.** Nine [ADRs](docs/adr/) capture the *why* behind the architecture — the thin-edge split, fail-closed autonomy, the manifest/promotion gate, native panel over web UI, the external-artifact ACL boundary, and partial weight offload with a host-RAM context cache for hybrid models.
+**Decision records.** The [ADRs](docs/adr/) document the *why* behind the architecture, including admission, manifest/promotion, artifact security, offload, the browser monitor, and the local Claude instance. Consult the current records to distinguish active components from those retained for compatibility.
 
-**Reproducibility.** Direct and transitive modules are pinned, and `go.mod` pins a patch-level toolchain floor (`go 1.26.5`) rather than a minor one — CI resolves its Go version from that file, so a stale floor would mean building and shipping against a standard library with known advisories. Deployment never copies from the worktree: release candidates build into a staging area, are reviewed by SHA-256, then install atomically into a protected directory.
+**Reproducibility.** Direct and transitive modules are pinned, and [go.mod](go.mod) sets the toolchain floor to `go 1.26.6`. CI resolves its Go version from that file. Deployment never copies from the worktree: release candidates build into a staging area, are reviewed by SHA-256, then install atomically into a protected directory.
 
-**Preview-first operations.** Every one of the 47 PowerShell deployment scripts is read-only unless an explicit `-Apply` switch is supplied. Firewall and ACL changes additionally require an elevated shell and write a pre-change SDDL recovery record.
+**Preview-first operations.** The PowerShell deployment scripts in [scripts/v2](scripts/v2/) preview by default; changes require an explicit `-Apply`, and the Start-V2 launchers start a process only with `-Run`. Firewall and ACL changes additionally require an elevated shell and write a pre-change SDDL recovery record. `New-V2ClientCatalogs.ps1` is not a deployment script: it rewrites the tracked client catalogs directly.
+
+**Qualified capabilities.** Before taking the inference slot, the edge checks the route and requested features against the model's `capabilities`. On the OpenAI routes (`/v1/chat/completions`, `/v1/responses`), requests requiring unqualified Responses, streaming, tools, structured output, or reasoning return `400 unsupported_feature`. On `/v1/messages`, unqualified chat or streaming, a required tool choice, or tool history returns `invalid_request_error`, and optional tool definitions are omitted for a model without function calling. An edge route's existence does not qualify manifest models. The Anthropic adapter preserves or refuses explicit tool choices and reports interrupted streams as errors rather than normal completion.
 
 ## Model promotion gate
 
@@ -123,12 +129,57 @@ candidate ──▶ qualified ──▶ enabled ──▶ retired
 
 **v2 canary. Production promotion is intentionally blocked.** The Go edge, MCP servers, manifest, lifecycle router, credential helper, supervisor, operator panel, deployment scripts, tests, and documentation are implemented and passing. What passed canary validation: native Responses, true SSE streaming, Chat Completions, zstd, function calling, queue overflow, cancellation, TTL/unload, MCP discovery, router/edge restart, and Job Object containment. Edge p95 overhead measured within noise and below the 50 ms gate.
 
-Two measured gates block cutover, and neither is hand-waved:
+The 2026-10-01 review corrected launchers, protocol contracts, and memory
+admission during model swaps. Qwen Agent completed a real Codex session that
+fixed a Go fixture and ran its tests, preserving the original tests. Deep and
+Agent passed native Responses and tool contracts; Gemma passed plain Responses
+and still has no qualified tools. The Huge profile's current physical
+revalidation and production artifact qualification/publication remain pending.
+Results, limitations, and exceptions are recorded in the
+[readiness review](docs/reports/2026-10-01-deploy-readiness.md).
 
-1. **Model qualification.** A real Codex session fixed a Go fixture and made `go test ./...` pass — but the candidate model failed to terminate the session, repeating tool turns until the five-minute timeout.
-2. **Resource envelope.** Committed-memory headroom does not satisfy the required peak plus a 4 GiB reserve at 128k context.
+The project owner explicitly waived the 72-hour soak for this 2026-10-01 review. Its result is recorded as `waived`, without evidence of prolonged stability. The four active models are the definitive project roster; declared capabilities and memory reserves still require evidence and validation. See the decision in [Model promotion](docs/MODEL_PROMOTION.md).
 
-The 72-hour / 500-request / 20-cycle soak has not been run. Recording this in the README rather than shipping anyway *is* the engineering position: a promotion gate that bends for its own author is not a gate.
+## Qwen profiles
+
+Three profiles, three purposes. Select by model id; switching profiles is a
+model swap in llama-swap, not a reconfiguration.
+
+| Profile | Weights | KV | Context | Output | When to use |
+|---|---|---|---:|---:|---|
+| `qwen38-27b-deep-32k` | Qwen3.8 27B UD-IQ4_XS | `q8_0`/`q8_0` | 32k | 8k | Hard, localized tasks: algorithms, architecture, a complex bug in a few files |
+| **`qwen38-27b-agent-128k`** | Qwen3.8 27B UD-Q3_K_XL | `q4_0`/`q4_0` | 128k | 8k | **Daily default.** Codex, Claude Code, OpenCode, Unity, refactors, repository investigation |
+| `qwen36-35b-a3b-huge-256k` | Qwen3.6 35B-A3B UD-Q2_K_XL | `q4_0`/`q4_0` | 256k | 16k | Huge active context. Sparse MoE: 35B parameters, 3B active per token |
+
+Selection rule: **reasoning reliability → Deep. Normal agent work → Agent. Huge
+active context → Huge.** Choose Huge when the *working set* exceeds Agent's, not
+when the task is merely hard.
+
+The Huge profile stopped being a dense 2-bit Qwen3.8 and became an MoE on
+2026-08-25. A model that activates 3B of 35B parameters holds the same window
+with more throughput at depth, which is exactly what a giant-context profile
+exists for. The decision, the head-to-head that produced it, and what was
+deleted from disk are in
+[FINAL-ROSTER-20260825](docs/reports/FINAL-ROSTER-20260825.md) and
+[ADR 0016](docs/adr/0016-one-moe-and-the-four-function-roster.md).
+
+Huge carries `reasoning_budget: 6144` under an `n_predict: 16384` ceiling. That
+is not decoration: without the budget, this model spends all 8,192 tokens
+thinking and returns an empty answer on the hardest coding tasks — three cases
+in thirty-four, measured.
+
+The daily default is Agent, not Deep: a coding harness spends tens of thousands
+of tokens on the system prompt, tool definitions, files, logs, and history
+before the problem arrives.
+
+Details, measured evidence, and known limitations: [TUNING §1.8](docs/TUNING.md)
+and [RUNBOOK §13](docs/RUNBOOK.md). Retention measurements exist for Agent in
+the 2026-08-23 [qualification campaign](docs/reports/QUALIFICATION-CAMPAIGN-20260823.md)
+and for the current Huge (Qwen3.6) in the 2026-08-25
+[roster report](docs/reports/FINAL-ROSTER-20260825.md); the campaign's Huge row
+is the retired dense Qwen3.8 profile. Full qualification of the artifacts and of
+the current configuration remains recorded separately from the choice of the
+four definitive models.
 
 ## Hardware baseline
 
@@ -162,20 +213,51 @@ Scripts preview by default; mutation is always a separate, explicit invocation.
 .\scripts\v2\New-V2Config.ps1 -Environment Canary -Apply
 ```
 
+## Browser monitor
+
+`cia-monitor` serves a page on loopback that shows, every second, what the server is doing: the request's phase (queued, loading the model, reading the prompt, generating), tokens per second, time to first token, cache reuse and context fill, alongside GPU, VRAM, shared memory, CPU, RAM, commit and disk.
+
+It does not depend on the edge to see the machine: it shows the power the GPU draws (watts, temperature, clocks and energy accumulated over the session), which processes use the GPU, and which other tools are serving a model — LM Studio / Bionic, Ollama, standalone llama.cpp and OpenAI-compatible servers — with model, quantization and context window when the tool's API reports them, and it flags activity even while the edge is down (ADR 0020). For traffic through the edge, per-request speed comes from the edge's telemetry; for other tools' llama.cpp servers (LM Studio / Bionic, or a `llama-server` started with `--log-file`) the monitor reads the counters the server itself writes to its log — prompt, cache, output, tokens per second, time to first token — without reading any text, and shows everything in the same table, with the serving source (the edge or the tool) named under each model. Tools without a per-request log (Ollama, for example) appear as "externa" (external: duration, peak GPU and power, board energy), and the source's card explains why. For a model another tool loaded, each source has an "Encerrar processo do modelo" (end the model's process) button, which asks for confirmation in a Windows dialog.
+
+`/api/snapshot` includes `requests[]`, a bounded list of recent records with per-request metrics from both origins, and `coverage`, which distinguishes measured external sources from those that show activity only. Each record states where each number came from in `measurements`; prompt and cache computed from the log and estimated speeds are labeled, and missing values stay `null`. That coverage refers to the detected sources: a tool that neither goes through the edge nor publishes per-response metrics or a log cannot be counted exactly from the GPU alone.
+
+The page can also load a chosen model and unload the loaded one — and nothing else. Each request goes over the edge's administrative pipe, with no credential, and runs only after you confirm it in a Windows dialog the page cannot reach (Cancel is the default; with no answer in 45 s, nothing happens). The monitor accepts these requests only from its own page, from a process of the same user that runs the server. `-admin-pipe off` removes the buttons. Starting and stopping the server belong to `cia-tray` (IA Local); drain and resume belong to `cia-mcp-admin` and the release transaction.
+
+```powershell
+go build -trimpath -o bin/cia-monitor.exe ./cmd/cia-monitor
+.\bin\cia-monitor.exe -open                      # canary: http://127.0.0.1:18095
+.\bin\cia-monitor.exe -environment final -open   # final:  http://127.0.0.1:8095
+```
+
+Per-request numbers come from the edge's `/api/v1/inference`; against an edge that predates the route the page keeps working and says telemetry is unavailable. Running `-open` while a monitor is already up just opens the existing page. Decision and controls: [ADR 0019](docs/adr/0019-browser-monitor.md).
+
 Harness integration templates live under [`integrations/`](integrations/) and contain no secrets. Codex keeps its normal OpenAI login untouched — local access is an explicitly selected profile, with endpoint and model pinned at CLI precedence so a repository-level config cannot silently redirect a session that the user asked to keep local.
 
 ## Repository map
 
 ```
-cmd/                 9 Go binaries (edge, supervisor, tray, MCP servers, tooling)
-internal/            edge, credential, panel, supervisor, MCP, trayui, rotatelog
-config/              versioned model manifest + JSON Schema (source of truth)
-scripts/v2/          47 preview-first PowerShell deployment scripts
-integrations/        Codex and OpenCode profile templates (secret-free)
-docs/                architecture, threat model, runbook, benchmarks, promotion, tuning, 9 ADRs
+cmd/                 one directory per Go executable (edge, supervisor, tray, monitor, MCP servers,
+                     tooling)
+internal/            Go packages: edge, adminpipe, credential, supervisor, monitor, trayui + panel,
+                     MCP servers, claudedesktop, forkgate, manifestvalidator, rotatelog
+config/              versioned model manifest + JSON Schema (source of truth), llama-swap template,
+                     edge settings reference (read by no program), chat-template override
+                     procedure (no overrides in use)
+scripts/v2/          PowerShell deployment scripts (preview-first; -Apply to mutate, -Run for the
+                     Start-V2 launchers), qualification and measurement drivers, client-catalog
+                     generator (writes directly); Python eval/
+scripts/             per-profile tooling, mostly driven by model-test-matrix.json: downloads,
+                     llama-bench and chat benchmarks, smoke, quality and stress evals, a standalone
+                     llama-server launcher and device listing, Codex/Unsloth catalog sync,
+                     Unsloth helpers
+integrations/        Codex, OpenCode, and Unsloth launchers and profile templates; MCP inference
+                     bridge registration notes (secret-free)
+frontend/            the monitor page's lint and DOM tests (Node; nothing here is built or shipped)
+docs/                architecture, threat model, runbook, benchmarks, promotion, tuning, Claude Desktop,
+                     ADRs, reports
 incident-reports/    sanitized v1 credential-exposure record
-benchmarks/          recorded model benchmark evidence
-control/             legacy v1 Python panel — migration evidence only, never a rollback target
+benchmarks/          recorded model benchmark and qualification evidence
+.github/workflows/   CI and release
 ```
 
 ## Documentation
@@ -184,13 +266,15 @@ Long-form documentation is written in English.
 
 | Document | Contents |
 |---|---|
-| [Architecture](docs/ARCHITECTURE.md) | Component contracts, state machine, failure behavior, 10 invariants |
-| [Threat model](docs/THREAT_MODEL.md) | Assets, 7 trust boundaries, threat/control/verification matrix, residual risks |
+| [Architecture](docs/ARCHITECTURE.md) | Component contracts, state machine, failure behavior, architectural invariants |
+| [Threat model](docs/THREAT_MODEL.md) | Assets, trust boundaries, threat/control/verification matrix, residual risks |
 | [Runbook](docs/RUNBOOK.md) | Operational procedures and rollback boundaries |
 | [Model promotion](docs/MODEL_PROMOTION.md) | Qualification criteria and gate enforcement |
 | [Benchmarks](docs/BENCHMARKS.md) | Measurement methodology and evidence format |
 | [Tuning](docs/TUNING.md) | Bottleneck diagnosis and the memory-bandwidth ceiling |
-| [ADRs](docs/adr/) | Nine architecture decision records |
+| [Claude Desktop](docs/CLAUDE_DESKTOP.md) | Claude Desktop's third-party-inference client contract; the local instance beside the signed-in one |
+| [ADRs](docs/adr/) | Architecture decision records |
+| [Reports](docs/reports/) | Canary validations, qualification campaigns, audits, and readiness reviews |
 | [Security policy](SECURITY.md) | Reporting process |
 
 ## License

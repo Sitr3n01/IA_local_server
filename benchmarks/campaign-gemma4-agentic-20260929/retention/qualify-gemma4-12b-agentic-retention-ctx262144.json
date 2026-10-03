@@ -1,0 +1,1079 @@
+{
+  "schema_version": 1,
+  "scenario": "profile-qualification",
+  "label": "gemma4-12b-agentic-retention-ctx262144",
+  "started_utc": "2026-09-29T14:05:29Z",
+  "server_props": {
+    "default_generation_settings": {
+      "params": {
+        "seed": 4294967295,
+        "temperature": 1.0,
+        "dynatemp_range": 0.0,
+        "dynatemp_exponent": 1.0,
+        "top_k": 64,
+        "top_p": 0.949999988079071,
+        "min_p": 0.05000000074505806,
+        "top_n_sigma": -1.0,
+        "xtc_probability": 0.0,
+        "xtc_threshold": 0.10000000149011612,
+        "typical_p": 1.0,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.0,
+        "presence_penalty": 0.0,
+        "frequency_penalty": 0.0,
+        "dry_multiplier": 0.0,
+        "dry_base": 1.75,
+        "dry_allowed_length": 2,
+        "dry_penalty_last_n": -1,
+        "mirostat": 0,
+        "mirostat_tau": 5.0,
+        "mirostat_eta": 0.10000000149011612,
+        "adaptive_target": -1.0,
+        "adaptive_decay": 0.8999999761581421,
+        "max_tokens": -1,
+        "n_predict": -1,
+        "n_keep": 0,
+        "n_discard": 0,
+        "ignore_eos": false,
+        "stream": false,
+        "n_probs": 0,
+        "min_keep": 0,
+        "chat_format": "Content-only",
+        "reasoning_format": "none",
+        "reasoning_in_content": false,
+        "generation_prompt": "",
+        "samplers": [
+          "penalties",
+          "dry",
+          "top_n_sigma",
+          "top_k",
+          "typ_p",
+          "top_p",
+          "min_p",
+          "xtc",
+          "temperature"
+        ],
+        "speculative.types": "none",
+        "timings_per_token": false,
+        "post_sampling_probs": false,
+        "backend_sampling": false,
+        "lora": []
+      },
+      "n_ctx": 262144
+    },
+    "total_slots": 1,
+    "model_path": "C:\\IA\\models\\gemma-4-12B-agentic-GGUF\\gemma4-v2-Q4_K_M.gguf",
+    "build_info": "b10225-d2a74a4a3"
+  },
+  "request_budget": {
+    "request_max_tokens": 8192,
+    "n_predict": 8192,
+    "effective_generation_ceiling": 8192,
+    "effective_max_tokens": 8192,
+    "source": "profile",
+    "budget_profile": "deployment",
+    "reasoning_budget": null,
+    "answer_reserve": null,
+    "minimum_answer_reserve": null,
+    "reserve_ok": true,
+    "fixture_defaults": {
+      "coding": 8192,
+      "tools": 4096,
+      "json": 4096,
+      "retention": 4096
+    },
+    "constrained_diagnostic": false
+  },
+  "policy_profile": "baseline",
+  "diagnostic_config": {
+    "max_tokens_override": 8192,
+    "max_tokens_source": "profile",
+    "budget_profile": "deployment",
+    "n_predict": 8192,
+    "temperature": 0.0,
+    "seed": 20260821,
+    "system_policy": "current",
+    "strict_tool_policy": false,
+    "tool_schema_policy": false,
+    "capture_dir": null,
+    "only_coding": [],
+    "only_tools": []
+  },
+  "suites": {
+    "retention": [
+      {
+        "target_tokens": 8192,
+        "output_reserve": 8192,
+        "output_reserve_source": "profile",
+        "filler_units": 87,
+        "corpus_tokens": 7821,
+        "prompt_tokens": 8155,
+        "corpus_sha256": "f07ec074b2c51c276997311f4acee11b768c002693c7386f1c3ebde878668f8f",
+        "clean_json": true,
+        "parsed": true,
+        "probes": [
+          {
+            "key": "build_token",
+            "family": "needle",
+            "depth": 5,
+            "grade": "exact",
+            "got": "H7Q9-42AX-731"
+          },
+          {
+            "key": "signing_tag",
+            "family": "needle",
+            "depth": 25,
+            "grade": "exact",
+            "got": "K3M8-57BW-904"
+          },
+          {
+            "key": "route_key",
+            "family": "needle",
+            "depth": 50,
+            "grade": "exact",
+            "got": "P5R2-18CQ-663"
+          },
+          {
+            "key": "shader_stamp",
+            "family": "needle",
+            "depth": 75,
+            "grade": "exact",
+            "got": "T9L4-63DZ-215"
+          },
+          {
+            "key": "handshake_id",
+            "family": "needle",
+            "depth": 90,
+            "grade": "exact",
+            "got": "W1X6-90EV-478"
+          },
+          {
+            "key": "frozen_file",
+            "family": "constraint",
+            "depth": 12,
+            "grade": "exact",
+            "got": "SaveMigratorV1.cs"
+          },
+          {
+            "key": "add_item_call",
+            "family": "mutable_state",
+            "depth": 62,
+            "grade": "exact",
+            "got": "InventoryService.TryAdd"
+          },
+          {
+            "key": "rejected_token",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "ReflectionScanV2"
+          },
+          {
+            "key": "rejected_reason",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "it allocates on every frame under IL2CPP"
+          },
+          {
+            "key": "projectile_pool_prewarm",
+            "family": "entities",
+            "depth": 30,
+            "grade": "exact",
+            "got": 512
+          },
+          {
+            "key": "audio_pool_max",
+            "family": "entities",
+            "depth": 55,
+            "grade": "exact",
+            "got": 24
+          },
+          {
+            "key": "network_pool_prewarm",
+            "family": "entities",
+            "depth": 82,
+            "grade": "exact",
+            "got": 0
+          }
+        ],
+        "by_family": {
+          "needle": {
+            "n": 5,
+            "credit": 5.0,
+            "score": 1.0
+          },
+          "constraint": {
+            "n": 1,
+            "credit": 1.0,
+            "score": 1.0
+          },
+          "mutable_state": {
+            "n": 1,
+            "credit": 1.0,
+            "score": 1.0
+          },
+          "negative_memory": {
+            "n": 2,
+            "credit": 2.0,
+            "score": 1.0
+          },
+          "entities": {
+            "n": 3,
+            "credit": 3.0,
+            "score": 1.0
+          }
+        },
+        "score": 1.0,
+        "exact_count": 12,
+        "hallucinated_count": 0,
+        "stale_count": 0,
+        "ttft_prefill_ms": 4343.96,
+        "prefill_tps": 1886.5275002532253,
+        "decode_tps_at_occupancy": 53.75984545996603,
+        "decoded_tokens": 537,
+        "processed_prompt_tokens": 8195,
+        "cache_n": 0,
+        "wall_s": 14.4,
+        "finish_reason": "stop",
+        "truncated": false,
+        "reasoning_chars": 889,
+        "raw_reply": "{\n  \"build_token\": \"H7Q9-42AX-731\",\n  \"signing_tag\": \"K3M8-57BW-904\",\n  \"route_key\": \"P5R2-18CQ-663\",\n  \"shader_stamp\": \"T9L4-63DZ-215\",\n  \"handshake_id\": \"W1X6-90EV-478\",\n  \"frozen_file\": \"SaveMigratorV1.cs\",\n  \"add_item_call\": \"InventoryService.TryAdd\",\n  \"rejected_token\": \"ReflectionScanV2\",\n  \"rejected_reason\": \"it allocates on every frame under IL2CPP\",\n  \"projectile_pool_prewarm\": 512,\n  \"audio_pool_max\": 24,\n  \"network_pool_prewarm\": 0\n}"
+      },
+      {
+        "target_tokens": 16384,
+        "output_reserve": 8192,
+        "output_reserve_source": "profile",
+        "filler_units": 188,
+        "corpus_tokens": 15974,
+        "prompt_tokens": 16308,
+        "corpus_sha256": "f81287bd1563775ac4c06469e2b6a483a4cab475c4321740aa87008e0646e8cd",
+        "clean_json": true,
+        "parsed": true,
+        "probes": [
+          {
+            "key": "build_token",
+            "family": "needle",
+            "depth": 5,
+            "grade": "exact",
+            "got": "H7Q9-42AX-731"
+          },
+          {
+            "key": "signing_tag",
+            "family": "needle",
+            "depth": 25,
+            "grade": "exact",
+            "got": "K3M8-57BW-904"
+          },
+          {
+            "key": "route_key",
+            "family": "needle",
+            "depth": 50,
+            "grade": "exact",
+            "got": "P5R2-18CQ-663"
+          },
+          {
+            "key": "shader_stamp",
+            "family": "needle",
+            "depth": 75,
+            "grade": "exact",
+            "got": "T9L4-63DZ-215"
+          },
+          {
+            "key": "handshake_id",
+            "family": "needle",
+            "depth": 90,
+            "grade": "exact",
+            "got": "W1X6-90EV-478"
+          },
+          {
+            "key": "frozen_file",
+            "family": "constraint",
+            "depth": 12,
+            "grade": "partial",
+            "got": "src/persistence/SaveMigratorV1.cs"
+          },
+          {
+            "key": "add_item_call",
+            "family": "mutable_state",
+            "depth": 62,
+            "grade": "exact",
+            "got": "InventoryService.TryAdd"
+          },
+          {
+            "key": "rejected_token",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "ReflectionScanV2"
+          },
+          {
+            "key": "rejected_reason",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "it allocates on every frame under IL2CPP"
+          },
+          {
+            "key": "projectile_pool_prewarm",
+            "family": "entities",
+            "depth": 30,
+            "grade": "exact",
+            "got": 512
+          },
+          {
+            "key": "audio_pool_max",
+            "family": "entities",
+            "depth": 55,
+            "grade": "exact",
+            "got": 24
+          },
+          {
+            "key": "network_pool_prewarm",
+            "family": "entities",
+            "depth": 82,
+            "grade": "exact",
+            "got": 0
+          }
+        ],
+        "by_family": {
+          "needle": {
+            "n": 5,
+            "credit": 5.0,
+            "score": 1.0
+          },
+          "constraint": {
+            "n": 1,
+            "credit": 0.5,
+            "score": 0.5
+          },
+          "mutable_state": {
+            "n": 1,
+            "credit": 1.0,
+            "score": 1.0
+          },
+          "negative_memory": {
+            "n": 2,
+            "credit": 2.0,
+            "score": 1.0
+          },
+          "entities": {
+            "n": 3,
+            "credit": 3.0,
+            "score": 1.0
+          }
+        },
+        "score": 0.958,
+        "exact_count": 11,
+        "hallucinated_count": 0,
+        "stale_count": 0,
+        "ttft_prefill_ms": 9781.11,
+        "prefill_tps": 1668.1133327403534,
+        "decode_tps_at_occupancy": 51.82414932480826,
+        "decoded_tokens": 512,
+        "processed_prompt_tokens": 16316,
+        "cache_n": 32,
+        "wall_s": 19.8,
+        "finish_reason": "stop",
+        "truncated": false,
+        "reasoning_chars": 819,
+        "raw_reply": "{\n  \"build_token\": \"H7Q9-42AX-731\",\n  \"signing_tag\": \"K3M8-57BW-904\",\n  \"route_key\": \"P5R2-18CQ-663\",\n  \"shader_stamp\": \"T9L4-63DZ-215\",\n  \"handshake_id\": \"W1X6-90EV-478\",\n  \"frozen_file\": \"src/persistence/SaveMigratorV1.cs\",\n  \"add_item_call\": \"InventoryService.TryAdd\",\n  \"rejected_token\": \"ReflectionScanV2\",\n  \"rejected_reason\": \"it allocates on every frame under IL2CPP\",\n  \"projectile_pool_prewarm\": 512,\n  \"audio_pool_max\": 24,\n  \"network_pool_prewarm\": 0\n}"
+      },
+      {
+        "target_tokens": 32768,
+        "output_reserve": 8192,
+        "output_reserve_source": "profile",
+        "filler_units": 390,
+        "corpus_tokens": 32282,
+        "prompt_tokens": 32616,
+        "corpus_sha256": "f41f0be226b4f55bd3c0c9b0fd6ecdce1c55b2b6eaf4e5482f6b681c6d084707",
+        "clean_json": true,
+        "parsed": true,
+        "probes": [
+          {
+            "key": "build_token",
+            "family": "needle",
+            "depth": 5,
+            "grade": "exact",
+            "got": "H7Q9-42AX-731"
+          },
+          {
+            "key": "signing_tag",
+            "family": "needle",
+            "depth": 25,
+            "grade": "exact",
+            "got": "K3M8-57BW-904"
+          },
+          {
+            "key": "route_key",
+            "family": "needle",
+            "depth": 50,
+            "grade": "exact",
+            "got": "P5R2-18CQ-663"
+          },
+          {
+            "key": "shader_stamp",
+            "family": "needle",
+            "depth": 75,
+            "grade": "exact",
+            "got": "T9L4-63DZ-215"
+          },
+          {
+            "key": "handshake_id",
+            "family": "needle",
+            "depth": 90,
+            "grade": "exact",
+            "got": "W1X6-90EV-478"
+          },
+          {
+            "key": "frozen_file",
+            "family": "constraint",
+            "depth": 12,
+            "grade": "partial",
+            "got": "src/persistence/SaveMigratorV1.cs"
+          },
+          {
+            "key": "add_item_call",
+            "family": "mutable_state",
+            "depth": 62,
+            "grade": "exact",
+            "got": "InventoryService.TryAdd"
+          },
+          {
+            "key": "rejected_token",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "ReflectionScanV2"
+          },
+          {
+            "key": "rejected_reason",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "it allocates on every frame under IL2CPP"
+          },
+          {
+            "key": "projectile_pool_prewarm",
+            "family": "entities",
+            "depth": 30,
+            "grade": "exact",
+            "got": 512
+          },
+          {
+            "key": "audio_pool_max",
+            "family": "entities",
+            "depth": 55,
+            "grade": "exact",
+            "got": 24
+          },
+          {
+            "key": "network_pool_prewarm",
+            "family": "entities",
+            "depth": 82,
+            "grade": "exact",
+            "got": 0
+          }
+        ],
+        "by_family": {
+          "needle": {
+            "n": 5,
+            "credit": 5.0,
+            "score": 1.0
+          },
+          "constraint": {
+            "n": 1,
+            "credit": 0.5,
+            "score": 0.5
+          },
+          "mutable_state": {
+            "n": 1,
+            "credit": 1.0,
+            "score": 1.0
+          },
+          "negative_memory": {
+            "n": 2,
+            "credit": 2.0,
+            "score": 1.0
+          },
+          "entities": {
+            "n": 3,
+            "credit": 3.0,
+            "score": 1.0
+          }
+        },
+        "score": 0.958,
+        "exact_count": 11,
+        "hallucinated_count": 0,
+        "stale_count": 0,
+        "ttft_prefill_ms": 25203.242,
+        "prefill_tps": 1294.4366443015545,
+        "decode_tps_at_occupancy": 48.802788845898284,
+        "decoded_tokens": 533,
+        "processed_prompt_tokens": 32624,
+        "cache_n": 32,
+        "wall_s": 36.2,
+        "finish_reason": "stop",
+        "truncated": false,
+        "reasoning_chars": 912,
+        "raw_reply": "{\n  \"build_token\": \"H7Q9-42AX-731\",\n  \"signing_tag\": \"K3M8-57BW-904\",\n  \"route_key\": \"P5R2-18CQ-663\",\n  \"shader_stamp\": \"T9L4-63DZ-215\",\n  \"handshake_id\": \"W1X6-90EV-478\",\n  \"frozen_file\": \"src/persistence/SaveMigratorV1.cs\",\n  \"add_item_call\": \"InventoryService.TryAdd\",\n  \"rejected_token\": \"ReflectionScanV2\",\n  \"rejected_reason\": \"it allocates on every frame under IL2CPP\",\n  \"projectile_pool_prewarm\": 512,\n  \"audio_pool_max\": 24,\n  \"network_pool_prewarm\": 0\n}"
+      },
+      {
+        "target_tokens": 65536,
+        "output_reserve": 8192,
+        "output_reserve_source": "profile",
+        "filler_units": 795,
+        "corpus_tokens": 65085,
+        "prompt_tokens": 65419,
+        "corpus_sha256": "223434f2fb8c5c7e5b82ae0f1024236b71a849f8319df79fcd90a1bd5906f375",
+        "clean_json": true,
+        "parsed": true,
+        "probes": [
+          {
+            "key": "build_token",
+            "family": "needle",
+            "depth": 5,
+            "grade": "exact",
+            "got": "H7Q9-42AX-731"
+          },
+          {
+            "key": "signing_tag",
+            "family": "needle",
+            "depth": 25,
+            "grade": "exact",
+            "got": "K3M8-57BW-904"
+          },
+          {
+            "key": "route_key",
+            "family": "needle",
+            "depth": 50,
+            "grade": "exact",
+            "got": "P5R2-18CQ-663"
+          },
+          {
+            "key": "shader_stamp",
+            "family": "needle",
+            "depth": 75,
+            "grade": "exact",
+            "got": "T9L4-63DZ-215"
+          },
+          {
+            "key": "handshake_id",
+            "family": "needle",
+            "depth": 90,
+            "grade": "exact",
+            "got": "W1X6-90EV-478"
+          },
+          {
+            "key": "frozen_file",
+            "family": "constraint",
+            "depth": 12,
+            "grade": "partial",
+            "got": "src/persistence/SaveMigratorV1.cs"
+          },
+          {
+            "key": "add_item_call",
+            "family": "mutable_state",
+            "depth": 62,
+            "grade": "exact",
+            "got": "InventoryService.TryAdd"
+          },
+          {
+            "key": "rejected_token",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "ReflectionScanV2"
+          },
+          {
+            "key": "rejected_reason",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "it allocates on every frame under IL2CPP"
+          },
+          {
+            "key": "projectile_pool_prewarm",
+            "family": "entities",
+            "depth": 30,
+            "grade": "exact",
+            "got": 512
+          },
+          {
+            "key": "audio_pool_max",
+            "family": "entities",
+            "depth": 55,
+            "grade": "exact",
+            "got": 24
+          },
+          {
+            "key": "network_pool_prewarm",
+            "family": "entities",
+            "depth": 82,
+            "grade": "exact",
+            "got": 0
+          }
+        ],
+        "by_family": {
+          "needle": {
+            "n": 5,
+            "credit": 5.0,
+            "score": 1.0
+          },
+          "constraint": {
+            "n": 1,
+            "credit": 0.5,
+            "score": 0.5
+          },
+          "mutable_state": {
+            "n": 1,
+            "credit": 1.0,
+            "score": 1.0
+          },
+          "negative_memory": {
+            "n": 2,
+            "credit": 2.0,
+            "score": 1.0
+          },
+          "entities": {
+            "n": 3,
+            "credit": 3.0,
+            "score": 1.0
+          }
+        },
+        "score": 0.958,
+        "exact_count": 11,
+        "hallucinated_count": 0,
+        "stale_count": 0,
+        "ttft_prefill_ms": 75236.693,
+        "prefill_tps": 869.6155744112783,
+        "decode_tps_at_occupancy": 43.1151481565665,
+        "decoded_tokens": 504,
+        "processed_prompt_tokens": 65427,
+        "cache_n": 32,
+        "wall_s": 87.1,
+        "finish_reason": "stop",
+        "truncated": false,
+        "reasoning_chars": 827,
+        "raw_reply": "{\n  \"build_token\": \"H7Q9-42AX-731\",\n  \"signing_tag\": \"K3M8-57BW-904\",\n  \"route_key\": \"P5R2-18CQ-663\",\n  \"shader_stamp\": \"T9L4-63DZ-215\",\n  \"handshake_id\": \"W1X6-90EV-478\",\n  \"frozen_file\": \"src/persistence/SaveMigratorV1.cs\",\n  \"add_item_call\": \"InventoryService.TryAdd\",\n  \"rejected_token\": \"ReflectionScanV2\",\n  \"rejected_reason\": \"it allocates on every frame under IL2CPP\",\n  \"projectile_pool_prewarm\": 512,\n  \"audio_pool_max\": 24,\n  \"network_pool_prewarm\": 0\n}"
+      },
+      {
+        "target_tokens": 120000,
+        "output_reserve": 8192,
+        "output_reserve_source": "profile",
+        "filler_units": 1468,
+        "corpus_tokens": 119590,
+        "prompt_tokens": 119924,
+        "corpus_sha256": "1dd69554aa4053384e14af6cf7c6b7bbee83a10d1375332d24fb01ef7415ac25",
+        "clean_json": true,
+        "parsed": true,
+        "probes": [
+          {
+            "key": "build_token",
+            "family": "needle",
+            "depth": 5,
+            "grade": "exact",
+            "got": "H7Q9-42AX-731"
+          },
+          {
+            "key": "signing_tag",
+            "family": "needle",
+            "depth": 25,
+            "grade": "exact",
+            "got": "K3M8-57BW-904"
+          },
+          {
+            "key": "route_key",
+            "family": "needle",
+            "depth": 50,
+            "grade": "exact",
+            "got": "P5R2-18CQ-663"
+          },
+          {
+            "key": "shader_stamp",
+            "family": "needle",
+            "depth": 75,
+            "grade": "exact",
+            "got": "T9L4-63DZ-215"
+          },
+          {
+            "key": "handshake_id",
+            "family": "needle",
+            "depth": 90,
+            "grade": "exact",
+            "got": "W1X6-90EV-478"
+          },
+          {
+            "key": "frozen_file",
+            "family": "constraint",
+            "depth": 12,
+            "grade": "partial",
+            "got": "src/persistence/SaveMigratorV1.cs"
+          },
+          {
+            "key": "add_item_call",
+            "family": "mutable_state",
+            "depth": 62,
+            "grade": "exact",
+            "got": "InventoryService.TryAdd"
+          },
+          {
+            "key": "rejected_token",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "ReflectionScanV2"
+          },
+          {
+            "key": "rejected_reason",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "it allocates on every frame under IL2CPP"
+          },
+          {
+            "key": "projectile_pool_prewarm",
+            "family": "entities",
+            "depth": 30,
+            "grade": "exact",
+            "got": 512
+          },
+          {
+            "key": "audio_pool_max",
+            "family": "entities",
+            "depth": 55,
+            "grade": "exact",
+            "got": 24
+          },
+          {
+            "key": "network_pool_prewarm",
+            "family": "entities",
+            "depth": 82,
+            "grade": "exact",
+            "got": 0
+          }
+        ],
+        "by_family": {
+          "needle": {
+            "n": 5,
+            "credit": 5.0,
+            "score": 1.0
+          },
+          "constraint": {
+            "n": 1,
+            "credit": 0.5,
+            "score": 0.5
+          },
+          "mutable_state": {
+            "n": 1,
+            "credit": 1.0,
+            "score": 1.0
+          },
+          "negative_memory": {
+            "n": 2,
+            "credit": 2.0,
+            "score": 1.0
+          },
+          "entities": {
+            "n": 3,
+            "credit": 3.0,
+            "score": 1.0
+          }
+        },
+        "score": 0.958,
+        "exact_count": 11,
+        "hallucinated_count": 0,
+        "stale_count": 0,
+        "ttft_prefill_ms": 210955.561,
+        "prefill_tps": 568.5178405891845,
+        "decode_tps_at_occupancy": 37.46591593186728,
+        "decoded_tokens": 529,
+        "processed_prompt_tokens": 119932,
+        "cache_n": 32,
+        "wall_s": 225.3,
+        "finish_reason": "stop",
+        "truncated": false,
+        "reasoning_chars": 873,
+        "raw_reply": "{\n  \"build_token\": \"H7Q9-42AX-731\",\n  \"signing_tag\": \"K3M8-57BW-904\",\n  \"route_key\": \"P5R2-18CQ-663\",\n  \"shader_stamp\": \"T9L4-63DZ-215\",\n  \"handshake_id\": \"W1X6-90EV-478\",\n  \"frozen_file\": \"src/persistence/SaveMigratorV1.cs\",\n  \"add_item_call\": \"InventoryService.TryAdd\",\n  \"rejected_token\": \"ReflectionScanV2\",\n  \"rejected_reason\": \"it allocates on every frame under IL2CPP\",\n  \"projectile_pool_prewarm\": 512,\n  \"audio_pool_max\": 24,\n  \"network_pool_prewarm\": 0\n}"
+      },
+      {
+        "target_tokens": 196608,
+        "output_reserve": 8192,
+        "output_reserve_source": "profile",
+        "filler_units": 2415,
+        "corpus_tokens": 196138,
+        "prompt_tokens": 196472,
+        "corpus_sha256": "a1a6f2080ad6410c0d8074e8eeaf2f79f683060cb85f66ce8dbd6e3b32ca42f6",
+        "clean_json": true,
+        "parsed": true,
+        "probes": [
+          {
+            "key": "build_token",
+            "family": "needle",
+            "depth": 5,
+            "grade": "exact",
+            "got": "H7Q9-42AX-731"
+          },
+          {
+            "key": "signing_tag",
+            "family": "needle",
+            "depth": 25,
+            "grade": "exact",
+            "got": "K3M8-57BW-904"
+          },
+          {
+            "key": "route_key",
+            "family": "needle",
+            "depth": 50,
+            "grade": "exact",
+            "got": "P5R2-18CQ-663"
+          },
+          {
+            "key": "shader_stamp",
+            "family": "needle",
+            "depth": 75,
+            "grade": "exact",
+            "got": "T9L4-63DZ-215"
+          },
+          {
+            "key": "handshake_id",
+            "family": "needle",
+            "depth": 90,
+            "grade": "exact",
+            "got": "W1X6-90EV-478"
+          },
+          {
+            "key": "frozen_file",
+            "family": "constraint",
+            "depth": 12,
+            "grade": "partial",
+            "got": "src/persistence/SaveMigratorV1.cs"
+          },
+          {
+            "key": "add_item_call",
+            "family": "mutable_state",
+            "depth": 62,
+            "grade": "exact",
+            "got": "InventoryService.TryAdd"
+          },
+          {
+            "key": "rejected_token",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "ReflectionScanV2"
+          },
+          {
+            "key": "rejected_reason",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "It allocates on every frame under IL2CPP."
+          },
+          {
+            "key": "projectile_pool_prewarm",
+            "family": "entities",
+            "depth": 30,
+            "grade": "exact",
+            "got": 512
+          },
+          {
+            "key": "audio_pool_max",
+            "family": "entities",
+            "depth": 55,
+            "grade": "exact",
+            "got": 24
+          },
+          {
+            "key": "network_pool_prewarm",
+            "family": "entities",
+            "depth": 82,
+            "grade": "exact",
+            "got": 0
+          }
+        ],
+        "by_family": {
+          "needle": {
+            "n": 5,
+            "credit": 5.0,
+            "score": 1.0
+          },
+          "constraint": {
+            "n": 1,
+            "credit": 0.5,
+            "score": 0.5
+          },
+          "mutable_state": {
+            "n": 1,
+            "credit": 1.0,
+            "score": 1.0
+          },
+          "negative_memory": {
+            "n": 2,
+            "credit": 2.0,
+            "score": 1.0
+          },
+          "entities": {
+            "n": 3,
+            "credit": 3.0,
+            "score": 1.0
+          }
+        },
+        "score": 0.958,
+        "exact_count": 11,
+        "hallucinated_count": 0,
+        "stale_count": 0,
+        "ttft_prefill_ms": 518045.527,
+        "prefill_tps": 379.2716851312568,
+        "decode_tps_at_occupancy": 31.219588708312138,
+        "decoded_tokens": 414,
+        "processed_prompt_tokens": 196480,
+        "cache_n": 32,
+        "wall_s": 531.7,
+        "finish_reason": "stop",
+        "truncated": false,
+        "reasoning_chars": 524,
+        "raw_reply": "{\n  \"build_token\": \"H7Q9-42AX-731\",\n  \"signing_tag\": \"K3M8-57BW-904\",\n  \"route_key\": \"P5R2-18CQ-663\",\n  \"shader_stamp\": \"T9L4-63DZ-215\",\n  \"handshake_id\": \"W1X6-90EV-478\",\n  \"frozen_file\": \"src/persistence/SaveMigratorV1.cs\",\n  \"add_item_call\": \"InventoryService.TryAdd\",\n  \"rejected_token\": \"ReflectionScanV2\",\n  \"rejected_reason\": \"It allocates on every frame under IL2CPP.\",\n  \"projectile_pool_prewarm\": 512,\n  \"audio_pool_max\": 24,\n  \"network_pool_prewarm\": 0\n}"
+      },
+      {
+        "target_tokens": 240000,
+        "output_reserve": 8192,
+        "output_reserve_source": "profile",
+        "filler_units": 2951,
+        "corpus_tokens": 239515,
+        "prompt_tokens": 239849,
+        "corpus_sha256": "35fa6b271106bdc0d69192291b21327c5ccac2d882bfda12f1376b3816bf51e5",
+        "clean_json": true,
+        "parsed": true,
+        "probes": [
+          {
+            "key": "build_token",
+            "family": "needle",
+            "depth": 5,
+            "grade": "exact",
+            "got": "H7Q9-42AX-731"
+          },
+          {
+            "key": "signing_tag",
+            "family": "needle",
+            "depth": 25,
+            "grade": "hallucinated",
+            "got": "K3M8-57BV-904"
+          },
+          {
+            "key": "route_key",
+            "family": "needle",
+            "depth": 50,
+            "grade": "exact",
+            "got": "P5R2-18CQ-663"
+          },
+          {
+            "key": "shader_stamp",
+            "family": "needle",
+            "depth": 75,
+            "grade": "exact",
+            "got": "T9L4-63DZ-215"
+          },
+          {
+            "key": "handshake_id",
+            "family": "needle",
+            "depth": 90,
+            "grade": "exact",
+            "got": "W1X6-90EV-478"
+          },
+          {
+            "key": "frozen_file",
+            "family": "constraint",
+            "depth": 12,
+            "grade": "partial",
+            "got": "src/persistence/SaveMigratorV1.cs"
+          },
+          {
+            "key": "add_item_call",
+            "family": "mutable_state",
+            "depth": 62,
+            "grade": "exact",
+            "got": "InventoryService.TryAdd"
+          },
+          {
+            "key": "rejected_token",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "ReflectionScanV2"
+          },
+          {
+            "key": "rejected_reason",
+            "family": "negative_memory",
+            "depth": 35,
+            "grade": "exact",
+            "got": "it allocates on every frame under IL2CPP"
+          },
+          {
+            "key": "projectile_pool_prewarm",
+            "family": "entities",
+            "depth": 30,
+            "grade": "exact",
+            "got": 512
+          },
+          {
+            "key": "audio_pool_max",
+            "family": "entities",
+            "depth": 55,
+            "grade": "exact",
+            "got": 24
+          },
+          {
+            "key": "network_pool_prewarm",
+            "family": "entities",
+            "depth": 82,
+            "grade": "exact",
+            "got": 0
+          }
+        ],
+        "by_family": {
+          "needle": {
+            "n": 5,
+            "credit": 4.0,
+            "score": 0.8
+          },
+          "constraint": {
+            "n": 1,
+            "credit": 0.5,
+            "score": 0.5
+          },
+          "mutable_state": {
+            "n": 1,
+            "credit": 1.0,
+            "score": 1.0
+          },
+          "negative_memory": {
+            "n": 2,
+            "credit": 2.0,
+            "score": 1.0
+          },
+          "entities": {
+            "n": 3,
+            "credit": 3.0,
+            "score": 1.0
+          }
+        },
+        "score": 0.875,
+        "exact_count": 10,
+        "hallucinated_count": 1,
+        "stale_count": 0,
+        "ttft_prefill_ms": 755751.972,
+        "prefill_tps": 317.37528830424276,
+        "decode_tps_at_occupancy": 28.41626271668991,
+        "decoded_tokens": 603,
+        "processed_prompt_tokens": 239857,
+        "cache_n": 32,
+        "wall_s": 777.5,
+        "finish_reason": "stop",
+        "truncated": false,
+        "reasoning_chars": 1250,
+        "raw_reply": "{\n  \"build_token\": \"H7Q9-42AX-731\",\n  \"signing_tag\": \"K3M8-57BV-904\",\n  \"route_key\": \"P5R2-18CQ-663\",\n  \"shader_stamp\": \"T9L4-63DZ-215\",\n  \"handshake_id\": \"W1X6-90EV-478\",\n  \"frozen_file\": \"src/persistence/SaveMigratorV1.cs\",\n  \"add_item_call\": \"InventoryService.TryAdd\",\n  \"rejected_token\": \"ReflectionScanV2\",\n  \"rejected_reason\": \"it allocates on every frame under IL2CPP\",\n  \"projectile_pool_prewarm\": 512,\n  \"audio_pool_max\": 24,\n  \"network_pool_prewarm\": 0\n}"
+      }
+    ]
+  }
+}

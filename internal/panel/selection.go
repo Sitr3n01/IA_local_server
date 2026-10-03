@@ -25,7 +25,8 @@ type Selection struct {
 
 // SelectionStore persists a selection atomically beside the configured state
 // path. A missing file falls back in memory to provider.public_model; corrupt
-// or unavailable selections fail closed and are never rewritten implicitly.
+// or unavailable selections fail Load and are never rewritten implicitly, so
+// the caller decides whether to fall back with Fallback and say so.
 type SelectionStore struct {
 	path    string
 	catalog *Catalog
@@ -46,7 +47,7 @@ func NewSelectionStore(path string, catalog *Catalog) (*SelectionStore, error) {
 func (s *SelectionStore) Load() (Selection, error) {
 	data, err := readLimitedFile(s.path, maxSelectionBytes)
 	if errors.Is(err, os.ErrNotExist) {
-		return s.fallback()
+		return s.Fallback()
 	}
 	if err != nil {
 		return Selection{}, fmt.Errorf("open panel selection: %w", err)
@@ -115,7 +116,9 @@ func (s *SelectionStore) Save(modelID string) (Selection, error) {
 	return selection, nil
 }
 
-func (s *SelectionStore) fallback() (Selection, error) {
+// Fallback is the selection used when none was saved: the deployment's public
+// model. It changes no file.
+func (s *SelectionStore) Fallback() (Selection, error) {
 	selection := Selection{SchemaVersion: selectionSchemaVersion, Model: s.catalog.PublicModel}
 	if err := s.validate(selection); err != nil {
 		return Selection{}, fmt.Errorf("public model fallback is unavailable: %w", err)

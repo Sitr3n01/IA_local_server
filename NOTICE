@@ -20,8 +20,6 @@ software and model artifacts. They are not relicensed by this repository:
   https://gopkg.in/yaml.v3
 - jsonschema-go, Copyright The JSON Schema Go Project Authors, MIT-style License.
   https://github.com/google/jsonschema-go
-- Ornith 1.0 9B GGUF artifact, model repository license recorded as MIT.
-  https://huggingface.co/deepreinforce-ai/Ornith-1.0-9B-GGUF
 - Qwen 3.5 4B GGUF artifact, model repository license recorded as Apache-2.0.
   https://huggingface.co/unsloth/Qwen3.5-4B-GGUF
 

@@ -1,8 +1,8 @@
 {
     "models":  [
                    {
-                       "slug":  "gemma4-12b-qat-ud-q4xl",
-                       "display_name":  "CIA Local - Gemma 4 12B QAT UD Q4_K_XL - 128k context",
+                       "slug":  "gemma4-12b-qat-ud-q4xl-256k",
+                       "display_name":  "CIA Local - Gemma 4 12B QAT | UD-Q4_K_XL | 256k context",
                        "description":  "Explicit local-only model served from this machine. No cloud fallback.",
                        "default_reasoning_level":  "medium",
                        "supported_reasoning_levels":  [
@@ -13,7 +13,7 @@
                                                       ],
                        "shell_type":  "shell_command",
                        "visibility":  "list",
-                       "supported_in_api":  true,
+                       "supported_in_api":  false,
                        "priority":  1,
                        "additional_speed_tiers":  [
 
@@ -42,9 +42,9 @@
                                              },
                        "supports_parallel_tool_calls":  false,
                        "supports_image_detail_original":  false,
-                       "context_window":  131072,
-                       "max_context_window":  131072,
-                       "comp_hash":  "cia-local-v2-gemma4-12b-qat-ud-q4xl",
+                       "context_window":  262144,
+                       "max_context_window":  262144,
+                       "comp_hash":  "cia-local-v2-gemma4-12b-qat-ud-q4xl-256k",
                        "effective_context_window_percent":  85,
                        "experimental_supported_tools":  [
 
@@ -57,7 +57,7 @@
                    },
                    {
                        "slug":  "qwen38-27b-deep-32k",
-                       "display_name":  "CIA Local - Qwen3.8 Deep 32k - IQ4_XS / KV q8_0 - hardest localized tasks",
+                       "display_name":  "CIA Local - Qwen 3.8 27B | UD-IQ4_XS | 32k context",
                        "description":  "Explicit local-only model served from this machine. No cloud fallback.",
                        "default_reasoning_level":  "medium",
                        "supported_reasoning_levels":  [
@@ -112,7 +112,7 @@
                    },
                    {
                        "slug":  "qwen38-27b-agent-128k",
-                       "display_name":  "CIA Local - Qwen3.8 Agent 128k - Q3_K_XL / KV q4_0 - daily agentic coding",
+                       "display_name":  "CIA Local - Qwen 3.8 27B | UD-Q3_K_XL | 128k context",
                        "description":  "Explicit local-only model served from this machine. No cloud fallback.",
                        "default_reasoning_level":  "medium",
                        "supported_reasoning_levels":  [
@@ -166,8 +166,8 @@
                        "use_responses_lite":  false
                    },
                    {
-                       "slug":  "qwen38-27b-huge-256k",
-                       "display_name":  "CIA Local - Qwen3.8 Huge 256k - Q2_K_XL / KV q4_0 - huge context, high thinking budget",
+                       "slug":  "qwen36-35b-a3b-huge-256k",
+                       "display_name":  "CIA Local - Qwen 3.6 35B-A3B | UD-Q2_K_XL | 256k context",
                        "description":  "Explicit local-only model served from this machine. No cloud fallback.",
                        "default_reasoning_level":  "medium",
                        "supported_reasoning_levels":  [
@@ -178,7 +178,7 @@
                                                       ],
                        "shell_type":  "shell_command",
                        "visibility":  "list",
-                       "supported_in_api":  true,
+                       "supported_in_api":  false,
                        "priority":  4,
                        "additional_speed_tiers":  [
 
@@ -205,11 +205,11 @@
                                                  "mode":  "tokens",
                                                  "limit":  10000
                                              },
-                       "supports_parallel_tool_calls":  true,
+                       "supports_parallel_tool_calls":  false,
                        "supports_image_detail_original":  false,
                        "context_window":  262144,
                        "max_context_window":  262144,
-                       "comp_hash":  "cia-local-v2-qwen38-27b-huge-256k",
+                       "comp_hash":  "cia-local-v2-qwen36-35b-a3b-huge-256k",
                        "effective_context_window_percent":  84,
                        "experimental_supported_tools":  [
 

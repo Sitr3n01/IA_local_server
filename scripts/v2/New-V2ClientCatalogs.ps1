@@ -68,7 +68,7 @@ $codexModels = foreach ($model in $models) {
         supported_reasoning_levels = @([ordered]@{ effort = 'medium'; description = 'Local model default' })
         shell_type = 'shell_command'
         visibility = 'list'
-        supported_in_api = $true
+        supported_in_api = [bool]($model.capabilities.responses -and $model.capabilities.streaming -and $model.capabilities.function_calling)
         priority = $priority++
         additional_speed_tiers = @()
         service_tiers = @()
@@ -115,6 +115,9 @@ function New-OpenCodeConfig {
     foreach ($model in $models) {
         $modelMap[[string]$model.id] = [ordered]@{
             name = [string]$model.display_name
+            tool_call = [bool]$model.capabilities.function_calling
+            reasoning = [bool]$model.capabilities.reasoning
+            attachment = $false
             limit = [ordered]@{
                 context = [int]$model.context_tokens
                 output = [int]$model.max_output_tokens

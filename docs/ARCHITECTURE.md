@@ -35,7 +35,7 @@ llama.cpp upstream            buun-llama-cpp fork
 
 Unsloth -> export -> offline validation -> manifest promotion
 
-cia-tray -> authenticated control API + explicit harness launchers
+cia-tray (IA Local) -> router/edge tasks + control API + monitor + Claude Desktop (signed-in and local, side by side)
 
 SOTA harness -> cia-mcp-inference (stdio) -> cia-edge data plane
 ```
@@ -57,7 +57,7 @@ No v2 listener may bind to `0.0.0.0`, `::`, a LAN address, or a public interface
 - Allows only `GET /v1/models`, `POST /v1/responses`, and `POST /v1/chat/completions` on the data plane.
 - Decodes `identity`, `gzip`, and `zstd` within fixed compressed, decoded, and expansion-ratio limits.
 - Streams upstream bytes as they arrive and propagates client cancellation.
-- Applies narrow, route-specific compatibility adapters required by the verified clients/runtime: Responses accepts its flat function shape and flattens/restores Codex namespace tools only on the internal hop; Chat Completions validates and preserves the standard wrapped `tools[].function` shape used by OpenCode. Initial contiguous authority messages are coalesced for the Ornith template. Interleaved authority messages, hybrid tool shapes, unsupported tool types, and non-text authority content fail closed.
+- Applies narrow, route-specific compatibility adapters required by the verified clients/runtime: Responses accepts its flat function shape and flattens/restores Codex namespace tools only on the internal hop; Chat Completions validates and preserves the standard wrapped `tools[].function` shape used by OpenCode; Anthropic Messages accepts Claude Desktop's exact beta transport query, maps mid-conversation system messages, and omits Cowork's always-present tool definitions only for a text-only model with no tool history. Initial contiguous authority messages are coalesced, because llama.cpp maps `system` and `developer` to `system` and several chat templates accept only one initial system message. Interleaved authority messages on OpenAI routes, hybrid tool shapes, unsupported tool types, and non-text authority content fail closed.
 - Removes the client `Authorization` header and authenticates to the router with `CIA_ROUTER_TOKEN`.
 - Uses distinct `CIA_INFERENCE_TOKEN` and `CIA_ADMIN_TOKEN` credentials.
 - Fails closed for unknown routes, models, encodings, and unsupported stateful behavior.
@@ -135,11 +135,20 @@ No v2 listener may bind to `0.0.0.0`, `::`, a LAN address, or a public interface
 
 ### Operator panel
 
-- `cia-tray.exe` is a native Win32 notification-area process with no listener,
-  browser runtime, chat surface, or prompt history.
-- Its periodic snapshot is public, metadata-only, and never reads or sends a
-  credential. It reads the administrative credential directly from Windows
-  Credential Manager only after an explicit load, unload, or switch action.
+- `cia-tray.exe` ("IA Local") is a native Win32 notification-area process with
+  no listener, browser runtime, chat surface, or prompt history. Its one window
+  is a flyout drawn with GDI+/GDI from the browser monitor's design tokens
+  (ADR 0021); it is not a web view.
+- It is the deployment's only startup entry: a current-user `Run` value that
+  Task Manager lists as "IA Local". When it opens it starts the Router and Edge
+  tasks that are not already running, through the Task Scheduler COM API;
+  "Encerrar", after an in-flyout confirmation, ends the monitor it started, the
+  Edge and the Router, then the tray.
+- Its periodic snapshot reads the public status and readiness routes. The only
+  credential it reads on its own is the Claude gateway key, at most once a
+  minute, to check the loopback gateway Claude Desktop's local mode would use.
+  It reads the administrative credential directly from Windows Credential
+  Manager only after an explicit load, unload, or switch action.
 - It combines immutable model/capability metadata from the installed manifest
   with live lifecycle, queue, and capacity state from `cia-edge`.
 - The only durable panel state is an atomically replaced selected-model file
@@ -147,13 +156,17 @@ No v2 listener may bind to `0.0.0.0`, `::`, a LAN address, or a public interface
   launches only; it is never represented as the GPU-active model.
 - Load, unload, and switch run asynchronously so a cold start cannot block
   Explorer. An admitted switch finishes independently of the panel connection;
-  the Exit command is disabled while an administrative operation is active.
+  "Encerrar" is disabled while an administrative operation is active.
   The edge remains responsible for inference exclusion and resource admission.
 - Harness processes receive a model ID only after exact catalog and capability
   validation. Their process environments are allowlisted and contain no cloud
   credentials inherited from the tray.
-- Closing the icon does not stop serving components. At most one tray instance
-  per deployment is permitted by a named per-user mutex. The icon registers
+- "Abrir painel" starts `cia-monitor.exe` on demand in a kill-on-close job with
+  silent breakaway, so the monitor ends with the tray and the browser it opens
+  does not. If the tray itself crashes, the serving tasks keep running under
+  their supervisors; reopening IA Local finds them running.
+- At most one tray instance per deployment is permitted by a named per-user
+  mutex; a second start opens the running tray's flyout. The icon registers
   `TaskbarCreated` and re-adds itself after an Explorer restart.
 
 ### Harness isolation
@@ -291,9 +304,9 @@ user data.
 
 ## Process ownership and startup
 
-Two per-user scheduled tasks start at interactive logon: Router and Edge. Their direct action is `cia-supervisor.exe`, running without a console under limited user privileges. The supervisor constructs a minimal environment allowlist, obtains only the credentials needed by its child, and assigns the complete serving tree to a kill-on-close Windows Job Object. The router writes a derived API-key file under protected v2 state because llama-server cannot read Windows Credential Manager directly; no credential is placed in configuration or a command line. Stopping a task therefore cannot leave an edge, router, or model process behind.
+Two per-user scheduled tasks run Router and Edge. They have no trigger of their own: the IA Local tray, the deployment's single current-user startup entry, starts them when it opens (ADR 0021). Their direct action is `cia-supervisor.exe`, running without a console under limited user privileges. The supervisor constructs a minimal environment allowlist, obtains only the credentials needed by its child, and assigns the complete serving tree to a kill-on-close Windows Job Object. The router writes a derived API-key file under protected v2 state because llama-server cannot read Windows Credential Manager directly; no credential is placed in configuration or a command line. Stopping a task therefore cannot leave an edge, router, or model process behind.
 
-Interactive-logon tasks mean availability only while the user session exists: nothing serves before first logon, and everything stops at logoff. That is accepted for a workstation deployment and is the reason a Windows Service migration remains an explicit non-goal (ADR 0004).
+Tasks started in the interactive session mean availability only while the user session exists: nothing serves before first logon, and everything stops at logoff. That is accepted for a workstation deployment and is the reason a Windows Service migration remains an explicit non-goal (ADR 0004).
 
 Unexpected child exits use an in-process exponential backoff: one minute initially, doubling up to fifteen minutes, and resetting after a stable ten-minute run. Each transition is written to `state\supervisor-<component>.json` — restart count, consecutive unstable exits, current backoff, last exit text, and last run duration — so a restart loop is diagnosable without adding a listener to the supervisor. The record is metadata only. Task settings retain `IgnoreNew`, restart-on-failure, and no execution timeout as a second recovery layer. Generated VBS files remain optional hidden manual launchers; they are not the supervision boundary.
 
@@ -342,10 +355,11 @@ independent places: `provider.max_loaded_models` and `parallel` are pinned to
 `1` by the manifest schema, llama-swap applies `concurrencyLimit: 1`, and the
 edge gate admits one active request with a bounded queue.
 
-Raising `CIA_EDGE_MAX_ACTIVE` alone does **not** make the system concurrent. It
-widens the edge's admission window in front of a serialized runtime, which
-converts queue waiting into upstream contention and makes the queue metrics
-misleading without adding throughput.
+The edge rejects `CIA_EDGE_MAX_ACTIVE` values other than `1`. A model swap
+unloads the outgoing model and rechecks actual host memory before forwarding
+the incoming request; another active request must never overlap that unload.
+The resource peaks disclosed as reclaimable in status are projections, and do
+not replace this admission measurement after the unload.
 
 Real concurrency would require a coordinated change across: llama-server slots
 and `--parallel`; llama-swap's concurrency limit; the edge gate; per-slot KV
@@ -361,4 +375,3 @@ Device selection is `--device ROCm0` with `--split-mode none`, and the VRAM
 budget in the manifest is a single `runtimes[].device.vram_mib`. Multi-GPU is
 out of scope and no speculative abstraction exists for it; extending later means
 making the budget and the device selector plural, which is a contained change.
-

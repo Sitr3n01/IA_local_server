@@ -103,7 +103,7 @@ Test-Case 'binds every approved hash to the staged bytes it authorizes' {
         $staging = Join-Path $root 'state\staging'
 
         $resolved = Resolve-V2DeploymentApprovals -StagingRoot $staging -Approvals $approvals
-        if ($resolved.Count -ne 6) { throw "resolved $($resolved.Count) components, expected 6" }
+		if ($resolved.Count -ne 8) { throw "resolved $($resolved.Count) components, expected 8" }
 
         # A wrong hash is a refusal, not a warning.
         $wrong = @{} + $approvals
@@ -216,6 +216,27 @@ Test-Case 'reports a rollback that could not complete instead of hiding it' {
     finally { Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
+Test-Case 'skips unchanged files during a pre-cutover rollback' {
+    $root = New-TestInstallation
+    try {
+        $target = Join-Path $root 'bin\cia-edge.exe'
+        Write-TestFile -Path $target -Content 'release-one-edge'
+        $transaction = New-V2ReleaseTransaction -InstallRoot $root -Environment Final
+        Backup-V2ReleaseFile -Transaction $transaction -Path $target -Label 'bin:edge'
+
+        # An unchanged target must not depend on a writable destination or even
+        # on the backup copy. This is the normal pre-cutover failure case for a
+        # running executable on Windows.
+        Remove-Item -LiteralPath ($transaction.files[0].backup) -Force
+        $restore = Restore-V2Release -Transaction $transaction -TaskRestorer { param($n, $d) } -TaskRemover { param($n) }
+        if (-not $restore.succeeded) { throw "unchanged restore failed: $($restore.failures -join ' | ')" }
+        if (@($restore.restored | Where-Object { $_ -like 'unchanged *' }).Count -ne 1) {
+            throw "unchanged target was not reported as skipped: $($restore.restored -join ', ')"
+        }
+    }
+    finally { Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue }
+}
+
 Test-Case 'restores scheduled task definitions and unregisters tasks a release introduced' {
     $root = New-TestInstallation
     try {
@@ -261,6 +282,10 @@ Test-Case 'publishes a release manifest on success and withdraws it on rollback'
         $first = New-V2ReleaseTransaction -InstallRoot $root -Environment Final -Version 'v2-final-test.1'
         $firstRecord = Complete-V2ReleaseTransaction -Transaction $first -Status 'installed'
         if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) { throw 'no release manifest was published' }
+        $manifestBytes = [IO.File]::ReadAllBytes($manifestPath)
+        if ($manifestBytes.Length -ge 3 -and $manifestBytes[0] -eq 0xEF -and $manifestBytes[1] -eq 0xBB -and $manifestBytes[2] -eq 0xBF) {
+            throw 'release manifest contains a UTF-8 BOM that strict consumers reject'
+        }
         if ($firstRecord.previous_release_id) { throw 'the first release claims a predecessor' }
 
         $installed = Get-V2InstalledRelease -InstallRoot $root -Environment Final

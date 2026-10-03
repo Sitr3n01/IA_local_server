@@ -45,6 +45,8 @@ type commandSpec struct {
 	Env  []string
 }
 
+var readCredential = credential.Read
+
 func (c Config) Validate() error {
 	if c.Component != Router && c.Component != Edge {
 		return errors.New("component must be router or edge")
@@ -118,7 +120,7 @@ func (c Config) buildSpec() (commandSpec, error) {
 
 	switch c.Component {
 	case Router:
-		routerToken, err := credential.Read("router")
+		routerToken, err := readCredential("router")
 		if err != nil {
 			return commandSpec{}, fmt.Errorf("read router credential: %w", err)
 		}
@@ -132,21 +134,26 @@ func (c Config) buildSpec() (commandSpec, error) {
 			Env:  environment,
 		}, nil
 	case Edge:
-		inferenceToken, err := credential.Read("inference")
+		inferenceToken, err := readCredential("inference")
 		if err != nil {
 			return commandSpec{}, fmt.Errorf("read inference credential: %w", err)
 		}
-		adminToken, err := credential.Read("admin")
+		adminToken, err := readCredential("admin")
 		if err != nil {
 			return commandSpec{}, fmt.Errorf("read administrative credential: %w", err)
 		}
-		routerToken, err := credential.Read("router")
+		routerToken, err := readCredential("router")
 		if err != nil {
 			return commandSpec{}, fmt.Errorf("read router credential: %w", err)
+		}
+		claudeGatewayToken, err := readCredential("claude-gateway")
+		if err != nil {
+			return commandSpec{}, fmt.Errorf("read Claude gateway credential: %w", err)
 		}
 		environment = setEnvironment(environment, "CIA_INFERENCE_TOKEN", inferenceToken)
 		environment = setEnvironment(environment, "CIA_ADMIN_TOKEN", adminToken)
 		environment = setEnvironment(environment, "CIA_ROUTER_TOKEN", routerToken)
+		environment = setEnvironment(environment, "CIA_CLAUDE_GATEWAY_TOKEN", claudeGatewayToken)
 		environment = setEnvironment(environment, "CIA_EDGE_LOG_PATH", filepath.Join(root, "logs", "cia-edge.jsonl"))
 		args := []string{
 			"--environment", c.Environment,

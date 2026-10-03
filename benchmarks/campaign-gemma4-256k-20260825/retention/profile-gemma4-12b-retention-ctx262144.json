@@ -1,0 +1,881 @@
+﻿{
+    "schema_version":  1,
+    "scenario":  "profile-qualification",
+    "label":  "gemma4-12b-retention-ctx262144",
+    "started_utc":  "2026-08-25T15:41:24.0770767Z",
+    "configuration":  {
+                          "model_path":  "C:\\IA\\models\\gemma-4-12B-it-qat-GGUF\\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+                          "model_bytes":  6716356800,
+                          "runtime_root":  "C:\\Users\\Sitr3n\\.unsloth\\llama.cpp\\build\\bin\\Release",
+                          "context_tokens":  262144,
+                          "cache_type_k":  "q4_0",
+                          "cache_type_v":  "q4_0",
+                          "ubatch_size":  512,
+                          "batch_size":  2048,
+                          "gpu_layers":  99,
+                          "threads":  8,
+                          "parallel":  1,
+                          "tensor_override":  "",
+                          "n_predict":  8192,
+                          "reasoning_budget":  null,
+                          "reasoning_budget_message":  null,
+                          "cpu_moe":  false,
+                          "n_cpu_moe":  null,
+                          "device_vram_mib":  16304,
+                          "max_tokens":  null,
+                          "request_budget":  {
+                                                 "request_max_tokens":  8192,
+                                                 "n_predict":  8192,
+                                                 "effective_generation_ceiling":  8192,
+                                                 "effective_max_tokens":  8192,
+                                                 "budget_profile":  "deployment",
+                                                 "source":  "profile",
+                                                 "reasoning_budget":  null,
+                                                 "answer_reserve":  null,
+                                                 "minimum_answer_reserve":  null,
+                                                 "reserve_ok":  true,
+                                                 "constrained_diagnostic":  false
+                                             },
+                          "temperature":  0,
+                          "seed":  20260821,
+                          "system_policy":  "current",
+                          "strict_tool_policy":  false,
+                          "tool_schema_policy":  false,
+                          "constrained_request_budget_diagnostic":  false,
+                          "capture_diagnostics":  false,
+                          "command_line":  "\"C:\\Users\\Sitr3n\\.unsloth\\llama.cpp\\build\\bin\\Release\\llama-server.exe\" --model \"C:\\IA\\models\\gemma-4-12B-it-qat-GGUF\\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf\" --host 127.0.0.1 --port 19399 --alias local --device ROCm0 --split-mode none --gpu-layers 99 --flash-attn on --ctx-size 262144 --batch-size 2048 --ubatch-size 512 --cache-type-k q4_0 --cache-type-v q4_0 --parallel 1 --cont-batching --no-context-shift --threads 8 --n-predict 8192 --jinja --warmup --metrics --no-webui"
+                      },
+    "load_seconds":  4.8,
+    "idle":  {
+                 "vram_dedicated_mib":  19.4,
+                 "vram_shared_mib":  499,
+                 "commit_gib":  17.737,
+                 "physical_used_gib":  9.941
+             },
+    "session_peak":  {
+                         "vram_dedicated_mib":  9918.8,
+                         "vram_shared_mib":  927.7,
+                         "process_vram_mib":  8879.4,
+                         "process_ws_gib":  9.936,
+                         "process_private_gib":  10.103,
+                         "commit_gib":  32.651,
+                         "physical_used_gib":  22.407
+                     },
+    "marginal_vram_mib":  9899.4,
+    "memory_samples":  388,
+    "gpu_pressure":  {
+                         "state":  "ok",
+                         "occupancy":  0.6084,
+                         "shared_mib":  927.7,
+                         "message":  "GPU memory is within budget: 9.919 / 16.304 MiB dedicated (60,8%), 928 MiB shared."
+                     },
+    "eval_exit_code":  0,
+    "failure":  null,
+    "eval":  {
+                 "schema_version":  1,
+                 "scenario":  "profile-qualification",
+                 "label":  "gemma4-12b-retention-ctx262144",
+                 "started_utc":  "2026-08-25T15:08:32Z",
+                 "server_props":  {
+                                      "default_generation_settings":  {
+                                                                          "params":  {
+                                                                                         "seed":  4294967295,
+                                                                                         "temperature":  1.0,
+                                                                                         "dynatemp_range":  0.0,
+                                                                                         "dynatemp_exponent":  1.0,
+                                                                                         "top_k":  64,
+                                                                                         "top_p":  0.949999988079071,
+                                                                                         "min_p":  0.05000000074505806,
+                                                                                         "top_n_sigma":  -1.0,
+                                                                                         "xtc_probability":  0.0,
+                                                                                         "xtc_threshold":  0.10000000149011612,
+                                                                                         "typical_p":  1.0,
+                                                                                         "repeat_last_n":  64,
+                                                                                         "repeat_penalty":  1.0,
+                                                                                         "presence_penalty":  0.0,
+                                                                                         "frequency_penalty":  0.0,
+                                                                                         "dry_multiplier":  0.0,
+                                                                                         "dry_base":  1.75,
+                                                                                         "dry_allowed_length":  2,
+                                                                                         "dry_penalty_last_n":  -1,
+                                                                                         "mirostat":  0,
+                                                                                         "mirostat_tau":  5.0,
+                                                                                         "mirostat_eta":  0.10000000149011612,
+                                                                                         "adaptive_target":  -1.0,
+                                                                                         "adaptive_decay":  0.8999999761581421,
+                                                                                         "max_tokens":  -1,
+                                                                                         "n_predict":  -1,
+                                                                                         "n_keep":  0,
+                                                                                         "n_discard":  0,
+                                                                                         "ignore_eos":  false,
+                                                                                         "stream":  false,
+                                                                                         "n_probs":  0,
+                                                                                         "min_keep":  0,
+                                                                                         "chat_format":  "Content-only",
+                                                                                         "reasoning_format":  "none",
+                                                                                         "reasoning_in_content":  false,
+                                                                                         "generation_prompt":  "",
+                                                                                         "samplers":  [
+                                                                                                          "penalties",
+                                                                                                          "dry",
+                                                                                                          "top_n_sigma",
+                                                                                                          "top_k",
+                                                                                                          "typ_p",
+                                                                                                          "top_p",
+                                                                                                          "min_p",
+                                                                                                          "xtc",
+                                                                                                          "temperature"
+                                                                                                      ],
+                                                                                         "speculative.types":  "none",
+                                                                                         "timings_per_token":  false,
+                                                                                         "post_sampling_probs":  false,
+                                                                                         "backend_sampling":  false,
+                                                                                         "lora":  [
+
+                                                                                                  ]
+                                                                                     },
+                                                                          "n_ctx":  262144
+                                                                      },
+                                      "total_slots":  1,
+                                      "model_path":  "C:\\IA\\models\\gemma-4-12B-it-qat-GGUF\\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+                                      "build_info":  "b10225-d2a74a4a3"
+                                  },
+                 "request_budget":  {
+                                        "request_max_tokens":  8192,
+                                        "n_predict":  8192,
+                                        "effective_generation_ceiling":  8192,
+                                        "effective_max_tokens":  8192,
+                                        "source":  "profile",
+                                        "budget_profile":  "deployment",
+                                        "reasoning_budget":  null,
+                                        "answer_reserve":  null,
+                                        "minimum_answer_reserve":  null,
+                                        "reserve_ok":  true,
+                                        "fixture_defaults":  {
+                                                                 "coding":  8192,
+                                                                 "tools":  4096,
+                                                                 "json":  4096,
+                                                                 "retention":  4096
+                                                             },
+                                        "constrained_diagnostic":  false
+                                    },
+                 "policy_profile":  "baseline",
+                 "diagnostic_config":  {
+                                           "max_tokens_override":  8192,
+                                           "max_tokens_source":  "profile",
+                                           "budget_profile":  "deployment",
+                                           "n_predict":  8192,
+                                           "temperature":  0.0,
+                                           "seed":  20260821,
+                                           "system_policy":  "current",
+                                           "strict_tool_policy":  false,
+                                           "tool_schema_policy":  false,
+                                           "capture_dir":  null,
+                                           "only_coding":  [
+
+                                                           ],
+                                           "only_tools":  [
+
+                                                          ]
+                                       },
+                 "suites":  {
+                                "retention":  [
+                                                  {
+                                                      "target_tokens":  32768,
+                                                      "output_reserve":  8192,
+                                                      "output_reserve_source":  "profile",
+                                                      "filler_units":  390,
+                                                      "corpus_tokens":  32282,
+                                                      "prompt_tokens":  32616,
+                                                      "corpus_sha256":  "f41f0be226b4f55bd3c0c9b0fd6ecdce1c55b2b6eaf4e5482f6b681c6d084707",
+                                                      "clean_json":  true,
+                                                      "parsed":  true,
+                                                      "probes":  [
+                                                                     {
+                                                                         "key":  "build_token",
+                                                                         "family":  "needle",
+                                                                         "depth":  5,
+                                                                         "grade":  "exact",
+                                                                         "got":  "H7Q9-42AX-731"
+                                                                     },
+                                                                     {
+                                                                         "key":  "signing_tag",
+                                                                         "family":  "needle",
+                                                                         "depth":  25,
+                                                                         "grade":  "exact",
+                                                                         "got":  "K3M8-57BW-904"
+                                                                     },
+                                                                     {
+                                                                         "key":  "route_key",
+                                                                         "family":  "needle",
+                                                                         "depth":  50,
+                                                                         "grade":  "exact",
+                                                                         "got":  "P5R2-18CQ-663"
+                                                                     },
+                                                                     {
+                                                                         "key":  "shader_stamp",
+                                                                         "family":  "needle",
+                                                                         "depth":  75,
+                                                                         "grade":  "exact",
+                                                                         "got":  "T9L4-63DZ-215"
+                                                                     },
+                                                                     {
+                                                                         "key":  "handshake_id",
+                                                                         "family":  "needle",
+                                                                         "depth":  90,
+                                                                         "grade":  "exact",
+                                                                         "got":  "W1X6-90EV-478"
+                                                                     },
+                                                                     {
+                                                                         "key":  "frozen_file",
+                                                                         "family":  "constraint",
+                                                                         "depth":  12,
+                                                                         "grade":  "exact",
+                                                                         "got":  "SaveMigratorV1.cs"
+                                                                     },
+                                                                     {
+                                                                         "key":  "add_item_call",
+                                                                         "family":  "mutable_state",
+                                                                         "depth":  62,
+                                                                         "grade":  "exact",
+                                                                         "got":  "InventoryService.TryAdd"
+                                                                     },
+                                                                     {
+                                                                         "key":  "rejected_token",
+                                                                         "family":  "negative_memory",
+                                                                         "depth":  35,
+                                                                         "grade":  "exact",
+                                                                         "got":  "ReflectionScanV2"
+                                                                     },
+                                                                     {
+                                                                         "key":  "rejected_reason",
+                                                                         "family":  "negative_memory",
+                                                                         "depth":  35,
+                                                                         "grade":  "exact",
+                                                                         "got":  "It allocates on every frame under IL2CPP."
+                                                                     },
+                                                                     {
+                                                                         "key":  "projectile_pool_prewarm",
+                                                                         "family":  "entities",
+                                                                         "depth":  30,
+                                                                         "grade":  "exact",
+                                                                         "got":  512
+                                                                     },
+                                                                     {
+                                                                         "key":  "audio_pool_max",
+                                                                         "family":  "entities",
+                                                                         "depth":  55,
+                                                                         "grade":  "exact",
+                                                                         "got":  24
+                                                                     },
+                                                                     {
+                                                                         "key":  "network_pool_prewarm",
+                                                                         "family":  "entities",
+                                                                         "depth":  82,
+                                                                         "grade":  "exact",
+                                                                         "got":  0
+                                                                     }
+                                                                 ],
+                                                      "by_family":  {
+                                                                        "needle":  {
+                                                                                       "n":  5,
+                                                                                       "credit":  5.0,
+                                                                                       "score":  1.0
+                                                                                   },
+                                                                        "constraint":  {
+                                                                                           "n":  1,
+                                                                                           "credit":  1.0,
+                                                                                           "score":  1.0
+                                                                                       },
+                                                                        "mutable_state":  {
+                                                                                              "n":  1,
+                                                                                              "credit":  1.0,
+                                                                                              "score":  1.0
+                                                                                          },
+                                                                        "negative_memory":  {
+                                                                                                "n":  2,
+                                                                                                "credit":  2.0,
+                                                                                                "score":  1.0
+                                                                                            },
+                                                                        "entities":  {
+                                                                                         "n":  3,
+                                                                                         "credit":  3.0,
+                                                                                         "score":  1.0
+                                                                                     }
+                                                                    },
+                                                      "score":  1.0,
+                                                      "exact_count":  12,
+                                                      "hallucinated_count":  0,
+                                                      "stale_count":  0,
+                                                      "ttft_prefill_ms":  22868.788,
+                                                      "prefill_tps":  1427.9724837188571,
+                                                      "decode_tps_at_occupancy":  55.523711464075866,
+                                                      "decoded_tokens":  3256,
+                                                      "processed_prompt_tokens":  32656,
+                                                      "cache_n":  0,
+                                                      "wall_s":  81.5,
+                                                      "finish_reason":  "stop",
+                                                      "truncated":  false,
+                                                      "reasoning_chars":  9104,
+                                                      "raw_reply":  "{\n  \"build_token\": \"H7Q9-42AX-731\",\n  \"signing_tag\": \"K3M8-57BW-904\",\n  \"route_key\": \"P5R2-18CQ-663\",\n  \"shader_stamp\": \"T9L4-63DZ-215\",\n  \"handshake_id\": \"W1X6-90EV-478\",\n  \"frozen_file\": \"SaveMigratorV1.cs\",\n  \"add_item_call\": \"InventoryService.TryAdd\",\n  \"rejected_token\": \"ReflectionScanV2\",\n  \"rejected_reason\": \"It allocates on every frame under IL2CPP.\",\n  \"projectile_pool_prewarm\": 512,\n  \"audio_pool_max\": 24,\n  \"network_pool_prewarm\": 0\n}"
+                                                  },
+                                                  {
+                                                      "target_tokens":  65536,
+                                                      "output_reserve":  8192,
+                                                      "output_reserve_source":  "profile",
+                                                      "filler_units":  795,
+                                                      "corpus_tokens":  65085,
+                                                      "prompt_tokens":  65419,
+                                                      "corpus_sha256":  "223434f2fb8c5c7e5b82ae0f1024236b71a849f8319df79fcd90a1bd5906f375",
+                                                      "clean_json":  true,
+                                                      "parsed":  true,
+                                                      "probes":  [
+                                                                     {
+                                                                         "key":  "build_token",
+                                                                         "family":  "needle",
+                                                                         "depth":  5,
+                                                                         "grade":  "exact",
+                                                                         "got":  "H7Q9-42AX-731"
+                                                                     },
+                                                                     {
+                                                                         "key":  "signing_tag",
+                                                                         "family":  "needle",
+                                                                         "depth":  25,
+                                                                         "grade":  "exact",
+                                                                         "got":  "K3M8-57BW-904"
+                                                                     },
+                                                                     {
+                                                                         "key":  "route_key",
+                                                                         "family":  "needle",
+                                                                         "depth":  50,
+                                                                         "grade":  "exact",
+                                                                         "got":  "P5R2-18CQ-663"
+                                                                     },
+                                                                     {
+                                                                         "key":  "shader_stamp",
+                                                                         "family":  "needle",
+                                                                         "depth":  75,
+                                                                         "grade":  "exact",
+                                                                         "got":  "T9L4-63DZ-215"
+                                                                     },
+                                                                     {
+                                                                         "key":  "handshake_id",
+                                                                         "family":  "needle",
+                                                                         "depth":  90,
+                                                                         "grade":  "exact",
+                                                                         "got":  "W1X6-90EV-478"
+                                                                     },
+                                                                     {
+                                                                         "key":  "frozen_file",
+                                                                         "family":  "constraint",
+                                                                         "depth":  12,
+                                                                         "grade":  "exact",
+                                                                         "got":  "SaveMigratorV1.cs"
+                                                                     },
+                                                                     {
+                                                                         "key":  "add_item_call",
+                                                                         "family":  "mutable_state",
+                                                                         "depth":  62,
+                                                                         "grade":  "exact",
+                                                                         "got":  "InventoryService.TryAdd"
+                                                                     },
+                                                                     {
+                                                                         "key":  "rejected_token",
+                                                                         "family":  "negative_memory",
+                                                                         "depth":  35,
+                                                                         "grade":  "exact",
+                                                                         "got":  "ReflectionScanV2"
+                                                                     },
+                                                                     {
+                                                                         "key":  "rejected_reason",
+                                                                         "family":  "negative_memory",
+                                                                         "depth":  35,
+                                                                         "grade":  "exact",
+                                                                         "got":  "It allocates on every frame under IL2CPP."
+                                                                     },
+                                                                     {
+                                                                         "key":  "projectile_pool_prewarm",
+                                                                         "family":  "entities",
+                                                                         "depth":  30,
+                                                                         "grade":  "exact",
+                                                                         "got":  512
+                                                                     },
+                                                                     {
+                                                                         "key":  "audio_pool_max",
+                                                                         "family":  "entities",
+                                                                         "depth":  55,
+                                                                         "grade":  "exact",
+                                                                         "got":  24
+                                                                     },
+                                                                     {
+                                                                         "key":  "network_pool_prewarm",
+                                                                         "family":  "entities",
+                                                                         "depth":  82,
+                                                                         "grade":  "exact",
+                                                                         "got":  0
+                                                                     }
+                                                                 ],
+                                                      "by_family":  {
+                                                                        "needle":  {
+                                                                                       "n":  5,
+                                                                                       "credit":  5.0,
+                                                                                       "score":  1.0
+                                                                                   },
+                                                                        "constraint":  {
+                                                                                           "n":  1,
+                                                                                           "credit":  1.0,
+                                                                                           "score":  1.0
+                                                                                       },
+                                                                        "mutable_state":  {
+                                                                                              "n":  1,
+                                                                                              "credit":  1.0,
+                                                                                              "score":  1.0
+                                                                                          },
+                                                                        "negative_memory":  {
+                                                                                                "n":  2,
+                                                                                                "credit":  2.0,
+                                                                                                "score":  1.0
+                                                                                            },
+                                                                        "entities":  {
+                                                                                         "n":  3,
+                                                                                         "credit":  3.0,
+                                                                                         "score":  1.0
+                                                                                     }
+                                                                    },
+                                                      "score":  1.0,
+                                                      "exact_count":  12,
+                                                      "hallucinated_count":  0,
+                                                      "stale_count":  0,
+                                                      "ttft_prefill_ms":  69341.637,
+                                                      "prefill_tps":  943.5456506456575,
+                                                      "decode_tps_at_occupancy":  48.63171312297289,
+                                                      "decoded_tokens":  2820,
+                                                      "processed_prompt_tokens":  65427,
+                                                      "cache_n":  32,
+                                                      "wall_s":  127.5,
+                                                      "finish_reason":  "stop",
+                                                      "truncated":  false,
+                                                      "reasoning_chars":  7648,
+                                                      "raw_reply":  "{\n  \"build_token\": \"H7Q9-42AX-731\",\n  \"signing_tag\": \"K3M8-57BW-904\",\n  \"route_key\": \"P5R2-18CQ-663\",\n  \"shader_stamp\": \"T9L4-63DZ-215\",\n  \"handshake_id\": \"W1X6-90EV-478\",\n  \"frozen_file\": \"SaveMigratorV1.cs\",\n  \"add_item_call\": \"InventoryService.TryAdd\",\n  \"rejected_token\": \"ReflectionScanV2\",\n  \"rejected_reason\": \"It allocates on every frame under IL2CPP.\",\n  \"projectile_pool_prewarm\": 512,\n  \"audio_pool_max\": 24,\n  \"network_pool_prewarm\": 0\n}"
+                                                  },
+                                                  {
+                                                      "target_tokens":  120000,
+                                                      "output_reserve":  8192,
+                                                      "output_reserve_source":  "profile",
+                                                      "filler_units":  1468,
+                                                      "corpus_tokens":  119590,
+                                                      "prompt_tokens":  119924,
+                                                      "corpus_sha256":  "1dd69554aa4053384e14af6cf7c6b7bbee83a10d1375332d24fb01ef7415ac25",
+                                                      "clean_json":  true,
+                                                      "parsed":  true,
+                                                      "probes":  [
+                                                                     {
+                                                                         "key":  "build_token",
+                                                                         "family":  "needle",
+                                                                         "depth":  5,
+                                                                         "grade":  "exact",
+                                                                         "got":  "H7Q9-42AX-731"
+                                                                     },
+                                                                     {
+                                                                         "key":  "signing_tag",
+                                                                         "family":  "needle",
+                                                                         "depth":  25,
+                                                                         "grade":  "exact",
+                                                                         "got":  "K3M8-57BW-904"
+                                                                     },
+                                                                     {
+                                                                         "key":  "route_key",
+                                                                         "family":  "needle",
+                                                                         "depth":  50,
+                                                                         "grade":  "exact",
+                                                                         "got":  "P5R2-18CQ-663"
+                                                                     },
+                                                                     {
+                                                                         "key":  "shader_stamp",
+                                                                         "family":  "needle",
+                                                                         "depth":  75,
+                                                                         "grade":  "exact",
+                                                                         "got":  "T9L4-63DZ-215"
+                                                                     },
+                                                                     {
+                                                                         "key":  "handshake_id",
+                                                                         "family":  "needle",
+                                                                         "depth":  90,
+                                                                         "grade":  "exact",
+                                                                         "got":  "W1X6-90EV-478"
+                                                                     },
+                                                                     {
+                                                                         "key":  "frozen_file",
+                                                                         "family":  "constraint",
+                                                                         "depth":  12,
+                                                                         "grade":  "exact",
+                                                                         "got":  "SaveMigratorV1.cs"
+                                                                     },
+                                                                     {
+                                                                         "key":  "add_item_call",
+                                                                         "family":  "mutable_state",
+                                                                         "depth":  62,
+                                                                         "grade":  "exact",
+                                                                         "got":  "InventoryService.TryAdd"
+                                                                     },
+                                                                     {
+                                                                         "key":  "rejected_token",
+                                                                         "family":  "negative_memory",
+                                                                         "depth":  35,
+                                                                         "grade":  "exact",
+                                                                         "got":  "ReflectionScanV2"
+                                                                     },
+                                                                     {
+                                                                         "key":  "rejected_reason",
+                                                                         "family":  "negative_memory",
+                                                                         "depth":  35,
+                                                                         "grade":  "exact",
+                                                                         "got":  "It allocates on every frame under IL2CPP."
+                                                                     },
+                                                                     {
+                                                                         "key":  "projectile_pool_prewarm",
+                                                                         "family":  "entities",
+                                                                         "depth":  30,
+                                                                         "grade":  "exact",
+                                                                         "got":  512
+                                                                     },
+                                                                     {
+                                                                         "key":  "audio_pool_max",
+                                                                         "family":  "entities",
+                                                                         "depth":  55,
+                                                                         "grade":  "exact",
+                                                                         "got":  24
+                                                                     },
+                                                                     {
+                                                                         "key":  "network_pool_prewarm",
+                                                                         "family":  "entities",
+                                                                         "depth":  82,
+                                                                         "grade":  "exact",
+                                                                         "got":  0
+                                                                     }
+                                                                 ],
+                                                      "by_family":  {
+                                                                        "needle":  {
+                                                                                       "n":  5,
+                                                                                       "credit":  5.0,
+                                                                                       "score":  1.0
+                                                                                   },
+                                                                        "constraint":  {
+                                                                                           "n":  1,
+                                                                                           "credit":  1.0,
+                                                                                           "score":  1.0
+                                                                                       },
+                                                                        "mutable_state":  {
+                                                                                              "n":  1,
+                                                                                              "credit":  1.0,
+                                                                                              "score":  1.0
+                                                                                          },
+                                                                        "negative_memory":  {
+                                                                                                "n":  2,
+                                                                                                "credit":  2.0,
+                                                                                                "score":  1.0
+                                                                                            },
+                                                                        "entities":  {
+                                                                                         "n":  3,
+                                                                                         "credit":  3.0,
+                                                                                         "score":  1.0
+                                                                                     }
+                                                                    },
+                                                      "score":  1.0,
+                                                      "exact_count":  12,
+                                                      "hallucinated_count":  0,
+                                                      "stale_count":  0,
+                                                      "ttft_prefill_ms":  197494.969,
+                                                      "prefill_tps":  607.2661020544781,
+                                                      "decode_tps_at_occupancy":  41.4387699808018,
+                                                      "decoded_tokens":  2191,
+                                                      "processed_prompt_tokens":  119932,
+                                                      "cache_n":  32,
+                                                      "wall_s":  250.6,
+                                                      "finish_reason":  "stop",
+                                                      "truncated":  false,
+                                                      "reasoning_chars":  5665,
+                                                      "raw_reply":  "{\n  \"build_token\": \"H7Q9-42AX-731\",\n  \"signing_tag\": \"K3M8-57BW-904\",\n  \"route_key\": \"P5R2-18CQ-663\",\n  \"shader_stamp\": \"T9L4-63DZ-215\",\n  \"handshake_id\": \"W1X6-90EV-478\",\n  \"frozen_file\": \"SaveMigratorV1.cs\",\n  \"add_item_call\": \"InventoryService.TryAdd\",\n  \"rejected_token\": \"ReflectionScanV2\",\n  \"rejected_reason\": \"It allocates on every frame under IL2CPP.\",\n  \"projectile_pool_prewarm\": 512,\n  \"audio_pool_max\": 24,\n  \"network_pool_prewarm\": 0\n}"
+                                                  },
+                                                  {
+                                                      "target_tokens":  196608,
+                                                      "output_reserve":  8192,
+                                                      "output_reserve_source":  "profile",
+                                                      "filler_units":  2415,
+                                                      "corpus_tokens":  196138,
+                                                      "prompt_tokens":  196472,
+                                                      "corpus_sha256":  "a1a6f2080ad6410c0d8074e8eeaf2f79f683060cb85f66ce8dbd6e3b32ca42f6",
+                                                      "clean_json":  true,
+                                                      "parsed":  true,
+                                                      "probes":  [
+                                                                     {
+                                                                         "key":  "build_token",
+                                                                         "family":  "needle",
+                                                                         "depth":  5,
+                                                                         "grade":  "exact",
+                                                                         "got":  "H7Q9-42AX-731"
+                                                                     },
+                                                                     {
+                                                                         "key":  "signing_tag",
+                                                                         "family":  "needle",
+                                                                         "depth":  25,
+                                                                         "grade":  "exact",
+                                                                         "got":  "K3M8-57BW-904"
+                                                                     },
+                                                                     {
+                                                                         "key":  "route_key",
+                                                                         "family":  "needle",
+                                                                         "depth":  50,
+                                                                         "grade":  "exact",
+                                                                         "got":  "P5R2-18CQ-663"
+                                                                     },
+                                                                     {
+                                                                         "key":  "shader_stamp",
+                                                                         "family":  "needle",
+                                                                         "depth":  75,
+                                                                         "grade":  "exact",
+                                                                         "got":  "T9L4-63DZ-215"
+                                                                     },
+                                                                     {
+                                                                         "key":  "handshake_id",
+                                                                         "family":  "needle",
+                                                                         "depth":  90,
+                                                                         "grade":  "exact",
+                                                                         "got":  "W1X6-90EV-478"
+                                                                     },
+                                                                     {
+                                                                         "key":  "frozen_file",
+                                                                         "family":  "constraint",
+                                                                         "depth":  12,
+                                                                         "grade":  "exact",
+                                                                         "got":  "SaveMigratorV1.cs"
+                                                                     },
+                                                                     {
+                                                                         "key":  "add_item_call",
+                                                                         "family":  "mutable_state",
+                                                                         "depth":  62,
+                                                                         "grade":  "stale",
+                                                                         "got":  "InventoryManager.AddItem"
+                                                                     },
+                                                                     {
+                                                                         "key":  "rejected_token",
+                                                                         "family":  "negative_memory",
+                                                                         "depth":  35,
+                                                                         "grade":  "exact",
+                                                                         "got":  "ReflectionScanV2"
+                                                                     },
+                                                                     {
+                                                                         "key":  "rejected_reason",
+                                                                         "family":  "negative_memory",
+                                                                         "depth":  35,
+                                                                         "grade":  "exact",
+                                                                         "got":  "It allocates on every frame under IL2CPP."
+                                                                     },
+                                                                     {
+                                                                         "key":  "projectile_pool_prewarm",
+                                                                         "family":  "entities",
+                                                                         "depth":  30,
+                                                                         "grade":  "exact",
+                                                                         "got":  512
+                                                                     },
+                                                                     {
+                                                                         "key":  "audio_pool_max",
+                                                                         "family":  "entities",
+                                                                         "depth":  55,
+                                                                         "grade":  "exact",
+                                                                         "got":  24
+                                                                     },
+                                                                     {
+                                                                         "key":  "network_pool_prewarm",
+                                                                         "family":  "entities",
+                                                                         "depth":  82,
+                                                                         "grade":  "exact",
+                                                                         "got":  0
+                                                                     }
+                                                                 ],
+                                                      "by_family":  {
+                                                                        "needle":  {
+                                                                                       "n":  5,
+                                                                                       "credit":  5.0,
+                                                                                       "score":  1.0
+                                                                                   },
+                                                                        "constraint":  {
+                                                                                           "n":  1,
+                                                                                           "credit":  1.0,
+                                                                                           "score":  1.0
+                                                                                       },
+                                                                        "mutable_state":  {
+                                                                                              "n":  1,
+                                                                                              "credit":  0.0,
+                                                                                              "score":  0.0
+                                                                                          },
+                                                                        "negative_memory":  {
+                                                                                                "n":  2,
+                                                                                                "credit":  2.0,
+                                                                                                "score":  1.0
+                                                                                            },
+                                                                        "entities":  {
+                                                                                         "n":  3,
+                                                                                         "credit":  3.0,
+                                                                                         "score":  1.0
+                                                                                     }
+                                                                    },
+                                                      "score":  0.917,
+                                                      "exact_count":  11,
+                                                      "hallucinated_count":  0,
+                                                      "stale_count":  1,
+                                                      "ttft_prefill_ms":  497103.597,
+                                                      "prefill_tps":  395.24960427916596,
+                                                      "decode_tps_at_occupancy":  29.80084626550377,
+                                                      "decoded_tokens":  2201,
+                                                      "processed_prompt_tokens":  196480,
+                                                      "cache_n":  32,
+                                                      "wall_s":  571.3,
+                                                      "finish_reason":  "stop",
+                                                      "truncated":  false,
+                                                      "reasoning_chars":  5785,
+                                                      "raw_reply":  "{\n  \"build_token\": \"H7Q9-42AX-731\",\n  \"signing_tag\": \"K3M8-57BW-904\",\n  \"route_key\": \"P5R2-18CQ-663\",\n  \"shader_stamp\": \"T9L4-63DZ-215\",\n  \"handshake_id\": \"W1X6-90EV-478\",\n  \"frozen_file\": \"SaveMigratorV1.cs\",\n  \"add_item_call\": \"InventoryManager.AddItem\",\n  \"rejected_token\": \"ReflectionScanV2\",\n  \"rejected_reason\": \"It allocates on every frame under IL2CPP.\",\n  \"projectile_pool_prewarm\": 512,\n  \"audio_pool_max\": 24,\n  \"network_pool_prewarm\": 0\n}"
+                                                  },
+                                                  {
+                                                      "target_tokens":  240000,
+                                                      "output_reserve":  8192,
+                                                      "output_reserve_source":  "profile",
+                                                      "filler_units":  2951,
+                                                      "corpus_tokens":  239515,
+                                                      "prompt_tokens":  239849,
+                                                      "corpus_sha256":  "35fa6b271106bdc0d69192291b21327c5ccac2d882bfda12f1376b3816bf51e5",
+                                                      "clean_json":  true,
+                                                      "parsed":  true,
+                                                      "probes":  [
+                                                                     {
+                                                                         "key":  "build_token",
+                                                                         "family":  "needle",
+                                                                         "depth":  5,
+                                                                         "grade":  "exact",
+                                                                         "got":  "H7Q9-42AX-731"
+                                                                     },
+                                                                     {
+                                                                         "key":  "signing_tag",
+                                                                         "family":  "needle",
+                                                                         "depth":  25,
+                                                                         "grade":  "exact",
+                                                                         "got":  "K3M8-57BW-904"
+                                                                     },
+                                                                     {
+                                                                         "key":  "route_key",
+                                                                         "family":  "needle",
+                                                                         "depth":  50,
+                                                                         "grade":  "exact",
+                                                                         "got":  "P5R2-18CQ-663"
+                                                                     },
+                                                                     {
+                                                                         "key":  "shader_stamp",
+                                                                         "family":  "needle",
+                                                                         "depth":  75,
+                                                                         "grade":  "exact",
+                                                                         "got":  "T9L4-63DZ-215"
+                                                                     },
+                                                                     {
+                                                                         "key":  "handshake_id",
+                                                                         "family":  "needle",
+                                                                         "depth":  90,
+                                                                         "grade":  "exact",
+                                                                         "got":  "W1X6-90EV-478"
+                                                                     },
+                                                                     {
+                                                                         "key":  "frozen_file",
+                                                                         "family":  "constraint",
+                                                                         "depth":  12,
+                                                                         "grade":  "exact",
+                                                                         "got":  "SaveMigratorV1.cs"
+                                                                     },
+                                                                     {
+                                                                         "key":  "add_item_call",
+                                                                         "family":  "mutable_state",
+                                                                         "depth":  62,
+                                                                         "grade":  "exact",
+                                                                         "got":  "InventoryService.TryAdd"
+                                                                     },
+                                                                     {
+                                                                         "key":  "rejected_token",
+                                                                         "family":  "negative_memory",
+                                                                         "depth":  35,
+                                                                         "grade":  "exact",
+                                                                         "got":  "ReflectionScanV2"
+                                                                     },
+                                                                     {
+                                                                         "key":  "rejected_reason",
+                                                                         "family":  "negative_memory",
+                                                                         "depth":  35,
+                                                                         "grade":  "exact",
+                                                                         "got":  "It allocates on every frame under IL2CPP."
+                                                                     },
+                                                                     {
+                                                                         "key":  "projectile_pool_prewarm",
+                                                                         "family":  "entities",
+                                                                         "depth":  30,
+                                                                         "grade":  "exact",
+                                                                         "got":  512
+                                                                     },
+                                                                     {
+                                                                         "key":  "audio_pool_max",
+                                                                         "family":  "entities",
+                                                                         "depth":  55,
+                                                                         "grade":  "exact",
+                                                                         "got":  24
+                                                                     },
+                                                                     {
+                                                                         "key":  "network_pool_prewarm",
+                                                                         "family":  "entities",
+                                                                         "depth":  82,
+                                                                         "grade":  "exact",
+                                                                         "got":  0
+                                                                     }
+                                                                 ],
+                                                      "by_family":  {
+                                                                        "needle":  {
+                                                                                       "n":  5,
+                                                                                       "credit":  5.0,
+                                                                                       "score":  1.0
+                                                                                   },
+                                                                        "constraint":  {
+                                                                                           "n":  1,
+                                                                                           "credit":  1.0,
+                                                                                           "score":  1.0
+                                                                                       },
+                                                                        "mutable_state":  {
+                                                                                              "n":  1,
+                                                                                              "credit":  1.0,
+                                                                                              "score":  1.0
+                                                                                          },
+                                                                        "negative_memory":  {
+                                                                                                "n":  2,
+                                                                                                "credit":  2.0,
+                                                                                                "score":  1.0
+                                                                                            },
+                                                                        "entities":  {
+                                                                                         "n":  3,
+                                                                                         "credit":  3.0,
+                                                                                         "score":  1.0
+                                                                                     }
+                                                                    },
+                                                      "score":  1.0,
+                                                      "exact_count":  12,
+                                                      "hallucinated_count":  0,
+                                                      "stale_count":  0,
+                                                      "ttft_prefill_ms":  763722.672,
+                                                      "prefill_tps":  314.06295608833256,
+                                                      "decode_tps_at_occupancy":  27.614425293190973,
+                                                      "decoded_tokens":  4738,
+                                                      "processed_prompt_tokens":  239857,
+                                                      "cache_n":  32,
+                                                      "wall_s":  936.1,
+                                                      "finish_reason":  "stop",
+                                                      "truncated":  false,
+                                                      "reasoning_chars":  13388,
+                                                      "raw_reply":  "{\n  \"build_token\": \"H7Q9-42AX-731\",\n  \"signing_tag\": \"K3M8-57BW-904\",\n  \"route_key\": \"P5R2-18CQ-663\",\n  \"shader_stamp\": \"T9L4-63DZ-215\",\n  \"handshake_id\": \"W1X6-90EV-478\",\n  \"frozen_file\": \"SaveMigratorV1.cs\",\n  \"add_item_call\": \"InventoryService.TryAdd\",\n  \"rejected_token\": \"ReflectionScanV2\",\n  \"rejected_reason\": \"It allocates on every frame under IL2CPP.\",\n  \"projectile_pool_prewarm\": 512,\n  \"audio_pool_max\": 24,\n  \"network_pool_prewarm\": 0\n}"
+                                                  }
+                                              ]
+                            }
+             }
+}

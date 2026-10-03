@@ -22,8 +22,8 @@ func TestCatalogExposesAllModelsAndDeploymentAvailability(t *testing.T) {
 	if len(all) != 3 || all[0].ID != "local-coding" || all[1].ID != "final-only" || all[2].ID != "retired-model" {
 		t.Fatalf("manifest order was not preserved: %+v", all)
 	}
-	if !all[0].Available || !all[0].CanLaunchCodex() || !all[0].CanLaunchOpenCode() {
-		t.Fatalf("public canary model should be launchable: %+v", all[0])
+	if !all[0].Available {
+		t.Fatalf("public canary model should be available: %+v", all[0])
 	}
 	if all[1].Available || all[1].UnavailableReason == "" {
 		t.Fatalf("final-only model should be unavailable: %+v", all[1])
@@ -64,20 +64,6 @@ func TestCatalogRequiresJSONAndCompleteProjection(t *testing.T) {
 				t.Fatal("invalid manifest was accepted")
 			}
 		})
-	}
-}
-
-func TestCatalogAllowsClientsForAnyAvailableModel(t *testing.T) {
-	path := writeTestFile(t, "models.yaml", testManifest("chat-only",
-		testModel("chat-only", "enabled", "[\"canary\"]", false, true, true, false),
-	))
-	catalog, err := LoadCatalog(path, EnvironmentCanary)
-	if err != nil {
-		t.Fatal(err)
-	}
-	model, _ := catalog.Model("chat-only")
-	if !model.CanLaunchCodex() || !model.CanLaunchOpenCode() {
-		t.Fatalf("available model should remain selectable: %+v", model)
 	}
 }
 

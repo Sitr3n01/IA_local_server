@@ -5,6 +5,10 @@
 Proposed. The runtime is a `candidate`; nothing in this ADR promotes it, changes
 `provider.public_model`, or moves any existing model off the runtime it uses.
 
+**2026-09-28:** the defect this ADR works around is not reproduced on upstream
+b10549 at Gates B, C and D — see the addendum at the end. The status is unchanged;
+whether to withdraw the ADR is an operator decision.
+
 ## Context
 
 ADR 0009 added the typed fields for context checkpoints and then recorded, in its
@@ -183,3 +187,21 @@ Gated DeltaNet kernel is GPU-accelerated on gfx1201, what the checkpoint sweep
 should settle on, whether MTP accepts at 256k, or what the profile costs in VRAM,
 RAM and commit. Those are `unverified on gfx1201` until the gates in
 `docs/BENCHMARKS.md` are run on the RX 9070 XT.
+
+## Addendum: the upstream control passes (2026-09-28)
+
+Decision 3 assumed an upstream control that fails. Run with this ADR's own
+harness and gate, the pinned upstream runtime (b10549, `b2e5e9b28`) passes:
+in-session reuse held on `qwen38-27b-agent-128k` at ~55k and ~120k and on
+`qwen36-35b-a3b-huge-256k` at ~55k, ~120k, ~183k and ~249k (Gate D, peaking at
+256,593 of 262,144 tokens), with zero full re-prefills.
+A turn processed its increment, or about one `ubatch` (288 tokens) when the
+harness rewrote the last assistant turn (`docs/TUNING.md` §1.4,
+`benchmarks/agentic-reuse-b10549-20260928/`).
+
+The fork has not been built, so there is no fork result to set beside it. What
+has changed is that, at these depths, there is no defect left for it to fix, and
+this ADR's own test — a fork is only worth carrying if the thing it fixes is
+measurably broken next to it — now argues against building it. It becomes
+relevant again only if a history rewrite deeper than one `ubatch` or a later
+upstream build shows a failure.

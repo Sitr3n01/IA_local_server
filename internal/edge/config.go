@@ -21,8 +21,11 @@ const (
 	DefaultMaxDecodedBytes = int64(64 << 20)
 	DefaultMaxRatio        = int64(100)
 	DefaultMaxActive       = 1
-	DefaultMaxQueue        = 4
-	DefaultQueueWait       = 120 * time.Second
+	// Claude Code/Cowork may issue several authenticated subrequests for one
+	// user action. Keep them cancellable in the bounded queue instead of
+	// immediately creating a retry storm after four pending requests.
+	DefaultMaxQueue  = 16
+	DefaultQueueWait = 120 * time.Second
 	// Time allowed for the upstream's response *headers*. Streaming requests
 	// see them immediately, so this binds only non-streaming ones - where
 	// llama-server buffers the whole completion before replying and the wait is
@@ -50,11 +53,15 @@ const (
 // intentionally small: provenance and runtime details belong to the generated
 // model manifest, not to the OpenAI-compatible wire response.
 type Model struct {
-	ID          string   `json:"id"`
-	Object      string   `json:"object"`
-	OwnedBy     string   `json:"owned_by"`
-	State       string   `json:"-"`
-	Deployments []string `json:"-"`
+	ID      string `json:"id"`
+	Object  string `json:"object"`
+	OwnedBy string `json:"owned_by"`
+	// DisplayName and Capabilities are additive metadata for gateway clients.
+	// They deliberately do not replace the stable provider model ID.
+	DisplayName  string       `json:"display_name,omitempty"`
+	Capabilities Capabilities `json:"capabilities,omitempty"`
+	State        string       `json:"-"`
+	Deployments  []string     `json:"-"`
 
 	// Admission-control inputs. All of them are optional in the manifest; a nil
 	// value means "not measured", which is stricter than zero, not laxer.
@@ -66,6 +73,11 @@ type Model struct {
 	// OffloadsTensors marks a model that deliberately keeps part of its weights
 	// in system RAM. Such a model cannot be admitted on an unmeasured profile.
 	OffloadsTensors bool `json:"-"`
+	// ArtifactPath and ArtifactBytes locate and size the weights file. They are
+	// used only to say whether the file is still there; the path identifies the
+	// machine, so it is never published.
+	ArtifactPath  string `json:"-"`
+	ArtifactBytes *int64 `json:"-"`
 
 	// Observability only. These are reported through /api/v1/status so an
 	// operator can see which build is actually serving, and are excluded from
@@ -74,6 +86,18 @@ type Model struct {
 	ContextTokens *int              `json:"-"`
 	Profile       ProfileSummary    `json:"-"`
 	Checkpoints   CheckpointSummary `json:"-"`
+}
+
+// Capabilities are qualified model properties. A false value is never
+// upgraded by a protocol adapter: a request that needs an absent feature must
+// fail instead of silently selecting another local model.
+type Capabilities struct {
+	Responses        bool `json:"responses,omitempty" yaml:"responses"`
+	ChatCompletions  bool `json:"chat_completions,omitempty" yaml:"chat_completions"`
+	Streaming        bool `json:"streaming,omitempty" yaml:"streaming"`
+	FunctionCalling  bool `json:"function_calling,omitempty" yaml:"function_calling"`
+	StructuredOutput bool `json:"structured_output,omitempty" yaml:"structured_output"`
+	Reasoning        bool `json:"reasoning,omitempty" yaml:"reasoning"`
 }
 
 // MoEOffloadSummary is the typed MoE expert placement a profile declares.
@@ -152,7 +176,12 @@ type Config struct {
 	InferenceToken string
 	AdminToken     string
 	RouterToken    string
-	Models         []Model
+	// ClaudeGatewayToken is deliberately distinct from every CIA control-plane
+	// credential. It is accepted only by the Anthropic-compatible gateway
+	// surface and remains optional until Claude Desktop 3P is explicitly
+	// provisioned.
+	ClaudeGatewayToken string
+	Models             []Model
 	// PublicModelID is provider.public_model. Readiness and the headline
 	// capacity figure are reported for this model specifically; the position of
 	// an entry in Models must never carry meaning.
@@ -192,6 +221,11 @@ func DefaultConfig() Config {
 			OwnedBy:     "local",
 			State:       "candidate",
 			Deployments: []string{"canary"},
+			Capabilities: Capabilities{
+				ChatCompletions: true,
+				Streaming:       true,
+				FunctionCalling: true,
+			},
 		}},
 		PublicModelID:   DefaultModelID,
 		Version:         "dev",
@@ -218,6 +252,7 @@ func ConfigFromEnv() (Config, error) {
 	cfg.InferenceToken = os.Getenv("CIA_INFERENCE_TOKEN")
 	cfg.AdminToken = os.Getenv("CIA_ADMIN_TOKEN")
 	cfg.RouterToken = os.Getenv("CIA_ROUTER_TOKEN")
+	cfg.ClaudeGatewayToken = os.Getenv("CIA_CLAUDE_GATEWAY_TOKEN")
 	cfg.Version = envOr("CIA_EDGE_VERSION", cfg.Version)
 
 	var err error
@@ -289,6 +324,14 @@ func (c Config) Validate() error {
 	if c.RouterToken != "" && (c.RouterToken == c.InferenceToken || c.RouterToken == c.AdminToken) {
 		return errors.New("router token must be different from inference and admin tokens")
 	}
+	if c.ClaudeGatewayToken != "" {
+		if err := validateTokenSecret("CIA_CLAUDE_GATEWAY_TOKEN", c.ClaudeGatewayToken, false); err != nil {
+			return err
+		}
+		if c.ClaudeGatewayToken == c.InferenceToken || c.ClaudeGatewayToken == c.AdminToken || c.ClaudeGatewayToken == c.RouterToken {
+			return errors.New("claude gateway token must be distinct from inference, admin, and router tokens")
+		}
+	}
 	if c.Environment != "" && c.Environment != "canary" && c.Environment != "final" {
 		return errors.New("environment must be canary or final")
 	}
@@ -334,6 +377,9 @@ func (c Config) Validate() error {
 	}
 	if c.MaxActive <= 0 || c.MaxQueue < 0 || c.QueueWait <= 0 {
 		return errors.New("invalid admission-control configuration")
+	}
+	if c.MaxActive != 1 {
+		return errors.New("single-model lifecycle and memory admission require exactly one active inference")
 	}
 	if c.HeaderTimeout <= 0 || c.ShutdownTimeout <= 0 {
 		return errors.New("timeouts must be positive")

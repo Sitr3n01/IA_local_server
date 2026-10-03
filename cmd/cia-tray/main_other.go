@@ -5,9 +5,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 )
+
+func defaultStreams() (io.Writer, io.Writer) { return os.Stdout, os.Stderr }
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)

@@ -1,20 +1,15 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/sitr3n/local-ai-provider/internal/claudedesktop"
 	"github.com/sitr3n/local-ai-provider/internal/credential"
 	"github.com/sitr3n/local-ai-provider/internal/mcpadmin"
 	"github.com/sitr3n/local-ai-provider/internal/mcpserver"
@@ -22,19 +17,53 @@ import (
 	"github.com/sitr3n/local-ai-provider/internal/trayui"
 )
 
-type appController struct {
-	config          panel.Config
-	catalog         *panel.Catalog
-	selection       *panel.SelectionStore
-	statusClient    *mcpserver.ControlClient
-	adminClient     *mcpadmin.Client
-	launcher        *panel.Launcher
-	rootStore       *panel.ModelRootStore
-	validationStore *panel.ValidationStore
-	hashCache       *panel.HashCache
+// gatewayProbeInterval spaces out the Claude gateway check. The flyout
+// refreshes every two seconds while open, and a discovery request that often
+// would crowd the edge's recent activity for nothing.
+const gatewayProbeInterval = time.Minute
 
-	mu       sync.RWMutex
-	selected string
+type appController struct {
+	config         panel.Config
+	catalog        *panel.Catalog
+	selection      *panel.SelectionStore
+	statusClient   *mcpserver.ControlClient
+	adminClient    *mcpadmin.Client
+	server         serverControl
+	claude         claudeDesktopService
+	readCredential func(string) (string, error)
+	probeGateway   func(context.Context, claudedesktop.Gateway) error
+	// warmClaude runs before Claude Local opens; nil skips it.
+	warmClaude   func(context.Context) error
+	claudeDetail string
+	now          func() time.Time
+
+	mu sync.RWMutex
+	// selected is the model the radio shows and Carregar/Trocar act on; saved
+	// is the operator's own choice, persisted by SelectModel. They differ
+	// while a model another client loaded is in memory.
+	selected      string
+	saved         string
+	selectionNote string
+	// lastActive is the loaded model the previous snapshot saw.
+	lastActive  string
+	gatewayOK   bool
+	gatewayNote string
+	gatewayAt   time.Time
+}
+
+// serverControl starts and stops the processes that make up one deployment
+// and opens its browser monitor.
+type serverControl interface {
+	Start(context.Context) error
+	Stop(context.Context) error
+	OpenPanel(context.Context) error
+}
+
+// claudeDesktopService keeps tray actions testable as one end-to-end unit:
+// both instances open through the same discovered Desktop package.
+type claudeDesktopService interface {
+	OpenAnthropic(context.Context) error
+	OpenLocal(context.Context, claudedesktop.Gateway) error
 }
 
 func newAppController(config panel.Config, appVersion string) (*appController, error) {
@@ -46,38 +75,10 @@ func newAppController(config panel.Config, appVersion string) (*appController, e
 	if err != nil {
 		return nil, err
 	}
-	selected, err := selection.Load()
+	selected, selectionNote, err := loadSelection(selection)
 	if err != nil {
 		return nil, err
 	}
-	launcher, err := panel.NewLauncher(config, catalog)
-	if err != nil {
-		return nil, err
-	}
-	rootStore, err := panel.NewModelRootStore(config.ModelRootsPath, `C:\IA\models`)
-	if err != nil {
-		return nil, err
-	}
-	validationStore, err := panel.NewValidationStore(config.ValidationPath)
-	if err != nil {
-		return nil, err
-	}
-	hashCache, err := panel.NewHashCache(filepath.Join(filepath.Dir(config.ValidationPath), "model-hashes."+string(config.Environment)+".json"))
-	if err != nil {
-		return nil, err
-	}
-	for name, path := range map[string]string{
-		"Codex": config.Launchers.Codex, "OpenCode": config.Launchers.OpenCode,
-	} {
-		info, statErr := os.Stat(path)
-		if statErr != nil || info.IsDir() {
-			if statErr == nil {
-				statErr = errors.New("path is a directory")
-			}
-			return nil, fmt.Errorf("%s launcher is unavailable: %w", name, statErr)
-		}
-	}
-
 	readAdmin := func(context.Context) (string, error) {
 		return credential.Read("admin")
 	}
@@ -104,77 +105,73 @@ func newAppController(config panel.Config, appVersion string) (*appController, e
 	if err != nil {
 		return nil, err
 	}
+	server, err := newServerControl(string(config.Environment), installRoot)
+	if err != nil {
+		return nil, err
+	}
 
-	return &appController{
-		config:          config,
-		catalog:         catalog,
-		selection:       selection,
-		statusClient:    statusClient,
-		adminClient:     adminClient,
-		launcher:        launcher,
-		rootStore:       rootStore,
-		validationStore: validationStore,
-		hashCache:       hashCache,
-		selected:        selected.Model,
-	}, nil
+	controller := &appController{
+		config:         config,
+		catalog:        catalog,
+		selection:      selection,
+		statusClient:   statusClient,
+		adminClient:    adminClient,
+		server:         server,
+		selected:       selected,
+		saved:          selected,
+		selectionNote:  selectionNote,
+		readCredential: credential.Read,
+		probeGateway:   claudedesktop.ProbeGateway,
+		now:            time.Now,
+	}
+	controller.warmClaude = controller.loadClaudeProbeModel
+	controller.claude, controller.claudeDetail = discoverClaudeDesktop(filepath.Join(filepath.Dir(config.SelectionPath), "claude-desktop"))
+	return controller, nil
+}
+
+// loadSelection reads the saved model choice. A saved model that the
+// deployment no longer serves, or an unreadable file, must not keep the tray
+// from starting: it falls back to the public model in memory, leaves the file
+// as it is, and says so. Only a catalog without a usable public model fails.
+func loadSelection(store *panel.SelectionStore) (string, string, error) {
+	selection, err := store.Load()
+	if err == nil {
+		return selection.Model, "", nil
+	}
+	fallback, fallbackErr := store.Fallback()
+	if fallbackErr != nil {
+		return "", "", fmt.Errorf("%w; %v", err, fallbackErr)
+	}
+	return fallback.Model, "O modelo salvo não está mais disponível; o modelo padrão foi selecionado.", nil
 }
 
 func (c *appController) Snapshot(ctx context.Context) (trayui.Snapshot, error) {
 	c.mu.RLock()
-	selected := c.selected
+	selected, selectionNote := c.selected, c.selectionNote
 	c.mu.RUnlock()
 
 	snapshot := trayui.Snapshot{
 		Environment:   string(c.config.Environment),
 		SelectedModel: selected,
-		Models:        make([]trayui.Model, 0, len(c.catalog.AllModels())),
-		UpdatedAt:     time.Now().UTC(),
+		SelectionNote: selectionNote,
+		UpdatedAt:     c.now().UTC(),
 	}
-	registeredPaths := make(map[string]struct{}, len(c.catalog.AllModels()))
-	validations, _ := c.validationStore.Load()
-	for _, model := range c.catalog.AllModels() {
-		validation := validations[model.ID]
-		registeredPaths[strings.ToLower(filepath.Clean(model.ArtifactPath))] = struct{}{}
+	snapshot.ClaudeAvailable = c.claude != nil
+	snapshot.ClaudeDetail = c.claudeDetail
+	for _, model := range c.catalog.AvailableModels() {
 		snapshot.Models = append(snapshot.Models, trayui.Model{
-			ID:             model.ID,
-			DisplayName:    model.DisplayName,
-			State:          model.State,
-			Available:      model.Available,
-			Reason:         unavailableReason(model),
-			Codex:          model.CanLaunchCodex(),
-			OpenCode:       model.CanLaunchOpenCode(),
-			ArtifactPath:   model.ArtifactPath,
-			ArtifactBytes:  model.ArtifactBytes,
-			ArtifactSHA256: model.ArtifactSHA256,
-			Runtime:        model.Runtime,
-			ContextTokens:  model.ContextTokens,
-			GPULayers:      model.GPULayers,
-			Quantization:   model.CacheTypeK + "/" + model.CacheTypeV,
-			Capabilities:   capabilitySummary(model),
-			Validation:     validation.Status,
+			ID:          model.ID,
+			DisplayName: model.DisplayName,
+			Available:   true,
 		})
-	}
-	if roots, rootsErr := c.rootStore.Load(); rootsErr == nil {
-		snapshot.ModelRoots = roots
-	}
-	if discovered, discoveryErr := c.rootStore.Scan(); discoveryErr == nil {
-		for _, item := range discovered {
-			if _, registered := registeredPaths[strings.ToLower(filepath.Clean(item.Path))]; registered {
-				continue
-			}
-			id := discoveredModelID(item.Path)
-			validation := validations[id]
-			snapshot.Models = append(snapshot.Models, trayui.Model{
-				ID: id, DisplayName: item.Name,
-				State: "detected", Reason: "detectado — aguardando validação",
-				ArtifactPath: item.Path, ArtifactBytes: item.Bytes, ArtifactSHA256: validation.SHA256,
-				Discovered: true, Validation: validation.Status,
-			})
-		}
 	}
 
 	status, statusErr := c.statusClient.Status(ctx)
 	if statusErr == nil {
+		c.followActiveModel(strings.TrimSpace(status.ActiveModel))
+		selected = c.selectedModel()
+		snapshot.SelectedModel = selected
+		snapshot.EdgeReachable = true
 		snapshot.StatusAvailable = true
 		snapshot.ProviderReady = status.Ready
 		snapshot.UpstreamReady = status.Upstream.Reachable
@@ -185,44 +182,134 @@ func (c *appController) Snapshot(ctx context.Context) (trayui.Snapshot, error) {
 		snapshot.MaxQueue = status.Gate.MaxQueue
 		snapshot.CapacityOK = status.Capacity.Available
 		snapshot.CapacityNote = capacityReason(status.Capacity.Reason)
+		if !status.Ready && status.Upstream.Reachable && !status.Capacity.Available {
+			snapshot.ReadyNote = snapshot.CapacityNote
+		}
 		published := make(map[string]struct{}, len(status.Models))
 		for _, model := range status.Models {
 			published[model.ID] = struct{}{}
 		}
 		for index := range snapshot.Models {
-			if snapshot.Models[index].Available {
-				if _, ok := published[snapshot.Models[index].ID]; !ok {
-					snapshot.Models[index].Available = false
-					snapshot.Models[index].Reason = "não publicado pelo edge"
-					snapshot.Models[index].Codex = false
-					snapshot.Models[index].OpenCode = false
-				}
+			if _, ok := published[snapshot.Models[index].ID]; !ok {
+				snapshot.Models[index].Available = false
 			}
 		}
-		statusByID := make(map[string]mcpserver.ModelStatus, len(status.ModelStatuses))
 		for _, item := range status.ModelStatuses {
-			statusByID[item.ID] = item
+			if item.ID == selected {
+				snapshot.CapacityOK = item.Available
+				snapshot.CapacityNote = capacityReason(item.Reason)
+			}
 		}
-		if selectedStatus, ok := statusByID[selected]; ok {
-			snapshot.CapacityOK = selectedStatus.Available
-			snapshot.CapacityNote = capacityReason(selectedStatus.Reason)
-		}
-		for _, event := range status.RecentEvents {
-			snapshot.RecentEvents = append(snapshot.RecentEvents, trayui.Event{Time: event.Time, Method: event.Method, Path: event.Path, Status: event.Status, DurationMS: event.DurationMS})
+		if snapshot.ClaudeAvailable && status.Ready && status.Upstream.Reachable {
+			ok, note := c.claudeGateway(ctx)
+			snapshot.ClaudeGatewayOK = ok
+			if note != "" {
+				snapshot.ClaudeDetail = note
+			}
 		}
 		return snapshot, nil
 	}
 
 	// Readiness is intentionally public and side-effect-free. It preserves a
-	// useful offline/degraded indication even when the administrative credential
-	// is missing, rotated, or temporarily unavailable.
+	// useful offline/degraded indication even when the status route fails.
 	if ready, readyErr := c.statusClient.Readiness(ctx); readyErr == nil {
+		snapshot.EdgeReachable = true
 		snapshot.ProviderReady = ready.Status == "ready"
 		if ready.UpstreamReachable != nil {
 			snapshot.UpstreamReady = *ready.UpstreamReachable
 		}
 	}
 	return snapshot, statusErr
+}
+
+// claudeGateway reports whether Claude Desktop could use the local gateway,
+// asking the gateway at most once per gatewayProbeInterval.
+func (c *appController) claudeGateway(ctx context.Context) (bool, string) {
+	c.mu.RLock()
+	if !c.gatewayAt.IsZero() && c.now().Sub(c.gatewayAt) < gatewayProbeInterval {
+		ok, note := c.gatewayOK, c.gatewayNote
+		c.mu.RUnlock()
+		return ok, note
+	}
+	c.mu.RUnlock()
+
+	ok, note := true, ""
+	if token, err := c.readCredential("claude-gateway"); err != nil {
+		ok, note = false, "Gateway Claude indisponível: "+sanitizeClaudeDetail(err)
+	} else if err := c.probeGateway(ctx, claudedesktop.Gateway{BaseURL: c.config.DataURL, APIKey: token}); err != nil {
+		ok, note = false, "Gateway Claude indisponível: "+sanitizeClaudeDetail(err)
+	}
+	c.mu.Lock()
+	c.gatewayOK, c.gatewayNote, c.gatewayAt = ok, note, c.now()
+	c.mu.Unlock()
+	return ok, note
+}
+
+func (c *appController) forgetGateway() {
+	c.mu.Lock()
+	c.gatewayAt = time.Time{}
+	c.mu.Unlock()
+}
+
+// OpenClaudeLocal reads the gateway's own credential and proves discovery
+// with it before anything under Claude-3p is written or launched.
+func (c *appController) OpenClaudeLocal(ctx context.Context) error {
+	if c.claude == nil {
+		return errors.New("o Claude Desktop não está disponível para abertura")
+	}
+	defer c.forgetGateway()
+	token, err := c.readCredential("claude-gateway")
+	if err != nil {
+		return fmt.Errorf("ler credencial exclusiva do gateway Claude: %w", err)
+	}
+	gateway := claudedesktop.Gateway{BaseURL: c.config.DataURL, APIKey: token}
+	if err := c.probeGateway(ctx, gateway); err != nil {
+		return fmt.Errorf("precheck do gateway Claude: %w", err)
+	}
+	if c.warmClaude != nil {
+		if err := c.warmClaude(ctx); err != nil {
+			return err
+		}
+	}
+	return c.claude.OpenLocal(ctx, gateway)
+}
+
+// loadClaudeProbeModel loads, when no model is loaded, the model Claude
+// Desktop's health check will ask for. On every start, and on "Verificar
+// novamente", Desktop sends a one-token request to the first model discovery
+// returns and gives up after ten seconds, less than a cold load takes here,
+// so the instance would open on "Não foi possível alcançar". A loaded model
+// is left alone: replacing it would take another client's model away for the
+// sake of a check.
+func (c *appController) loadClaudeProbeModel(ctx context.Context) error {
+	status, err := c.statusClient.Status(ctx)
+	if err != nil {
+		return fmt.Errorf("ler o estado do servidor: %w", err)
+	}
+	if strings.TrimSpace(status.ActiveModel) != "" || len(status.Models) == 0 {
+		return nil
+	}
+	// The edge lists models to Claude in the order of its status.
+	model := status.Models[0].ID
+	if _, err := c.adminClient.Load(ctx, model); err != nil {
+		return fmt.Errorf("carregar %s para o Claude Local: %w", model, err)
+	}
+	return nil
+}
+
+func (c *appController) LaunchClaudeDesktop(ctx context.Context) error {
+	if c.claude == nil {
+		return errors.New("o Claude Desktop não está disponível para abertura")
+	}
+	return c.claude.OpenAnthropic(ctx)
+}
+
+func sanitizeClaudeDetail(err error) string {
+	text := strings.TrimSpace(err.Error())
+	if len(text) > 180 {
+		return text[:180]
+	}
+	return text
 }
 
 func (c *appController) SelectModel(_ context.Context, modelID string) error {
@@ -232,19 +319,19 @@ func (c *appController) SelectModel(_ context.Context, modelID string) error {
 	}
 	c.mu.Lock()
 	c.selected = selection.Model
+	c.saved = selection.Model
+	c.selectionNote = ""
 	c.mu.Unlock()
 	return nil
 }
 
 func (c *appController) LoadSelected(ctx context.Context) error {
-	model := c.selectedModel()
-	_, err := c.adminClient.Load(ctx, model)
+	_, err := c.adminClient.Load(ctx, c.selectedModel())
 	return err
 }
 
 func (c *appController) SwitchSelected(ctx context.Context) error {
-	model := c.selectedModel()
-	_, err := c.adminClient.Switch(ctx, model)
+	_, err := c.adminClient.Switch(ctx, c.selectedModel())
 	return err
 }
 
@@ -261,167 +348,38 @@ func (c *appController) UnloadActive(ctx context.Context) error {
 	return err
 }
 
-func (c *appController) Launch(_ context.Context, client trayui.Client, modelID string) error {
-	var target panel.Client
-	switch client {
-	case trayui.ClientCodex:
-		target = panel.ClientCodex
-	case trayui.ClientOpenCode:
-		target = panel.ClientOpenCode
-	default:
-		return fmt.Errorf("cliente não suportado: %s", client)
-	}
-	return c.launcher.Launch(target, modelID)
-}
+func (c *appController) StartServer(ctx context.Context) error { return c.server.Start(ctx) }
 
-func (c *appController) AddModelRoot(_ context.Context, path string) error {
-	_, err := c.rootStore.Add(path)
-	return err
-}
+func (c *appController) StopServer(ctx context.Context) error { return c.server.Stop(ctx) }
 
-func (c *appController) RemoveModelRoot(_ context.Context, path string) error {
-	_, err := c.rootStore.Remove(path)
-	return err
-}
+func (c *appController) OpenPanel(ctx context.Context) error { return c.server.OpenPanel(ctx) }
 
-func (c *appController) ValidateModel(ctx context.Context, modelID string) error {
-	if model, ok := c.catalog.Model(modelID); ok {
-		_ = c.validationStore.RecordArtifact(modelID, "validando", "", model.ArtifactPath, "")
-		record, _, err := c.hashCache.HashFile(model.ArtifactPath)
-		if err != nil {
-			_ = c.validationStore.RecordArtifact(modelID, "falhou", err.Error(), model.ArtifactPath, "")
-			return err
-		}
-		if !strings.EqualFold(record.SHA256, model.ArtifactSHA256) {
-			err := errors.New("SHA-256 do GGUF diverge do manifesto")
-			_ = c.validationStore.RecordArtifact(modelID, "falhou", err.Error(), record.Path, record.SHA256)
-			return err
-		}
-		if err := c.validateSelected(ctx, modelID); err != nil {
-			_ = c.validationStore.RecordArtifact(modelID, "falhou", err.Error(), record.Path, record.SHA256)
-			return err
-		}
-		_ = c.validationStore.RecordArtifact(modelID, "validado", "carga e geração concluídas", record.Path, record.SHA256)
-		return nil
+// followActiveModel moves the radio to the model in memory whenever the loaded
+// model changes - loaded by this tray, Claude Local, /local or any other
+// client - and back to the saved choice when it unloads. Only a change moves
+// it, so a model the operator picks while another one is loaded stays picked
+// for "Trocar de modelo". The saved choice is never rewritten here: a model
+// another client loaded for a while does not become the default.
+func (c *appController) followActiveModel(active string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if active == c.lastActive {
+		return
 	}
-
-	discovered, err := c.rootStore.Scan()
-	if err != nil {
-		return err
+	c.lastActive = active
+	if active == "" {
+		c.selected = c.saved
+		return
 	}
-	for _, item := range discovered {
-		if discoveredModelID(item.Path) != modelID {
-			continue
-		}
-		_ = c.validationStore.RecordArtifact(modelID, "validando", "", item.Path, "")
-		record, _, err := c.hashCache.HashFile(item.Path)
-		if err != nil {
-			_ = c.validationStore.RecordArtifact(modelID, "falhou", err.Error(), item.Path, "")
-			return err
-		}
-		version, err := inspectGGUFHeader(record.Path)
-		if err != nil {
-			_ = c.validationStore.RecordArtifact(modelID, "falhou", err.Error(), record.Path, record.SHA256)
-			return err
-		}
-		message := fmt.Sprintf("hash e cabeçalho GGUF v%d verificados; aguardando perfil de execução no manifesto", version)
-		return c.validationStore.RecordArtifact(modelID, "inspecionado", message, record.Path, record.SHA256)
+	if model, ok := c.catalog.Model(active); ok && model.Available {
+		c.selected = active
 	}
-	return errors.New("modelo detectado não foi encontrado nas pastas aprovadas")
-}
-
-func (c *appController) validateSelected(ctx context.Context, model string) error {
-	before, err := c.statusClient.Status(ctx)
-	if err != nil {
-		return err
-	}
-	restore := func() {}
-	if before.ActiveModel == "" {
-		if _, err = c.adminClient.Load(ctx, model); err != nil {
-			return err
-		}
-		restore = func() { _, _ = c.adminClient.Unload(context.Background(), model) }
-	} else if before.ActiveModel != model {
-		previous := before.ActiveModel
-		if _, err = c.adminClient.Switch(ctx, model); err != nil {
-			return err
-		}
-		restore = func() { _, _ = c.adminClient.Switch(context.Background(), previous) }
-	}
-	defer restore()
-	token, err := credential.Read("inference")
-	if err != nil {
-		return fmt.Errorf("read inference credential: %w", err)
-	}
-	payload, _ := json.Marshal(map[string]any{
-		"model": model, "messages": []map[string]string{{"role": "user", "content": "Responda somente CIA_MODEL_OK"}}, "max_tokens": 32,
-	})
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(c.config.DataURL, "/")+"/v1/chat/completions", bytes.NewReader(payload))
-	if err != nil {
-		return err
-	}
-	request.Header.Set("Authorization", "Bearer "+token)
-	request.Header.Set("Content-Type", "application/json")
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.Proxy = nil
-	client := &http.Client{Transport: transport, Timeout: c.config.OperationTimeout()}
-	response, err := client.Do(request)
-	if err != nil {
-		return fmt.Errorf("model validation request failed: %w", err)
-	}
-	defer response.Body.Close()
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return fmt.Errorf("model validation returned %s", response.Status)
-	}
-	return nil
 }
 
 func (c *appController) selectedModel() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.selected
-}
-
-func discoveredModelID(path string) string {
-	digest := sha256.Sum256([]byte(strings.ToLower(filepath.Clean(path))))
-	return fmt.Sprintf("detected-%x", digest[:6])
-}
-
-func inspectGGUFHeader(path string) (uint32, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return 0, err
-	}
-	defer file.Close()
-	header := make([]byte, 8)
-	if _, err := file.Read(header); err != nil {
-		return 0, fmt.Errorf("ler cabeçalho GGUF: %w", err)
-	}
-	if string(header[:4]) != "GGUF" {
-		return 0, errors.New("arquivo não possui cabeçalho GGUF")
-	}
-	version := binary.LittleEndian.Uint32(header[4:8])
-	if version < 2 || version > 3 {
-		return 0, fmt.Errorf("versão GGUF não suportada: %d", version)
-	}
-	return version, nil
-}
-
-func unavailableReason(model panel.Model) string {
-	if model.Available {
-		return ""
-	}
-	if model.State == "candidate" && !model.Capabilities.FunctionCalling {
-		return "candidato sem function calling"
-	}
-	switch model.State {
-	case "disabled":
-		return "desabilitado"
-	case "retired":
-		return "retirado"
-	default:
-		return "não implantado neste ambiente"
-	}
 }
 
 func capacityReason(reason string) string {
@@ -432,6 +390,12 @@ func capacityReason(reason string) string {
 		return "reserva de memória disponível"
 	case "insufficient_commit_headroom":
 		return "reserva de memória insuficiente"
+	case "insufficient_physical_memory":
+		return "memória física insuficiente"
+	case "insufficient_vram_budget":
+		return "VRAM insuficiente"
+	case "resource_profile_incomplete":
+		return "perfil de recursos incompleto"
 	case "canary_resource_measurement_pending":
 		return "medição de recursos pendente no canário"
 	case "resource_measurement_required":
@@ -439,24 +403,4 @@ func capacityReason(reason string) string {
 	default:
 		return reason
 	}
-}
-
-func capabilitySummary(model panel.Model) string {
-	parts := make([]string, 0, 4)
-	if model.Capabilities.Responses {
-		parts = append(parts, "Responses")
-	}
-	if model.Capabilities.ChatCompletions {
-		parts = append(parts, "Chat")
-	}
-	if model.Capabilities.Streaming {
-		parts = append(parts, "streaming")
-	}
-	if model.Capabilities.FunctionCalling {
-		parts = append(parts, "tools")
-	}
-	if len(parts) == 0 {
-		return "não validado"
-	}
-	return strings.Join(parts, ", ")
 }

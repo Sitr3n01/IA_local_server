@@ -1,0 +1,52 @@
+{
+  "scenario": "codex-native-local-client",
+  "model": "qwen38-27b-agent-128k",
+  "cli_version": "0.159.2",
+  "exit_code": 0,
+  "seconds": 20.875,
+  "stdout_sha256": "5afb5e3eb5e37d8684a4b86d3c354e0c3a7a3d74e3e5c5e95de54e77f5cb351d",
+  "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+  "event_types": [
+    "thread.started",
+    "turn.started",
+    "item.started",
+    "item.completed",
+    "item.completed",
+    "turn.completed"
+  ],
+  "command_count": 1,
+  "items": [
+    {
+      "type": "command_execution",
+      "keys": [
+        "aggregated_output",
+        "command",
+        "exit_code",
+        "id",
+        "status",
+        "type"
+      ],
+      "status": "completed",
+      "exit_code": 0,
+      "text_length": 0,
+      "marker_present": false
+    },
+    {
+      "type": "agent_message",
+      "keys": [
+        "id",
+        "text",
+        "type"
+      ],
+      "status": null,
+      "exit_code": null,
+      "text_length": 18,
+      "marker_present": true
+    }
+  ],
+  "marker_correct": true,
+  "completed": true,
+  "failed": false,
+  "passed": true,
+  "cleanup_status": 200
+}

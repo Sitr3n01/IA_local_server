@@ -147,7 +147,18 @@ func (s *Server) performModelControl(ctx context.Context, modelID, operation str
 		if activeModel == modelID {
 			err = s.routerOperation(operationCtx, http.MethodGet, "/upstream/"+url.PathEscape(modelID)+"/health")
 		} else if err = s.routerOperation(operationCtx, http.MethodPost, "/api/models/unload"); err == nil {
-			err = s.routerOperation(operationCtx, http.MethodGet, "/upstream/"+url.PathEscape(modelID)+"/health")
+			var capacity capacityStatus
+			capacity, err = s.capacityAfterUnload(operationCtx, model)
+			if err == nil && !capacity.Available {
+				s.metrics.recordModelOperation(operation, time.Since(started), false)
+				return controlResult{}, &payloadError{
+					Status: http.StatusServiceUnavailable, Code: "insufficient_capacity",
+					Message: s.refusalText(capacity), Param: "model",
+				}
+			}
+			if err == nil {
+				err = s.routerOperation(operationCtx, http.MethodGet, "/upstream/"+url.PathEscape(modelID)+"/health")
+			}
 		}
 	default:
 		return controlResult{}, &payloadError{

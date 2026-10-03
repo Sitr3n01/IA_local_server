@@ -1,0 +1,76 @@
+{
+  "version": "v2-review-20261001.1",
+  "built_utc": "2026-10-02T00:50:48.9578846Z",
+  "source_head": "b698c4f278bf9191d61afc5021142d1eb7f14e3b",
+  "source_dirty": true,
+  "source_sha256": "edee36fe8afc04149aad6ca463edc660922ae64297ef2f739285363a7002435e",
+  "source_files": 2490,
+  "go_version": "go version go1.26.6 windows/amd64",
+  "install_mutated": false,
+  "byte_identical_rebuilds": [
+    "cia-edge",
+    "cia-mcp-admin"
+  ],
+  "artifacts": [
+    {
+      "name": "cia-console",
+      "bytes": 12340736,
+      "sha256": "e4fc9ede176f0c967da7d4fb43bd678be4e8287756c43ff4e28e84ed6fc2e470"
+    },
+    {
+      "name": "cia-credential",
+      "bytes": 9392640,
+      "sha256": "12a1919c6a23a551e01d07b2787b01520900305f83a251d18c98451d295be616"
+    },
+    {
+      "name": "cia-edge",
+      "bytes": 12035584,
+      "sha256": "a5ac091017887347f9c8d2cccde325c167047e4524112c538d8c1eec3cdda0da"
+    },
+    {
+      "name": "cia-fork-gate",
+      "bytes": 3955200,
+      "sha256": "16cb90f3af58f983df9da66e268afdc4fdd18f001a8e17ba5d3d42daf2700218"
+    },
+    {
+      "name": "cia-manifest",
+      "bytes": 4605440,
+      "sha256": "ae333c5cbcc3244e16fad40cd038b7f534d775144e91f9d5dacc62d8454b87a1"
+    },
+    {
+      "name": "cia-mcp",
+      "bytes": 11891200,
+      "sha256": "7f4b376f90b0a5ee42cc87a4f24d6610fe4030e7399a89ed2ebb386704d53d60"
+    },
+    {
+      "name": "cia-mcp-admin",
+      "bytes": 12188160,
+      "sha256": "017ab625c00f1df070d0f7a35d9d6c350eec82de21fd7241f8da6581edac5cde"
+    },
+    {
+      "name": "cia-mcp-inference",
+      "bytes": 12098560,
+      "sha256": "0d3cafb1f59b6568f8d867fd453675db5d7d6d20cc25e25b12a69a9ed6aff530"
+    },
+    {
+      "name": "cia-mcp-smoke",
+      "bytes": 8995328,
+      "sha256": "6cc4be9355141d50c9b60ed8354b3473a24cd8b6b51a1e8703ce9feebdd8d647"
+    },
+    {
+      "name": "cia-monitor",
+      "bytes": 11120640,
+      "sha256": "7fa58543bc892a223397a4c0c791826676c76d7af16c309af7769e635338c57b"
+    },
+    {
+      "name": "cia-supervisor",
+      "bytes": 3968000,
+      "sha256": "a8cc39483d51859cc692013cd11819ed1e33415a444834c8c42805787af7c9c9"
+    },
+    {
+      "name": "cia-tray",
+      "bytes": 12681728,
+      "sha256": "e4e1f424236882d56cfcbccb0b59c5d70064ef56fe169338480a4adbe76ca5a1"
+    }
+  ]
+}
