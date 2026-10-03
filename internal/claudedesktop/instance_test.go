@@ -1,7 +1,9 @@
 package claudedesktop
 
 import (
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -24,10 +26,9 @@ func TestClassifyArgumentsReadsTheInstanceSwitches(t *testing.T) {
 // deployments running: each main process has no switches, and each helper
 // names its instance's user-data directory and its main process as parent.
 func TestInstanceMainTellsTheTwoDeploymentsApart(t *testing.T) {
-	const (
-		signedIn = `C:\Users\me\AppData\Roaming\Claude`
-		local    = `C:\Users\me\AppData\Local\Claude-3p`
-	)
+	root := t.TempDir()
+	signedIn := filepath.Join(root, "Roaming", "Claude")
+	local := filepath.Join(root, "Local", "Claude-3p")
 	processes := []packageProcess{
 		{pid: 22784, parent: 1},
 		{pid: 9364, parent: 22784, helper: true, dataDir: signedIn},
@@ -38,7 +39,7 @@ func TestInstanceMainTellsTheTwoDeploymentsApart(t *testing.T) {
 	if main := instanceMain(processes, signedIn); main != 22784 {
 		t.Fatalf("signed-in main=%d, want 22784", main)
 	}
-	if main := instanceMain(processes, `c:\users\me\appdata\local\claude-3p\`); main != 20980 {
+	if main := instanceMain(processes, strings.ToLower(local)+string(filepath.Separator)); main != 20980 {
 		t.Fatalf("local main=%d, want 20980 despite case and a trailing separator", main)
 	}
 	if main := instanceMain(processes[:3], local); main != 0 {

@@ -70,15 +70,16 @@ func TestEdgeEnvironmentReplacesAllCIASecrets(t *testing.T) {
 }
 
 func TestInstalledEdgePathsFollowCredentialHelperInstallation(t *testing.T) {
-	credentialHelper := filepath.Join(`D:\Portable AI`, "bin", "cia-credential.exe")
+	root := filepath.Join(t.TempDir(), "Portable AI")
+	credentialHelper := filepath.Join(root, "bin", "cia-credential.exe")
 	edge, logPath, err := installedEdgePaths(credentialHelper)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := filepath.Join(`D:\Portable AI`, "bin", "cia-edge.exe"); edge != want {
+	if want := filepath.Join(root, "bin", "cia-edge.exe"); edge != want {
 		t.Fatalf("edge=%q, want %q", edge, want)
 	}
-	if want := filepath.Join(`D:\Portable AI`, "logs", "cia-edge.jsonl"); logPath != want {
+	if want := filepath.Join(root, "logs", "cia-edge.jsonl"); logPath != want {
 		t.Fatalf("log=%q, want %q", logPath, want)
 	}
 }

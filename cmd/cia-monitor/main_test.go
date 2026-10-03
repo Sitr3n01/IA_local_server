@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestEnvironmentDefaultsStayOnLoopbackAndBesideTheirEdge(t *testing.T) {
 }
 
 func TestControlOptions(t *testing.T) {
-	const edge = `C:\IA\local-ai-v2\bin\cia-edge.exe`
+	edge := filepath.Join(t.TempDir(), "cia-edge.exe")
 
 	t.Run("off disables the buttons without validating the server", func(t *testing.T) {
 		got, err := controlOptions("canary", "off", "not-absolute")
