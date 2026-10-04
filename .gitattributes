@@ -9,8 +9,21 @@
 * text=auto eol=lf
 
 *.ico binary
+*.png binary
 *.gguf binary
 *.safetensors binary
 *.exe binary
 *.zip binary
 *.bin binary
+
+# Recorded evaluation evidence is machine-generated: GitHub collapses it in
+# diffs and leaves it out of the repository's language statistics. The campaign
+# drivers (*.ps1, *.py, *.sh) and reports (*.md) beside it stay visible.
+benchmarks/**/*.json linguist-generated=true
+benchmarks/**/*.jsonl linguist-generated=true
+benchmarks/**/*.txt linguist-generated=true
+benchmarks/**/*.stdout linguist-generated=true
+benchmarks/**/*.out linguist-generated=true
+benchmarks/**/*.DONE linguist-generated=true
+# Code the models wrote while solving the coding fixtures.
+benchmarks/**/work-*/** linguist-generated=true

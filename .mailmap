@@ -1,0 +1,4 @@
+# One name per person in git log, shortlog and blame. Earlier commits used the
+# GitHub handle, the Windows account name, and the profile name for the same
+# address.
+José Gilberto <zegilfarias@gmail.com>

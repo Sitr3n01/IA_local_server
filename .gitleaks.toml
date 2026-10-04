@@ -1,4 +1,4 @@
-title = "IA_local_server gitleaks config"
+title = "local-ai-provider gitleaks config"
 
 [extend]
 useDefault = true
