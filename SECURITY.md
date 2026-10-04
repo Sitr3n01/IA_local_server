@@ -2,11 +2,16 @@
 
 ## Supported code
 
-Security fixes target the v2 Go edge, credential helper, MCP server, tracked manifests, and operational scripts on the current default branch. The v1 Python panel and MCP bridge are retained only for migration evidence and are not considered safe production surfaces.
+Security fixes target the current default branch and the latest release: the Go edge, credential helper, MCP servers, tray, monitor, tracked manifests, and operational scripts. The v1 Python panel and MCP bridge are no longer part of this repository and are not supported.
 
 ## Reporting a vulnerability
 
-Do not open a public issue containing credentials, prompts, responses, private source code, filesystem captures, or exploit details. Contact the repository owner privately with:
+Report it privately through GitHub's private vulnerability reporting: open the
+repository's **Security** tab and choose **Report a vulnerability**, or go
+straight to <https://github.com/Sitr3n01/local-ai-provider/security/advisories/new>.
+Only you and the maintainer see the report until an advisory is published.
+
+Do not open a public issue containing credentials, prompts, responses, private source code, filesystem captures, or exploit details. Include:
 
 - A sanitized description and affected version/commit.
 - Reproduction using synthetic data.
