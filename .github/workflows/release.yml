@@ -92,6 +92,7 @@ jobs:
             @{ Package = './cmd/cia-mcp'; Binary = 'cia-mcp.exe'; Gui = $false },
             @{ Package = './cmd/cia-mcp-admin'; Binary = 'cia-mcp-admin.exe'; Gui = $false },
             @{ Package = './cmd/cia-mcp-inference'; Binary = 'cia-mcp-inference.exe'; Gui = $false },
+            @{ Package = './cmd/cia-monitor'; Binary = 'cia-monitor.exe'; Gui = $false },
             @{ Package = './cmd/cia-tray'; Binary = 'cia-tray.exe'; Gui = $true },
             @{ Package = './cmd/cia-manifest'; Binary = 'cia-manifest.exe'; Gui = $false },
             @{ Package = './cmd/cia-credential'; Binary = 'cia-credential.exe'; Gui = $false }
@@ -195,7 +196,9 @@ jobs:
           # Built as an array, not a PowerShell here-string. A here-string must
           # close at column 0, and a line at column 0 ends this YAML block scalar
           # in the middle of the step - which is a workflow that never starts.
-          $notes = @(
+          $verification = @(
+            '## Verification and installation',
+            '',
             'Local-only provider binaries for Windows/amd64.',
             '',
             'Verify every file against SHA256SUMS before installing. Installation is a',
@@ -205,6 +208,21 @@ jobs:
             '',
             'Code signing is not performed; no certificate exists for this project.'
           ) -join "`n"
+          # Curated notes for this tag, when the release commit carries them, go
+          # first; the verification text above is always appended.
+          $curated = "docs/releases/$version.md"
+          $notes = if (Test-Path -LiteralPath $curated -PathType Leaf) {
+            (Get-Content -LiteralPath $curated -Raw -Encoding utf8).TrimEnd() + "`n`n" + $verification
+          }
+          else {
+            $verification
+          }
           Set-Content -LiteralPath release-notes.md -Value $notes -Encoding utf8
-          gh release create $version --title $version --notes-file release-notes.md --verify-tag
+          # A semantic-versioning pre-release label (v2.0.0-canary.1) is
+          # published as a GitHub pre-release, so it is never shown as latest.
+          $releaseArgs = @($version, '--title', $version, '--notes-file', 'release-notes.md', '--verify-tag')
+          if ($version -match '^v\d+\.\d+\.\d+-') { $releaseArgs += '--prerelease' }
+          gh release create @releaseArgs
+          if ($LASTEXITCODE -ne 0) { throw "gh release create failed for $version" }
           gh release upload $version @(Get-ChildItem dist -Recurse -File | ForEach-Object { $_.FullName })
+          if ($LASTEXITCODE -ne 0) { throw "gh release upload failed for $version" }

@@ -1,8 +1,66 @@
 # Changelog
 
-All notable changes are documented here. This project follows Keep a Changelog conventions and will use semantic versioning once v2 leaves canary.
+All notable changes are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
+[Semantic Versioning](https://semver.org/). While v2 is in canary, releases are
+pre-releases (`2.0.0-canary.N`).
 
 ## [Unreleased]
+
+Nothing yet.
+
+## [2.0.0-canary.1] - 2026-10-04
+
+The first tagged release of v2: everything built since the v1 prototype, as it
+runs on the canary deployment. Production promotion stays blocked by the open
+gates in the [readiness review](docs/reports/2026-10-01-deploy-readiness.md).
+
+### Highlights
+
+- A loopback-only Go edge for OpenAI Chat Completions and Responses and for
+  Anthropic Messages, with route contracts, capability gating against the
+  manifest, a bounded queue, bounded decompression, and no cloud fallback.
+- A four-model canary roster behind an evidence-gated promotion state machine:
+  Gemma 4 12B at 256k as the public model, Qwen3.8 27B Deep (32k) and Agent
+  (128k), and Qwen3.6 35B-A3B at 256k.
+- Memory admission on RAM, commit and VRAM, including unload-and-remeasure
+  during model swaps.
+- A release transaction with drain and rollback, a protected production
+  artifact boundary, and a named-pipe administrative transport.
+- The IA Local tray as the single startup entry, the browser monitor, and
+  Claude Local beside the signed-in Claude Desktop.
+- Read-only, administrative (unregistered by default) and stateless inference
+  MCP servers.
+
+### Repository
+
+- The Go module path is `github.com/Sitr3n01/local-ai-provider`, matching the
+  repository.
+- `README.md` is now the English README and `README.pt-BR.md` the Portuguese
+  one. Both gained screenshots of the monitor, a results table with links to the
+  evidence, the hardware baseline, the full four-model roster, and a getting
+  started section whose test commands work on Windows.
+- New `docs/MONITOR.md`, `docs/README.md` (documentation index) and
+  `docs/adr/README.md` (ADR index and status vocabulary). ADRs 0001-0004 use the
+  same `## Status` section as the others.
+- `SECURITY.md` points to GitHub private vulnerability reporting. New
+  `CODE_OF_CONDUCT.md`, issue forms and a pull request template.
+  `CONTRIBUTING.md` documents commit and release conventions and states that
+  `benchmarks/` holds only output generated from the synthetic evaluation
+  fixtures.
+- New CodeQL workflow (Go, JavaScript, Python, Actions) and Dependabot
+  configuration (Go modules, actions, monitor tooling).
+- `release.yml` packages `cia-monitor.exe`, publishes semantic-versioning
+  pre-release tags as GitHub pre-releases, and takes curated notes from
+  `docs/releases/<tag>.md`.
+- `.mailmap` gives the maintainer one identity in the history, and
+  `.gitattributes` marks the recorded benchmark evidence as generated.
+- The non-elevated developer scripts under `scripts/` resolve the user profile
+  from `$env:USERPROFILE` instead of a hard-coded account path. The elevated
+  deployment scripts keep their literal `-TargetCodexHome` default on purpose:
+  elevation must not be able to redirect the Codex profile to another account.
+
+The detailed entries below are kept in the order they landed during the canary.
 
 ### Changed
 
@@ -1040,3 +1098,6 @@ All notable changes are documented here. This project follows Keep a Changelog c
 - `local-coding` and `local-fast` are no longer in the manifest, and no
   launcher defaults to `local-coding` any more; pass `-Model` or rely on the
   defaults described under Changed.
+
+[Unreleased]: https://github.com/Sitr3n01/local-ai-provider/compare/v2.0.0-canary.1...HEAD
+[2.0.0-canary.1]: https://github.com/Sitr3n01/local-ai-provider/releases/tag/v2.0.0-canary.1
