@@ -1,227 +1,227 @@
 # Local AI Provider
 
-**Português** · **[English](README.en.md)**
+**English** · **[Português (Brasil)](README.pt-BR.md)**
 
-**Servidor de inferência compatível com a API da OpenAI, restrito a loopback, que permite rodar agentes de código contra um modelo local — sem que código-fonte, prompts ou credenciais saiam da máquina.**
+**A loopback-only, OpenAI-compatible inference server that lets coding agents run against a local model — without source code, prompts, or credentials ever leaving the machine.**
 
-[![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](https://go.dev/)
-[![Licença](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-blue)](LICENSE)
-[![Plataforma](https://img.shields.io/badge/plataforma-Windows%20%7C%20AMD%20ROCm-0078D6?logo=windows)](#baseline-de-hardware)
-[![CI](https://github.com/Sitr3n01/IA_local_server/actions/workflows/ci.yml/badge.svg)](https://github.com/Sitr3n01/IA_local_server/actions/workflows/ci.yml)
-[![Status](https://img.shields.io/badge/status-v2%20canary-orange)](#status-do-projeto)
+[![CI](https://github.com/Sitr3n01/local-ai-provider/actions/workflows/ci.yml/badge.svg)](https://github.com/Sitr3n01/local-ai-provider/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Sitr3n01/local-ai-provider/actions/workflows/codeql.yml/badge.svg)](https://github.com/Sitr3n01/local-ai-provider/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/Sitr3n01/local-ai-provider?include_prereleases&sort=semver)](https://github.com/Sitr3n01/local-ai-provider/releases)
+[![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](go.mod)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20AMD%20ROCm-0078D6?logo=windows)](#hardware-baseline)
 
----
+<p align="center">
+  <img src="docs/images/monitor-overview.png" width="880" alt="The cia-monitor page on the live canary: request phase, tokens per second, GPU load, power, temperature, VRAM, shared memory, CPU, RAM, commit and disk, with admission badges on RAM and commit">
+  <br>
+  <sub>The browser monitor on the live canary, idle. The <i>admite</i> badges show whether the selected model fits in RAM and commit right now. The UI is in Portuguese.</sub>
+</p>
 
-## O problema
+## The problem
 
-Harnesses de código como Codex, Claude Code e OpenCode enviam prompts para um provedor na nuvem — e um prompt raramente é só uma pergunta. Ele carrega código-fonte, árvore de arquivos, estrutura de diretórios e schemas de ferramentas.
+Coding harnesses like Codex, Claude Code, and OpenCode send prompts to a cloud provider — and a prompt is rarely just a question. It carries source code, file trees, directory structure, and tool schemas.
 
-Apontar esses harnesses para um modelo local parece trivial: basta expor um endpoint compatível com a OpenAI e trocar a base URL. Feito sem cuidado, esse shim reintroduz silenciosamente todos os riscos que deveria eliminar:
+Pointing those harnesses at a local model looks trivial: expose an OpenAI-compatible endpoint and change the base URL. Done badly, that shim quietly reintroduces every risk it was meant to remove:
 
-- ele **encaminha o token bearer do cliente** para cima, porque proxies copiam headers por padrão;
-- ele **cai para a nuvem** quando o modelo local dá erro, e aí falha vira exfiltração sem ninguém perceber;
-- ele **loga corpos de request** para depuração, e aí prompts e credenciais vão parar em texto puro no disco;
-- ele **escuta em `0.0.0.0`**, e aí qualquer dispositivo da rede alcança a API de inferência.
+- it **forwards the client's bearer token** upstream, because proxies copy headers by default;
+- it **falls back to the cloud** when the local model errors, so failure silently becomes exfiltration;
+- it **logs request bodies** for debugging, so prompts and credentials land in plaintext on disk;
+- it **binds to `0.0.0.0`**, so every device on the network can reach the inference API.
 
-Este repositório é a versão cuidadosa desse shim. Cada uma dessas quatro falhas é um invariante testado e aplicado aqui — a terceira porque aconteceu de verdade no protótipo v1, e o [incidente está documentado abertamente](incident-reports/2026-07-20-panel-zstd-credential-exposure.md).
+This repository is the careful version of that shim. Each of those four failures is a tested, enforced invariant here — the third one because it actually happened to the v1 prototype, and the [incident is documented in the open](incident-reports/2026-07-20-panel-zstd-credential-exposure.md).
 
-## O que é
+## What it is
 
-Um control plane em Go na frente do `llama.cpp`, mais o encanamento de Windows necessário para rodá-lo como um serviço real e supervisionado:
+A Go control plane in front of `llama.cpp`, plus the Windows plumbing needed to run it as a real, supervised service:
 
-| Responsabilidade | Dono |
+| Concern | Owner |
 |---|---|
-| Loop do agente, contexto, execução de ferramentas, retries | **O harness** — nunca este servidor |
-| Autenticação/autorização, validação, fila, cancelamento, adaptação de protocolo | `cia-edge` |
-| Start preguiçoso do modelo, ciclo de vida de um modelo só, unload por ociosidade | `llama-swap` |
-| Geração de tokens | `llama-server` sobre AMD ROCm |
-| Guarda de credenciais, contenção de processo, backoff de reinício | `cia-supervisor` + Windows Credential Manager |
+| Agent loop, context, tool execution, retries | **The harness** — never this server |
+| AuthN/Z, validation, queueing, cancellation, protocol adaptation | `cia-edge` |
+| Lazy model start, one-model lifecycle, idle unload | `llama-swap` |
+| Token generation | `llama-server` on AMD ROCm |
+| Credential storage, process containment, restart backoff | `cia-supervisor` + Windows Credential Manager |
 
-O limite de escopo é deliberado e é justamente o ponto: isto é um **plano de inferência e controle de admissão**, não um framework de agente. Não tem histórico de conversa, não tem armazenamento de prompt, não escolhe modelo, e não tem caminho de rede para nenhum provedor de nuvem.
+The deliberate scope limit is the point: this is an **inference and admission-control plane**, not an agent framework. It has no conversation history, no prompt store, no model chooser, and no network path to any cloud provider.
 
-> **Sobre o prefixo `cia-`:** vem da raiz de instalação `C:\IA` (*IA* = *inteligência artificial*). Nenhuma relação com a agência.
+> **Names.** The project is *Local AI Provider*. Its Windows tray app is called *IA Local*, and every executable carries the `cia-` prefix, from the install root `C:\IA` (*IA* is Portuguese for *AI*). No relation to the agency.
 
-## Arquitetura
+## Results at a glance
+
+Measured on the [hardware below](#hardware-baseline). Every row links to the versioned evidence it comes from.
+
+| Measure | Result | Evidence |
+|---|---|---|
+| Edge overhead | p95 of **18.2 ms** over 30 short, warm request pairs, against a 50 ms gate; throughput difference −0.085%, within noise | [Readiness review](docs/reports/2026-10-01-deploy-readiness.md#evidence-completed-in-this-review) |
+| Long-context recall, Qwen3.6 35B-A3B | **120/120** planted-fact checks across ten fill levels, up to 240k tokens | [Final roster §C](docs/reports/FINAL-ROSTER-20260825.md#c-retention) |
+| Long-context recall, Gemma 4 12B | **59/60** up to 240k tokens in its 256k window | [Final roster](docs/reports/FINAL-ROSTER-20260825.md#retention-up-the-ramp) |
+| Decode with the context filled, Qwen3.6 35B-A3B | **50.4 tok/s** at 120k tokens, **32.9 tok/s** at 240k | [Final roster §D](docs/reports/FINAL-ROSTER-20260825.md#d-performance-with-the-context-filled) |
+| Real agent session | Codex on the Agent profile ran a failing Go test, fixed the code and got the suite passing in **114 s**, original tests untouched | [Readiness review](docs/reports/2026-10-01-deploy-readiness.md#real-model-contracts) |
+| Protocol contracts | **27** (Deep) and **28** (Agent) checks passed: native Responses, namespaced tools, SSE, cancellation, recovery | [Readiness review](docs/reports/2026-10-01-deploy-readiness.md#real-model-contracts) |
+| Test suite | **728** Go tests and subtests on Windows; **653** under `-race` on Linux (2026-10-01) | [Readiness review](docs/reports/2026-10-01-deploy-readiness.md#evidence-completed-in-this-review) |
+| Reproducible builds | Edge and administrative MCP rebuilt with identical SHA-256 | [Readiness review](docs/reports/2026-10-01-deploy-readiness.md#evidence-completed-in-this-review) |
+
+## Architecture
 
 ```mermaid
 flowchart LR
-    T["cia-tray<br/>painel do operador"] --> P
-    W["cia-monitor<br/>monitor no navegador"] --> P
-    C["Perfil Codex"] --> E
-    O["Provider OpenCode"] --> E
-    E["cia-edge<br/>dados :8090"] --> S
-    P["cia-edge<br/>controle :8091"]
-    S["llama-swap :9292"] --> L["llama-server"]
-    L --> G["GGUF qualificado"]
-    M["cia-mcp<br/>somente leitura"] --> P
-    D["Harness SOTA +<br/>cia-mcp-inference"] --> E
-    A["cia-mcp-admin<br/>opcional, não registrado"] -.-> P
-    U["Unsloth<br/>treino / export"] --> Q["Gate de promoção"]
+    C["Codex profile"] --> E
+    O["OpenCode provider"] --> E
+    K["Claude Local<br/>Claude Desktop, 3P"] --> E
+    D["Cloud agent +<br/>cia-mcp-inference"] --> E
+    E["cia-edge<br/>data :18090"] --> S
+    S["llama-swap :19292"] --> L["llama-server<br/>ROCm"]
+    L --> G["Qualified GGUF"]
+    T["cia-tray<br/>IA Local"] --> P
+    W["cia-monitor<br/>browser monitor"] --> P
+    M["cia-mcp<br/>read-only"] --> P
+    A["cia-mcp-admin<br/>opt-in, unregistered"] -.-> P
+    P["cia-edge<br/>control :18091"]
+    U["Unsloth<br/>train / export"] --> Q["Promotion gate"]
     Q --> G
 ```
 
-As requisições entram apenas por loopback. O edge remove o header `Authorization` do cliente, valida o payload contra um contrato específico da rota, injeta uma credencial de router *separada*, e devolve os bytes do upstream de forma incremental com propagação de cancelamento. Rota desconhecida, modelo desconhecido, encoding não suportado ou formato de ferramenta malformado **falham fechado** — não existe segunda opinião para recorrer.
+Ports are the canary deployment's; the final deployment uses `8090`, `8091` and `9292`. Requests enter on loopback only. The edge strips the client's `Authorization` header, validates the payload against a route-specific contract, injects a *separate* router credential, and streams upstream bytes back incrementally with cancellation propagation. An unknown route, unknown model, unsupported encoding, or malformed tool shape **fails closed** — there is no second opinion to fall back to.
 
-Detalhamento completo: [Arquitetura](docs/ARCHITECTURE.md) · [Threat model](docs/THREAT_MODEL.md) · [Runbook](docs/RUNBOOK.md) · [Tuning](docs/TUNING.md) · [ADRs](docs/adr/)
+Full detail: [Architecture](docs/ARCHITECTURE.md) · [Threat model](docs/THREAT_MODEL.md) · [Runbook](docs/RUNBOOK.md) · [Tuning](docs/TUNING.md) · [ADRs](docs/adr/README.md)
 
-## Invariantes de segurança
+## Security invariants
 
-Estes são aplicados em código e verificados por testes, não apenas documentados:
+These are enforced in code and asserted by tests, not just documented:
 
-| Invariante | Como é aplicado |
+| Invariant | How it is enforced |
 |---|---|
-| Todo listener é loopback literal | A config rejeita `0.0.0.0`, `::` e endereços de LAN; a auditoria de instalação inspeciona os listeners ativos |
-| Credenciais do cliente nunca chegam ao modelo | O edge remove `Authorization` e cookies; verificado contra um upstream falso em testes de integração |
-| Três segredos independentes | Credenciais distintas de inferência / administração / router no Windows Credential Manager |
-| Nunca há fallback para nuvem | Nenhum upstream remoto é alcançável; allowlists de rota e modelo; regras de firewall bloqueando saída |
-| Logs contêm apenas metadados | ID da requisição, método, rota sanitizada, status, latência. Nunca prompts, corpos, headers ou tokens |
-| Descompressão limitada | Teto de 16 MiB na rede / 64 MiB decodificado / expansão 100:1 em identity, gzip e zstd |
-| Concorrência limitada | Por padrão, uma inferência ativa, até 16 na fila e 120 s de espera; excesso ou timeout retorna `429` com `Retry-After`. A leitura limitada do corpo ocorre antes da espera e também tem limite de concorrência |
-| Acesso direto ao modelo é autenticado | O `llama-server` exige o arquivo de chave do router; inferência sem credencial na porta dinâmica retorna `401` |
-| Nenhum segredo em linha de comando | O supervisor injeta em uma allowlist de ambiente local ao processo |
-| Nada sensível no Git | A CI rejeita binários e pesos rastreados; o Gitleaks varre o histórico completo |
+| Every listener is literal loopback | Config rejects `0.0.0.0`, `::`, and LAN addresses; installation audit inspects live listeners |
+| Client credentials never reach the model | Edge removes `Authorization` and cookies; verified against a fake upstream in integration tests |
+| Three independent secrets | Distinct inference / admin / router credentials in Windows Credential Manager |
+| No cloud fallback, ever | No remote upstream is reachable; route + model allowlists; outbound firewall deny rules |
+| Logs are metadata-only | Request ID, method, sanitized route, status, latency. Never prompts, bodies, headers, or tokens |
+| Bounded decompression | 16 MiB wire / 64 MiB decoded / 100:1 expansion ceiling on identity, gzip, and zstd |
+| Bounded concurrency | Defaults: one active inference, up to 16 queued, and a 120 s wait; overflow or timeout returns `429` with `Retry-After`. Bounded body reading happens before the wait and has its own concurrency limit |
+| Direct model access is authenticated | `llama-server` requires the router key file; unauthenticated inference on the dynamic port returns `401` |
+| No secrets on command lines | Supervisor injects into a process-local environment allowlist |
+| Nothing sensitive in Git | CI rejects tracked binaries and weights; Gitleaks scans full history |
 
-A separação de privilégio é deliberada em todas as camadas: o control plane é um listener separado do data plane, o MCP administrativo é um **executável separado que nunca é registrado por padrão**, e o painel do operador só lê a credencial de administração numa mutação explícita — seu polling periódico de status é não autenticado e sanitizado, de forma que um impostor em loopback não tem caminho de captura desassistida.
+The privilege split is deliberate at every layer: the control plane is a separate listener from the data plane, the administrative MCP is a **separate executable that is never registered by default**, and the tray reads the admin credential only on an explicit mutation — its periodic status poll is unauthenticated and sanitized, so a loopback impostor has no unattended capture path.
 
-## Componentes
+## Components
 
-| Executável | Função | Exposição |
+| Executable | Purpose | Exposure |
 |---|---|---|
-| `cia-edge` | Data e control plane: auth, validação, fila, streaming | `127.0.0.1:18090` / `:18091` (canary); `:8090` / `:8091` (final) |
-| `cia-supervisor` | Contenção em Job Object, backoff exponencial de reinício de 1 a 15 min | Ação de tarefa agendada |
-| `cia-tray` | IA Local: ícone e flyout nativos no design do monitor — inicia e encerra o servidor, status, carregar/trocar/descarregar, abre o painel e os clientes | Área de notificação; única entrada de inicialização |
-| `cia-monitor` | Monitor no navegador — fase da requisição, tokens/s, GPU, RAM, commit; carregar/descarregar modelo com confirmação nativa | `127.0.0.1:18095` (canary) / `:8095` (final) |
-| `cia-credential` | Auxiliar do Windows Credential Manager | Somente processo local |
-| `cia-mcp` | MCP operacional somente leitura (5 ferramentas sem efeito colateral) | stdio do harness |
-| `cia-mcp-inference` | Uma ferramenta de delegação sem estado, só texto, para harnesses SOTA | stdio do harness |
-| `cia-mcp-admin` | MCP de administração de ciclo de vida | **Não registrado por padrão** |
-| `cia-mcp-smoke` | Teste ao vivo do `cia-mcp-inference` instalado: handshake MCP, superfície de uma ferramenta só, marcador sintético exato; relatório apenas com metadados | Operador; servidor MCP iniciado como filho por stdio |
-| `cia-manifest` | Validação por JSON Schema do manifesto versionado de modelos | Operador / CI |
-| `cia-fork-gate` | Gate de proveniência: decide se um commit pinado do `buun-llama-cpp` pode ser compilado e adotado como runtime agentic do Qwen3.8; não carrega modelo, não abre porta, não acessa a rede | Operador, via `Build-V2ForkRuntime.ps1` |
+| `cia-edge` | Data + control plane: auth, validation, queue, streaming | `127.0.0.1:18090` / `:18091` (canary); `:8090` / `:8091` (final) |
+| `cia-supervisor` | Job Object containment, 1–15 min exponential restart backoff | Scheduled-task action |
+| `cia-tray` | IA Local: native icon and flyout in the monitor's design — starts and stops the server, status, load/switch/unload, opens the monitor and the clients | Notification area; the only startup entry |
+| `cia-monitor` | Browser monitor — request phase, tokens/s, GPU, RAM, commit; load/unload a model behind a native confirmation | `127.0.0.1:18095` (canary) / `:8095` (final) |
+| `cia-credential` | Windows Credential Manager helper | Local process only |
+| `cia-mcp` | Read-only operational MCP (5 side-effect-free tools) | Harness stdio |
+| `cia-mcp-inference` | One stateless, text-only tool a cloud coding agent can use to hand a subtask to the local model | Harness stdio |
+| `cia-mcp-admin` | Lifecycle administration MCP | **Not registered by default** |
+| `cia-mcp-smoke` | Live probe of the installed `cia-mcp-inference`: MCP handshake, single-tool surface, exact synthetic marker; metadata-only report | Operator; launches the MCP server as a stdio child |
+| `cia-manifest` | JSON Schema validation of the versioned model manifest | Operator / CI |
+| `cia-fork-gate` | Provenance gate: decides whether a pinned `buun-llama-cpp` commit may be built and adopted as the Qwen3.8 agentic runtime; never loads a model, opens a port, or reaches the network | Operator, via `Build-V2ForkRuntime.ps1` |
 
-## Práticas de engenharia
+## Model roster
 
-**Testes.** A suíte Go cobre credenciais, limites de corpos, fila, cancelamento, capacidades do modelo, adaptação de protocolos e caminhos negativos de autorização. Testes de transporte executam pipes descartáveis no Windows. A página do monitor tem lint e testes próprios de DOM em `frontend/`. Execute `go test ./cmd/... ./internal/...` e, em `frontend`, `npm run lint:monitor` e `npm run test:monitor`; contagens e cobertura devem ser obtidas da execução atual.
+Four models, four jobs. A client selects one by model id; switching is a model swap in llama-swap, not a reconfiguration. All four are `candidate` on the canary deployment — see [Project status](#project-status).
 
-**CI.** Os jobs em [ci.yml](.github/workflows/ci.yml) validam PowerShell e harnesses; Go com formatação/vet/[Staticcheck](https://staticcheck.dev/)/[govulncheck](https://go.dev/blog/govulncheck) e [SBOM CycloneDX](https://cyclonedx.org/); corridas no núcleo portável; proveniência do fork; segredos com [Gitleaks](https://github.com/gitleaks/gitleaks); e lint e testes de DOM da página do monitor. Um passo dedicado quebra o build se um `.gguf`, `.safetensors`, `.exe` ou arquivo compactado for rastreado.
+| Model id | Weights | KV cache | Context | Max output | Job |
+|---|---|---|---:|---:|---|
+| `gemma4-12b-qat-ud-q4xl-256k` | Gemma 4 12B QAT UD-Q4_K_XL | `q4_0`/`q4_0` | 256k | 8k | **Public model**: plain inference and the stateless delegation tool. No qualified tools |
+| `qwen38-27b-deep-32k` | Qwen3.8 27B UD-IQ4_XS | `q8_0`/`q8_0` | 32k | 8k | Hard, localized work: algorithms, architecture, a complex bug in a few files |
+| **`qwen38-27b-agent-128k`** | Qwen3.8 27B UD-Q3_K_XL | `q4_0`/`q4_0` | 128k | 8k | **Default for coding agents** (Codex, Claude Code, OpenCode): refactors, repository investigation |
+| `qwen36-35b-a3b-huge-256k` | Qwen3.6 35B-A3B UD-Q2_K_XL | `q4_0`/`q4_0` | 256k | 16k | Huge active context. Sparse MoE: 35B parameters, 3B active per token |
 
-**Registros de decisão.** As [ADRs](docs/adr/) documentam o *porquê* da arquitetura, incluindo admissão, manifesto/promoção, segurança de artefatos, offload, monitor no navegador e instância local do Claude. Consulte os registros atuais para distinguir componentes ativos de componentes mantidos para compatibilidade.
+Selection rule: **reasoning reliability → Deep. Normal agent work → Agent. Huge active context → Huge.** Choose Huge when the *working set* exceeds Agent's, not when the task is merely hard. The default for agents is Agent, not Deep: a coding harness spends tens of thousands of tokens on the system prompt, tool definitions, files, logs, and history before the problem arrives.
 
-**Reprodutibilidade.** Módulos diretos e transitivos são pinados, e [go.mod](go.mod) fixa o piso da toolchain em `go 1.26.6`. A CI resolve a versão de Go a partir desse arquivo. O deploy nunca copia do worktree: candidatos a release são compilados numa área de staging, revisados por SHA-256, e então instalados atomicamente num diretório protegido.
+Gemma and Huge carry `reasoning_budget: 6144` under a 16,384-token server ceiling (`n_predict`). That is not decoration: without the budget, a thinking model can spend its whole allowance reasoning and return an empty answer — measured on the hardest coding tasks. Huge became an MoE on 2026-08-25, because a model that activates 3B of 35B parameters holds the same window with more throughput at depth; the head-to-head that decided it is in [FINAL-ROSTER-20260825](docs/reports/FINAL-ROSTER-20260825.md) and [ADR 0016](docs/adr/0016-one-moe-and-the-four-function-roster.md).
 
-**Operações preview-first.** Os scripts PowerShell de deploy em [scripts/v2](scripts/v2/) fazem preview por padrão; alterações exigem `-Apply` explícito, e os launchers Start-V2 só iniciam um processo com `-Run`. Mudanças de firewall e ACL exigem adicionalmente um shell elevado e gravam um registro SDDL de recuperação antes da alteração. O `New-V2ClientCatalogs.ps1` não é um script de deploy: ele regrava diretamente os catálogos de clientes rastreados.
+<details>
+<summary>Screenshot: the four models in the monitor, with capability flags and live admission</summary>
+<br>
+<img src="docs/images/monitor-models.png" width="880" alt="The monitor's Models tab: four model cards with context, output, KV cache, weights, runtime, memory requirements and capability flags; the Qwen3.6 card is refused for insufficient physical RAM">
+<br>
+<sub>Taken on the deployed canary release of 2026-10-01, which predates the Responses qualification now in the manifest. The Huge card shows admission control at work: the model needs 18.2 GiB of physical RAM, so the edge refuses to load it rather than let it page.</sub>
+</details>
 
-**Capacidades qualificadas.** O edge verifica a rota e os recursos pedidos contra `capabilities` do modelo antes de ocupar o slot de inferência. Nas rotas OpenAI (`/v1/chat/completions`, `/v1/responses`), requisições que exigem Responses, streaming, ferramentas, saída estruturada ou reasoning não qualificados retornam `400 unsupported_feature`. Em `/v1/messages`, chat ou streaming não qualificados, uma escolha obrigatória de ferramenta ou um histórico de ferramentas retornam `invalid_request_error`, e definições opcionais de ferramenta são omitidas para um modelo sem function calling. A existência de uma rota no edge não qualifica os modelos do manifesto. No adaptador Anthropic, escolhas explícitas de ferramenta são preservadas ou recusadas; um stream interrompido emite erro em vez de conclusão normal.
+Details, measured evidence, and known limitations: [TUNING §1.8](docs/TUNING.md) and [RUNBOOK §13](docs/RUNBOOK.md).
 
-## Gate de promoção de modelo
+## Model promotion gate
 
-Modelos não ficam disponíveis só por existirem em disco. Eles percorrem uma máquina de estados explícita:
+Models do not become available by existing on disk. They move through an explicit state machine:
 
 ```text
 candidate ──▶ qualified ──▶ enabled ──▶ retired
     ▲             │
-    └─────────────┘  regressão exige requalificação
+    └─────────────┘  regression requires requalification
 ```
 
-`candidate` roda apenas nas portas de canary. Chegar a `qualified` exige hashes SHA-256 imutáveis, registros de licença e proveniência, testes de contrato de protocolo, envelopes medidos de RAM/commit/VRAM, evidência de recuperação de falha e resultados de soak. O gerador de configuração de produção **se recusa a emitir um modelo `candidate`** — ver [Promoção de modelo](docs/MODEL_PROMOTION.md).
+`candidate` runs only on canary ports. Reaching `qualified` requires immutable SHA-256 hashes, license and provenance records, protocol contract tests, measured RAM/commit/VRAM envelopes, failure-recovery evidence, and soak results. The production config generator **refuses to emit a `candidate` model** — see [Model promotion](docs/MODEL_PROMOTION.md).
 
-## Status do projeto
+## Project status
 
-**Canary v2. A promoção para produção está intencionalmente bloqueada.** O edge em Go, os servidores MCP, o manifesto, o router de ciclo de vida, o auxiliar de credenciais, o supervisor, o painel do operador, os scripts de deploy, os testes e a documentação estão implementados e passando. O que passou na validação de canary: Responses nativo, streaming SSE real, Chat Completions, zstd, function calling, estouro de fila, cancelamento, TTL/unload, descoberta MCP, reinício de router/edge e contenção por Job Object. O overhead p95 do edge foi medido dentro do ruído e abaixo do gate de 50 ms.
+**v2 canary — production promotion is intentionally blocked.** The edge, MCP servers, manifest, lifecycle router, credential helper, supervisor, tray, monitor, deployment scripts, tests, and documentation are implemented and pass CI. Canary validation covered native Responses, true SSE streaming, Chat Completions, zstd, function calling, queue overflow, cancellation, TTL/unload, MCP discovery, router/edge restart, and Job Object containment.
 
-A revisão de 2026-10-01 corrigiu os launchers, os contratos de protocolo e a
-admissão de memória durante trocas de modelo. O Qwen Agent concluiu uma sessão
-real do Codex que corrigiu um fixture Go e executou seus testes, preservando os
-testes originais. Deep e Agent passaram nos contratos nativos de Responses e
-ferramentas; Gemma passou em Responses simples e continua sem ferramentas
-qualificadas. A revalidação física do Huge e a qualificação/publicação dos
-artefatos para produção permanecem pendentes. Resultados, limites e exceções
-estão na [revisão de prontidão](docs/reports/2026-10-01-deploy-readiness.md).
+The [2026-10-01 readiness review](docs/reports/2026-10-01-deploy-readiness.md) fixed launchers, protocol contracts, and memory admission during model swaps, and qualified capabilities only on recorded contract evidence. What still blocks production:
 
-O responsável pelo projeto dispensou explicitamente o soak de 72 horas nesta revisão de 2026-10-01. O resultado é registrado como `waived` (dispensado), sem evidência de estabilidade prolongada. Os quatro modelos ativos são o conjunto definitivo do projeto; as capacidades declaradas e as reservas de memória continuam exigindo evidência e validação. Veja a decisão em [Promoção de modelo](docs/MODEL_PROMOTION.md).
+- **The Huge profile's physical revalidation.** Its admission gate needs 18.2 GiB of free RAM and refuses the load on the current workstation load; no reserve was lowered to make it pass.
+- **Production artifact qualification and publication** into the protected store.
 
-## Perfis Qwen
+The project owner explicitly waived the 72-hour soak in that review. It is recorded as `waived`, not as evidence of long-run stability. See [Model promotion](docs/MODEL_PROMOTION.md).
 
-Três perfis, três finalidades. Selecione pelo id do modelo; trocar de perfil é
-uma troca de modelo no llama-swap, não uma reconfiguração.
+## Hardware baseline
 
-| Perfil | Pesos | KV | Contexto | Saída | Quando usar |
-|---|---|---|---:|---:|---|
-| `qwen38-27b-deep-32k` | Qwen3.8 27B UD-IQ4_XS | `q8_0`/`q8_0` | 32k | 8k | Tarefas difíceis e localizadas: algoritmos, arquitetura, bug complexo em poucos arquivos |
-| **`qwen38-27b-agent-128k`** | Qwen3.8 27B UD-Q3_K_XL | `q4_0`/`q4_0` | 128k | 8k | **Padrão diário.** Codex, Claude Code, OpenCode, Unity, refactors, investigação de repositório |
-| `qwen36-35b-a3b-huge-256k` | Qwen3.6 35B-A3B UD-Q2_K_XL | `q4_0`/`q4_0` | 256k | 16k | Contexto ativo enorme. MoE esparso: 35B de parâmetros, 3B ativos por token |
+| Part | Spec |
+|---|---|
+| GPU | AMD Radeon RX 9070 XT, 16 GB (gfx1201), ROCm |
+| CPU | AMD Ryzen 7 7700X, 8 cores / 16 threads |
+| Memory | 32 GB DDR5-6000 |
+| OS | Windows 11 Pro |
 
-Regra de seleção: **confiabilidade de raciocínio → Deep. Trabalho normal de agente
-→ Agent. Contexto ativo enorme → Huge.** Escolha Huge
-quando o *working set* excede o do Agent, não quando a tarefa é apenas difícil.
+The runtime is pinned by measured SHA-256 rather than by its directory label, because vendor archive names have proven unreliable as version identity. On a 16 GB card the dense Qwen3.8 27B profiles keep part of the model on the CPU, so they trade speed for quality: about 4–7 tok/s decode, against roughly 28–55 tok/s for Gemma and the MoE. Methodology and recorded results: [Benchmarks](docs/BENCHMARKS.md) and the [qualification campaign](docs/reports/QUALIFICATION-CAMPAIGN-20260823.md).
 
-O perfil Huge deixou de ser um Qwen3.8 denso a 2 bits e passou a ser um MoE em
-2026-08-25. Um modelo que ativa 3B de 35B parâmetros segura a mesma janela com
-mais throughput em profundidade, que é exatamente para o que um perfil de
-contexto gigante existe. A decisão, o confronto que a produziu e o que foi
-apagado do disco estão em
-[FINAL-ROSTER-20260825](docs/reports/FINAL-ROSTER-20260825.md) e na
-[ADR 0016](docs/adr/0016-one-moe-and-the-four-function-roster.md).
+## Getting started
 
-O Huge carrega `reasoning_budget: 6144` sob um teto `n_predict: 16384`. Isso não
-é enfeite: sem o orçamento, este modelo gasta 8.192 tokens inteiros pensando e
-devolve resposta vazia nas tarefas de coding mais difíceis — três casos em
-trinta e quatro, medidos.
+### Prerequisites
 
-O padrão diário é o Agent, não o Deep: um harness de coding gasta dezenas de
-milhares de tokens em system prompt, definições de ferramentas, arquivos, logs e
-histórico antes de o problema chegar.
+- Windows 11 with PowerShell 5.1 or later.
+- Go 1.26.6 or later ([go.mod](go.mod) sets the toolchain floor; CI resolves its version from that file).
+- For serving: an AMD GPU with a ROCm build of `llama-server`, and `llama-swap` — installed as pinned, hash-verified artifacts as described in the [Runbook](docs/RUNBOOK.md#2-install-pinned-artifacts).
+- Node.js 20.19 or later, only to run the monitor page's lint and DOM tests.
 
-Detalhes, evidência medida e limitações conhecidas: [TUNING §1.8](docs/TUNING.md)
-e [RUNBOOK §13](docs/RUNBOOK.md). Há medições de retenção para o Agent na
-[campanha de qualificação](docs/reports/QUALIFICATION-CAMPAIGN-20260823.md) de
-2026-08-23 e para o Huge atual (Qwen3.6) no
-[relatório de roster](docs/reports/FINAL-ROSTER-20260825.md) de 2026-08-25; a
-linha Huge da campanha é o perfil Qwen3.8 denso aposentado. A qualificação
-completa dos artefatos e da configuração atual continua registrada separadamente
-da escolha dos quatro modelos definitivos.
+### Build and test
 
-## Baseline de hardware
-
-Desenvolvido contra AMD ROCm no Windows. O runtime é pinado pelo SHA-256 medido em vez do rótulo do diretório, porque nomes de arquivo do fornecedor se provaram pouco confiáveis como identidade de versão. Metodologia de benchmark e resultados registrados: [Benchmarks](docs/BENCHMARKS.md).
-
-## Build
-
-```bash
-go test -race ./...
+```powershell
+go test ./...
 go vet ./...
 go build -trimpath -o bin/cia-edge.exe ./cmd/cia-edge
 go build -trimpath -ldflags="-H=windowsgui" -o bin/cia-tray.exe ./cmd/cia-tray
+
+# Monitor page lint and DOM tests
+cd frontend; npm ci; npm run lint:monitor; npm run test:monitor
 ```
 
-Os binários restantes seguem o mesmo padrão sob `./cmd/`. Essas saídas são descartáveis, de desenvolvimento — o deploy usa o caminho com staging e revisão de hash descrito no [Runbook](docs/RUNBOOK.md).
+The remaining binaries follow the same pattern under `./cmd/`. The race detector needs cgo, so CI runs `go test -race ./...` on Linux, where build tags leave out the Windows-only code; on Windows, run it under WSL or with `CGO_ENABLED=1` and a C compiler on `PATH`. These builds are disposable developer outputs — deployment uses the staged, hash-reviewed path described in the [Runbook](docs/RUNBOOK.md).
 
-## Deploy
+### Deploy
 
-Os scripts fazem preview por padrão; mutação é sempre uma invocação separada e explícita.
+Scripts preview by default; mutation is always a separate, explicit invocation.
 
 ```powershell
-# Valida os metadados rastreados de modelo e de harness
+# Validate tracked model and harness metadata
 .\scripts\v2\Test-V2Manifest.ps1
 .\scripts\v2\Test-V2HarnessConfig.ps1
 
-# Inicializa apenas os segredos ausentes; credenciais existentes são preservadas
+# Initialize only missing secrets; existing credentials are preserved
 .\scripts\v2\Initialize-V2Secrets.ps1 -Apply
 
-# Preview e então geração do deploy de canary
+# Preview, then generate the canary deployment
 .\scripts\v2\New-V2Config.ps1 -Environment Canary
 .\scripts\v2\New-V2Config.ps1 -Environment Canary -Apply
 ```
 
-## Monitor no navegador
+## Operator interfaces
 
-O `cia-monitor` serve uma página em loopback que mostra, a cada segundo, o que o servidor está fazendo: a fase da requisição (na fila, carregando o modelo, lendo o prompt, gerando), tokens por segundo, tempo até o primeiro token, reaproveitamento de cache e ocupação do contexto, além de GPU, VRAM, memória compartilhada, CPU, RAM, commit e disco.
-
-Não depende do edge para enxergar a máquina: mostra a energia que a GPU consome (watts, temperatura, clocks e energia acumulada na sessão), quais processos usam a GPU e quais outras ferramentas estão servindo um modelo — LM Studio / Bionic, Ollama, llama.cpp avulso e servidores compatíveis com OpenAI —, com modelo, quantização e janela de contexto quando a API da ferramenta informa, e sinaliza atividade mesmo que o edge esteja fora do ar (ADR 0020). Para o tráfego que passa pelo edge a velocidade por requisição vem da telemetria dele; para servidores llama.cpp de outras ferramentas (LM Studio / Bionic, ou um `llama-server` iniciado com `--log-file`) o monitor lê os contadores que o próprio servidor escreve no log — prompt, cache, saída, tokens por segundo, tempo até o primeiro token — sem ler texto, e mostra tudo na mesma tabela, com a origem que atendeu (o edge ou a ferramenta) indicada sob o nome de cada modelo. Ferramentas sem log por requisição (Ollama, por exemplo) aparecem como "externa" (duração, pico de GPU e de potência, energia da placa) e o cartão da fonte explica por quê. Para um modelo que outra ferramenta carregou, cada fonte tem um botão "Encerrar processo do modelo", que pede confirmação numa janela do Windows.
-
-`/api/snapshot` inclui `requests[]`, uma lista limitada aos registros recentes com métricas por requisição de ambas as origens, e `coverage`, que distingue fontes externas medidas das que mostram apenas atividade. Cada registro indica de onde veio cada número em `measurements`; prompt e cache calculados do log e velocidades estimadas são identificados, e valores ausentes continuam `null`. Essa cobertura se refere às fontes detectadas: uma ferramenta que não passa pelo edge nem publica métricas por resposta ou log não permite contagem exata apenas pela GPU.
-
-A página também carrega o modelo escolhido e descarrega o carregado — e só isso. Cada pedido segue pelo pipe administrativo do edge, sem credencial, e só é executado depois que você confirma numa janela do Windows que a página não alcança (Cancelar é o padrão; sem resposta em 45 s, nada acontece). O monitor aceita esses pedidos apenas da própria página, vindos de um processo do mesmo usuário que roda o servidor. `-admin-pipe off` desliga os botões. Iniciar e encerrar o servidor ficam com o `cia-tray` (IA Local); drenagem e retomada ficam com o `cia-mcp-admin` e com a transação de release.
+**Browser monitor (`cia-monitor`).** A loopback page that shows, every second, what the server is doing — the request's phase, tokens per second, time to first token, cache reuse and context fill — alongside GPU, power, VRAM, CPU, RAM, commit and disk. It also sees other local model servers (LM Studio, Ollama, standalone llama.cpp) without depending on the edge, and it can load or unload a model only after a native Windows confirmation the page cannot reach. It holds no credential. Details: [Monitor](docs/MONITOR.md) · [ADR 0019](docs/adr/0019-browser-monitor.md) · [ADR 0020](docs/adr/0020-monitor-describes-the-machine.md).
 
 ```powershell
 go build -trimpath -o bin/cia-monitor.exe ./cmd/cia-monitor
@@ -229,54 +229,75 @@ go build -trimpath -o bin/cia-monitor.exe ./cmd/cia-monitor
 .\bin\cia-monitor.exe -environment final -open   # final:  http://127.0.0.1:8095
 ```
 
-Os números por requisição vêm de `/api/v1/inference`, publicado pelo edge; com um edge anterior a essa rota a página continua funcionando e avisa que a telemetria está indisponível. Rodar `-open` com o monitor já aberto apenas abre a página existente. Decisão e controles: [ADR 0019](docs/adr/0019-browser-monitor.md).
+**Tray (`cia-tray`, IA Local).** The deployment's single startup entry: it starts and stops the server, shows status, loads, switches and unloads models, and opens Claude Local beside the signed-in Claude Desktop. See [ADR 0021](docs/adr/0021-ia-local-tray-owns-startup.md) and [Claude Desktop](docs/CLAUDE_DESKTOP.md).
 
-Os templates de integração de harness ficam em [`integrations/`](integrations/) e não contêm segredos. O Codex mantém seu login normal da OpenAI intocado — o acesso local é um perfil selecionado explicitamente, com endpoint e modelo pinados na precedência de CLI, de modo que uma configuração no nível do repositório não consiga redirecionar silenciosamente uma sessão que o usuário pediu para manter local.
+**Harness integrations.** Templates for Codex, OpenCode and Unsloth live under [`integrations/`](integrations/) and contain no secrets. Codex keeps its normal OpenAI login untouched — local access is an explicitly selected profile, with endpoint and model pinned at CLI precedence, so a repository-level config cannot silently redirect a session the user asked to keep local.
 
-## Mapa do repositório
+## Engineering practices
+
+**Testing.** The Go suite covers credentials, body limits, queueing, cancellation, model capabilities, protocol adaptation, and negative authorization paths. Transport tests use disposable Windows pipes.
+
+**CI.** The jobs in [ci.yml](.github/workflows/ci.yml) validate PowerShell and harness templates; Go with formatting, vet, [Staticcheck](https://staticcheck.dev/), [govulncheck](https://go.dev/blog/govulncheck) and a [CycloneDX SBOM](https://cyclonedx.org/); races in the portable core; fork provenance; secrets with [Gitleaks](https://github.com/gitleaks/gitleaks) over the full history; and the monitor page's lint and DOM tests. [CodeQL](.github/workflows/codeql.yml) analyzes the Go, JavaScript, Python and workflow code, and Dependabot keeps the pinned modules and actions current. A dedicated step fails the build if a `.gguf`, `.safetensors`, `.exe`, or archive is ever tracked. All six CI checks are required on `main`.
+
+**Qualified capabilities.** Before a request takes the inference slot, the edge checks the route and the features it asks for — Responses, streaming, tools, structured output, reasoning — against the model's qualified `capabilities` in the manifest. An unqualified feature is refused with `400 unsupported_feature` on the OpenAI routes and `invalid_request_error` on `/v1/messages`; an edge route's existence never qualifies a model.
+
+**Decision records.** The [ADRs](docs/adr/README.md) document the *why* behind the architecture — admission, manifest and promotion, artifact security, offload, the browser monitor, and the local Claude instance.
+
+**Reproducibility.** Direct and transitive modules are pinned. Deployment never copies from the worktree: release candidates build into a staging area, are reviewed by SHA-256, then install atomically into a protected directory. [Releases](https://github.com/Sitr3n01/local-ai-provider/releases) carry the Windows binaries, an SBOM and `SHA256SUMS`.
+
+**Preview-first operations.** The PowerShell deployment scripts in [scripts/v2](scripts/v2/) preview by default; changes require an explicit `-Apply`, and the Start-V2 launchers start a process only with `-Run`. Firewall and ACL changes additionally require an elevated shell and write a pre-change SDDL recovery record. `New-V2ClientCatalogs.ps1` is not a deployment script: it rewrites the tracked client catalogs directly.
+
+## How this was built
+
+A solo project, built with AI coding assistants: mostly Claude Code, with OpenAI Codex for review and readiness passes. That is visible in the history — most commits carry a `Co-Authored-By` trailer, and the first five pull requests came from Claude Code sessions. The owner sets the direction and makes the calls the documents record: scope and trust boundaries, which models make the roster and which are retired, what counts as qualified, and what was waived and why. Every change, whoever drafted it, passes the same gates — tests, static analysis, secret scanning, and measured evidence before a capability or a model is promoted.
+
+## Repository map
 
 ```
-cmd/                 um diretório por executável Go (edge, supervisor, tray, monitor, servidores MCP,
-                     ferramental)
-internal/            pacotes Go: edge, adminpipe, credential, supervisor, monitor, trayui + panel,
-                     servidores MCP, claudedesktop, forkgate, manifestvalidator, rotatelog
-config/              manifesto versionado de modelos + JSON Schema (fonte da verdade), template do
-                     llama-swap, referência de configurações do edge (nenhum programa a lê),
-                     procedimento de override de chat template (nenhum em uso)
-scripts/v2/          scripts PowerShell de deploy (preview-first; -Apply para alterar, -Run nos
-                     launchers Start-V2), drivers de qualificação e medição, gerador de catálogos
-                     de clientes (grava direto); eval/ em Python
-scripts/             ferramental por perfil, em sua maioria guiado por model-test-matrix.json:
-                     downloads, llama-bench e benchmark de chat, smoke, avaliações de qualidade e
-                     stress, launcher avulso do llama-server e listagem de dispositivos,
-                     sincronização de catálogos Codex/Unsloth, auxiliares do Unsloth
-integrations/        launchers e templates de perfil para Codex, OpenCode e Unsloth; notas de
-                     registro da ponte MCP de inferência (sem segredos)
-frontend/            lint e testes de DOM da página do monitor (Node; nada aqui é compilado ou distribuído)
-docs/                arquitetura, threat model, runbook, benchmarks, promoção, tuning, Claude Desktop,
-                     ADRs, relatórios
-incident-reports/    registro sanitizado da exposição de credencial da v1
-benchmarks/          evidência registrada de benchmark e qualificação de modelos
-.github/workflows/   CI e release
+cmd/                 one directory per Go executable (edge, supervisor, tray, monitor, MCP servers,
+                     tooling)
+internal/            Go packages: edge, adminpipe, credential, supervisor, monitor, trayui + panel,
+                     MCP servers, claudedesktop, forkgate, manifestvalidator, rotatelog
+config/              versioned model manifest + JSON Schema (source of truth), llama-swap template,
+                     edge settings reference (read by no program), chat-template override
+                     procedure (no overrides in use)
+scripts/v2/          PowerShell deployment scripts (preview-first; -Apply to mutate, -Run for the
+                     Start-V2 launchers), qualification and measurement drivers, client-catalog
+                     generator (writes directly); Python eval/
+scripts/             per-profile tooling, mostly driven by model-test-matrix.json: downloads,
+                     llama-bench and chat benchmarks, smoke, quality and stress evals, a standalone
+                     llama-server launcher and device listing, Codex/Unsloth catalog sync,
+                     Unsloth helpers
+integrations/        Codex, OpenCode, and Unsloth launchers and profile templates; MCP inference
+                     bridge registration notes (secret-free)
+frontend/            the monitor page's lint and DOM tests (Node; nothing here is built or shipped)
+docs/                architecture, threat model, runbook, benchmarks, promotion, tuning, monitor,
+                     Claude Desktop, ADRs, reports, images
+incident-reports/    sanitized v1 credential-exposure record
+benchmarks/          recorded model benchmark and qualification evidence (synthetic inputs only)
+.github/             CI, CodeQL, release, Dependabot, issue and pull request templates
 ```
 
-## Documentação
+## Documentation
 
-A documentação longa é escrita em inglês.
-
-| Documento | Conteúdo |
+| Document | Contents |
 |---|---|
-| [Arquitetura](docs/ARCHITECTURE.md) | Contratos de componente, máquina de estados, comportamento em falha, invariantes arquiteturais |
-| [Threat model](docs/THREAT_MODEL.md) | Ativos, fronteiras de confiança, matriz ameaça/controle/verificação, riscos residuais |
-| [Runbook](docs/RUNBOOK.md) | Procedimentos operacionais e fronteiras de rollback |
-| [Promoção de modelo](docs/MODEL_PROMOTION.md) | Critérios de qualificação e aplicação do gate |
-| [Benchmarks](docs/BENCHMARKS.md) | Metodologia de medição e formato de evidência |
-| [Tuning](docs/TUNING.md) | Diagnóstico de gargalo e teto de banda de memória |
-| [Claude Desktop](docs/CLAUDE_DESKTOP.md) | Contrato do Claude Desktop como cliente de inferência de terceiros; instância local ao lado da conectada |
-| [ADRs](docs/adr/) | Registros de decisão arquitetural |
-| [Relatórios](docs/reports/) | Validações de canary, campanhas de qualificação, auditorias e revisões de prontidão |
-| [Política de segurança](SECURITY.md) | Processo de reporte |
+| [Architecture](docs/ARCHITECTURE.md) | Component contracts, state machine, failure behavior, architectural invariants |
+| [Threat model](docs/THREAT_MODEL.md) | Assets, trust boundaries, threat/control/verification matrix, residual risks |
+| [Runbook](docs/RUNBOOK.md) | Operational procedures and rollback boundaries |
+| [Model promotion](docs/MODEL_PROMOTION.md) | Qualification criteria and gate enforcement |
+| [Benchmarks](docs/BENCHMARKS.md) | Measurement methodology and evidence format |
+| [Tuning](docs/TUNING.md) | Bottleneck diagnosis and the memory-bandwidth ceiling |
+| [Monitor](docs/MONITOR.md) | What the browser monitor shows, where each number comes from, and its controls |
+| [Claude Desktop](docs/CLAUDE_DESKTOP.md) | Claude Desktop's third-party-inference client contract; the local instance beside the signed-in one |
+| [ADRs](docs/adr/README.md) | Architecture decision records, with an index and the status vocabulary |
+| [Reports](docs/reports/) | Canary validations, qualification campaigns, audits, and readiness reviews |
+| [Changelog](CHANGELOG.md) | Notable changes per release |
+| [Security policy](SECURITY.md) | Private vulnerability reporting and incident response |
+| [Contributing](CONTRIBUTING.md) · [Code of conduct](CODE_OF_CONDUCT.md) | How changes are made and reviewed |
 
-## Licença
+The index of everything under `docs/` is [docs/README.md](docs/README.md).
 
-O código-fonte é [Apache-2.0](LICENSE). Licenças e hashes de terceiros estão registrados no [NOTICE](NOTICE) e no manifesto de modelos. Nenhum peso de modelo ou executável de runtime é redistribuído.
+## License
+
+Source code is [Apache-2.0](LICENSE). Third-party licenses and hashes are recorded in [NOTICE](NOTICE) and the model manifest. No model weights or runtime executables are redistributed.

@@ -1,7 +1,8 @@
 # ADR 0001: Thin Go edge with llama-swap lifecycle
 
-- Status: accepted
-- Date: 2026-07-20
+## Status
+
+Accepted, 2026-07-20.
 
 ## Decision
 
