@@ -10,7 +10,7 @@ $root = Split-Path -Parent $scriptDir
 
 $runtimeRoots = @{
     amd     = Join-Path $root "amd\llama_cpp_b8407_rocm_7.2.1"
-    unsloth = "C:\Users\Sitr3n\.unsloth\llama.cpp\build\bin\Release"
+    unsloth = "$env:USERPROFILE\.unsloth\llama.cpp\build\bin\Release"
 }
 
 function Resolve-LlamaExe {
@@ -37,7 +37,7 @@ function Resolve-LlamaExe {
 
 $serverExe = Resolve-LlamaExe -RuntimeName $Runtime -ExeName "llama-server.exe"
 $serverDir = Split-Path -Parent $serverExe
-$torchLib = "C:\Users\Sitr3n\.unsloth\studio\unsloth_studio\Lib\site-packages\torch\lib"
+$torchLib = "$env:USERPROFILE\.unsloth\studio\unsloth_studio\Lib\site-packages\torch\lib"
 $ucrtDownlevel = "C:\Windows\System32\downlevel"
 $env:PATH = "$serverDir;$torchLib;$ucrtDownlevel;$env:PATH"
 

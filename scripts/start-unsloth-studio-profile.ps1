@@ -15,7 +15,7 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $root = Split-Path -Parent $scriptDir
 $matrixPath = Join-Path $root "model-test-matrix.json"
-$unsloth = "C:\Users\Sitr3n\.unsloth\studio\bin\unsloth.exe"
+$unsloth = "$env:USERPROFILE\.unsloth\studio\bin\unsloth.exe"
 $iaRoot = "C:\IA"
 $hfHome = Join-Path $iaRoot "hf-home"
 

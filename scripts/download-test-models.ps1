@@ -11,7 +11,7 @@ if ([string]::IsNullOrWhiteSpace($MatrixPath)) {
     $MatrixPath = Join-Path $root "model-test-matrix.json"
 }
 
-$hf = "C:\Users\Sitr3n\.unsloth\studio\unsloth_studio\Scripts\hf.exe"
+$hf = "$env:USERPROFILE\.unsloth\studio\unsloth_studio\Scripts\hf.exe"
 if (-not (Test-Path -LiteralPath $hf)) {
     throw "hf.exe not found at $hf"
 }

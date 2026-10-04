@@ -1,5 +1,5 @@
 param(
-    [string]$StudioDbPath = "C:\Users\Sitr3n\.unsloth\studio\studio.db",
+    [string]$StudioDbPath = "$env:USERPROFILE\.unsloth\studio\studio.db",
     [string]$ProviderId = "local-llama-executor",
     [string]$ProviderType = "llama_cpp",
     [string]$DisplayName = "Local Llama Executor",

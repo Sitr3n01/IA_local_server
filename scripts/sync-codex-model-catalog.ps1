@@ -1,5 +1,5 @@
 param(
-    [string]$CodexHome = "C:\Users\Sitr3n\.codex",
+    [string]$CodexHome = "$env:USERPROFILE\.codex",
     [string]$MatrixPath = "C:\IA\local-llama\model-test-matrix.json"
 )
 
