@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/sitr3n/local-ai-provider/internal/adminpipe"
+	"github.com/Sitr3n01/local-ai-provider/internal/adminpipe"
 )
 
 // adminHandler adapts the transport-neutral administrative operations to the

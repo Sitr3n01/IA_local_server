@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sitr3n/local-ai-provider/internal/rotatelog"
-	"github.com/sitr3n/local-ai-provider/internal/supervisor"
+	"github.com/Sitr3n01/local-ai-provider/internal/rotatelog"
+	"github.com/Sitr3n01/local-ai-provider/internal/supervisor"
 )
 
 func main() {

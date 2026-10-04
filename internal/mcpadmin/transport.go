@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sitr3n/local-ai-provider/internal/adminpipe"
+	"github.com/Sitr3n01/local-ai-provider/internal/adminpipe"
 )
 
 // defaultInstallRoot is the one approved v2 installation root. Every deployment

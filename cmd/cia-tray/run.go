@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/sitr3n/local-ai-provider/internal/panel"
-	"github.com/sitr3n/local-ai-provider/internal/trayui"
+	"github.com/Sitr3n01/local-ai-provider/internal/panel"
+	"github.com/Sitr3n01/local-ai-provider/internal/trayui"
 )
 
 var version = "dev"

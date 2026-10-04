@@ -21,7 +21,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	"github.com/sitr3n/local-ai-provider/internal/trayui"
+	"github.com/Sitr3n01/local-ai-provider/internal/trayui"
 )
 
 type windowsGUIStream struct{ writer io.Writer }

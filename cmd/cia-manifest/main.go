@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sitr3n/local-ai-provider/internal/manifestvalidator"
+	"github.com/Sitr3n01/local-ai-provider/internal/manifestvalidator"
 )
 
 func main() {

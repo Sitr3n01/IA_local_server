@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sitr3n/local-ai-provider/internal/claudedesktop"
-	"github.com/sitr3n/local-ai-provider/internal/panel"
+	"github.com/Sitr3n01/local-ai-provider/internal/claudedesktop"
+	"github.com/Sitr3n01/local-ai-provider/internal/panel"
 )
 
 type fakeClaudePolicy struct{}

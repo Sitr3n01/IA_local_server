@@ -5,7 +5,7 @@ package main
 import (
 	"context"
 
-	"github.com/sitr3n/local-ai-provider/internal/claudedesktop"
+	"github.com/Sitr3n01/local-ai-provider/internal/claudedesktop"
 )
 
 // discoverClaudeDesktop finds the installed Claude Desktop package and builds

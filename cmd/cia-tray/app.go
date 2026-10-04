@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sitr3n/local-ai-provider/internal/claudedesktop"
-	"github.com/sitr3n/local-ai-provider/internal/credential"
-	"github.com/sitr3n/local-ai-provider/internal/mcpadmin"
-	"github.com/sitr3n/local-ai-provider/internal/mcpserver"
-	"github.com/sitr3n/local-ai-provider/internal/panel"
-	"github.com/sitr3n/local-ai-provider/internal/trayui"
+	"github.com/Sitr3n01/local-ai-provider/internal/claudedesktop"
+	"github.com/Sitr3n01/local-ai-provider/internal/credential"
+	"github.com/Sitr3n01/local-ai-provider/internal/mcpadmin"
+	"github.com/Sitr3n01/local-ai-provider/internal/mcpserver"
+	"github.com/Sitr3n01/local-ai-provider/internal/panel"
+	"github.com/Sitr3n01/local-ai-provider/internal/trayui"
 )
 
 // gatewayProbeInterval spaces out the Claude gateway check. The flyout

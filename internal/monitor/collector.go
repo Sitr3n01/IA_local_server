@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sitr3n/local-ai-provider/internal/adminpipe"
+	"github.com/Sitr3n01/local-ai-provider/internal/adminpipe"
 )
 
 const (

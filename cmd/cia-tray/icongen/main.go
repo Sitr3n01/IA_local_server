@@ -14,7 +14,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sitr3n/local-ai-provider/internal/trayui"
+	"github.com/Sitr3n01/local-ai-provider/internal/trayui"
 )
 
 // iconSizes are the sizes Windows asks an application icon for across 100 to

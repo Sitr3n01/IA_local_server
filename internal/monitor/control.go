@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sitr3n/local-ai-provider/internal/adminpipe"
+	"github.com/Sitr3n01/local-ai-provider/internal/adminpipe"
 )
 
 // The monitor exposes exactly two mutations: switch to a model, and unload the

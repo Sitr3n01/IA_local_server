@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sitr3n/local-ai-provider/internal/credential"
+	"github.com/Sitr3n01/local-ai-provider/internal/credential"
 )
 
 type Component string

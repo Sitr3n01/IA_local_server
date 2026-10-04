@@ -11,10 +11,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sitr3n/local-ai-provider/internal/adminpipe"
-	"github.com/sitr3n/local-ai-provider/internal/edge"
-	"github.com/sitr3n/local-ai-provider/internal/manifestvalidator"
-	"github.com/sitr3n/local-ai-provider/internal/rotatelog"
+	"github.com/Sitr3n01/local-ai-provider/internal/adminpipe"
+	"github.com/Sitr3n01/local-ai-provider/internal/edge"
+	"github.com/Sitr3n01/local-ai-provider/internal/manifestvalidator"
+	"github.com/Sitr3n01/local-ai-provider/internal/rotatelog"
 )
 
 var version = "dev"
