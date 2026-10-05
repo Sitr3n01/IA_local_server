@@ -25,7 +25,7 @@ Outside that boundary, three artifact locations carry no ACL protection at all:
 
 - `C:\IA\local-llama\amd\llama_cpp_b8407_rocm_7.2.1\...\llama-server.exe` (AMD ROCm baseline
   runtime, pinned in `models.yaml`).
-- `C:\Users\Sitr3n\.unsloth\llama.cpp\build\bin\Release\llama-server.exe` (Unsloth candidate
+- `%USERPROFILE%\.unsloth\llama.cpp\build\bin\Release\llama-server.exe` (Unsloth candidate
   runtime, also pinned in `models.yaml`).
 - `C:\IA\models\` — 42 GB across six model families (Ornith 1.0 9B, Qwen 3.5 4B, Qwen 3.5 9B,
   Gemma 4 12B QAT ×2, Gemma 4 31B), each referenced by exact SHA-256 in

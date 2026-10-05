@@ -9,7 +9,7 @@ Accepted. Supersedes the decision recorded in ADR 0008.
 `Set-V2Acl.ps1` hardens exactly `C:\IA\local-ai-v2`. Every GGUF and every
 runtime build referenced by `config/models.yaml` lives outside it — under
 `C:\IA\models`, `C:\IA\runtimes`, `C:\IA\local-llama\amd\...`, and
-`C:\Users\Sitr3n\.unsloth\...`. Those files are writable by the ordinary user,
+`%USERPROFILE%\.unsloth\...`. Those files are writable by the ordinary user,
 which means a production deployment would depend on bytes anyone logged in can
 replace between two runs. `RUNBOOK.md` and `THREAT_MODEL.md` both named this a
 final-cutover blocker.

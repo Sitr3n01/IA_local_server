@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sitr3n/local-ai-provider/internal/forkgate"
+	"github.com/Sitr3n01/local-ai-provider/internal/forkgate"
 )
 
 func main() {

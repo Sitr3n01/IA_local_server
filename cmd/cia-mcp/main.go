@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/sitr3n/local-ai-provider/internal/mcpserver"
+	"github.com/Sitr3n01/local-ai-provider/internal/mcpserver"
 )
 
 var version = "dev"

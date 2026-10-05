@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sitr3n/local-ai-provider/internal/adminpipe"
+	"github.com/Sitr3n01/local-ai-provider/internal/adminpipe"
 )
 
 // pipeExchange runs one administrative request through the edge's real handler

@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Sitr3n01/local-ai-provider/internal/mcpinference"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/sitr3n/local-ai-provider/internal/mcpinference"
 )
 
 const toolName = "local_ai_delegate"

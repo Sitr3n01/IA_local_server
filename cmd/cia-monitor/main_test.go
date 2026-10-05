@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sitr3n/local-ai-provider/internal/adminpipe"
+	"github.com/Sitr3n01/local-ai-provider/internal/adminpipe"
 )
 
 func TestEnvironmentDefaultsStayOnLoopbackAndBesideTheirEdge(t *testing.T) {

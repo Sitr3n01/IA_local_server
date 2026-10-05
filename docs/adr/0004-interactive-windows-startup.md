@@ -1,9 +1,10 @@
 # ADR 0004: Hidden per-user scheduled tasks
 
-- Status: accepted; amended by ADR 0021 (2026-09-30): the tasks no longer have a
-  logon trigger of their own. The IA Local tray, the deployment's one startup
-  entry, starts them. Everything else below still holds.
-- Date: 2026-07-20
+## Status
+
+Accepted, 2026-07-20. Amended by ADR 0021 (2026-09-30): the tasks no longer
+have a logon trigger of their own. The IA Local tray, the deployment's one
+startup entry, starts them. Everything else below still holds.
 
 ## Decision
 

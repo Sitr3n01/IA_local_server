@@ -1,7 +1,8 @@
 # ADR 0003: One versioned manifest and evidence-gated promotion
 
-- Status: accepted
-- Date: 2026-07-20
+## Status
+
+Accepted, 2026-07-20.
 
 ## Decision
 

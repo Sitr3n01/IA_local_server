@@ -118,7 +118,7 @@ First preview the harness transaction using the exact target user. Its
 replacement actions:
 
 ```powershell
-$codexHome = 'C:\Users\Sitr3n\.codex'
+$codexHome = 'C:\Users\<user>\.codex'
 .\scripts\v2\Install-V2Harness.ps1 -Environment Canary -TargetCodexHome $codexHome -Replace
 ```
 
@@ -130,7 +130,7 @@ only after that preview is identical to the intended cutover:
 
 ```powershell
 $canaryApproval = @{
-    TargetCodexHome               = 'C:\Users\Sitr3n\.codex'
+    TargetCodexHome               = 'C:\Users\<user>\.codex'
     Version                       = 'v2-canary-YYYYMMDD.N'
     ExpectedHarnessPlanSha256     = '<reviewed 64-hex harness plan SHA-256>'
     ExpectedEdgeSha256            = '<reviewed 64-hex cia-edge.exe SHA-256>'
@@ -436,7 +436,7 @@ transaction — same approvals, drain, release record, rollback, and verificatio
 
 ```powershell
 $finalApproval = @{
-    TargetCodexHome               = 'C:\Users\Sitr3n\.codex'
+    TargetCodexHome               = 'C:\Users\<user>\.codex'
     Version                       = 'v2-final-YYYYMMDD.N'
     ExpectedHarnessPlanSha256     = '<reviewed 64-hex final harness plan SHA-256>'
     ExpectedEdgeSha256            = '<reviewed 64-hex cia-edge.exe SHA-256>'

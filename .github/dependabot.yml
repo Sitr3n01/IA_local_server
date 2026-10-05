@@ -1,0 +1,40 @@
+# Every dependency here is pinned — Go modules by go.sum, actions by commit
+# SHA, the monitor's test tooling by package-lock.json. Dependabot keeps those
+# pins moving; each update still has to pass the same CI checks as any change.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      go-modules:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+      include: scope
+
+  # Lint and DOM-test tooling for the monitor page; nothing here is shipped.
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: monthly
+    groups:
+      monitor-tooling:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore
+      include: scope

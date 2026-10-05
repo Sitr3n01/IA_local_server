@@ -1,0 +1,71 @@
+name: Bug report
+description: Something behaves differently from what the docs or the code promise.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security vulnerabilities are **not** reported here — use [private reporting](https://github.com/Sitr3n01/local-ai-provider/security/advisories/new).
+        Use synthetic data only. Never paste prompts, responses, headers, tokens, credentials, or private paths.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - cia-edge (data or control plane)
+        - cia-supervisor
+        - cia-tray (IA Local)
+        - cia-monitor
+        - cia-mcp, cia-mcp-inference or cia-mcp-admin
+        - cia-credential
+        - Deployment scripts (scripts/v2)
+        - Model manifest or promotion gate
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The release tag, or the commit you built from.
+      placeholder: v2.0.0-canary.1
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Windows version, GPU and driver, the runtime id from the manifest, and the deployment (canary or final).
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps with synthetic inputs.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized log lines
+      description: Metadata only — request IDs, routes, status codes, timestamps, hashes.
+      render: text
+  - type: checkboxes
+    id: sanitized
+    attributes:
+      label: Data hygiene
+      options:
+        - label: Nothing above contains a prompt, a response, a credential, or a private path.
+          required: true

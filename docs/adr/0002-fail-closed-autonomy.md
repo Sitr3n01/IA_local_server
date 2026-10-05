@@ -1,7 +1,8 @@
 # ADR 0002: Fail closed and leave agent autonomy to harnesses
 
-- Status: accepted
-- Date: 2026-07-20
+## Status
+
+Accepted, 2026-07-20.
 
 ## Decision
 

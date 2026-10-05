@@ -1,4 +1,4 @@
-module github.com/sitr3n/local-ai-provider
+module github.com/Sitr3n01/local-ai-provider
 
 go 1.26.6
 
